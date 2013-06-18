@@ -19,13 +19,12 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef INCLUDE_ur_nodeif_jswrapbase_h
-#define INCLUDE_ur_nodeif_jswrapbase_h
+#ifndef _TLBCORE_JSWRAPBASE_H_    // Used to enable structure defs
+#define _TLBCORE_JSWRAPBASE_H_
 
 #include <node.h>
 #include <v8.h>
 #include <uv.h>
-using namespace v8;
 
 enum JsWrapStyle {
   JSWRAP_NONE,
@@ -40,16 +39,16 @@ struct JsWrapBase {
 
 
   template <class T>
-  static inline T* Unwrap (Handle<Object> handle) {
+  static inline T* Unwrap (v8::Handle<v8::Object> handle) {
     assert(!handle.IsEmpty());
     assert(handle->InternalFieldCount() > 0);
     return static_cast<T*>(handle->GetPointerFromInternalField(0));
   }
 
 
-  Persistent<Object> handle_; // ro
+  v8::Persistent<v8::Object> handle_; // ro
 
-  void Wrap (Handle<Object> handle);
+  void Wrap (v8::Handle<v8::Object> handle);
   void MakeWeak (void);
 
   /* Ref() marks the object as being attached to an event loop.
@@ -73,12 +72,70 @@ struct JsWrapBase {
   int refs_; // ro
   JsWrapStyle wrapStyle;
 
-  static void WeakCallback (Persistent<Value> value, void *data);
+  static void WeakCallback (v8::Persistent<v8::Value> value, void *data);
 
-  static Handle<Value> ThrowInvalidArgs();
-  static Handle<Value> ThrowInvalidThis();
+  static v8::Handle<v8::Value> ThrowInvalidArgs();
+  static v8::Handle<v8::Value> ThrowInvalidThis();
 
 };
+
+
+template <typename CONTENTS>
+struct JsWrapGeneric : JsWrapBase {
+  JsWrapGeneric()
+    :it(new CONTENTS) 
+  { 
+    wrapStyle = JSWRAP_OWNED; 
+  }
+  JsWrapGeneric(CONTENTS *_it)
+  :it(_it)
+  {
+    wrapStyle = JSWRAP_BORROWED;
+  }
+  
+  JsWrapGeneric(CONTENTS const &_it)
+  :it(new CONTENTS(_it))
+  {
+    wrapStyle = JSWRAP_OWNED;
+  }
+
+  ~JsWrapGeneric()
+  {
+    switch(wrapStyle) {
+    case JSWRAP_OWNED: delete it; break;
+    case JSWRAP_BORROWED: break;
+    default: break;
+    }
+    it = 0;
+    wrapStyle = JSWRAP_NONE;
+  }
+
+  CONTENTS *it;
+
+  static v8::Handle<v8::Value> NewInstance(CONTENTS const &it) {
+    v8::HandleScope scope;
+    v8::Local<v8::Object> instance = constructor->NewInstance(0, NULL);
+    JsWrapGeneric<CONTENTS> * w = JsWrapBase::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    *w->it = it;
+    return scope.Close(instance);
+  }
+
+  static CONTENTS *Extract(v8::Handle<v8::Value> value) {
+    if (value->IsObject()) {
+      v8::Handle<v8::Object> valueObject = value->ToObject();
+      v8::Local<v8::String> valueTypeName = valueObject->GetConstructorName();
+      if (valueTypeName == constructor->GetName()) {
+        return JsWrapBase::Unwrap< JsWrapGeneric<CONTENTS> >(valueObject)->it;
+      }
+    }
+    return NULL;
+  }
+
+  static v8::Persistent<v8::Function> constructor;
+};
+
+template <typename CONTENTS>
+Persistent<Function> JsWrapGeneric<CONTENTS>::constructor;
 
 
 #endif
