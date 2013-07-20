@@ -270,12 +270,7 @@ void packet_wr_addfunc(packet &p, stl_solid const *it, size_t n)
 void
 stl_solid::transform(mat4 const &m)
 {
-#ifdef WIN32
-        vector<stl_face>::iterator it;
-        for (it = faces.begin(); it != faces.end(); ++it) {
-#else
-  foreach (it, faces) {
-#endif
+  for (vector<stl_face>::iterator it = faces.begin(); it != faces.end(); ++it) {
     stl_face &face = *it;
     face.transform(m);
   }
@@ -294,12 +289,7 @@ stl_solid::calc_bbox()
   vec3 lo = faces[0].v0;
   vec3 hi = faces[0].v0;
 
-#ifdef WIN32
-  vector<stl_face>::iterator it;
-  for (it = faces.begin(); it != faces.end(); ++it) {
-#else
-  foreach (it, faces) {
-#endif
+  for (vector<stl_face>::iterator it = faces.begin(); it != faces.end(); ++it) {
     stl_face &face = *it;
     
     lo.x = min(lo.x, face.v0.x);
@@ -330,12 +320,7 @@ stl_solid::calc_bbox()
 bool
 stl_solid::ray_intersects(vec3 const &p, vec3 const &d) const
 {
-#ifdef WIN32
-        vector<stl_face>::const_iterator it;
-        for (it = faces.begin(); it != faces.end(); ++it) {
-#else
-  foreach (it, faces) {
-#endif
+  for (vector<stl_face>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
     stl_face const &face = *it;
     float t;
     if (face.ray_intersects(p, d, t)) {
@@ -353,15 +338,10 @@ stl_solid::ray_intersects(vec3 const &p, vec3 const &d) const
 bool
 stl_solid::is_interior(vec3 const &pt) const
 {
-  bool ret=false;
+  bool ret = false;
   vec3 dir(1, 0, 0);
 
-#ifdef WIN32
-vector<stl_face>::const_iterator it;
-for (it = faces.begin(); it != faces.end(); ++it) {
-#else
-  foreach (it, faces) {
-#endif
+  for (vector<stl_face>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
     stl_face const &face = *it;
     float t;
     if (face.ray_intersects(pt, dir, t)) {
@@ -381,12 +361,7 @@ stl_solid::intersection_list(vec3 const &p, vec3 const &d) const
 {
   vector<stl_intersection> ret;
   
-#ifdef WIN32
-  vector<stl_face>::const_iterator it;
-  for (it = faces.begin(); it != faces.end(); ++it) {
-#else
-  foreach (it, faces) {
-#endif
+  for (vector<stl_face>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
     stl_face const &face = *it;
     float t;
     if (face.ray_intersects(p, d, t)) {
@@ -426,8 +401,7 @@ stl_solid::get_mass_properties(double density)
   double sum_yz = 0.0;
   double sum_zx = 0.0;
     
-  vector<stl_face>::const_iterator it;
-  for (it = faces.begin(); it != faces.end(); ++it) {
+  for (vector<stl_face>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
     stl_face const &f = *it;
         
     vec3 v0 = f.v0;
@@ -499,12 +473,7 @@ struct vec3_spatial_map {
   
   ~vec3_spatial_map()
   {
-#ifdef WIN32
-          map<octree_node *, vector<vec3*>*>::iterator it;
-          for (it = spatial.begin(); it != spatial.end(); ++it) {
-#else
-    foreach (it, spatial) {
-#endif
+    for (map<octree_node *, vector<vec3*>*>::iterator it = spatial.begin(); it != spatial.end(); ++it) {
       delete it->second;
     }
     spatial.clear();

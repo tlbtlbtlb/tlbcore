@@ -17,16 +17,14 @@ function mkCodeGen(filename, subs) {
       util.puts(code);
     }
 
-    if (subsPattern) {
-      var parts = code.split(subsPattern);
-      code = _.map(parts, function(p, i) {
-        if (i%2 === 1 && p in subs) {
-          return subs[p];
-        } else {
-          return p;
-        }
-      }).join('');
-    }
+    code = code.replace(subsPattern, function(m) {
+      if (m in subs) {
+        return subs[m];
+      } else {
+        return m;
+      }
+    });
+
     contents.push(code.trim() + '\n');
   }
 
@@ -118,15 +116,21 @@ function mkCodeGen(filename, subs) {
     }
   }
 
-  function withSubs(moreSubs) {
-    var ret = mkCodeGen(filename, _.extend(_.clone(subs), moreSubs));
+  function child(moreSubs) {
+    var childSubs;
+    if (moreSubs) {
+      childSubs = _.extend(_.clone(subs), moreSubs);
+    } else {
+      childSubs = subs;
+    }
+    var ret = mkCodeGen(filename, childSubs);
     contents.push(ret);
     return ret;
   }
 
   line.expandContents = expandContents;
   line.end = end;
-  line.withSubs = withSubs;
+  line.child = child;
   
   return line;
 }
@@ -148,7 +152,7 @@ FileGen.prototype.getFile = function(name) {
   var fn = this.prefix + name;
 
   if (!(fn in this.files)) {
-    this.files[fn] = mkCodeGen(fn, {});
+    this.files[fn] = mkCodeGen(fn, {FILENAME: name});
   }
   return this.files[fn];
 };
