@@ -6,14 +6,15 @@ var util = require('util');
 
 describe('CodeGen', function() {
   it('should work', function() {
-    var cg = new cgen.CodeGen('/tmp/cgen_test.h');
-    var o = cg.withSubs({XXX: '37'});
-    o.line('int test1() {');
-    o.line('return 7 + XXX;');
-    o.line('while (1) {}');
-    o.line('foo(1,')
-    o.line('2,3);');
-    o.line('}');
+    var files = new cgen.FileGen('/tmp/')
+    var cg = files.getFile('cgen_test.h');
+    var o = cg.child({XXX: '37'});
+    o('int test1() {');
+    o('return 7 + XXX;');
+    o('while (1) {}');
+    o('foo(1,')
+    o('2,3);');
+    o('}');
     cg.end();
 
     var l = fs.readFileSync('/tmp/cgen_test.h', 'utf8');

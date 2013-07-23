@@ -72,14 +72,13 @@ TypeRegistry.prototype.emitAll = function(files) {
     typeobj.emitAll(files);
   });
 
-  this.emitJsWrapFuncs();
-  this.emitJsBoot();
+  this.emitJsWrapFuncs(files);
+  this.emitJsBoot(files);
   this.emitRtFunctions(files);
 };
 
-TypeRegistry.prototype.emitJsBoot = function() {
-  var cg = new cgen.CodeGen('build.src/jsboot.cc');
-  var f = cg.linef();
+TypeRegistry.prototype.emitJsBoot = function(files) {
+  var f = files.getFile('jsboot.cc');
   f('#include "../common/std_headers.h"');
   _.each(this.types, function(typeobj, typename) {
     if (typeobj.hasJsWrapper()) {
@@ -96,12 +95,11 @@ TypeRegistry.prototype.emitJsBoot = function() {
   });
   f('jsInit_functions(target);');
   f('}');
-  cg.end();
+  f.end();
 };
 
-TypeRegistry.prototype.emitJsWrapFuncs = function() {
-  var cg = new cgen.CodeGen('build.src/functions_jsWrap.cc');
-  var f = cg.linef();
+TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
+  var f = files.getFile('functions_jsWrap.cc');
   f('#include "../common/std_headers.h"');
   f('#include "../nodeif/jswrapbase.h"');
   f('#include "./rtfns.h"');
@@ -115,7 +113,7 @@ TypeRegistry.prototype.emitJsWrapFuncs = function() {
   f('');
 
   this.emitFunctionWrappers(f);
-  cg.end();
+  f.end();
 };
 
 function funcnameCToJs(name) {
@@ -200,15 +198,15 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
   var typenameExpr = typenames.join('|');
   var typeExpr = '(' + typenameExpr + ')\\s+' + '(|const\\s+&|&)';
   var argExpr = typeExpr + '\\s*(\\w+)';
-  var funcnameExpr = '(\\w+|operator\\s*[^\\s\\w]+)';
+  var funcnameExpr = '\\w+|operator\\s*[^\\s\\w]+';
 
   for (var arity=0; arity < 4; arity++) {
 
     var argsExpr = _.range(0, arity).map(function() { return argExpr; }).join('\\s*,\\s*');
     
     var funcExpr = ('(' + typenameExpr + ')\\s+' + 
-                    funcnameExpr +
-                    '\\s*\\(' + argsExpr + '\\)\\s*;');
+                    '(' + funcnameExpr + ')\\s*' +
+                    '\\(' + argsExpr + '\\)\\s*;');
 
     var re = new RegExp(funcExpr, 'g');
     
@@ -240,7 +238,7 @@ TypeRegistry.prototype.emitRtFunctions = function(files) {
   var self = this;
 
   // For now put them all in one file. It might make sense to split out at some point
-  var hl = files.getLinef('rtfns.h');
+  var hl = files.getFile('rtfns.h');
 
   // Make a list of all includes: collect all types for all functions, then collect the customerIncludes for each type, and remove dups
   var allIncludes = _.uniq(_.flatten(_.map(_.flatten(_.map(self.rtFunctions, function(func) { return func.getAllTypes(); })), function(typename) {
@@ -251,7 +249,7 @@ TypeRegistry.prototype.emitRtFunctions = function(files) {
     hl(incl);
   });
 
-  var cl = files.getLinef('rtfns.cc');
+  var cl = files.getFile('rtfns.cc');
   cl('#include "../common/std_headers.h"');
   cl('#include "./rtfns.h"');
 
@@ -325,19 +323,19 @@ CType.prototype.getFns = function() {
 CType.prototype.emitAll = function(files) {
   var fns = this.getFns();
   if (fns.hostCode) {
-    this.emitHostCode(files.getFile(fns.hostCode).withSubs({TYPENAME: this.typename}).linef());
+    this.emitHostCode(files.getFile(fns.hostCode).child({TYPENAME: this.typename}));
   }
   if (fns.embeddedCode) {
-    this.emitEmbeddedCode(files.getFile(fns.embeddedCode).withSubs({TYPENAME: this.typename}).linef());
+    this.emitEmbeddedCode(files.getFile(fns.embeddedCode).child({TYPENAME: this.typename}));
   }
   if (fns.typeHeader) {
-    this.emitHeader(files.getFile(fns.typeHeader).withSubs({TYPENAME: this.typename}).linef());
+    this.emitHeader(files.getFile(fns.typeHeader).child({TYPENAME: this.typename}));
   }
   if (fns.jsWrapHeader) {
-    this.emitJsWrapHeader(files.getFile(fns.jsWrapHeader).withSubs({TYPENAME: this.typename}).linef());
+    this.emitJsWrapHeader(files.getFile(fns.jsWrapHeader).child({TYPENAME: this.typename}));
   }
   if (fns.jsWrapCode) {
-    this.emitJsWrapCode(files.getFile(fns.jsWrapCode).withSubs({TYPENAME: this.typename}).linef());
+    this.emitJsWrapCode(files.getFile(fns.jsWrapCode).child({TYPENAME: this.typename}));
   }
 };
 
