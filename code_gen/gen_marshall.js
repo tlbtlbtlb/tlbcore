@@ -79,7 +79,7 @@ TypeRegistry.prototype.emitAll = function(files) {
 
 TypeRegistry.prototype.emitJsBoot = function(files) {
   var f = files.getFile('jsboot.cc');
-  f('#include "../common/std_headers.h"');
+  f('#include "tlbcore/common/std_headers.h"');
   _.each(this.types, function(typeobj, typename) {
     if (typeobj.hasJsWrapper()) {
       f('void jsInit_' + typename + '(Handle<Object> target);');
@@ -100,8 +100,8 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
 
 TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
   var f = files.getFile('functions_jsWrap.cc');
-  f('#include "../common/std_headers.h"');
-  f('#include "../nodeif/jswrapbase.h"');
+  f('#include "tlbcore/common/std_headers.h"');
+  f('#include "tlbcore/nodeif/jswrapbase.h"');
   f('#include "./rtfns.h"');
   _.each(this.extraJsWrapFuncsHeaders, f);
   _.each(this.types, function(typeobj, typename) {
@@ -250,7 +250,7 @@ TypeRegistry.prototype.emitRtFunctions = function(files) {
   });
 
   var cl = files.getFile('rtfns.cc');
-  cl('#include "../common/std_headers.h"');
+  cl('#include "tlbcore/common/std_headers.h"');
   cl('#include "./rtfns.h"');
 
   _.each(self.rtFunctions, function(func, funcname) {
@@ -399,8 +399,8 @@ CType.prototype.emitHeader = function(f) {
 };
 
 CType.prototype.emitHostCode = function(f) {
-  f('#include "../common/std_headers.h"');
-  f('#include "../common/jsonio.h"');
+  f('#include "tlbcore/common/std_headers.h"');
+  f('#include "tlbcore/common/jsonio.h"');
   var fns = this.getFns();
   if (fns.typeHeader) {
     f('#include "' + fns.typeHeader + '"');
@@ -431,8 +431,8 @@ CType.prototype.emitJsWrapHeader = function(f) {
 };
 
 CType.prototype.emitJsWrapCode = function(f) {
-  f('#include "../common/std_headers.h"');
-  f('#include "../nodeif/jswrapbase.h"');
+  f('#include "tlbcore/common/std_headers.h"');
+  f('#include "tlbcore/nodeif/jswrapbase.h"');
   var fns = this.getFns();
   if (fns.typeHeader) {
     f('#include "' + fns.typeHeader + '"');
@@ -1068,7 +1068,7 @@ CDspType.prototype.getSynopsis = function() {
 };
 
 CDspType.prototype.getHeaderIncludes = function() {
-  return ['#include "../common/dspcore.h"'].concat(CType.prototype.getHeaderIncludes.call(this));
+  return ['#include "tlbcore/common/dspcore.h"'].concat(CType.prototype.getHeaderIncludes.call(this));
 };
 
 CDspType.prototype.getAllOneExpr = function() {
