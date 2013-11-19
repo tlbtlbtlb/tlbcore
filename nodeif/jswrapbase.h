@@ -101,11 +101,7 @@ struct JsWrapGeneric : JsWrapBase {
 
   ~JsWrapGeneric()
   {
-    switch(wrapStyle) {
-    case JSWRAP_OWNED: delete it; break;
-    case JSWRAP_BORROWED: break;
-    default: break;
-    }
+    if (wrapStyle == JSWRAP_OWNED) delete it;
     it = 0;
     wrapStyle = JSWRAP_NONE;
   }

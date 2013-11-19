@@ -20,6 +20,11 @@ static u_char toHexDigit(int x) {
   return '?';
 }
 
+// json - bool
+
+size_t wrJsonSize(bool const &value) { 
+  return 5; 
+}
 void wrJson(char *&s, bool const &value) {
   if (value) {
     *s++ = 't';
@@ -34,61 +39,6 @@ void wrJson(char *&s, bool const &value) {
     *s++ = 'e';
   }
 }
-void wrJson(char *&s, int const &value) {
-  if (value == 0) {
-    *s++ = '0';
-  }
-  else {
-    s += sprintf(s, "%d", value);
-  }
-}
-void wrJson(char *&s, float const &value) {
-  if (value == 0.0f) {
-    *s++ = '0';
-  }
-  else {
-    s += sprintf(s, "%g", value);
-  }
-}
-void wrJson(char *&s, double const &value) {
-  if (value == 0.0) {
-    *s++ = '0';
-  }
-  else {
-    s += sprintf(s, "%g", value);
-  }
-}
-
-void wrJson(char *&s, string const &value) {
-  *s++ = 0x22;
-  for (string::const_iterator vi = value.begin(); vi != value.end(); vi++) {
-    u_char c = *vi;
-    if (c == (char)0x22) {
-      *s++ = 0x5c;
-      *s++ = 0x22;
-    }
-    else if (c == (char)0x5c) {
-      *s++ = 0x5c;
-      *s++ = 0x5c;
-    }
-    else if (c < 0x20) {
-      *s++ = 0x5c;
-      *s++ = 'u';
-      // We only handle 8-bit characters here, so first two digits will always be zero.
-      // multibyte characters just get passed through, which is legal.
-      *s++ = toHexDigit((c >> 12) & 0x0f);
-      *s++ = toHexDigit((c >> 8) & 0x0f);
-      *s++ = toHexDigit((c >> 4) & 0x0f);
-      *s++ = toHexDigit((c >> 0) & 0x0f);
-    }
-    else {
-      *s++ = c;
-    }
-  }
-  *s++ = 0x22;
-}
-
-
 bool rdJson(const char *&s, bool &value) {
   u_char c;
   c = *s++;
@@ -124,11 +74,41 @@ bool rdJson(const char *&s, bool &value) {
   s--;
   return false;
 }
+
+
+// json - int
+
+size_t wrJsonSize(int const &value) { 
+  return 12; 
+}
+void wrJson(char *&s, int const &value) {
+  if (value == 0) {
+    *s++ = '0';
+  }
+  else {
+    s += sprintf(s, "%d", value);
+  }
+}
 bool rdJson(const char *&s, int &value) {
   char *end = 0;
   value = strtol(s, &end, 10);
   s = end;
   return true;
+}
+
+
+// json - float 
+
+size_t wrJsonSize(float const &value) { 
+  return 16; 
+}
+void wrJson(char *&s, float const &value) {
+  if (value == 0.0f) {
+    *s++ = '0';
+  }
+  else {
+    s += sprintf(s, "%g", value);
+  }
 }
 bool rdJson(const char *&s, float &value) {
   char *end = 0;
@@ -136,11 +116,77 @@ bool rdJson(const char *&s, float &value) {
   s = end;
   return true;
 }
+
+
+// json - double
+
+size_t wrJsonSize(double const &value) { 
+  return 20; 
+}
+void wrJson(char *&s, double const &value) {
+  if (value == 0.0) {
+    *s++ = '0';
+  }
+  else {
+    s += sprintf(s, "%g", value);
+  }
+}
 bool rdJson(const char *&s, double &value) {
   char *end = 0;
   value = strtod(s, &end);
   s = end;
   return true;
+}
+
+
+// json - string
+
+size_t wrJsonSize(string const &value) { 
+  size_t ret = 2;
+  for (string::const_iterator vi = value.begin(); vi != value.end(); vi++) {
+    u_char c = *vi;
+    if (c == (u_char)0x22) {
+      ret += 2;
+    }
+    else if (c == (u_char)0x5c) {
+      ret += 2;
+    }
+    else if (c < 0x20) {
+      ret += 6;
+    }
+    else {
+      ret += 1;
+    }
+  }
+  return ret;
+}
+void wrJson(char *&s, string const &value) {
+  *s++ = 0x22;
+  for (string::const_iterator vi = value.begin(); vi != value.end(); vi++) {
+    u_char c = *vi;
+    if (c == (u_char)0x22) {
+      *s++ = 0x5c;
+      *s++ = 0x22;
+    }
+    else if (c == (u_char)0x5c) {
+      *s++ = 0x5c;
+      *s++ = 0x5c;
+    }
+    else if (c < 0x20) {
+      *s++ = 0x5c;
+      *s++ = 'u';
+      // We only handle 8-bit characters here, so first two digits will always be zero.
+      // multibyte characters just get passed through, which is legal.
+      *s++ = toHexDigit((c >> 12) & 0x0f);
+      *s++ = toHexDigit((c >> 8) & 0x0f);
+      *s++ = toHexDigit((c >> 4) & 0x0f);
+      *s++ = toHexDigit((c >> 0) & 0x0f);
+    }
+    else {
+      *s++ = c;
+    }
+  }
+  *s++ = 0x22;
 }
 bool rdJson(const char *&s, string &value) {
   u_char c;

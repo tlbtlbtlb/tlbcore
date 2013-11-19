@@ -7,6 +7,11 @@ var _ = require('underscore');
 require('../common/MoreUnderscore');
 
 exports.FileGen = FileGen;
+exports.escapeCString = escapeCString;
+
+function escapeCString(s) {
+  return s.replace(/[\000-\040\\\^\$\*\+\?\|]/g, "\\$&");
+}
 
 function mkCodeGen(filename, subs) {
   var contents = [];

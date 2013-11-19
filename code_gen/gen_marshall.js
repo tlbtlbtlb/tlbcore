@@ -383,10 +383,6 @@ CType.prototype.getDefnDependencies = function() {
   return sortTypes(this.extraDefnDependencies);
 };
 
-CType.prototype.getJsonMaxSize = function() {
-  return 16;
-};
-
 // ----------------------------------------------------------------------
 
 CType.prototype.emitHeader = function(f) {
@@ -519,10 +515,6 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
   }
 };
 
-PrimitiveCType.prototype.getJsonMaxSize = function() {
-  return 16;
-};
-
 
 // ----------------------------------------------------------------------
 
@@ -632,13 +624,13 @@ CStructType.prototype.emitTypeDecl = function(f) {
   f('static char const * versionString;');
   f('static char const * typeVersionString;');
   f('static char const * typeName;');
-  f('static int const jsonMaxSize;');
 
   f('};');
 
   f('ostream & operator<<(ostream &s, const TYPENAME &obj);');
   f('void wrJson(char *&s, const TYPENAME &obj);');
   f('bool rdJson(const char *&s, TYPENAME &obj);');
+  f('size_t wrJsonSize(TYPENAME const &x);');
 
   f('void wrPacket(packet &p, const TYPENAME *x, size_t n);');
   f('void rdPacket(packet &p, TYPENAME *x, size_t n);');
@@ -683,7 +675,6 @@ CStructType.prototype.emitHostImpl = function(f) {
     f('char const * TYPENAME::versionString ="' + this.getSignature() + '";');
     f('char const * TYPENAME::typeVersionString = "' + this.getTypeAndVersion() + '";');
     f('char const * TYPENAME::typeName = "TYPENAME";');
-    f('int const TYPENAME::jsonMaxSize = ' + this.getJsonMaxSize() + ';');
   }
 
   f('TYPENAME TYPENAME::allZero() {');
@@ -729,21 +720,12 @@ CStructType.prototype.emitHostImpl = function(f) {
 
 // JSON
 
-CStructType.prototype.getJsonMaxSize = function() {
-  var ntt = this.nameToType;
-  return _.reduce(_.map(this.orderedNames, function(name) {
-    var type = ntt[name];
-    // allow 4 for "":,
-    return 4 + (new Buffer(name, 'utf8')).length + type.getJsonMaxSize();
-  }), function(a,b) { return a+b; }, 15 + (new Buffer(this.typename, 'utf8')).length);
-};
-
 CStructType.prototype.emitWrJson = function(f) {
   function emitstr(s) {
     var b = new Buffer(s, 'utf8');
     f(_.map(_.range(0, b.length), function(ni) {
       return '*s++ = ' + b[ni]+ ';';
-    }).join(' ') + ' // ' + s.replace(/[\000-\040\\\^\$\*\+\?\|]/g, "\\$&"));
+    }).join(' ') + ' // ' + cgen.escapeCString(s));
   }
   f('void wrJson(char *&s, const TYPENAME &obj) {');
   emitstr('{"type":"' + this.typename + '"');
@@ -752,6 +734,12 @@ CStructType.prototype.emitWrJson = function(f) {
     f('wrJson(s, obj.' + name + ');');
   });
   f('*s++ = \'}\';');
+  f('}');
+
+  f('size_t wrJsonSize(const TYPENAME &obj) {');
+  f('return ' + _.map(this.orderedNames, function(name, namei) {
+    return (new Buffer(name, 'utf8').length + 4).toString() + '+wrJsonSize(obj.' + name + ')';
+  }).join(' + ') + ';');
   f('}');
 };
 
@@ -944,10 +932,11 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('static Handle<Value> jsMethod_TYPENAME_toString(const Arguments& args) {')
     f('HandleScope scope;');
     f('JsWrap_TYPENAME* obj = JsWrapBase::Unwrap<JsWrap_TYPENAME>(args.This());');
-    f('char *s = new char[TYPENAME::jsonMaxSize];');
+    f('size_t maxSize = wrJsonSize(*obj->it) + 2;');
+    f('char *s = new char[maxSize];');
     f('char *p = s;');
     f('wrJson(p, *obj->it);');
-    f('assert(p - s + 2 < TYPENAME::jsonMaxSize);');
+    f('assert((size_t)(p - s + 2) < maxSize);');
     f('*p = 0;');
     f('Local<String> jss = String::New(s, p-s);');
     f('delete s;');
@@ -957,7 +946,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('static Handle<Value> jsFunc_TYPENAME_fromString(const Arguments& args) {')
     f('HandleScope scope;');
     f('Handle<String> jss = args[0]->ToString();');
-    f('int sl = jss->Utf8Length()+1;');
+    f('size_t sl = jss->Utf8Length()+1;');
     f('char *s = new char[sl];')
     f('jss->WriteUtf8(s, sl);');
     f('const char *p = s;');
