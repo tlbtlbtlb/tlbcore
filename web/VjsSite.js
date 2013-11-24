@@ -1,0 +1,227 @@
+// -*- js-indent-level:2 -*-
+/*jsl:option explicit*/
+"use strict";
+var _ = require('underscore');
+var util = require('util');
+var http = require('http');
+var fs = require('fs');
+var url = require('url');
+var path = require('path');
+
+exports.WebServer = WebServer;
+exports.setVerbose = function(v) { verbose = v; };
+
+var logio             = require('./logio');
+var RpcEngines        = require('./RpcEngines');
+var VjsApi            = require('./VjsApi');
+var VjsDbs            = require('./VjsDbs');
+var Auth              = require('./Auth');
+var Provider          = require('./Provider');
+var Topology          = require('./Topology');
+var Safety            = require('./Safety');
+var Image             = require('./Image');
+
+// ======================================================================
+
+var verbose = 1;
+
+function WebServer() {
+  var webServer = this;
+  webServer.urlProviders = {};
+  webServer.dirProviders = {};
+  webServer.serverAccessCounts = {};
+  webServer.wwwRoot = null;
+};
+
+WebServer.prototype.setUrl = function(url, p) {
+  var webServer = this;
+  if (_.isString(p)) {
+    var st = fs.statSync(p);
+    if (st.isDirectory()) {
+      url = path.join(url, '/'); // ensure trailing slash, but doesn't yield more than one
+      p = new Provider.RawDirProvider(p);
+      webServer.dirProviders['GET ' + url] = p; 
+    } else {
+      p = new Provider.RawFileProvider(p);
+    }
+  }
+
+  webServer.urlProviders['GET ' + url] = p; 
+
+};
+
+
+WebServer.prototype.setupBaseProvider = function() {
+  var webServer = this;
+
+  var tlbcoreWeb = path.dirname(module.filename);
+
+
+  if (webServer.baseProvider) return;
+  var p = new Provider.ProviderSet();
+  if (1) p.addCss(tlbcoreWeb + '/common.css');
+  if (1) p.addCss(tlbcoreWeb + '/spinner-lib/spinner.css');
+  // Add more CSS files here
+
+  if (1) p.addScript(tlbcoreWeb + '/VjsPreamble.js');
+  if (1) p.addScript(require.resolve('underscore'), 'underscore');
+  if (1) p.addScript(tlbcoreWeb + '/MoreUnderscore.js');
+  if (1) p.addScript(tlbcoreWeb + '/EventEmitter/EventEmitter.js', 'events');
+  if (1) p.addScript(tlbcoreWeb + '/jquery/dist/jquery.js');
+  if (1) p.addScript(tlbcoreWeb + '/ajaxupload-lib/ajaxUpload.js');       // http://valums.com/ajax-upload/
+  if (0) p.addScript('swf-lib/swfobject.js');               // http://blog.deconcept.com/swfobject/
+  if (1) p.addScript(tlbcoreWeb + '/mixpanel-lib/mixpanel.js');
+  if (1) p.addScript(require.resolve('./VjsClient.js'));
+  if (1) p.addScript(require.resolve('./VjsBrowser.js'));
+
+  webServer.baseProvider = p;
+};
+
+WebServer.prototype.setupContent = function(dirs) {
+  var webServer = this;
+  
+  webServer.setupBaseProvider();
+  webServer.setupInternalUrls();
+
+  _.each(dirs, function(dir) {
+    require('../.././' + dir + '/load').load(webServer);
+  });
+
+  webServer.startAllContent();
+  webServer.mirrorAll();
+};
+
+WebServer.prototype.setupInternalUrls = function() {
+  var webServer = this;
+
+  webServer.urlProviders['POST /vjs.api'] = {
+    start: function() {},
+    mirrorTo: function(dst) {},
+    handleRequest: function(req, res, suffix) {
+      RpcEngines.PostJsonHandler(req, res, VjsApi.apis);
+    }
+  };
+  
+
+  webServer.urlProviders['POST /uploadImage'] = {
+    start: function() {},
+    mirrorTo: function(dst) {},
+    handleRequest: function(req, res, suffix) {
+      RpcEngines.UploadHandler(req, res, function(docFn, doneCb) {
+        var userName = RpcEngines.cookieUserName(req);
+        Image.mkImageVersions(docFn, {fullName: userName}, function(ii) {
+          doneCb(ii);
+        });
+      });
+    }
+  };
+
+  webServer.urlProviders['GET /vjs.api'] = {
+    start: function() {},
+    mirrorTo: function(dst) {},
+    handleRequest: function(req, res, suffix) {
+      RpcEngines.FetchDocHandler(req, res, VjsApi.fetchApis);
+    }
+  };
+
+  var tlbcoreWeb = path.dirname(module.filename);
+
+  // Files available from root of file server
+  webServer.setUrl('/favicon.ico', tlbcoreWeb + '/images/vjs.ico');
+  webServer.setUrl('/spinner-lib/spinner.gif', tlbcoreWeb + '/spinner-lib/spinner.gif');
+};
+
+
+WebServer.prototype.startAllContent = function() {
+  var webServer = this;
+  _.each(webServer.urlProviders, function(p, name) {
+    p.start();
+  });
+};
+
+WebServer.prototype.mirrorAll = function() {
+  var webServer = this;
+
+  if (webServer.wwwRoot) {
+    _.each(webServer.urlProviders, function(p, name) {
+      var m = /^GET (.*)$/.exec(name);
+      if (m) {
+        var dst = path.join(webServer.wwwRoot, m[1])
+        p.mirrorTo(dst);
+      }
+    });
+  }
+};
+
+WebServer.prototype.startHttpServer = function(port, bindHost) {
+  var webServer = this;
+  if (!port) port = 8000;
+  if (!bindHost) bindHost = '127.0.0.1';
+  
+  webServer.httpServer = http.createServer(function (req, res) {
+
+    try {
+      var up = url.parse(req.url, true);
+    } catch (ex) {
+      logio.E('http', 'Error parsing' + req.url, ex);
+      return Provider.emit404(res, 'Invalid url');
+    }
+
+    var remote = req.connection.remoteAddress + '!http';
+    
+    if (!up.host) up.host = req.headers['host'];
+    if (!up.host) up.host = 'localhost';
+    if (up.host.match(/[^-\w\.\/\:]/)) {
+      return Provider.emit404(res, 'Invalid host header');
+    }
+
+    var pathc = up.pathname.substr(1).split('/');
+    if (pathc[0] === 'live') {
+      pathc.shift();
+    }
+    var callid = req.method + ' /' + pathc.join('/');
+    webServer.serverAccessCounts[callid] = (webServer.serverAccessCounts[callid] || 0) + 1;
+    if (webServer.urlProviders[callid]) {
+      logio.I('http', callid);
+      webServer.urlProviders[callid].handleRequest(req, res, '');
+      return;
+    }
+
+    for (var pathcPrefix = pathc.length-1; pathcPrefix >= 1; pathcPrefix--) {
+      var prefix = req.method + ' /' + pathc.slice(0, pathcPrefix).join('/') + '/';
+      if (webServer.dirProviders[prefix]) { 
+        var suffix = pathc.slice(pathcPrefix, pathc.length).join('/');
+        logio.I('http', prefix, suffix);
+        webServer.dirProviders[prefix].handleRequest(req, res, suffix);
+        return;
+      }
+    }
+
+    logio.E(remote, '404 ' + callid);
+    Provider.emit404(res, callid);
+    return;
+  });
+
+  util.puts('Listening on ' + bindHost + ':' + port);
+  webServer.httpServer.listen(port, bindHost);
+};
+
+WebServer.prototype.getSiteHits = function(cb) {
+  var webServer = this;
+  var aic = RpcEngines.getApiAccessCounts();
+  cb(Array.prototype.concat(
+    _.map(_.sortBy(_.keys(webServer.serverAccessCounts), _.identity), function(k) {
+      return {desc: 'http.' + k, hits: webServer.serverAccessCounts[k]};
+    }),
+    _.map(_.sortBy(_.keys(aic), _.identity), function(k) {
+      return {desc: 'api.' + k, hits: aic[k]};
+    })));
+};
+
+WebServer.prototype.getContentStats = function(cb) {
+  var webServer = this;
+  cb(_.map(_.sortBy(_.keys(webServer.urlProviders), _.identity), function(k) { 
+    return _.extend({}, webServer.urlProviders[k].getStats(), {desc: k});
+  }));
+};
+

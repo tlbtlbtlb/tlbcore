@@ -1,0 +1,119 @@
+body { 
+    font-family: "Source Sans Pro", "Helvetica", "Arial", sans-serif;
+    font-size: 16px;
+    line-height: 170%;
+}
+td { 
+    font-family: "Source Sans Pro", "Helvetica", "Arial", sans-serif;
+    font-size: 16px;
+    line-height: 170%
+}
+h3 {
+    clear:  all;
+}
+li {
+    margin-bottom:  5pt;
+}
+
+a:link {
+    color: #222222;
+}
+a:visited {
+    color: #666666;
+}
+b {
+    color: #333333;
+}
+img {
+    border-width: 0;
+}
+
+.footer {
+    text-align: center;
+    margin-top:  30px;
+    font-size:  7.0pt;
+}
+.footer a:link, .footer a:visited {
+    text-decoration:  none;
+}
+.footer a:hover {
+    text-decoration:  underline;
+}
+
+blockquote {
+    margin-left:  2em;
+}
+
+.pagetitle {
+    margin-bottom:  30px;
+}
+.pagecontent600 {
+    width:  600px;
+    margin-top:  20px;
+    margin-left:  auto;
+    margin-right:  auto;
+}
+.pagecontent600 p {
+    width:  500px;
+}
+.pagecontent600 ul {
+    width:  500px;
+}
+.pagecontent800 {
+    width:  800px;
+    margin-top:  20px;
+    margin-left:  auto;
+    margin-right:  auto;
+}
+.pagecontent800 p {
+    width:  700px;
+}
+.pagecontent800 ul {
+    width:  700px;
+}
+.pagetitle {
+    width:  600px;
+    margin-left:  auto;
+    margin-right:  auto;
+    color:  #666666;
+    font-size:  30px;
+    font-weight:  bold;
+    line-height:  160%
+}
+.heading {
+    color:  #333333;
+    font-size:  30px;
+    font-weight:  bold;
+    line-height:  160%;
+}
+.caption {
+    color:  #333333;
+    font-size:  16px;
+    font-weight:  bold;
+    line-height:  170%;
+}
+.lpictab {
+    margin-right:  20pt; 
+    margin-top:  0pt;
+}
+.rpictab {
+    margin-left:  10pt; 
+    margin-top:  0pt;
+}
+.rpic {
+    float: right;
+    margin-left: 1em;
+    margin-bottom: 10px;
+    clear: both;
+}
+.lpic {
+    float: left;
+    margin-right: 1em;
+    clear: both;
+}
+.clearboth {
+    clear: both;
+}
+.clearleft {
+    clear: left;
+}

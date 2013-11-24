@@ -1,3 +1,4 @@
+'use strict';
 var fs = require('fs');
 var util = require('util');
 var _ = require('underscore');
@@ -56,10 +57,15 @@ function main() {
 
     _.each(files, function(fn) {
       util.puts('Load ' + fn);
-      var rawFile = fs.readFileSync(fn, 'utf8');
-      var wrappedFile = '(function(typereg, cgen, _, util) {\n' + rawFile + '\n})';
-      var f = eval(wrappedFile);
-      f(typereg, cgen, _, util);
+      if (/\.js$/.test(fn)) {
+        typereg.scanJsDefn(fn);
+      }
+      else if (/\.h$/.test(fn)) {
+        typereg.scanCHeader(fn);
+      }
+      else {
+        throw new Error(fn + ': Unknown file extension');
+      }
     });
     typereg.emitAll(filegen);
 

@@ -3,7 +3,7 @@
     'targets': [
         {
             'target_name': 'tlbcore',
-            'include_dirs+': ['..'],
+            'include_dirs+': ['..','../..'],
             'cflags_cc!': ['-fno-rtti', '-fno-exceptions'],
             'xcode_settings': {'GCC_ENABLE_CPP_EXCEPTIONS': 'YES', 'GCC_ENABLE_CPP_RTTI': 'YES'},
             'sources': [

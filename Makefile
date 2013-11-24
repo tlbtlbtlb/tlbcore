@@ -10,7 +10,7 @@ size ::
 node_modules ::
 
 # MAINTAINME
-JS_SRCDIRS = realtime code_gen nodeif geom gyro13 genes
+JS_SRCDIRS = realtime code_gen nodeif geom gyro13 genes web
 
 
 # Manual machine setup

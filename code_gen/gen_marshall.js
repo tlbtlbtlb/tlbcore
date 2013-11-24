@@ -1,4 +1,4 @@
-
+'use strict';
 var fs = require('fs');
 var util = require('util');
 var crypto = require('crypto');
@@ -7,6 +7,7 @@ var cgen = require('./cgen');
 var gen_functions = require('./gen_functions');
 
 exports.TypeRegistry = TypeRegistry;
+
 
 function getTypename(t) {
   if (t.hasOwnProperty('typename')) {
@@ -34,6 +35,15 @@ function TypeRegistry(groupname) {
 
   this.setPrimitives();
 }
+
+TypeRegistry.prototype.scanJsDefn = function(fn) {
+  var rawFile = fs.readFileSync(fn, 'utf8');
+  var wrappedFile = '(function(typereg, cgen, _, util) {\n' + rawFile + '\n})';
+  var f = eval(wrappedFile);
+  f(this, cgen, _, util);
+};
+
+
 
 TypeRegistry.prototype.setPrimitives = function() {
   this.types['bool'] = new PrimitiveCType(this, 'bool');
@@ -200,6 +210,9 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
   var argExpr = typeExpr + '\\s*(\\w+)';
   var funcnameExpr = '\\w+|operator\\s*[^\\s\\w]+';
 
+  // try to eliminate class-scoped functions.
+  // text = text.replace(/struct.*{[.\n]*\n}/, '');
+
   for (var arity=0; arity < 4; arity++) {
 
     var argsExpr = _.range(0, arity).map(function() { return argExpr; }).join('\\s*,\\s*');
@@ -229,8 +242,8 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
 };
 
 TypeRegistry.prototype.scanCHeader = function(fn) {
-  var text = fs.readFileSync(fn, 'utf8');
-  this.scanCFunctions(text);
+  var rawFile = fs.readFileSync(fn, 'utf8');
+  this.scanCFunctions(rawFile);
   this.extraJsWrapFuncsHeaders.push('#include "' + fn + '"');
 };
 

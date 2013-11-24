@@ -1,0 +1,6 @@
+[submodule "web/jquery"]
+	path = web/jquery
+	url = https://github.com/jquery/jquery.git
+[submodule "web/EventEmitter"]
+	path = web/EventEmitter
+	url = https://github.com/peers/EventEmitter.git
