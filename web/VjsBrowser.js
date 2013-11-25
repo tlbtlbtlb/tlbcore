@@ -716,6 +716,29 @@ $.fn.trackKeys = function(down, changed) {
   });
 };
 
+/*
+  On some browsers on retina devices, the canvas is at css pixel resolution. This converts it to device pixel resolution.
+*/
+$.fn.maximizeCanvasResolution = function() {
+  this.find('canvas').each(function(index, canvas) {
+    var ctx = canvas.getContext('2d');
+    var devicePixelRatio = window.devicePixelRatio || 1;
+    var backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
+                             ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1);
+    if (devicePixelRatio !== backingStoreRatio) {
+      var ratio = devicePixelRatio / backingStoreRatio;
+      var oldWidth = canvas.width;
+      var oldHeight = canvas.height;
+
+      canvas.width = oldWidth * ratio;
+      canvas.height = oldHeight * ratio;
+
+      canvas.style.width = oldWidth + 'px';
+      canvas.style.height = oldHeight + 'px';
+    }
+  });
+  return this;
+};
 
 function mkImage(src, width, height) {
   var ret = new Image();
