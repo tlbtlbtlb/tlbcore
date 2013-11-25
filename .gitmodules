@@ -4,3 +4,6 @@
 [submodule "web/EventEmitter"]
 	path = web/EventEmitter
 	url = https://github.com/peers/EventEmitter.git
+[submodule "web/libwebsockets"]
+	path = web/libwebsockets
+	url = https://github.com/warmcat/libwebsockets.git
