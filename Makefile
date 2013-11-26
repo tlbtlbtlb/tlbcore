@@ -44,9 +44,17 @@ clean ::
 	cd nodeif && node-gyp clean
 	rm -rf nodeif/bin
 
-build :: 
+build :: build.nodeif
+build.nodeif :: 
 	cd nodeif && node-gyp build
 	ln -sf build/Release nodeif/bin
+
+build :: build.libwebsockets
+build.libwebsockets ::
+	mkdir -p web/libwebsockets/build && cd web/libwebsockets/build && cmake .. && make
+	file web/libwebsockets/build/lib/libwebsockets.dylib
+clean ::
+	mkdir -p web/libwebsockets/build && cd web/libwebsockets/build && make clean
 
 
 test ::
