@@ -3,3 +3,4 @@
 /nodeif/bin
 .lock-wscript
 *.log
+*.o
