@@ -20,7 +20,7 @@ var logio            = require('./logio');
 //var multipart        = require('./multipart-lib/multipart');
 var Image            = require('./Image');
 var Auth             = require('./Auth');
-var VjsDbs           = require('./VjsDbs');
+var redis0           = require('./VjsDbs')('redis0');
 var Storage          = require('./Storage');
 
 // ======================================================================
@@ -95,7 +95,7 @@ function apiDispatch(req, res, content, apis) {
   var t0 = Date.now();
   var userInfo = null;
   if (userName) {
-    VjsDbs.db.getUser(userName, function(ui) {
+    redis0.getObj('USER ' + userName, function(ui) {
       if (!ui) return emitErrDoc(res, 'no such user');
       userInfo = ui; // XXX safer to copy?
       userInfo.logKey = logKey;
