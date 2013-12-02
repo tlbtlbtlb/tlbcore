@@ -158,7 +158,8 @@ struct packet {
   void add(char const *data, size_t size);
   void add(uint8_t const *data, size_t size);
   void add_reversed(uint8_t const *data, size_t size);
-  void add_raw_string(char const *s);
+  void add_nl_string(char const *s);
+  void add_nl_string(string const &s);
 
   void add_type_tag(char const *s);
 
@@ -212,6 +213,7 @@ struct packet {
   uint16_t get_be_uint16();
   uint8_t get_be_uint8();
   double get_be_double();
+  string get_nl_string();
   
   static packet read_from_file(char const *fn);
   static packet read_from_fd(int fd);

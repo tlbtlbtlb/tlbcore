@@ -332,6 +332,21 @@ void packet::add_reversed(const u_char *data, size_t size)
   }
 }
 
+void packet::add_nl_string(const char *s)
+{
+  size_t slen = strlen(s);
+  add(s, slen);
+  add("\n", 1);
+}
+
+void packet::add_nl_string(string const &s)
+{
+  size_t slen = s.size();
+  add(s.data(), slen);
+  add("\n", 1);
+}
+
+
 void packet::add_pkt(packet const &wr) 
 {
   add((int)wr.remaining());
@@ -515,6 +530,17 @@ double packet::get_be_double()
 #endif
 
   return it.value;
+}
+
+string packet::get_nl_string()
+{
+  string ret;
+  while (rd_pos < wr_pos) {
+    u_char c = contents->buf[rd_pos++];
+    if (c == '\n') break;
+    ret.push_back(c);
+  }
+  return ret;
 }
 
 void packet::add_type_tag(char const *tag)
