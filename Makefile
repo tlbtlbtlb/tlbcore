@@ -57,6 +57,14 @@ clean ::
 	mkdir -p web/libwebsockets/build && cd web/libwebsockets/build && make clean
 
 
+build :: build.jquery
+build.jquery :
+	cd web/jquery && npm run-script build
+clean :: clean.jquery
+clean.jquery :
+	cd web/jquery && rm -rf dist
+
+
 test ::
 	../node_modules/mocha/bin/mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js))
 

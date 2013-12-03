@@ -1,25 +1,26 @@
 // -*- js-indent-level:2 -*-
 /*jsl:option explicit*/
 "use strict";
-var _ = require('underscore');
-var util = require('util');
-var http = require('http');
-var fs = require('fs');
-var url = require('url');
-var path = require('path');
+var _                   = require('underscore');
+var util                = require('util');
+var http                = require('http');
+var fs                  = require('fs');
+var url                 = require('url');
+var path                = require('path');
+var websocket           = require('websocket');
+
+var logio               = require('./logio');
+var RpcEngines          = require('./RpcEngines');
+var VjsApi              = require('./VjsApi');
+var VjsDbs              = require('./VjsDbs');
+var Auth                = require('./Auth');
+var Provider            = require('./Provider');
+var Topology            = require('./Topology');
+var Safety              = require('./Safety');
+var Image               = require('./Image');
 
 exports.WebServer = WebServer;
 exports.setVerbose = function(v) { verbose = v; };
-
-var logio             = require('./logio');
-var RpcEngines        = require('./RpcEngines');
-var VjsApi            = require('./VjsApi');
-var VjsDbs            = require('./VjsDbs');
-var Auth              = require('./Auth');
-var Provider          = require('./Provider');
-var Topology          = require('./Topology');
-var Safety            = require('./Safety');
-var Image             = require('./Image');
 
 // ======================================================================
 
@@ -29,8 +30,10 @@ function WebServer() {
   var webServer = this;
   webServer.urlProviders = {};
   webServer.dirProviders = {};
+  webServer.wsHandlers = {};
   webServer.serverAccessCounts = {};
   webServer.wwwRoot = null;
+  webServer.tlbcoreWeb = path.dirname(module.filename);
 };
 
 WebServer.prototype.setUrl = function(url, p) {
@@ -47,48 +50,36 @@ WebServer.prototype.setUrl = function(url, p) {
   }
 
   webServer.urlProviders['GET ' + url] = p; 
+};
 
+WebServer.prototype.setSocketProtocol = function(url, f) {
+  var webServer = this;
+  
+  webServer.wsHandlers[url] = f;
 };
 
 
 WebServer.prototype.setupBaseProvider = function() {
   var webServer = this;
 
-  var tlbcoreWeb = path.dirname(module.filename);
-
-
   if (webServer.baseProvider) return;
   var p = new Provider.ProviderSet();
-  if (1) p.addCss(tlbcoreWeb + '/common.css');
-  if (1) p.addCss(tlbcoreWeb + '/spinner-lib/spinner.css');
+  if (1) p.addCss(webServer.tlbcoreWeb + '/common.css');
+  if (1) p.addCss(webServer.tlbcoreWeb + '/spinner-lib/spinner.css');
   // Add more CSS files here
 
-  if (1) p.addScript(tlbcoreWeb + '/VjsPreamble.js');
+  if (1) p.addScript(webServer.tlbcoreWeb + '/VjsPreamble.js');
   if (1) p.addScript(require.resolve('underscore'), 'underscore');
-  if (1) p.addScript(tlbcoreWeb + '/MoreUnderscore.js');
-  if (1) p.addScript(tlbcoreWeb + '/EventEmitter/EventEmitter.js', 'events');
-  if (1) p.addScript(tlbcoreWeb + '/jquery/dist/jquery.js');
-  if (1) p.addScript(tlbcoreWeb + '/ajaxupload-lib/ajaxUpload.js');       // http://valums.com/ajax-upload/
+  if (1) p.addScript(webServer.tlbcoreWeb + '/MoreUnderscore.js');
+  if (1) p.addScript(webServer.tlbcoreWeb + '/EventEmitter/EventEmitter.js', 'events');
+  if (1) p.addScript(webServer.tlbcoreWeb + '/jquery/dist/jquery.js');
+  if (1) p.addScript(webServer.tlbcoreWeb + '/ajaxupload-lib/ajaxUpload.js');       // http://valums.com/ajax-upload/
   if (0) p.addScript('swf-lib/swfobject.js');               // http://blog.deconcept.com/swfobject/
-  if (1) p.addScript(tlbcoreWeb + '/mixpanel-lib/mixpanel.js');
+  if (1) p.addScript(webServer.tlbcoreWeb + '/mixpanel-lib/mixpanel.js');
   if (1) p.addScript(require.resolve('./VjsClient.js'));
   if (1) p.addScript(require.resolve('./VjsBrowser.js'));
 
   webServer.baseProvider = p;
-};
-
-WebServer.prototype.setupContent = function(dirs) {
-  var webServer = this;
-  
-  webServer.setupBaseProvider();
-  webServer.setupInternalUrls();
-
-  _.each(dirs, function(dir) {
-    require('../.././' + dir + '/load').load(webServer);
-  });
-
-  webServer.startAllContent();
-  webServer.mirrorAll();
 };
 
 WebServer.prototype.setupInternalUrls = function() {
@@ -124,12 +115,25 @@ WebServer.prototype.setupInternalUrls = function() {
     }
   };
 
-  var tlbcoreWeb = path.dirname(module.filename);
-
   // Files available from root of file server
-  webServer.setUrl('/favicon.ico', tlbcoreWeb + '/images/vjs.ico');
-  webServer.setUrl('/spinner-lib/spinner.gif', tlbcoreWeb + '/spinner-lib/spinner.gif');
+  webServer.setUrl('/favicon.ico', webServer.tlbcoreWeb + '/images/vjs.ico');
+  webServer.setUrl('/spinner-lib/spinner.gif', webServer.tlbcoreWeb + '/spinner-lib/spinner.gif');
 };
+
+WebServer.prototype.setupContent = function(dirs) {
+  var webServer = this;
+  
+  webServer.setupBaseProvider();
+  webServer.setupInternalUrls();
+
+  _.each(dirs, function(dir) {
+    require('../../' + dir + '/load').load(webServer);
+  });
+
+  webServer.startAllContent();
+  webServer.mirrorAll();
+};
+
 
 
 WebServer.prototype.startAllContent = function() {
@@ -158,7 +162,14 @@ WebServer.prototype.startHttpServer = function(port, bindHost) {
   if (!port) port = 8000;
   if (!bindHost) bindHost = '127.0.0.1';
   
-  webServer.httpServer = http.createServer(function (req, res) {
+  webServer.httpServer = http.createServer(httpHandler);
+  util.puts('Listening on ' + bindHost + ':' + port);
+  webServer.httpServer.listen(port, bindHost);
+
+  webServer.ws = new websocket.server({httpServer: webServer.httpServer});
+  webServer.ws.on('request', wsRequestHandler);
+
+  function httpHandler(req, res) {
 
     try {
       var up = url.parse(req.url, true);
@@ -200,10 +211,89 @@ WebServer.prototype.startHttpServer = function(port, bindHost) {
     logio.E(remote, '404 ' + callid);
     Provider.emit404(res, callid);
     return;
-  });
+  }
 
-  util.puts('Listening on ' + bindHost + ':' + port);
-  webServer.httpServer.listen(port, bindHost);
+  function wsRequestHandler(wsr) {
+    var callid = wsr.resource;
+    var handler = webServer.wsHandlers[callid];
+    if (!handler) {
+      logio.E('ws', callid);
+      wsr.reject();
+      return;
+    }
+
+    logio.I('ws', callid);
+    
+    if (0) {     // WRITEME: check origin
+      wsr.reject();
+      return;
+    }
+
+    var wsc = wsr.accept(null, wsr.origin);
+    if (!wsc) {
+      logio.E('wsr.accept failed');
+      return;
+    }
+
+    var wss = new WebSocketServer(wsc, handler);
+  }
+};
+
+function WebSocketServer(wsc, handler) {
+  var self = this;
+  self.wsc = wsc;
+  self.handler = handler;
+  self.binaries = [];
+
+  self.handler('start');
+
+  wsc.on('message', function(event) {
+    if (event.type === 'utf8') {
+      try {
+        var msg = JSON.parse(event.utf8Data, function(k, v) {
+          if (_.isObject(v) && v.type === 'blob') {
+            return self.binaries[v.index];
+          }
+          return v;
+        });
+        self.binaries = [];
+      } catch(ex) {
+        logio.E('wsc.message', 'json parse error', ex);
+        self.binaries = [];
+        return;
+      }
+      logio.I('wsc.message', msg);
+      self.handler(msg);
+    }
+    else if (event.type === 'binary') {
+      logio.I('wsc.message binary len', event.binaryData.byteLength);
+      self.binaries.push(event.binaryData);
+    }
+    else {
+      logio.E('wsc.message unknown type', m.type);
+    }
+  });
+  
+  wsc.on('close', function(code, desc) {
+    logio.I('wsc.close', code, desc);
+    self.handler('close');
+  });
+}
+
+
+WebSocketServer.prototype.txMsg = function(msg) {
+  var self = this;
+  var blobi = 0;
+  var msgStr = JSON.stringify(msg, function(k, v) {
+    if (v.constructor === ArrayBuffer) { // XXX portable?
+      self.wsc.send(v);
+      var ret = {type: 'blob', index: blobi};
+      blobi++;
+      return ret;
+    }
+    return v;
+  });
+  self.wsc.send(msgStr);
 };
 
 WebServer.prototype.getSiteHits = function(cb) {

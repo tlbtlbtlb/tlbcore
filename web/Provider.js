@@ -203,9 +203,10 @@ function persistentReadFile(fn, encoding, cb) {
     fs.readFile(fn, encoding, function(err, data) {
       if (err) {
         logio.E(fn, err);
-        return;
+        cb(null);
+      } else {
+        cb(data);
       }
-      cb(data);
     });
   }
   if (monitorInterval) {

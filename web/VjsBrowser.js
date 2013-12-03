@@ -771,6 +771,7 @@ function setupUrls() {
   window.anyLiveBase = protocol + '//' + host + '/live/';
   window.anySecureBase = 'http://' + host + '/';
   window.anySecureLiveBase = 'http://' + host + '/live/';
+  window.webSocketBase = 'ws://' + host + '/';
 }
 
 function setupClicks() {
@@ -805,3 +806,57 @@ function pageSetupFromHash() {
     startHistoryPoll();
   });
 }
+
+
+
+function VjsWebSocket(path) {
+  var self = this;
+  self.ws = new WebSocket(window.webSocketBase + path);
+  self.txQueue = [];
+  self.binaries = [];
+  self.ws.onmessage = function(event) {
+    if (event.data.constructor === ArrayBuffer) {
+      self.binaries.push(event.data);
+    } else {
+      var msg = JSON.parse(event.data, function(k, v) {
+        if (_.isObject(v) && v.type === 'blob') {
+          return self.binaries[v.index];
+        }
+        return v;
+      });
+      self.binaries = [];
+      self.rxMsg(msg);
+    }
+  };
+  self.ws.onopen = function(event) {
+    if (self.txQueue) {
+      _.each(self.txQueue, function(m) {
+        self.emitMsg(m);
+      });
+      self.txQueue = null;
+    }
+  };
+}
+
+VjsWebSocket.prototype.txMsg = function(msg) {
+  if (this.txQueue) {
+    this.txQueue.push(msg);
+  } else {
+    this.emitMsg(msg);
+  }
+};
+
+VjsWebSocket.prototype.emitMsg = function(msg) {
+  var self = this;
+  var blobi = 0;
+  var msgStr = JSON.stringify(msg, function(k, v) {
+    if (v.constructor === ArrayBuffer) { // XXX portable?
+      self.send(v);
+      var ret = {type: 'blob', index: blobi};
+      blobi++;
+      return ret;
+    }
+    return v;
+  });
+  self.ws.send(msgStr);
+};
