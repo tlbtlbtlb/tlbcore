@@ -18,6 +18,13 @@ var Provider            = require('./Provider');
 var Topology            = require('./Topology');
 var Safety              = require('./Safety');
 var Image               = require('./Image');
+var WebSocketHelper     = require('./WebSocketHelper');
+
+/*
+  Websockets info:
+   spec: https://tools.ietf.org/html/rfc6455
+   websocket module: https://github.com/Worlize/WebSocket-Node/wiki/Documentation
+*/
 
 exports.WebServer = WebServer;
 exports.setVerbose = function(v) { verbose = v; };
@@ -76,6 +83,7 @@ WebServer.prototype.setupBaseProvider = function() {
   if (1) p.addScript(webServer.tlbcoreWeb + '/ajaxupload-lib/ajaxUpload.js');       // http://valums.com/ajax-upload/
   if (0) p.addScript('swf-lib/swfobject.js');               // http://blog.deconcept.com/swfobject/
   if (1) p.addScript(webServer.tlbcoreWeb + '/mixpanel-lib/mixpanel.js');
+  if (1) p.addScript(require.resolve('./WebSocketHelper.js'), 'WebSocketHelper');
   if (1) p.addScript(require.resolve('./VjsClient.js'));
   if (1) p.addScript(require.resolve('./VjsBrowser.js'));
 
@@ -92,7 +100,15 @@ WebServer.prototype.setupInternalUrls = function() {
       RpcEngines.PostJsonHandler(req, res, VjsApi.apis);
     }
   };
-  
+
+  webServer.urlProviders['GET /vjs.api'] = {
+    start: function() {},
+    mirrorTo: function(dst) {},
+    handleRequest: function(req, res, suffix) {
+      RpcEngines.FetchDocHandler(req, res, VjsApi.fetchApis);
+    }
+  };
+
 
   webServer.urlProviders['POST /uploadImage'] = {
     start: function() {},
@@ -104,14 +120,6 @@ WebServer.prototype.setupInternalUrls = function() {
           doneCb(ii);
         });
       });
-    }
-  };
-
-  webServer.urlProviders['GET /vjs.api'] = {
-    start: function() {},
-    mirrorTo: function(dst) {},
-    handleRequest: function(req, res, suffix) {
-      RpcEngines.FetchDocHandler(req, res, VjsApi.fetchApis);
     }
   };
 
@@ -139,7 +147,7 @@ WebServer.prototype.setupContent = function(dirs) {
 WebServer.prototype.startAllContent = function() {
   var webServer = this;
   _.each(webServer.urlProviders, function(p, name) {
-    p.start();
+    p.start && p.start();
   });
 };
 
@@ -215,8 +223,8 @@ WebServer.prototype.startHttpServer = function(port, bindHost) {
 
   function wsRequestHandler(wsr) {
     var callid = wsr.resource;
-    var handler = webServer.wsHandlers[callid];
-    if (!handler) {
+    var handlers = webServer.wsHandlers[callid];
+    if (!handlers) {
       logio.E('ws', callid);
       wsr.reject();
       return;
@@ -235,65 +243,43 @@ WebServer.prototype.startHttpServer = function(port, bindHost) {
       return;
     }
 
-    var wss = new WebSocketServer(wsc, handler);
-  }
-};
-
-function WebSocketServer(wsc, handler) {
-  var self = this;
-  self.wsc = wsc;
-  self.handler = handler;
-  self.binaries = [];
-
-  self.handler('start');
-
-  wsc.on('message', function(event) {
-    if (event.type === 'utf8') {
-      try {
-        var msg = JSON.parse(event.utf8Data, function(k, v) {
-          if (_.isObject(v) && v.type === 'blob') {
-            return self.binaries[v.index];
-          }
-          return v;
-        });
-        self.binaries = [];
-      } catch(ex) {
-        logio.E('wsc.message', 'json parse error', ex);
-        self.binaries = [];
-        return;
+    var rxBinaries = [];
+    
+    wsc.on('message', function(event) {
+      if (event.type === 'utf8') {
+        logio.I(wsc.remoteAddress + '!ws', event.utf8Data);
+        var msg = WebSocketHelper.parse(event.utf8Data, rxBinaries);
+        rxBinaries = [];
+        handlers.msg(msg, txMsg);
       }
-      logio.I('wsc.message', msg);
-      self.handler(msg);
-    }
-    else if (event.type === 'binary') {
-      logio.I('wsc.message binary len', event.binaryData.byteLength);
-      self.binaries.push(event.binaryData);
-    }
-    else {
-      logio.E('wsc.message unknown type', m.type);
-    }
-  });
+      else if (event.type === 'binary') {
+        logio.I(wsc.remoteAddress + '!ws', 'Binary len=' + event.binaryData.byteLength);
+        rxBinaries.push(event.binaryData);
+      }
+      else {
+        logio.E(wsc.remoteAddress + '!ws', 'Unknown type ' + m.type);
+      }
+    });
   
-  wsc.on('close', function(code, desc) {
-    logio.I('wsc.close', code, desc);
-    self.handler('close');
-  });
-}
+    wsc.on('close', function(code, desc) {
+      logio.I(wsc.remoteAddress + '!ws', 'close', code, desc);
+      handlers.close && handlers.close(txMsg);
+    });
 
+    function txMsg(msg) {
+      var msgParts = WebSocketHelper.stringify(msg);
+      _.each(msgParts.binaries, function(data) {
+        // See http://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer
+        var buf = new Buffer(new Uint8Array(data));
+        logio.O(wsc.remoteAddress + '!ws', 'buffer length ' + buf.length);
+        wsc.sendBytes(buf);
+      });
+      wsc.sendUTF(msgParts.json);
+      logio.O(wsc.remoteAddress + '!ws', msgParts.json);
+    };
 
-WebSocketServer.prototype.txMsg = function(msg) {
-  var self = this;
-  var blobi = 0;
-  var msgStr = JSON.stringify(msg, function(k, v) {
-    if (v.constructor === ArrayBuffer) { // XXX portable?
-      self.wsc.send(v);
-      var ret = {type: 'blob', index: blobi};
-      blobi++;
-      return ret;
-    }
-    return v;
-  });
-  self.wsc.send(msgStr);
+    handlers.start && handlers.start(txMsg);
+  }
 };
 
 WebServer.prototype.getSiteHits = function(cb) {

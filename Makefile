@@ -1,7 +1,7 @@
 
 # Reasonable user targets
 default : build
-test :: build
+test :: 
 build :: stage1
 stage1 :: setup
 clean ::

@@ -2,6 +2,7 @@
 /*jsl:option explicit*/
 "use strict";
 var _ = require('underscore');
+var WebSocketHelper = require('WebSocketHelper');
 
 /*
 */
@@ -771,7 +772,9 @@ function setupUrls() {
   window.anyLiveBase = protocol + '//' + host + '/live/';
   window.anySecureBase = 'http://' + host + '/';
   window.anySecureLiveBase = 'http://' + host + '/live/';
-  window.webSocketBase = 'ws://' + host + '/';
+
+  var wsProtocol = (protocol === 'https') ? 'wss' : 'ws';
+  window.webSocketBase = wsProtocol + '://' + host + '/';
 }
 
 function setupClicks() {
@@ -807,56 +810,76 @@ function pageSetupFromHash() {
   });
 }
 
+/*
+  Info:
+    WebSocket implementation: https://developer.mozilla.org/en-US/docs/WebSockets/Writing_WebSocket_client_applications
+*/
 
+function mkWebSocket(path, handlers) {
+  var wsUrl = window.webSocketBase + path;
+  var wsc = new WebSocket(wsUrl);
 
-function VjsWebSocket(path) {
-  var self = this;
-  self.ws = new WebSocket(window.webSocketBase + path);
-  self.txQueue = [];
-  self.binaries = [];
-  self.ws.onmessage = function(event) {
-    if (event.data.constructor === ArrayBuffer) {
-      self.binaries.push(event.data);
+  var txQueue = [];
+  var rxBlobs = [];
+
+  wsc.onmessage = function(event) {
+    if (event.data.constructor === Blob) {
+      rxBlobs.push(event.data);
     } else {
-      var msg = JSON.parse(event.data, function(k, v) {
-        if (_.isObject(v) && v.type === 'blob') {
-          return self.binaries[v.index];
-        }
-        return v;
-      });
-      self.binaries = [];
-      self.rxMsg(msg);
+      // Convert Blobs to ArrayBuffers, which is asynchronous
+      if (rxBlobs.length) {
+        var rxBinaries = [];
+        var nPending = rxBlobs.length;
+        _.each(rxBlobs, function(blob, blobi) {
+          var fr = new FileReader();
+          fr.addEventListener('loadend', function() {
+            rxBinaries[blobi] = fr.result;
+            nPending--;
+            if (nPending === 0) {
+              var msg = WebSocketHelper.parse(event.data, rxBinaries);
+              console.log(wsUrl + ' >', msg);
+              handlers.msg(msg, txMsg);
+            }
+          });
+          fr.readAsArrayBuffer(blob);
+        });
+        rxBlobs = [];
+      } else {
+        var msg = WebSocketHelper.parse(event.data, []);
+        console.log(wsUrl + ' >', msg);
+        handlers.msg(msg, txMsg);
+      }
     }
   };
-  self.ws.onopen = function(event) {
-    if (self.txQueue) {
-      _.each(self.txQueue, function(m) {
-        self.emitMsg(m);
+  wsc.onopen = function(event) {
+    if (txQueue) {
+      _.each(txQueue, function(m) {
+        emitMsg(m);
       });
-      self.txQueue = null;
+      txQueue = null;
+    }
+    handlers.start(txMsg);
+  };
+  wsc.onclose = function(event) {
+    handlers.close(txMsg);
+  };
+
+  function txMsg(msg) {
+    if (txQueue) {
+      txQueue.push(msg);
+    } else {
+      emitMsg(msg);
     }
   };
+  function emitMsg(msg) {
+    console.log(wsUrl + ' <', msg);
+    var msgParts = WebSocketHelper.stringify(msg);
+    _.each(msgParts.binaries, function(data) {
+      wsc.send(data);
+    });
+    wsc.send(msgParts.json);
+  };
+
 }
 
-VjsWebSocket.prototype.txMsg = function(msg) {
-  if (this.txQueue) {
-    this.txQueue.push(msg);
-  } else {
-    this.emitMsg(msg);
-  }
-};
 
-VjsWebSocket.prototype.emitMsg = function(msg) {
-  var self = this;
-  var blobi = 0;
-  var msgStr = JSON.stringify(msg, function(k, v) {
-    if (v.constructor === ArrayBuffer) { // XXX portable?
-      self.send(v);
-      var ret = {type: 'blob', index: blobi};
-      blobi++;
-      return ret;
-    }
-    return v;
-  });
-  self.ws.send(msgStr);
-};
