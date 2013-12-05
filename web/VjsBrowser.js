@@ -730,6 +730,8 @@ $.fn.maximizeCanvasResolution = function() {
       var ratio = devicePixelRatio / backingStoreRatio;
       var oldWidth = canvas.width;
       var oldHeight = canvas.height;
+      
+      canvas.pixelRatio = ratio;
 
       canvas.width = oldWidth * ratio;
       canvas.height = oldHeight * ratio;
