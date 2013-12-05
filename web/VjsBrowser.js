@@ -818,37 +818,19 @@ function pageSetupFromHash() {
 function mkWebSocket(path, handlers) {
   var wsUrl = window.webSocketBase + path;
   var wsc = new WebSocket(wsUrl);
+  wsc.binaryType = 'arraybuffer';
 
   var txQueue = [];
-  var rxBlobs = [];
+  var rxBinaries = [];
 
   wsc.onmessage = function(event) {
-    if (event.data.constructor === Blob) {
-      rxBlobs.push(event.data);
+    if (event.data.constructor === ArrayBuffer) {
+      rxBinaries.push(event.data);
     } else {
-      // Convert Blobs to ArrayBuffers, which is asynchronous
-      if (rxBlobs.length) {
-        var rxBinaries = [];
-        var nPending = rxBlobs.length;
-        _.each(rxBlobs, function(blob, blobi) {
-          var fr = new FileReader();
-          fr.addEventListener('loadend', function() {
-            rxBinaries[blobi] = fr.result;
-            nPending--;
-            if (nPending === 0) {
-              var msg = WebSocketHelper.parse(event.data, rxBinaries);
-              console.log(wsUrl + ' >', msg);
-              handlers.msg(msg, txMsg);
-            }
-          });
-          fr.readAsArrayBuffer(blob);
-        });
-        rxBlobs = [];
-      } else {
-        var msg = WebSocketHelper.parse(event.data, []);
-        console.log(wsUrl + ' >', msg);
-        handlers.msg(msg, txMsg);
-      }
+      var msg = WebSocketHelper.parse(event.data, rxBinaries);
+      rxBinaries = [];
+      console.log(wsUrl + ' >', msg);
+      handlers.msg(msg, txMsg);
     }
   };
   wsc.onopen = function(event) {
