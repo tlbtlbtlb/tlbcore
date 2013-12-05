@@ -270,6 +270,7 @@ WebServer.prototype.startHttpServer = function(port, bindHost) {
       var msgParts = WebSocketHelper.stringify(msg);
       _.each(msgParts.binaries, function(data) {
         // See http://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer
+        // and http://nodejs.org/api/buffer.html
         var buf = new Buffer(new Uint8Array(data));
         logio.O(wsc.remoteAddress + '!ws', 'buffer length ' + buf.length);
         wsc.sendBytes(buf);
