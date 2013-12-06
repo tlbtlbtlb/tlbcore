@@ -40,7 +40,6 @@ function WebServer() {
   webServer.wsHandlers = {};
   webServer.serverAccessCounts = {};
   webServer.wwwRoot = null;
-  webServer.tlbcoreWeb = path.dirname(module.filename);
 };
 
 WebServer.prototype.setUrl = function(url, p) {
@@ -71,18 +70,18 @@ WebServer.prototype.setupBaseProvider = function() {
 
   if (webServer.baseProvider) return;
   var p = new Provider.ProviderSet();
-  if (1) p.addCss(webServer.tlbcoreWeb + '/common.css');
-  if (1) p.addCss(webServer.tlbcoreWeb + '/spinner-lib/spinner.css');
+  if (1) p.addCss(require.resolve('./common.css'));
+  if (1) p.addCss(require.resolve('./spinner-lib/spinner.css'));
   // Add more CSS files here
 
-  if (1) p.addScript(webServer.tlbcoreWeb + '/VjsPreamble.js');
+  if (1) p.addScript(require.resolve('./VjsPreamble.js'));
   if (1) p.addScript(require.resolve('underscore'), 'underscore');
-  if (1) p.addScript(webServer.tlbcoreWeb + '/MoreUnderscore.js');
-  if (1) p.addScript(webServer.tlbcoreWeb + '/EventEmitter/EventEmitter.js', 'events');
-  if (1) p.addScript(webServer.tlbcoreWeb + '/jquery/dist/jquery.js');
-  if (1) p.addScript(webServer.tlbcoreWeb + '/ajaxupload-lib/ajaxUpload.js');       // http://valums.com/ajax-upload/
-  if (0) p.addScript('swf-lib/swfobject.js');               // http://blog.deconcept.com/swfobject/
-  if (1) p.addScript(webServer.tlbcoreWeb + '/mixpanel-lib/mixpanel.js');
+  if (1) p.addScript(require.resolve('./MoreUnderscore.js'));
+  if (1) p.addScript(require.resolve('./EventEmitter/EventEmitter.js'), 'events');
+  if (1) p.addScript(require.resolve('./jquery/dist/jquery.js'));
+  if (1) p.addScript(require.resolve('./ajaxupload-lib/ajaxUpload.js'));       // http://valums.com/ajax-upload/
+  if (0) p.addScript(require.resolve('./swf-lib/swfobject.js'));               // http://blog.deconcept.com/swfobject/
+  if (1) p.addScript(require.resolve('./mixpanel-lib/mixpanel.js'));
   if (1) p.addScript(require.resolve('./WebSocketHelper.js'), 'WebSocketHelper');
   if (1) p.addScript(require.resolve('./VjsClient.js'));
   if (1) p.addScript(require.resolve('./VjsBrowser.js'));
@@ -124,8 +123,8 @@ WebServer.prototype.setupInternalUrls = function() {
   };
 
   // Files available from root of file server
-  webServer.setUrl('/favicon.ico', webServer.tlbcoreWeb + '/images/vjs.ico');
-  webServer.setUrl('/spinner-lib/spinner.gif', webServer.tlbcoreWeb + '/spinner-lib/spinner.gif');
+  webServer.setUrl('/favicon.ico', require.resolve('./images/vjs.ico'));
+  webServer.setUrl('/spinner-lib/spinner.gif', require.resolve('./spinner-lib/spinner.gif'));
 };
 
 WebServer.prototype.setupContent = function(dirs) {
