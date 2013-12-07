@@ -809,7 +809,9 @@ function pageSetupFromHash() {
 
 /*
   Info:
-    WebSocket implementation: https://developer.mozilla.org/en-US/docs/WebSockets/Writing_WebSocket_client_applications
+    https://developer.mozilla.org/en-US/docs/WebSockets/Writing_WebSocket_client_applications
+    https://developer.mozilla.org/en-US/docs/Web/API/WebSocket
+    http://www.w3.org/TR/websockets/
 */
 
 function mkWebSocket(path, handlers) {

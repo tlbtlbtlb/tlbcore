@@ -7,6 +7,7 @@
   See:
     http://www.khronos.org/registry/typedarray/specs/latest/
     https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays
+    https://developer.mozilla.org/en-US/docs/Web/API/DataView
     https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify
   
 */
