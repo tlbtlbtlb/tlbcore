@@ -1,6 +1,3 @@
-// -*- js-indent-level:2 -*-
-/*jsl:option explicit*/
-"use strict";
 var _ = require('underscore');
 
 /*
@@ -59,7 +56,7 @@ function isValidUserName(loginName) {
 
 function isValidPassword(loginPass) {
   if (!(typeof(loginPass) === 'string')) return false;
-  return (loginPass.length > 3 && loginPass.length < 100 && (/^[-_a-zA-Z0-9\~\`\@\#\$\%\^\&\*\(\)\+\=\{\[\}\]\:\;\"\'\<\,\>\.\?\/]+$/.test(loginPass)));
+  return (loginPass.length > 3 && loginPass.length < 100 && (/^[-_a-zA-Z0-9\~\`\@\#\$\%\^\&\*\(\)\+\=\{\[\}\]\:\;\"\'<,>\.\?\/]+$/.test(loginPass)));
 }
 
 function isValidMessage(m) {

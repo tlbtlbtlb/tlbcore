@@ -1,6 +1,3 @@
-// -*- js-indent-level:2 -*-
-/*jsl:option explicit*/
-"use strict";
 var _ = require('underscore');
 
 /*
@@ -110,7 +107,8 @@ VjsClient.prototype.srvCall = function(funcname, args, cb, droppable) {
         self.handleUpdates(resInfo.updates);
         self.updateDeps();
       }
-      cb && cb(resInfo); cb = null;
+      if (cb) cb(resInfo); 
+      cb = null;
     },
     error: function(transport, status, err) {
       if (console) console.log('liveRpc failure', status);
@@ -140,11 +138,11 @@ VjsClient.prototype.srvFetch = function(args, cb) {
     dataType: 'text',
     processData: false,
     success: function(resText, status, transport) {
-      cb && cb(resText);
+      if (cb) cb(resText);
     },
     error: function(transport, status, err) {
       if (console) console.log('srvFetch failure', status);
-      cb && cb('error' + status);
+      if (cb) cb('error' + status);
     }
   });
 };

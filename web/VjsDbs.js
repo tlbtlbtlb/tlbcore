@@ -1,5 +1,3 @@
-// -*- js-indent-level:2 -*-
-"use strict";
 var _                   = require('underscore');
 var redis               = require('redis');
 var sha                 = require('sha');
@@ -58,11 +56,13 @@ function enhanceRedis(self) {
     self.get(key, function(err, objStr) {
       var obj;
       if (err) {
-        cb && cb(err, undefined); cb = null;
+        if (cb) cb(err, undefined);
+        cb = null;
         return;
       }
       if (!objStr) {
-        cb && cb(null, undefined); cb = null;
+        if (cb) cb(null, undefined);
+        cb = null;
         return;
       }
       
@@ -72,7 +72,8 @@ function enhanceRedis(self) {
       catch (ex) {
         logio.E('db ' + key, 'Bad objStr', objStr, ex);
       }
-      cb && cb(null, obj); cb = null;
+      if (cb) cb(null, obj);
+      cb = null;
     });
   };
 
@@ -80,7 +81,8 @@ function enhanceRedis(self) {
     var objStr = JSON.stringify(obj);
     self.set(key, objStr, function(err) {
       if (err) logio.E('redis.setObj ' + key, 'Error ' + err);
-      cb && cb(err); cb = null;
+      if (cb) cb(err);
+      cb = null;
     });
   };
 
@@ -88,20 +90,23 @@ function enhanceRedis(self) {
     var objStr = JSON.stringify(obj);
     self.setnx(key, objStr, function(err, created) {
       if (err) logio.E('redis.createObj ' + key, 'Error ' + err);
-      cb && cb(err); cb = null;
+      if (cb) cb(err);
+      cb = null;
     });
   };
 
   self.updateObj = function(key, values, creator, cb) {
     self.getObj(key, function(err, obj) {
       if (err) {
-        cb && cb(err); cb = null;
+        if (cb) cb(err);
+        cb = null;
         return;
       }
       if (obj === undefined) {
         if (creator === undefined) {
           logio.E('redis.updateObj ' + key, 'Nonexistent');
-          cb && cb('creation failed'); cb = null;
+          if (cb) cb('creation failed');
+          cb = null;
           return;
         }
         if (_.isFunction(creator)) {
@@ -110,13 +115,15 @@ function enhanceRedis(self) {
           obj = creator;
         }
         if (obj === undefined) {
-          cb && cb('creation failed'); cb = null;
+          if (cb) cb('creation failed');
+          cb = null;
           return;
         }
       }
       if (typeof(obj) !== 'object') {
         logio.E('redis.updateObj', key + ' not an object (type=' + typeof(obj) + ')');
-        cb && cb('creation failed'); cb = null;
+        if (cb) cb('creation failed');
+        cb = null;
         return;
       }
       if (_.isFunction(values)) {
@@ -130,7 +137,8 @@ function enhanceRedis(self) {
 
   self.deleteObj = function(key, cb) {
     self.del(key, function(err) {
-      cb && cb(err); cb = null;
+      if (cb) cb(err);
+      cb = null;
     });
   };
-};
+}

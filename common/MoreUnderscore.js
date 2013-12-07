@@ -1,6 +1,3 @@
-// -*- js-indent-level:2 -*-
-/*jsl:option explicit*/
-"use strict";
 var _ = require('underscore');
 
 _.mixin({
@@ -99,11 +96,11 @@ _.mixin({
     var oldi = 0, newi = 0;
     while (oldi < oldSet.length || newi < newSet.length) {
       if (oldi === oldSet.length) {
-        addFunc && addFunc(newSet[newi]);
+        addFunc(newSet[newi]);
         newi ++;
       }
       else if (newi === newSet.length) {
-        remFunc && remFunc(oldSet[oldi]);
+        remFunc(oldSet[oldi]);
         oldi ++;
       }
       else {
@@ -113,15 +110,15 @@ _.mixin({
         var ns = n.toString();
         
         if (os < ns) {
-          remFunc && remFunc(o);
+          if (remFunc) remFunc(o);
           oldi ++;
         }
         else if (ns < os) {
-          addFunc && addFunc(n);
+          if (addFunc) addFunc(n);
           newi ++;
         }
         else {
-          sameFunc && sameFunc(n);
+          if (sameFunc) sameFunc(n);
           oldi ++;
           newi ++;
         }

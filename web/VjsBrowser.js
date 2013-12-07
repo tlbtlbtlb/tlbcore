@@ -1,6 +1,3 @@
-// -*- js-indent-level:2 -*-
-/*jsl:option explicit*/
-"use strict";
 var _ = require('underscore');
 var WebSocketHelper = require('WebSocketHelper');
 
@@ -35,11 +32,11 @@ var Safety = {
 };
 
 function gotoHash(hash, e) {
+  var action, rc;
 
   if (hash === '') {
-    var action = $.action.front;
+    action = $.action.front;
     if (action) {
-      var rc;
       try {
         rc = action.call($(document.body), e, '');
       } catch(ex) {
@@ -59,9 +56,8 @@ function gotoHash(hash, e) {
 
   // Try every prefix of hash (including hash itself) starting with the longest until we find something
   for (var i=hash.length; i > 0; i--) {
-    var action = $.action[hash.substr(0, i)];
+    action = $.action[hash.substr(0, i)];
     if (action) {
-      var rc;
       try {
         rc = action.call($(document.body), e, hash.substr(i));
       } catch(ex) {
@@ -587,27 +583,25 @@ $.fn.syncChildren = function(newItems, options) {
 
   // Index newItems by name
   var itemToIndex = {};
-  for (var i=0; i < newItems.length; i++) {
-    itemToIndex[newItems[i]] = i;
-  }
+  _.each(newItems, function(name, itemi) {
+    itemToIndex[name] = itemi;
+  });
 
   // Remove orphaned elems (in oldEls but not in itemToIndex)
-  for (var name in oldEls) {
-    if (!oldEls.hasOwnProperty(name)) continue;
+  _.each(oldEls, function(name) {
     if (!itemToIndex.hasOwnProperty(name)) {
       removeEl.call($(oldEls[name]), name);
     }
-  }
+  });
 
   // Insert new elems into dom
   var afterEl = null;
-  for (var i = 0; i < newItems.length; i++) {
-    var name = newItems[i];
+  _.each(newItems, function(name, itemi) {
     if (oldEls.hasOwnProperty(name)) {
       afterEl = oldEls[name];
     } else {
       var newEl = createEl(name);
-      if (!newEl) continue;
+      if (!newEl) return;
       if (newEl.length) newEl = newEl[0]; // unwrap if already wrapped in jquery
       $(newEl).data(domKey, name);
       oldEls[name] = newEl;
@@ -634,7 +628,7 @@ $.fn.syncChildren = function(newItems, options) {
     } else {
       updateEl.call($(oldEls[name]), name);
     }
-  }
+  });
 
   // Return map of old & new elements
   return oldEls;
@@ -708,12 +702,12 @@ $.fn.trackKeys = function(down, changed) {
   $(window).on('keydown', function(ev) {
     var keyChar = String.fromCharCode(ev.which);
     down[keyChar] = true;
-    changed && changed();
+    if (changed) changed();
   });
   $(window).on('keyup', function(ev) {
     var keyChar = String.fromCharCode(ev.which);
     down[keyChar] = false;
-    changed && changed();
+    if (changed) changed();
   });
 };
 
@@ -758,11 +752,12 @@ function mkImage(src, width, height) {
 
 function setupConsole() {
   // Gracefully degrade firebug logging
+  function donothing () {}
   if (!window.console) {
     var names = ['log', 'debug', 'info', 'warn', 'error', 'assert', 'dir', 'dirxml', 'group', 
                  'groupEnd', 'time', 'timeEnd', 'count', 'trace', 'profile', 'profileEnd'];
     var console = {};
-    for (var i = 0; i<names.length; i++) console[names[i]] = function() {};
+    for (var i = 0; i<names.length; i++) console[names[i]] = donothing;
     window.console = console;
   }
 }
@@ -854,7 +849,7 @@ function mkWebSocket(path, handlers) {
     } else {
       emitMsg(msg);
     }
-  };
+  }
   function emitMsg(msg) {
     console.log(wsUrl + ' <', msg);
     var msgParts = WebSocketHelper.stringify(msg);
@@ -862,7 +857,7 @@ function mkWebSocket(path, handlers) {
       wsc.send(data);
     });
     wsc.send(msgParts.json);
-  };
+  }
 
 }
 

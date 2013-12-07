@@ -7,8 +7,6 @@ var gen_marshall = require('./gen_marshall');
 var gen_functions = require('./gen_functions');
 
 
-
-
 function main() {
   
   var watchFlag = false;

@@ -1,6 +1,3 @@
-// -*- js-indent-level:2 -*-
-/*jsl:option explicit*/
-"use strict";
 var _ = require('underscore');
 var events = require('events');
 var net = require('net');
@@ -277,7 +274,7 @@ function XmlContentProvider(fn) {
   AnyProvider.call(this);
   this.fn = fn;
   this.basename = getBasename(fn);
-};
+}
 
 XmlContentProvider.prototype.start = function() {
   var self = this;
@@ -634,11 +631,11 @@ ProviderSet.prototype.addModule = function(name) {
 ProviderSet.prototype.addSvg = function(name) {
   this.addProvider(new SvgProvider(name));
 };
-ProviderSet.prototype.addContent = function(name) {
-  this.addProvider(new ContentProvider(name));
+ProviderSet.prototype.addXmlContent = function(name) {
+  this.addProvider(new XmlContentProvider(name));
 };
-ProviderSet.prototype.addContentDir = function(name) {
-  this.addProvider(new ContentDirProvider(name));
+ProviderSet.prototype.addXmlContentDir = function(name) {
+  this.addProvider(new XmlContentDirProvider(name));
 };
 ProviderSet.prototype.addRelLogo = function(fn) {
   // WRITEME: see http://relogo.org/
@@ -707,7 +704,7 @@ ProviderSet.prototype.mirrorTo = function(dst) {
 
   var m = /\/$/.exec(dst);
   if (m) {
-    dst = path.join(dst, 'index.html')
+    dst = path.join(dst, 'index.html');
   }
 
   var writeActive = false;

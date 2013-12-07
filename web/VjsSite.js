@@ -1,9 +1,7 @@
-// -*- js-indent-level:2 -*-
-/*jsl:option explicit*/
-"use strict";
 var _                   = require('underscore');
 var util                = require('util');
 var http                = require('http');
+var https               = require('https');
 var fs                  = require('fs');
 var url                 = require('url');
 var path                = require('path');
@@ -40,7 +38,7 @@ function WebServer() {
   webServer.wsHandlers = {};
   webServer.serverAccessCounts = {};
   webServer.wwwRoot = null;
-};
+}
 
 WebServer.prototype.setUrl = function(url, p) {
   var webServer = this;
@@ -76,7 +74,7 @@ WebServer.prototype.setupBaseProvider = function() {
 
   if (1) p.addScript(require.resolve('./VjsPreamble.js'));
   if (1) p.addScript(require.resolve('underscore'), 'underscore');
-  if (1) p.addScript(require.resolve('./MoreUnderscore.js'));
+  if (1) p.addScript(require.resolve('../common/MoreUnderscore.js'));
   if (1) p.addScript(require.resolve('./EventEmitter/EventEmitter.js'), 'events');
   if (1) p.addScript(require.resolve('./jquery/dist/jquery.js'));
   if (1) p.addScript(require.resolve('./ajaxupload-lib/ajaxUpload.js'));       // http://valums.com/ajax-upload/
@@ -146,7 +144,7 @@ WebServer.prototype.setupContent = function(dirs) {
 WebServer.prototype.startAllContent = function() {
   var webServer = this;
   _.each(webServer.urlProviders, function(p, name) {
-    p.start && p.start();
+    if (p.start) p.start();
   });
 };
 
@@ -157,7 +155,7 @@ WebServer.prototype.mirrorAll = function() {
     _.each(webServer.urlProviders, function(p, name) {
       var m = /^GET (.*)$/.exec(name);
       if (m) {
-        var dst = path.join(webServer.wwwRoot, m[1])
+        var dst = path.join(webServer.wwwRoot, m[1]);
         p.mirrorTo(dst);
       }
     });
@@ -178,8 +176,9 @@ WebServer.prototype.startHttpServer = function(port, bindHost) {
 
   function httpHandler(req, res) {
 
+    var up;
     try {
-      var up = url.parse(req.url, true);
+      up = url.parse(req.url, true);
     } catch (ex) {
       logio.E('http', 'Error parsing' + req.url, ex);
       return Provider.emit404(res, 'Invalid url');
@@ -262,7 +261,7 @@ WebServer.prototype.startHttpServer = function(port, bindHost) {
   
     wsc.on('close', function(code, desc) {
       logio.I(wsc.remoteAddress + '!ws', 'close', code, desc);
-      handlers.close && handlers.close(txMsg);
+      if (handlers.close) handlers.close(txMsg);
     });
 
     function txMsg(msg) {
@@ -276,9 +275,9 @@ WebServer.prototype.startHttpServer = function(port, bindHost) {
       });
       wsc.sendUTF(msgParts.json);
       logio.O(wsc.remoteAddress + '!ws', msgParts.json);
-    };
+    }
 
-    handlers.start && handlers.start(txMsg);
+    if (handlers.start) handlers.start(txMsg);
   }
 };
 

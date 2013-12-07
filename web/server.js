@@ -1,6 +1,3 @@
-// -*- js-indent-level:2 -*-
-/*jsl:option explicit*/
-"use strict";
 var _                   = require('underscore');
 var net                 = require('net');
 var util                = require('util');
@@ -26,6 +23,8 @@ function main() {
 
   webServer0 = new VjsSite.WebServer();
   var sites = [];
+  var httpListenHost = '127.0.0.1';
+  var httpListenPort = 8000;
 
   for (var argi=2; argi < process.argv.length; argi++) {
     var arg = process.argv[argi];
@@ -38,6 +37,11 @@ function main() {
       
     case '--mirror':
       webServer0.wwwRoot = process.argv[++argi];
+      break;
+      
+    case '--http':
+      httpListenHost = process.argv[++argi];
+      httpListenPort = parseInt(process.argv[++argi]);
       break;
 
     default:
@@ -57,7 +61,7 @@ function main() {
   webServer0.setupContent(sites);
   
   setupErrorHandling();
-  webServer0.startHttpServer(8000, '127.0.0.1');
+  webServer0.startHttpServer(httpListenPort, httpListenHost);
 }
 
 main();

@@ -1,6 +1,3 @@
-// -*- js-indent-level:2 -*-
-/*jsl:option explicit*/
-"use strict";
 var _ = require('underscore');
 var util = require('util');
 var fs = require('fs');
@@ -16,8 +13,9 @@ function loadAndParse(modname, cb) {
   util.puts(filename);
   fs.readFile(filename, 'utf8', function(err, contents) {
     if (err) return cb(err);
+    var parsed;
     try {
-      var parsed = parsejs.parse(contents, false, false);
+      parsed = parsejs.parse(contents, false, false);
     } catch(ex) {
       cb(ex);
       return;

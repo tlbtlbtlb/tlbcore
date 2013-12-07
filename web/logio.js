@@ -1,10 +1,7 @@
-// -*- js-indent-level:2 -*-
-/*jsl:option explicit*/
-"use strict";
 var _ = require('underscore');
 var util = require('util');
 var child_process = require('child_process');
-require('./MoreUnderscore');
+require('../common/MoreUnderscore');
 
 exports.vsystem = vsystem;
 exports.logDataSep = logDataSep;
@@ -22,7 +19,7 @@ function vsystem(cmd, cb) {
     if (err) throw err;
     if (stdout.length) util.puts(stdout);
     if (stderr.length) util.puts(stderr);
-    cb && cb();
+    if (cb) cb();
   });
 }
 

@@ -1,6 +1,3 @@
-// -*- js-indent-level:2 -*-
-/*jsl:option explicit*/
-"use strict";
 var _ = require('underscore');
 var util = require('util');
 var url = require('url');
@@ -156,8 +153,9 @@ function PostJsonHandler(req, res, apis) {
 
 function PostFileHandler(req, res, docCb) {
 
+  var up;
   try {
-    var up = url.parse(req.url, true);
+    up = url.parse(req.url, true);
   } catch (ex) {
     util.puts('PostFileHandler', 'error parsing', req.url, ex);
     emitErrDoc(res, "URL parse:" + ex.toString());
@@ -192,8 +190,9 @@ function PostFileHandler(req, res, docCb) {
 
 function FetchDocHandler(req, res, apis) {
 
+  var up;
   try {
-    var up = url.parse(req.url, true);
+    up = url.parse(req.url, true);
   } catch (ex) {
     logio.E('Error parsing', req.url, ex);
     emitErrDoc(res, "URL parse:" + ex.toString());

@@ -8,7 +8,6 @@ var gen_functions = require('./gen_functions');
 
 exports.TypeRegistry = TypeRegistry;
 
-
 function getTypename(t) {
   if (t.hasOwnProperty('typename')) {
     return t.typename;
@@ -327,6 +326,7 @@ CType.prototype.getFns = function() {
   return {
     hostCode: base + '_host.cc',
     embeddedCode: base + '_embedded.c',
+    pureJsCode: base + '_purejs.js',
     typeHeader: base + '_decl.h',
     jsWrapHeader: base + '_jsWrap.h',
     jsWrapCode: base + '_jsWrap.cc',
@@ -337,6 +337,9 @@ CType.prototype.emitAll = function(files) {
   var fns = this.getFns();
   if (fns.hostCode) {
     this.emitHostCode(files.getFile(fns.hostCode).child({TYPENAME: this.typename}));
+  }
+  if (fns.pureJsCode) {
+    this.emitPureJsCode(files.getFile(fns.pureJsCode).child({TYPENAME: this.typename}));
   }
   if (fns.embeddedCode) {
     this.emitEmbeddedCode(files.getFile(fns.embeddedCode).child({TYPENAME: this.typename}));
@@ -421,6 +424,10 @@ CType.prototype.emitHostCode = function(f) {
   });
 };
 
+CType.prototype.emitPureJsCode = function(f) {
+  this.emitPureJsImpl(f);
+};
+
 CType.prototype.emitEmbeddedCode = function(f) {
   this.emitEmbeddedImpl(f);
   _.each(this.extraEmbeddedCode, function(l) {
@@ -468,6 +475,9 @@ CType.prototype.emitFunctionDecl = function(f) {
 };
 
 CType.prototype.emitHostImpl = function(f) {
+};
+
+CType.prototype.emitPureJsImpl = function(f) {
 };
 
 CType.prototype.emitEmbeddedImpl = function(f) {
@@ -730,6 +740,13 @@ CStructType.prototype.emitHostImpl = function(f) {
   this.emitWrJson(f);
   this.emitRdJson(f);
 };
+
+CStructType.prototype.emitPureJsImpl = function(f) {
+  _.each(this.orderedNames, function(name) {
+    f('// ' + name);
+  });
+};
+
 
 // JSON
 
