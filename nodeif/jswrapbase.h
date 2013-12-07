@@ -23,6 +23,7 @@
 #define _TLBCORE_JSWRAPBASE_H_
 
 #include <node.h>
+#include <node_object_wrap.h>
 #include <v8.h>
 #include <uv.h>
 
@@ -32,71 +33,23 @@ enum JsWrapStyle {
   JSWRAP_BORROWED,
 };
 
-struct JsWrapBase {
-
-  JsWrapBase ( );
-  virtual ~JsWrapBase ( );
-
-
-  template <class T>
-  static inline T* Unwrap (v8::Handle<v8::Object> handle) {
-    assert(!handle.IsEmpty());
-    assert(handle->InternalFieldCount() > 0);
-    return static_cast<T*>(handle->GetPointerFromInternalField(0));
-  }
-
-
-  v8::Persistent<v8::Object> handle_; // ro
-
-  void Wrap (v8::Handle<v8::Object> handle);
-  void MakeWeak (void);
-
-  /* Ref() marks the object as being attached to an event loop.
-   * Refed objects will not be garbage collected, even if
-   * all references are lost.
-   */
-  virtual void Ref();
-
-
-  /* Unref() marks an object as detached from the event loop.  This is its
-   * default state.  When an object with a "weak" reference changes from
-   * attached to detached state it will be freed. Be careful not to access
-   * the object after making this call as it might be gone!
-   * (A "weak reference" means an object that only has a
-   * persistent handle.)
-   *
-   * DO NOT CALL THIS FROM DESTRUCTOR
-   */
-  virtual void Unref();
-
-  int refs_; // ro
-  JsWrapStyle wrapStyle;
-
-  static void WeakCallback (v8::Persistent<v8::Value> value, void *data);
-
-  static v8::Handle<v8::Value> ThrowInvalidArgs();
-  static v8::Handle<v8::Value> ThrowInvalidThis();
-
-};
-
+v8::Handle<v8::Value> ThrowInvalidArgs();
+v8::Handle<v8::Value> ThrowInvalidThis();
 
 template <typename CONTENTS>
-struct JsWrapGeneric : JsWrapBase {
+struct JsWrapGeneric : node::ObjectWrap {
   JsWrapGeneric()
-    :it(new CONTENTS) 
+    :it(new CONTENTS), wrapStyle(JSWRAP_OWNED)
   { 
-    wrapStyle = JSWRAP_OWNED; 
   }
   JsWrapGeneric(CONTENTS *_it)
-  :it(_it)
+  :it(_it), wrapStyle(JSWRAP_BORROWED)
   {
-    wrapStyle = JSWRAP_BORROWED;
   }
   
   JsWrapGeneric(CONTENTS const &_it)
-  :it(new CONTENTS(_it))
+  :it(new CONTENTS(_it)), wrapStyle(JSWRAP_OWNED)
   {
-    wrapStyle = JSWRAP_OWNED;
   }
 
   ~JsWrapGeneric()
@@ -107,11 +60,12 @@ struct JsWrapGeneric : JsWrapBase {
   }
 
   CONTENTS *it;
+  JsWrapStyle wrapStyle;
 
   static v8::Handle<v8::Value> NewInstance(CONTENTS const &it) {
     v8::HandleScope scope;
     v8::Local<v8::Object> instance = constructor->NewInstance(0, NULL);
-    JsWrapGeneric<CONTENTS> * w = JsWrapBase::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     *w->it = it;
     return scope.Close(instance);
   }
@@ -121,7 +75,7 @@ struct JsWrapGeneric : JsWrapBase {
       v8::Handle<v8::Object> valueObject = value->ToObject();
       v8::Local<v8::String> valueTypeName = valueObject->GetConstructorName();
       if (valueTypeName == constructor->GetName()) {
-        return JsWrapBase::Unwrap< JsWrapGeneric<CONTENTS> >(valueObject)->it;
+        return node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(valueObject)->it;
       }
     }
     return NULL;

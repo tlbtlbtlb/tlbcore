@@ -190,7 +190,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
       });
       f('}');
     });
-    f('return JsWrapBase::ThrowInvalidArgs();')
+    f('return ThrowInvalidArgs();')
     f('}');
   });
 
@@ -829,12 +829,14 @@ CStructType.prototype.hasJsWrapper = function(f) {
 CStructType.prototype.emitJsWrapDecl = function(f) {
   var self = this;
 
-  f('struct JsWrap_TYPENAME : JsWrapBase {');
+  f('struct JsWrap_TYPENAME : node::ObjectWrap {');
   f('JsWrap_TYPENAME();')
   f('JsWrap_TYPENAME(TYPENAME *_it);')
   f('JsWrap_TYPENAME(TYPENAME const &_it);')
   f('~JsWrap_TYPENAME();');
   f('TYPENAME *it;');
+  f('JsWrapStyle wrapStyle;');
+  f('Handle<Value> JsConstructor(const Arguments &args);');
   f('static Handle<Value> NewInstance(TYPENAME const &it);');
   f('static TYPENAME *Extract(Handle<Value> value);');
   f('static Persistent<Function> constructor;');
@@ -857,9 +859,9 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
   f('#include "' + this.getFns().jsWrapHeader + '"');
 
   if (1) {
-    f('JsWrap_TYPENAME::JsWrap_TYPENAME() :it(new TYPENAME) { wrapStyle = JSWRAP_OWNED;}')
-    f('JsWrap_TYPENAME::JsWrap_TYPENAME(TYPENAME *_it) :it(_it) { wrapStyle = JSWRAP_BORROWED;}')
-    f('JsWrap_TYPENAME::JsWrap_TYPENAME(TYPENAME const &_it) :it(new TYPENAME(_it)) { wrapStyle = JSWRAP_OWNED;}')
+    f('JsWrap_TYPENAME::JsWrap_TYPENAME() :it(new TYPENAME), wrapStyle(JSWRAP_OWNED) {}')
+    f('JsWrap_TYPENAME::JsWrap_TYPENAME(TYPENAME *_it) :it(_it), wrapStyle(JSWRAP_BORROWED) {}')
+    f('JsWrap_TYPENAME::JsWrap_TYPENAME(TYPENAME const &_it) :it(new TYPENAME(_it)), wrapStyle(JSWRAP_OWNED) {}')
     f('JsWrap_TYPENAME::~JsWrap_TYPENAME() {');
     f('switch(wrapStyle) {');
     f('case JSWRAP_OWNED: delete it; break;');
@@ -877,10 +879,16 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('static Handle<Value> jsNew_TYPENAME(const Arguments& args) {')
     f('HandleScope scope;');
 
-    f('if (!(args.This()->InternalFieldCount() > 0)) return JsWrapBase::ThrowInvalidThis();');
+    f('if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();');
 
     f('JsWrap_TYPENAME* obj = new JsWrap_TYPENAME();');
+    f('return obj->JsConstructor(args);')
+    f('}');
+    f('');
+  }
 
+  if (1) {
+    f('Handle<Value> JsWrap_TYPENAME::JsConstructor(const Arguments& args) {');
     if (this.hasFullConstructor()) {
       f('if (args.Length() == 0) {')
       f('}')
@@ -891,38 +899,37 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
         case 'float':
         case 'double':
         case 'int':
-          f('if (!args[' + argi + ']->IsNumber()) return JsWrapBase::ThrowInvalidArgs();');
-          f('obj->it->' + name + ' = args[' + argi + ']->ToNumber()->NumberValue();');
+          f('if (!args[' + argi + ']->IsNumber()) return ThrowInvalidArgs();');
+          f('it->' + name + ' = args[' + argi + ']->ToNumber()->NumberValue();');
           break;
         case 'bool':
-          f('if (!args[' + argi + ']->IsBoolean()) return JsWrapBase::ThrowInvalidArgs();');
-          f('obj->it->' + name + ' = args[' + argi + ']->ToBoolean()->BooleanValue();');
+          f('if (!args[' + argi + ']->IsBoolean()) return ThrowInvalidArgs();');
+          f('it->' + name + ' = args[' + argi + ']->ToBoolean()->BooleanValue();');
           break;
         default:
           f(argType.typename + ' *a' + argi + ' = JsWrap_' + argType.typename + '::Extract(args[' + argi + ']);');
-          f('if (!a' + argi + ') return JsWrapBase::ThrowInvalidArgs();');
-          f('obj->it->' + name + ' = *a' + argi + ';');
+          f('if (!a' + argi + ') return ThrowInvalidArgs();');
+          f('it->' + name + ' = *a' + argi + ';');
         }
       });
       f('}')
       f('else {');
-      f('return JsWrapBase::ThrowInvalidArgs();')
+      f('return ThrowInvalidArgs();')
       f('}')
     }
 
-    f('obj->Wrap(args.This());');
-    
+    f('Wrap(args.This());');
     f('return args.This();');
     f('}');
-    f('');
   }
+
 
   if (1) {
     f('Handle<Value> JsWrap_TYPENAME::NewInstance(TYPENAME const &it) {');
     f('HandleScope scope;');
   
     f('Local<Object> instance = constructor->NewInstance(0, NULL);');
-    f('JsWrap_TYPENAME* w = JsWrapBase::Unwrap<JsWrap_TYPENAME>(instance);');
+    f('JsWrap_TYPENAME* w = node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(instance);');
     f('*w->it = it;');
     f('return scope.Close(instance);');
     f('}');
@@ -934,7 +941,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('Handle<Object> valueObject = value->ToObject();');
     f('Local<String> valueTypeName = valueObject->GetConstructorName();');
     f('if (valueTypeName == constructor->GetName()) {');
-    f('return JsWrapBase::Unwrap<JsWrap_TYPENAME>(valueObject)->it;');
+    f('return node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(valueObject)->it;');
     f('}');
     f('}');
     f('return NULL;');
@@ -944,7 +951,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
   if (1) {
     f('static Handle<Value> jsMethod_TYPENAME_toString(const Arguments& args) {')
     f('HandleScope scope;');
-    f('JsWrap_TYPENAME* obj = JsWrapBase::Unwrap<JsWrap_TYPENAME>(args.This());');
+    f('JsWrap_TYPENAME* obj = node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(args.This());');
     f('size_t maxSize = wrJsonSize(*obj->it) + 2;');
     f('char *s = new char[maxSize];');
     f('char *p = s;');
@@ -965,7 +972,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('const char *p = s;');
     f('TYPENAME it;')
     f('bool ok = rdJson(p, it);');
-    f('if (!ok) return JsWrapBase::ThrowInvalidArgs();');
+    f('if (!ok) return ThrowInvalidArgs();');
     f('delete s;');
     f('return scope.Close(JsWrap_TYPENAME::NewInstance(it));');
     f('}');
@@ -986,7 +993,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     var memberTypename = self.nameToType[name].typename;
     f('static Handle<Value> jsGet_TYPENAME_' + name + '(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
-    f('JsWrap_TYPENAME* obj = JsWrapBase::Unwrap<JsWrap_TYPENAME>(ai.This());');
+    f('JsWrap_TYPENAME* obj = node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(ai.This());');
     switch (memberTypename) {
     case 'double':
     case 'float':
@@ -1003,7 +1010,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('}');
     f('static void jsSet_TYPENAME_' + name + '(Local<String> name, Local<Value> value, AccessorInfo const &ai) {');
     f('HandleScope scope;');
-    f('JsWrap_TYPENAME* obj = JsWrapBase::Unwrap<JsWrap_TYPENAME>(ai.This());');
+    f('JsWrap_TYPENAME* obj = node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(ai.This());');
     switch (memberTypename) {
     case 'double':
     case 'float':
@@ -1014,7 +1021,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
       f('obj->it->' + name + ' = value->BooleanValue();');
       break;
     default:
-      f('JsWrap_' + memberTypename + '* valobj = JsWrapBase::Unwrap<JsWrap_' + memberTypename + '>(value->ToObject());');
+      f('JsWrap_' + memberTypename + '* valobj = node::ObjectWrap::Unwrap<JsWrap_' + memberTypename + '>(value->ToObject());');
       f('if (valobj && valobj->it) obj->it->' + name + ' = *valobj->it;');
     }
     f('}');
