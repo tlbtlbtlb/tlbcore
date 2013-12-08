@@ -84,6 +84,7 @@ TypeRegistry.prototype.emitAll = function(files) {
   this.emitJsWrapFuncs(files);
   this.emitJsBoot(files);
   this.emitRtFunctions(files);
+  this.emitGypFile(files);
 };
 
 TypeRegistry.prototype.emitJsBoot = function(files) {
@@ -124,6 +125,28 @@ TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
   this.emitFunctionWrappers(f);
   f.end();
 };
+
+TypeRegistry.prototype.emitGypFile = function(files) {
+  var f = files.getFile('sources.gypi');
+  f('{');
+  f('"sources": [');
+  _.each(this.types, function(typeobj, typename) {
+    var fns = typeobj.getFns();
+    if (fns.hostCode) {
+      f('\"' + fns.hostCode + '\",');
+    }
+    if (fns.jsWrapCode) {
+      f('\"' + fns.jsWrapCode + '\",');
+    }
+  });
+  f('\"' + 'jsboot.cc' + '\",');
+  f('\"' + 'rtfns.cc' + '\",');
+  f('\"' + 'functions_jsWrap.cc' + '\",');
+  f(']');
+  f('}');
+
+};
+
 
 function funcnameCToJs(name) {
   switch(name) {
