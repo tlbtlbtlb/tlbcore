@@ -36,15 +36,16 @@ function mkWebSocketRpc(wsc, handlers) {
     if (handlers.start) handlers.start();
   };
   wsc.onclose = function(event) {
-    if (handlers.close) handlers.close();
+    if (handlers.close) {
+      handlers.close();
+    } else {
+      var wsc2 = new WebSocket(wsc.url);
+      mkWebSocketRpc(wsc2, handlers);
+    }
   };
 
   function handleMsg(msg) {
-    if (msg.hello) {
-      handlers.hello = msg.hello;
-      if (handlers.onHello) handlers.onHello();
-    }
-    else if (msg.cmd) {
+    if (msg.cmd) {
       var cmdFunc = handlers['cmd_' + msg.cmd];
       if (!cmdFunc) {
         console.log(wsc.url, 'Unknown cmd', cmd);
@@ -80,6 +81,10 @@ function mkWebSocketRpc(wsc, handlers) {
       }
       rspFunc.call(handlers, msg);
       pending[msg.rspId] = undefined;
+    }
+    else if (msg.hello) {
+      handlers.hello = msg.hello;
+      if (handlers.onHello) handlers.onHello();
     }
     else {
       console.log(wsc.url, 'Unknown message', msg);
