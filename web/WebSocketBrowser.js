@@ -14,35 +14,45 @@ function mkWebSocketRpc(wsc, handlers) {
   var uniqueId = 567;
   var rxBinaries = [];
 
-  wsc.binaryType = 'arraybuffer';
+  setupWsc();
+  setupHandlers();
 
-  wsc.onmessage = function(event) {
-    if (event.data.constructor === ArrayBuffer) {
-      rxBinaries.push(event.data);
-    } else {
-      var msg = WebSocketHelper.parse(event.data, rxBinaries);
-      rxBinaries = [];
-      console.log(wsc.url + ' >', msg);
-      handleMsg(msg);
-    }
-  };
-  wsc.onopen = function(event) {
-    if (txQueue) {
-      _.each(txQueue, function(m) {
-        emitMsg(m);
-      });
-      txQueue = null;
-    }
-    if (handlers.start) handlers.start();
-  };
-  wsc.onclose = function(event) {
-    if (handlers.close) {
-      handlers.close();
-    } else {
-      var wsc2 = new WebSocket(wsc.url);
-      mkWebSocketRpc(wsc2, handlers);
-    }
-  };
+  function setupWsc() {
+    wsc.binaryType = 'arraybuffer';
+
+    wsc.onmessage = function(event) {
+      if (event.data.constructor === ArrayBuffer) {
+        rxBinaries.push(event.data);
+      } else {
+        var msg = WebSocketHelper.parse(event.data, rxBinaries);
+        rxBinaries = [];
+        console.log(wsc.url + ' >', msg);
+        handleMsg(msg);
+      }
+    };
+    wsc.onopen = function(event) {
+      if (txQueue) {
+        _.each(txQueue, function(m) {
+          emitMsg(m);
+        });
+        txQueue = null;
+      }
+      if (handlers.start) handlers.start();
+    };
+    wsc.onclose = function(event) {
+      if (handlers.close) {
+        handlers.close();
+      } else {
+        console.log(wsc.url + ' Closed');
+        txQueue = [];
+        setTimeout(function() {
+          console.log('Reopening socket to ' + wsc.url);
+          wsc = new WebSocket(wsc.url);
+          setupWsc(wsc);
+        }, 3000);
+      }
+    };
+  }
 
   function handleMsg(msg) {
     if (msg.cmd) {
@@ -91,21 +101,23 @@ function mkWebSocketRpc(wsc, handlers) {
     }
   }
   
-  handlers.rpc = function(req, rspFunc) {
-    var rspId = uniqueId++;
-  
-    req.reqId = rspId;
-    pending[rspId] = rspFunc;
-    
-    handlers.tx(req);
-  };
-  handlers.tx = function(msg) {
-    if (txQueue) {
-      txQueue.push(msg);
-    } else {
-      emitMsg(msg);
-    }
-  };
+  function setupHandlers() {
+    handlers.rpc = function(req, rspFunc) {
+      var rspId = uniqueId++;
+      
+      req.reqId = rspId;
+      pending[rspId] = rspFunc;
+      
+      handlers.tx(req);
+    };
+    handlers.tx = function(msg) {
+      if (txQueue) {
+        txQueue.push(msg);
+      } else {
+        emitMsg(msg);
+      }
+    };
+  }
 
   function emitMsg(msg) {
     console.log(wsc.url + ' <', msg);
