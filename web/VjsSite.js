@@ -8,7 +8,6 @@ var path                = require('path');
 var websocket           = require('websocket');
 
 var logio               = require('./logio');
-var RpcEngines          = require('./RpcEngines');
 var VjsDbs              = require('./VjsDbs');
 var Auth                = require('./Auth');
 var Provider            = require('./Provider');
@@ -87,18 +86,21 @@ WebServer.prototype.setupBaseProvider = function() {
 WebServer.prototype.setupInternalUrls = function() {
   var webServer = this;
 
-  webServer.urlProviders['POST /uploadImage'] = {
-    start: function() {},
-    mirrorTo: function(dst) {},
-    handleRequest: function(req, res, suffix) {
-      RpcEngines.UploadHandler(req, res, function(docFn, doneCb) {
-        var userName = RpcEngines.cookieUserName(req);
-        Image.mkImageVersions(docFn, {fullName: userName}, function(ii) {
-          doneCb(ii);
+  // WRITEME: ditch this, figure out how to upload over a websocket
+  if (0) {
+    webServer.urlProviders['POST /uploadImage'] = {
+      start: function() {},
+      mirrorTo: function(dst) {},
+      handleRequest: function(req, res, suffix) {
+        RpcEngines.UploadHandler(req, res, function(docFn, doneCb) {
+          var userName = RpcEngines.cookieUserName(req);
+          Image.mkImageVersions(docFn, {fullName: userName}, function(ii) {
+            doneCb(ii);
+          });
         });
-      });
-    }
-  };
+      }
+    };
+  }
 
   webServer.setSocketProtocol('/console', mkConsoleHandler);
 
@@ -229,14 +231,9 @@ WebServer.prototype.startHttpServer = function(port, bindHost) {
 
 WebServer.prototype.getSiteHits = function(cb) {
   var webServer = this;
-  var aic = RpcEngines.getApiAccessCounts();
-  cb(Array.prototype.concat(
-    _.map(_.sortBy(_.keys(webServer.serverAccessCounts), _.identity), function(k) {
-      return {desc: 'http.' + k, hits: webServer.serverAccessCounts[k]};
-    }),
-    _.map(_.sortBy(_.keys(aic), _.identity), function(k) {
-      return {desc: 'api.' + k, hits: aic[k]};
-    })));
+  cb(_.map(_.sortBy(_.keys(webServer.serverAccessCounts), _.identity), function(k) {
+    return {desc: 'http.' + k, hits: webServer.serverAccessCounts[k]};
+  }));
 };
 
 WebServer.prototype.getContentStats = function(cb) {

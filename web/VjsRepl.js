@@ -23,7 +23,6 @@ function setupReplCommon(r) {
   gContexts.push(r.context);
 
   r.context.underscore = r.context_ = _;
-  r.context.RpcEngines = require('./RpcEngines');
   r.context.Auth = require('./Auth');
   r.context.Image = require('./Image');
   r.context.Topology = require('./Topology');
