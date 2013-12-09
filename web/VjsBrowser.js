@@ -152,7 +152,7 @@ $.enhance['div.includeContent'] = function() {
   this.fmtContent(contentName);
 };
 
-/*
+/* ----------------------------------------------------------------------
   DOM utility functions
 */
 
@@ -310,7 +310,7 @@ $.fn.fmtLines = function(l) {
 };
 
 /*
-  
+  Set text, escaping potential html
 */
 $.fn.fmtText = function(text) {  
   this.html(text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
@@ -406,56 +406,6 @@ $.fn.fmtErrorMessage = function(err) {
   }
   else if (!err) {
     em.html('');
-  }
-  else if (err.result === 'fail') {
-    em.html(err.failReason || 'Unknown failure');
-  }
-  else if (err.result === 'noPrivs') {
-    if (ap && ac && window.vc && !window.vc.userName) {
-      em.html('<p>Please <a href="#">sign in</a>');
-      em.find('a').bind('click', function(e) { 
-        $.popupSiteLogin(); 
-        return false;
-      });
-    } else {
-      em.html('Unauthorized');
-    }
-  }
-  else if (err.result === 'userExists') {
-    em.html('User already exists');
-  }
-  else if (err.result === 'userNotFound') {
-    em.html('User not found');
-  }
-  else if (err.result === 'invalidName') {
-    em.html('Invalid user name (should be an email address)');
-  }
-  else if (err.result === 'invalidPass') {
-    em.html('Invalid password (it controls access to your robots, so don\'t use something easily guessed)');
-  }
-  else if (err.result === 'notLoggedIn') {
-    em.html('Invalid username or password');
-  }
-  else if (err.result === 'unimplemented') {
-    em.html('Function not yet implemented on server');
-  }
-  else if (err.result === 'noPrivs') {
-    em.html('Permission denied');
-  }
-  else if (err.result === 'error500') {
-    em.html('Server failure. Trying again might help');
-  }
-  else if (err.result === 'error502') {
-    em.html('Server failure. Trying again might help');
-  }
-  else if (err.result === 'error503') {
-    em.html('Temporary Server failure. Trying again should help');
-  }
-  else if (err.result === 'commFailure') {
-    em.html('Network failure');
-  }
-  else if (err.result === 'ok') {
-    em.html('OK');
   }
   else {
     em.html('Unknown error ' + err.result);
@@ -756,9 +706,9 @@ function setupConsole() {
   if (!window.console) {
     var names = ['log', 'debug', 'info', 'warn', 'error', 'assert', 'dir', 'dirxml', 'group', 
                  'groupEnd', 'time', 'timeEnd', 'count', 'trace', 'profile', 'profileEnd'];
-    var console = {};
-    for (var i = 0; i<names.length; i++) console[names[i]] = donothing;
-    window.console = console;
+    var newConsole = {};
+    for (var i = 0; i<names.length; i++) newConsole[names[i]] = donothing;
+    window.console = newConsole;
   }
 
   window.rconsole = mkWebSocket('console', {
@@ -766,8 +716,12 @@ function setupConsole() {
       gotoHash(getLocationHash(), null);
       startHistoryPoll();
     },
-    cmd_reload: function() {
-      console.log('Reload'); // WRITEME
+    cmd_reload: function(msg) {
+      console.log('Reload');
+      window.location.reload(true);
+    },
+    cmd_flashError: function(msg) {
+      $(document.body).flashErrorMessage(msg.err);
     }
   });
 }

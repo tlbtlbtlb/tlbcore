@@ -22,6 +22,7 @@ var WebSocketServer     = require('./WebSocketServer');
 
 exports.WebServer = WebServer;
 exports.setVerbose = function(v) { verbose = v; };
+exports.reloadAllBrowsers = reloadAllBrowsers;
 
 // ======================================================================
 
@@ -245,12 +246,17 @@ WebServer.prototype.getContentStats = function(cb) {
   }));
 };
 
-
+var allConsoleHandlers = [];
 
 function mkConsoleHandler() {
   return {
     start: function() {
       logio.I(this.label, 'Console started');
+      allConsoleHandlers.push(this);
+    },
+    close: function() {
+      var self = this;
+      allConsoleHandlers = _.filter(allConsoleHandlers, function(other) { return other !== self; });
     },
     cmd_errlog: function(msg) {
       logio.E(this.label, 'Errors in ' + msg.ua);
@@ -263,4 +269,10 @@ function mkConsoleHandler() {
       }
     }
   };
+}
+
+function reloadAllBrowsers() {
+  _.each(allConsoleHandlers, function(ch) {
+    ch.tx({cmd: 'reload'});
+  });
 }

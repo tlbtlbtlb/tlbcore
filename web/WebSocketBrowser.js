@@ -58,10 +58,19 @@ function mkWebSocketRpc(wsc, handlers) {
         console.log(wsc.url, 'Unknown rpcReq', msg.rpcReq);
         return;
       }
-      reqFunc.call(handlers, msg, function(rsp) {
-        rsp.rspId = msg.reqId;
-        tx(rsp);
-      });
+      var done = false;
+      try {
+        reqFunc.call(handlers, msg, function(rsp) {
+          rsp.rspId = msg.reqId;
+          tx(rsp);
+          done = true;
+        });
+      } catch(ex) {
+        if (!done) {
+          done = true;
+          handlers.tx({rspId: msg.reqId, err: ex.toString()});
+        }
+      }
     }
     else if (msg.rspId) {
       var rspFunc = pending[msg.rspId];

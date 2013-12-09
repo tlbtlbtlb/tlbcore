@@ -59,10 +59,19 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
         logio.E(handlers.label, 'Unknown rpcReq', msg.rpcReq);
         return;
       }
-      reqFunc.call(handlers, msg, function(rsp) {
-        rsp.rspId = msg.reqId;
-        handlers.tx(rsp);
-      });
+      var done = false;
+      try {
+        reqFunc.call(handlers, msg, function(rsp) {
+          done = true;
+          rsp.rspId = msg.reqId;
+          handlers.tx(rsp);
+        });
+      } catch(ex) {
+        if (!done) {
+          done = true;
+          handlers.tx({rspId: msg.reqId, err: ex.toString()});
+        }
+      }
     }
     else if (msg.rspId) {
       var rspFunc = pending[msg.rspId];

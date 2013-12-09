@@ -28,6 +28,7 @@ function setupReplCommon(r) {
   r.context.Image = require('./Image');
   r.context.Topology = require('./Topology');
   r.context.Safety = require('./Safety');
+  r.context.VjsSite = require('./VjsSite');
 
   r.context.p = function() {
     for (var i=0; i<arguments.length; i++) {
@@ -43,11 +44,9 @@ function setupReplCommon(r) {
   };
   r.context.help = function() {
     puts('Scope:');
-    for (var k in r.context) {
-      if (r.context.hasOwnProperty(k)) {
-        r.outputStream.write("  " + k);
-      }
-    }
+    _.each(r.context, function(value, key) {
+      r.outputStream.write("  " + key);
+    });
     puts('');
   };
 
