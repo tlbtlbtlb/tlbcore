@@ -26,6 +26,7 @@ function vsystem(cmd, cb) {
 // ----------------------------------------------------------------------
 
 function logDataSep(remote, sep, args) {
+  if (typeof(remote) === 'undefined') remote = '?';
   var infos = [];
   var stacks = [];
   for (var argi = 1; argi < args.length; argi++) {

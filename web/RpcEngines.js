@@ -232,7 +232,7 @@ function UploadHandler(req, res, docHandler) {
   var userName = cookieUserName(req);
   logio.I(userName + '!http', 'Start upload');
 
-  if (req.headers['expect'] == '100-continue') {  // XXX fragile
+  if (req.headers['expect'] === '100-continue') {  // XXX fragile
     res.writeHead(100, {});
     res.flush();
   }

@@ -1,19 +1,15 @@
-var _ = require('underscore');
-var util = require('util');
-var fs = require('fs');
+var _                   = require('underscore');
+var util                = require('util');
+var fs                  = require('fs');
 
-var logio             = require('./logio');
-var Image             = require('./Image');
-var VjsDbs            = require('./VjsDbs');
-var Auth              = require('./Auth');
-var VjsSite           = require('./VjsSite');
-var Safety            = require('./Safety');
-
-var db                = VjsDbs.db;
-
+var logio               = require('./logio');
+var Image               = require('./Image');
+var VjsDbs              = require('./VjsDbs');
+var Auth                = require('./Auth');
+var VjsSite             = require('./VjsSite');
+var Safety              = require('./Safety');
 
 var apis = exports.apis = {};
-
 var fetchApis = exports.fetchApis = {};
 
 var clientStateCache = {};

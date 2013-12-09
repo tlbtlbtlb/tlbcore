@@ -1,5 +1,5 @@
-var _ = require('underscore');
-var WebSocketHelper = require('WebSocketHelper');
+var _                   = require('underscore');
+var WebSocketBrowser    = require('WebSocketBrowser');
 
 /*
 */
@@ -411,7 +411,7 @@ $.fn.fmtErrorMessage = function(err) {
     em.html(err.failReason || 'Unknown failure');
   }
   else if (err.result === 'noPrivs') {
-    if (ap && ac && !window.vc.userName) {
+    if (ap && ac && window.vc && !window.vc.userName) {
       em.html('<p>Please <a href="#">sign in</a>');
       em.find('a').bind('click', function(e) { 
         $.popupSiteLogin(); 
@@ -747,7 +747,7 @@ function mkImage(src, width, height) {
 
 
 /* ----------------------------------------------------------------------
-   Session & URL management
+   Console
 */
 
 function setupConsole() {
@@ -760,7 +760,56 @@ function setupConsole() {
     for (var i = 0; i<names.length; i++) console[names[i]] = donothing;
     window.console = console;
   }
+
+  window.rconsole = mkWebSocket('console', {
+    start: function() {
+      gotoHash(getLocationHash(), null);
+      startHistoryPoll();
+    },
+    cmd_reload: function() {
+      console.log('Reload'); // WRITEME
+    }
+  });
 }
+
+
+function errlog() {
+  // console.log isn't a function in IE8
+  if (console && _.isFunction(console.log)) console.log.apply(console, arguments);
+  if (window.rconsole) {
+    var stack = '';
+    var err = '';
+    var sep = '';
+    for (var i=0; i<arguments.length; i++) {
+      var arg = arguments[i];
+      if (arg) {
+        if (_.isObject(arg)) {
+          err += sep + JSON.stringify(arg);
+          if (arg.stack) {
+            stack = arg.stack;
+            if (console && _.isFunction(console.log)) console.log(stack);
+          }
+        }
+        else {
+          try {
+            err += sep + arg.toString();
+          } catch(ex) {
+            err += sep + 'toString fail\n';
+          }
+        }
+        sep = ' ';
+      }
+    }
+    if (stack) err += '\n' + stack.toString();
+
+    window.rconsole.tx({cmd: 'errlog', err: err, ua: navigator.userAgent});
+  }
+}
+
+/* ----------------------------------------------------------------------
+   Session & URL management
+*/
+
 
 function setupUrls() {
   var host = window.location.host;
@@ -787,80 +836,45 @@ function setupClicks() {
       // WRITEME: add special click handlers
     }
   });
-
-  $(window).bind('resize', function(e) {
-    window.vc.addChange({resize: 1});
-    window.vc.updateDeps();
-  });
 }
-
 
 function pageSetupFromHash() {
-  setupConsole();
   setupUrls();
-  initVjsClient();
+  setupConsole();
   setupClicks();
-  window.vc.userUpdate(function() {
-    gotoHash(getLocationHash(), null);
-    window.vc.startPeriodic();
-    startHistoryPoll();
-  });
 }
 
-/*
-  Info:
-    https://developer.mozilla.org/en-US/docs/WebSockets/Writing_WebSocket_client_applications
-    https://developer.mozilla.org/en-US/docs/Web/API/WebSocket
-    http://www.w3.org/TR/websockets/
+/* ----------------------------------------------------------------------
+  Interface to Mixpanel.
+*/
+
+function setupMixpanel() {
+  try {
+    var mpkey = null, mpid = null;
+    // WRITEME: add mixpanel key here
+    if (0 && window.anyCloudHost === 'localhost') {
+      mpkey = 'dd77bca94d9b6ade709f734c3026b305';   // Devel
+      mpid = '3923';
+    }
+    if (mpkey) {
+      window.mpmetrics = new window.MixpanelLib(mpkey);
+      window.mpmetrics.statsUrl = 'http://mixpanel.com/report/' + mpid + '/';
+    }
+  } catch(ex) {
+    errlog('setupMixpanel', ex);
+  }
+};
+
+
+
+/* ----------------------------------------------------------------------
+   Web Sockets
 */
 
 function mkWebSocket(path, handlers) {
   var wsUrl = window.webSocketBase + path;
   var wsc = new WebSocket(wsUrl);
-  wsc.binaryType = 'arraybuffer';
-
-  var txQueue = [];
-  var rxBinaries = [];
-
-  wsc.onmessage = function(event) {
-    if (event.data.constructor === ArrayBuffer) {
-      rxBinaries.push(event.data);
-    } else {
-      var msg = WebSocketHelper.parse(event.data, rxBinaries);
-      rxBinaries = [];
-      console.log(wsUrl + ' >', msg);
-      handlers.msg(msg, txMsg);
-    }
-  };
-  wsc.onopen = function(event) {
-    if (txQueue) {
-      _.each(txQueue, function(m) {
-        emitMsg(m);
-      });
-      txQueue = null;
-    }
-    handlers.start(txMsg);
-  };
-  wsc.onclose = function(event) {
-    handlers.close(txMsg);
-  };
-
-  function txMsg(msg) {
-    if (txQueue) {
-      txQueue.push(msg);
-    } else {
-      emitMsg(msg);
-    }
-  }
-  function emitMsg(msg) {
-    console.log(wsUrl + ' <', msg);
-    var msgParts = WebSocketHelper.stringify(msg);
-    _.each(msgParts.binaries, function(data) {
-      wsc.send(data);
-    });
-    wsc.send(msgParts.json);
-  }
-
-}
+  return WebSocketBrowser.mkWebSocketRpc(wsc, handlers);
+};
 
 

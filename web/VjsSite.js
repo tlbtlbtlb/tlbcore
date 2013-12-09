@@ -9,19 +9,15 @@ var websocket           = require('websocket');
 
 var logio               = require('./logio');
 var RpcEngines          = require('./RpcEngines');
-var VjsApi              = require('./VjsApi');
 var VjsDbs              = require('./VjsDbs');
 var Auth                = require('./Auth');
 var Provider            = require('./Provider');
 var Topology            = require('./Topology');
 var Safety              = require('./Safety');
 var Image               = require('./Image');
-var WebSocketHelper     = require('./WebSocketHelper');
+var WebSocketServer     = require('./WebSocketServer');
 
 /*
-  Websockets info:
-   spec: https://tools.ietf.org/html/rfc6455
-   websocket module: https://github.com/Worlize/WebSocket-Node/wiki/Documentation
 */
 
 exports.WebServer = WebServer;
@@ -75,13 +71,13 @@ WebServer.prototype.setupBaseProvider = function() {
   if (1) p.addScript(require.resolve('./VjsPreamble.js'));
   if (1) p.addScript(require.resolve('underscore'), 'underscore');
   if (1) p.addScript(require.resolve('../common/MoreUnderscore.js'));
-  if (1) p.addScript(require.resolve('./EventEmitter/EventEmitter.js'), 'events');
+  if (1) p.addScript(require.resolve('eventemitter'));
   if (1) p.addScript(require.resolve('./jquery/dist/jquery.js'));
   if (1) p.addScript(require.resolve('./ajaxupload-lib/ajaxUpload.js'));       // http://valums.com/ajax-upload/
   if (0) p.addScript(require.resolve('./swf-lib/swfobject.js'));               // http://blog.deconcept.com/swfobject/
   if (1) p.addScript(require.resolve('./mixpanel-lib/mixpanel.js'));
   if (1) p.addScript(require.resolve('./WebSocketHelper.js'), 'WebSocketHelper');
-  if (1) p.addScript(require.resolve('./VjsClient.js'));
+  if (1) p.addScript(require.resolve('./WebSocketBrowser.js'), 'WebSocketBrowser');
   if (1) p.addScript(require.resolve('./VjsBrowser.js'));
 
   webServer.baseProvider = p;
@@ -89,23 +85,6 @@ WebServer.prototype.setupBaseProvider = function() {
 
 WebServer.prototype.setupInternalUrls = function() {
   var webServer = this;
-
-  webServer.urlProviders['POST /vjs.api'] = {
-    start: function() {},
-    mirrorTo: function(dst) {},
-    handleRequest: function(req, res, suffix) {
-      RpcEngines.PostJsonHandler(req, res, VjsApi.apis);
-    }
-  };
-
-  webServer.urlProviders['GET /vjs.api'] = {
-    start: function() {},
-    mirrorTo: function(dst) {},
-    handleRequest: function(req, res, suffix) {
-      RpcEngines.FetchDocHandler(req, res, VjsApi.fetchApis);
-    }
-  };
-
 
   webServer.urlProviders['POST /uploadImage'] = {
     start: function() {},
@@ -119,6 +98,8 @@ WebServer.prototype.setupInternalUrls = function() {
       });
     }
   };
+
+  webServer.setSocketProtocol('/console', mkConsoleHandler);
 
   // Files available from root of file server
   webServer.setUrl('/favicon.ico', require.resolve('./images/vjs.ico'));
@@ -221,15 +202,14 @@ WebServer.prototype.startHttpServer = function(port, bindHost) {
 
   function wsRequestHandler(wsr) {
     var callid = wsr.resource;
-    var handlers = webServer.wsHandlers[callid];
-    if (!handlers) {
-      logio.E('ws', callid);
+    
+    var handlersFunc = webServer.wsHandlers[callid];
+    if (!handlersFunc) {
+      logio.E('ws', 'Unknown api', callid);
       wsr.reject();
       return;
     }
 
-    logio.I('ws', callid);
-    
     if (0) {     // WRITEME: check origin
       wsr.reject();
       return;
@@ -241,43 +221,8 @@ WebServer.prototype.startHttpServer = function(port, bindHost) {
       return;
     }
 
-    var rxBinaries = [];
-    
-    wsc.on('message', function(event) {
-      if (event.type === 'utf8') {
-        logio.I(wsc.remoteAddress + '!ws', event.utf8Data);
-        var msg = WebSocketHelper.parse(event.utf8Data, rxBinaries);
-        rxBinaries = [];
-        handlers.msg(msg, txMsg);
-      }
-      else if (event.type === 'binary') {
-        logio.I(wsc.remoteAddress + '!ws', 'Binary len=' + event.binaryData.byteLength);
-        rxBinaries.push(event.binaryData);
-      }
-      else {
-        logio.E(wsc.remoteAddress + '!ws', 'Unknown type ' + m.type);
-      }
-    });
-  
-    wsc.on('close', function(code, desc) {
-      logio.I(wsc.remoteAddress + '!ws', 'close', code, desc);
-      if (handlers.close) handlers.close(txMsg);
-    });
-
-    function txMsg(msg) {
-      var msgParts = WebSocketHelper.stringify(msg);
-      _.each(msgParts.binaries, function(data) {
-        // See http://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer
-        // and http://nodejs.org/api/buffer.html
-        var buf = new Buffer(new Uint8Array(data));
-        logio.O(wsc.remoteAddress + '!ws', 'buffer length ' + buf.length);
-        wsc.sendBytes(buf);
-      });
-      wsc.sendUTF(msgParts.json);
-      logio.O(wsc.remoteAddress + '!ws', msgParts.json);
-    }
-
-    if (handlers.start) handlers.start(txMsg);
+    var handlers = handlersFunc();
+    WebSocketServer.mkWebSocketRpc(wsr, wsc, handlers);
   }
 };
 
@@ -300,3 +245,22 @@ WebServer.prototype.getContentStats = function(cb) {
   }));
 };
 
+
+
+function mkConsoleHandler() {
+  return {
+    start: function() {
+      logio.I(this.label, 'Console started');
+    },
+    cmd_errlog: function(msg) {
+      logio.E(this.label, 'Errors in ' + msg.ua);
+      var err = msg.err;
+      if (err) {
+        if (_.isObject(err)) {
+          err = util.inspect(err);
+        }
+        util.puts(err.replace(/^/mg, '    '));
+      }
+    }
+  };
+}

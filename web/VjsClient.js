@@ -326,49 +326,6 @@ VjsClient.prototype.doSignout = function() {
   });
 };
 
-/* 
-  Interface to Mixpanel.
-*/
-
-VjsClient.prototype.identify = function(email) {
-  if (!window.mpmetrics) return;
-  window.mpmetrics.identify(email);
-};
-
-VjsClient.prototype.track = function(eventName, options) {
-  if (!window.mpmetrics) return;
-  try {
-    window.mpmetrics.track(eventName, options);
-  } catch (ex) {
-    errlog('mixpanel', ex);
-  }
-};
-
-VjsClient.prototype.trackFunnel = function(funnelName, step, goal, options) {
-  if (!window.mpmetrics) return;
-  try {
-    window.mpmetrics.track_funnel(funnelName, step, goal, options);
-  } catch (ex) {
-    errlog('mixpanel', ex);
-  }
-};
-
-VjsClient.prototype.setupMixpanel = function() {
-  try {
-    var mpkey = null, mpid = null;
-    // WRITEME: add mixpanel key here
-    if (0 && window.anyCloudHost === 'localhost') {
-      mpkey = 'dd77bca94d9b6ade709f734c3026b305';   // Devel
-      mpid = '3923';
-    }
-    if (mpkey) {
-      window.mpmetrics = new window.MixpanelLib(mpkey);
-      window.mpmetrics.statsUrl = 'http://mixpanel.com/report/' + mpid + '/';
-    }
-  } catch(ex) {
-    errlog('setupMixpanel', ex);
-  }
-};
 
 // ----------------------------------------------------------------------
 
@@ -378,35 +335,3 @@ function initVjsClient() {
 }
 
 
-function errlog() {
-  // console.log isn't a function in IE8
-  if (console && _.isFunction(console.log)) console.log.apply(console, arguments);
-  if (!errlog.queue) errlog.queue = [];
-  if (errlog.queue.length < 20) {
-    var stack = '';
-    var err = '';
-    var sep = '';
-    for (var i=0; i<arguments.length; i++) {
-      var arg = arguments[i];
-      if (arg) {
-        if (_.isObject(arg)) {
-          err += sep + JSON.stringify(arg);
-          if (arg.stack) {
-            stack = arg.stack;
-            if (console && _.isFunction(console.log)) console.log(stack);
-          }
-        }
-        else {
-          try {
-            err += sep + arg.toString();
-          } catch(ex) {
-            err += sep + 'toString fail\n';
-          }
-        }
-        sep = ' ';
-      }
-    }
-    if (stack) err += '\n' + stack;
-    errlog.queue.push(err);
-  }
-}
