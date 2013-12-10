@@ -4,7 +4,7 @@ WebSocketHelper         = require('./WebSocketHelper');
 
 function wshPipe(msg) {
   var msgParts = WebSocketHelper.stringify(msg);
-  console.log(msgParts.json, msgParts.binaries);
+  if (0) console.log(msgParts.json, msgParts.binaries);
   var msg2 = WebSocketHelper.parse(msgParts.json, msgParts.binaries);
   return msg2;
 }
@@ -30,5 +30,28 @@ describe('WebSocketHelper', function() {
       assert.ok(msg2.bar.constructor === t);
       assert.ok(msg2.bar.length === 3);
     });
+  });
+});
+
+
+describe('RpcPendingQueue', function() {
+  it('should be efficient', function() {
+    var iters = 50000;
+    var outstanding = 10;
+    var localq = [];
+
+    var pending = new WebSocketHelper.RpcPendingQueue();
+    for (var i=0; i<iters; i++) {
+      var reqId = pending.getNewId();
+      localq.push(reqId);
+      pending.add(reqId, 'foo' + reqId + 'bar');
+
+      if (localq.length >= outstanding) {
+        var rspId = localq.shift();
+        var rspFunc = pending.get(rspId);
+        assert.strictEqual(rspFunc, 'foo' + rspId + 'bar');
+      }
+    }
+    assert.equal(pending.pending.length, outstanding);
   });
 });

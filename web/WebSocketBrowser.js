@@ -10,12 +10,12 @@ exports.mkWebSocketRpc = mkWebSocketRpc;
 
 function mkWebSocketRpc(wsc, handlers) {
   var txQueue = [];
-  var pending = {};
-  var uniqueId = 567;
+  var pending = new WebSocketHelper.RpcPendingQueue();
   var rxBinaries = [];
 
   setupWsc();
   setupHandlers();
+  return handlers;
 
   function setupWsc() {
     wsc.binaryType = 'arraybuffer';
@@ -53,7 +53,7 @@ function mkWebSocketRpc(wsc, handlers) {
       }
     };
   }
-
+  
   function handleMsg(msg) {
     if (msg.cmd) {
       var cmdFunc = handlers['cmd_' + msg.cmd];
@@ -84,13 +84,12 @@ function mkWebSocketRpc(wsc, handlers) {
       }
     }
     else if (msg.rspId) {
-      var rspFunc = pending[msg.rspId];
+      var rspFunc = pending.get(msg.rspId);
       if (!rspFunc) {
         console.log(wsc.url, 'Unknown response', msg.rspId);
         return;
       }
       rspFunc.call(handlers, msg);
-      pending[msg.rspId] = undefined;
     }
     else if (msg.hello) {
       handlers.hello = msg.hello;
@@ -103,11 +102,9 @@ function mkWebSocketRpc(wsc, handlers) {
   
   function setupHandlers() {
     handlers.rpc = function(req, rspFunc) {
-      var rspId = uniqueId++;
-      
-      req.reqId = rspId;
-      pending[rspId] = rspFunc;
-      
+      var reqId = pending.getNewId();
+      req.reqId = reqId;
+      pending.add(reqId, rspFunc);
       handlers.tx(req);
     };
     handlers.tx = function(msg) {
@@ -128,6 +125,5 @@ function mkWebSocketRpc(wsc, handlers) {
     wsc.send(msgParts.json);
   }
 
-  return handlers;
 };
 

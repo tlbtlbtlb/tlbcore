@@ -15,6 +15,7 @@ _ = require('underscore');
 
 exports.stringify = stringify;
 exports.parse = parse;
+exports.RpcPendingQueue = RpcPendingQueue;
 
 function stringify(msg) {
 
@@ -109,3 +110,40 @@ function parse(json, binaries) {
   });
   return msg;
 }
+
+/*
+  Queue of outstanding RPC requests, indexed by ID. ID is an integer for now, but maybe it should be a hard-to-forge cookie.
+  Especially coming from the server.
+  
+  We use an array instead of a hash because I think it's faster.
+*/
+function RpcPendingQueue() {
+  this.pending = [];
+  this.uniqueId = 567;
+}
+
+RpcPendingQueue.prototype.getNewId = function() {
+  return this.uniqueId++;
+}
+
+RpcPendingQueue.prototype.get = function(rspId) {
+  for (var i=0; i<this.pending.length; i++) {
+    if (this.pending[i] && this.pending[i].rspId === rspId) {
+      var ret = this.pending[i].rspFunc;
+      this.pending[i] = null;
+      return ret;
+    }
+  }
+  return null;
+};
+
+RpcPendingQueue.prototype.add = function(rspId, rspFunc) {
+  while (this.pending.length && this.pending[0] === null) {
+    this.pending.shift();
+  }
+  this.pending.push({rspId: rspId, rspFunc: rspFunc});
+  if (this.pending.length % 50 === 0) {
+    console.log(wsc.url + ' ! pending=' + this.pending.length);
+  }
+};
+

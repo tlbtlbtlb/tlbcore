@@ -18,31 +18,34 @@ exports.mkWebSocketRpc = mkWebSocketRpc;
 
 
 function mkWebSocketRpc(wsr, wsc, handlers) {
-
-  handlers.label = wsc.remoteAddress + '!ws' + wsr.resource;
-  var pending = {};
-  var uniqueId = 123;
+  var pending = new WebSocketHelper.RpcPendingQueue();
   var rxBinaries = [];
 
-  wsc.on('message', function(event) {
-    if (event.type === 'utf8') {
-      if (verbose) logio.I(handlers.label, event.utf8Data);
-      var msg = WebSocketHelper.parse(event.utf8Data, rxBinaries);
-      rxBinaries = [];
-      handleMsg(msg);
-    }
-    else if (event.type === 'binary') {
-      if (verbose) logio.I(handlers.label, 'Binary len=' + event.binaryData.byteLength);
-      rxBinaries.push(event.binaryData);
-    }
-    else {
-      logio.E(handlers.label, 'Unknown type ' + m.type);
-    }
-  });
-  wsc.on('close', function(code, desc) {
-    logio.I(handlers.label, 'close', code, desc);
-    if (handlers.close) handlers.close();
-  });
+  setupWsc();
+  setupHandlers();
+  return handlers;
+
+  function setupWsc() {
+    wsc.on('message', function(event) {
+      if (event.type === 'utf8') {
+        if (verbose) logio.I(handlers.label, event.utf8Data);
+        var msg = WebSocketHelper.parse(event.utf8Data, rxBinaries);
+        rxBinaries = [];
+        handleMsg(msg);
+      }
+      else if (event.type === 'binary') {
+        if (verbose) logio.I(handlers.label, 'Binary len=' + event.binaryData.byteLength);
+        rxBinaries.push(event.binaryData);
+      }
+      else {
+        logio.E(handlers.label, 'Unknown type ' + m.type);
+      }
+    });
+    wsc.on('close', function(code, desc) {
+      logio.I(handlers.label, 'close', code, desc);
+      if (handlers.close) handlers.close();
+    });
+  }
 
   function handleMsg(msg) {
     if (msg.cmd) {
@@ -74,13 +77,12 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
       }
     }
     else if (msg.rspId) {
-      var rspFunc = pending[msg.rspId];
+      var rspFunc = pending.get(msg.rspId);
       if (!rspFunc) {
         logio.E(handlers.label, 'Unknown response', msg.rspId);
         return;
       }
       rspFunc.call(handlers, msg);
-      pending[msg.rspId] = undefined;
     }
     else if (msg.hello) {
       handlers.hello = msg.hello;
@@ -91,18 +93,19 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     }
   }
 
-
-  handlers.rpc = function(req, rspFunc) {
-    var rspId = uniqueId++;
-  
-    req.reqId = rspId;
-    pending[rspId] = rspFunc;
-    
-    handlers.tx(req);
-  };
-  handlers.tx = function(msg) {
-    emitMsg(msg);
-  };
+  function setupHandlers() {
+    handlers.label = wsc.remoteAddress + '!ws' + wsr.resource;
+    handlers.rpc = function(req, rspFunc) {
+      var reqId = pending.getnewId();
+      req.reqId = reqId;
+      pending.add(reqId, rspFunc);
+      handlers.tx(req);
+    };
+    handlers.tx = function(msg) {
+      emitMsg(msg);
+    };
+    if (handlers.start) handlers.start();
+  }
 
   function emitMsg(msg) {
     var msgParts = WebSocketHelper.stringify(msg);
@@ -116,6 +119,4 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     wsc.sendUTF(msgParts.json);
     logio.O(handlers.label, msgParts.json);
   };
-
-  if (handlers.start) handlers.start();
 };
