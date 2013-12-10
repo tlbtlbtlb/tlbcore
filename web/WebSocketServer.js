@@ -12,7 +12,7 @@ var util                = require('util');
 var logio               = require('./logio');
 var WebSocketHelper     = require('./WebSocketHelper');
 
-var verbose = 0;
+var verbose = 1;
 
 exports.mkWebSocketRpc = mkWebSocketRpc;
 
@@ -28,21 +28,21 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
   function setupWsc() {
     wsc.on('message', function(event) {
       if (event.type === 'utf8') {
-        if (verbose) logio.I(handlers.label, event.utf8Data);
+        if (verbose >= 2) logio.I(handlers.label, event.utf8Data);
         var msg = WebSocketHelper.parse(event.utf8Data, rxBinaries);
         rxBinaries = [];
         handleMsg(msg);
       }
       else if (event.type === 'binary') {
-        if (verbose) logio.I(handlers.label, 'Binary len=' + event.binaryData.byteLength);
+        if (verbose >= 3) logio.I(handlers.label, 'Binary len=' + event.binaryData.byteLength);
         rxBinaries.push(event.binaryData);
       }
       else {
-        logio.E(handlers.label, 'Unknown type ' + m.type);
+        if (verbose >= 1) logio.E(handlers.label, 'Unknown type ' + m.type);
       }
     });
     wsc.on('close', function(code, desc) {
-      logio.I(handlers.label, 'close', code, desc);
+      if (verbose >= 1) logio.I(handlers.label, 'close', code, desc);
       if (handlers.close) handlers.close();
     });
   }
@@ -51,15 +51,15 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     if (msg.cmd) {
       var cmdFunc = handlers['cmd_' + msg.cmd];
       if (!cmdFunc) {
-        logio.E(handlers.label, 'Unknown cmd', msg.cmd);
+        if (verbose >= 1) logio.E(handlers.label, 'Unknown cmd', msg.cmd);
         return;
       }
-      cmdFunc.call(this, msg);
+      cmdFunc.call(handlers, msg);
     }
     else if (msg.rpcReq) {
       var reqFunc = handlers['req_' + msg.rpcReq];
       if (!reqFunc) {
-        logio.E(handlers.label, 'Unknown rpcReq', msg.rpcReq);
+        if (verbose >= 1) logio.E(handlers.label, 'Unknown rpcReq', msg.rpcReq);
         return;
       }
       var done = false;
@@ -79,7 +79,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     else if (msg.rspId) {
       var rspFunc = pending.get(msg.rspId);
       if (!rspFunc) {
-        logio.E(handlers.label, 'Unknown response', msg.rspId);
+        if (verbose >= 1) logio.E(handlers.label, 'Unknown response', msg.rspId);
         return;
       }
       rspFunc.call(handlers, msg);
@@ -89,7 +89,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
       if (handlers.onHello) handlers.onHello();
     }
     else {
-      logio.E(handlers.label, 'Unknown message', msg);
+      if (verbose >= 1) logio.E(handlers.label, 'Unknown message', msg);
     }
   }
 
@@ -113,10 +113,10 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
       // See http://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer
       // and http://nodejs.org/api/buffer.html
       var buf = new Buffer(new Uint8Array(data));
-      if (verbose) logio.O(handlers.label, 'buffer length ' + buf.length);
+      if (verbose >= 3) logio.O(handlers.label, 'buffer length ' + buf.length);
       wsc.sendBytes(buf);
     });
     wsc.sendUTF(msgParts.json);
-    logio.O(handlers.label, msgParts.json);
+    if (verbose >= 2) logio.O(handlers.label, msgParts.json);
   };
 };

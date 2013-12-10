@@ -5,6 +5,8 @@
 var _                   = require('underscore');
 var WebSocketHelper     = require('WebSocketHelper');
 
+var verbose = 1;
+
 exports.mkWebSocketRpc = mkWebSocketRpc;
 
 
@@ -22,11 +24,12 @@ function mkWebSocketRpc(wsc, handlers) {
 
     wsc.onmessage = function(event) {
       if (event.data.constructor === ArrayBuffer) {
+        if (verbose >= 3) console.log(wsc.url + ' > binary length=', event.data.byteLength);
         rxBinaries.push(event.data);
       } else {
         var msg = WebSocketHelper.parse(event.data, rxBinaries);
         rxBinaries = [];
-        console.log(wsc.url + ' >', msg);
+        if (verbose >= 2) console.log(wsc.url + ' >', msg);
         handleMsg(msg);
       }
     };
@@ -43,10 +46,10 @@ function mkWebSocketRpc(wsc, handlers) {
       if (handlers.close) {
         handlers.close();
       } else {
-        console.log(wsc.url + ' Closed');
+        if (verbose >= 1) console.log(wsc.url + ' Closed');
         txQueue = [];
         setTimeout(function() {
-          console.log('Reopening socket to ' + wsc.url);
+          if (verbose >= 1) console.log('Reopening socket to ' + wsc.url);
           wsc = new WebSocket(wsc.url);
           setupWsc(wsc);
         }, 3000);
@@ -58,7 +61,7 @@ function mkWebSocketRpc(wsc, handlers) {
     if (msg.cmd) {
       var cmdFunc = handlers['cmd_' + msg.cmd];
       if (!cmdFunc) {
-        console.log(wsc.url, 'Unknown cmd', cmd);
+        if (verbose >= 1) console.log(wsc.url, 'Unknown cmd', cmd);
         return;
       }
       cmdFunc(msg);
@@ -66,7 +69,7 @@ function mkWebSocketRpc(wsc, handlers) {
     else if (msg.rpcReq) {
       var reqFunc = handlers['req_' + msg.rpcReq];
       if (!reqFunc) {
-        console.log(wsc.url, 'Unknown rpcReq', msg.rpcReq);
+        if (verbose >= 1) console.log(wsc.url, 'Unknown rpcReq', msg.rpcReq);
         return;
       }
       var done = false;
@@ -86,7 +89,7 @@ function mkWebSocketRpc(wsc, handlers) {
     else if (msg.rspId) {
       var rspFunc = pending.get(msg.rspId);
       if (!rspFunc) {
-        console.log(wsc.url, 'Unknown response', msg.rspId);
+        if (verbose >= 1) console.log(wsc.url, 'Unknown response', msg.rspId);
         return;
       }
       rspFunc.call(handlers, msg);
@@ -96,7 +99,7 @@ function mkWebSocketRpc(wsc, handlers) {
       if (handlers.onHello) handlers.onHello();
     }
     else {
-      console.log(wsc.url, 'Unknown message', msg);
+      if (verbose >= 1) console.log(wsc.url, 'Unknown message', msg);
     }
   }
   
@@ -117,11 +120,12 @@ function mkWebSocketRpc(wsc, handlers) {
   }
 
   function emitMsg(msg) {
-    console.log(wsc.url + ' <', msg);
     var msgParts = WebSocketHelper.stringify(msg);
     _.each(msgParts.binaries, function(data) {
       wsc.send(data);
+      if (verbose >= 3) console.log(wsc.url + ' < binary length=', data.byteLength);
     });
+    if (verbose >= 2) console.log(wsc.url + ' <', msgParts.json);
     wsc.send(msgParts.json);
   }
 

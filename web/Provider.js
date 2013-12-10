@@ -603,6 +603,7 @@ function ProviderSet() {
   AnyProvider.call(this);
   this.providers = [];
   this.title = 'VJS';
+  this.reloadKey = undefined;
 }
 ProviderSet.prototype = Object.create(AnyProvider.prototype);
 
@@ -689,7 +690,11 @@ ProviderSet.prototype.start = function() {
       emitAll('asHtmlBody', '', '');
       emitAll('asScriptBody', '<script type="text/javascript">\n//<![CDATA[\n', '\n//]]>\n</script>\n');
   
-      cat.push('<script type="text/javascript">\nsetTimeout(pageSetupFromHash, 1);\n</script>\n' +
+      cat.push('<script type="text/javascript">\n' +
+               'setTimeout(function() {' +
+               'pageSetupFromHash(' + JSON.stringify(self.reloadKey) + ');' +
+               '});\n' +
+               '</script>\n' +
                '</body>\n</html>\n');
 
       self.asHtml = cat.join('');

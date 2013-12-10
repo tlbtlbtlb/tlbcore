@@ -6,9 +6,7 @@ var WebSocketBrowser    = require('WebSocketBrowser');
 
 $.action = {};
 $.enhance = {};
-$.content = {};
-
-var content = {};
+$.allContent = {};
 
 var Safety = {
   isValidServerName: function(serverName) {
@@ -293,23 +291,7 @@ $.fn.fmtBullets = function(items) {
   return this;
 };
 
-/*
-  Take a list of items or a string with \ns, turn into lines separated by <br>
-*/
-$.fn.fmtLines = function(l) {
-  if (_.isArray(l)) {
-    this.html(l.join('<br/>'));
-  }
-  else if (_.isString(l)) {
-    this.html(l.replace(/\n/g, '<br/>'));
-  }
-  else if (l) {
-    this.html(l.toString().replace(/\n/g, '<br/>'));
-  }
-  return this;
-};
-
-/*
+/* ----------------------------------------------------------------------
   Set text, escaping potential html
 */
 $.fn.fmtText = function(text) {  
@@ -326,6 +308,30 @@ $.fn.fmtException = function(ex) {
   this.fmtTextLines(ex.stack || ex.message);
   return this;
 };
+
+// Take a list of items or a string with \ns, turn into lines separated by <br>
+$.fn.fmtLines = function(l) {
+  if (_.isArray(l)) {
+    this.html(l.join('<br/>'));
+  }
+  else if (_.isString(l)) {
+    this.html(l.replace(/\n/g, '<br/>'));
+  }
+  else if (l) {
+    this.html(l.toString().replace(/\n/g, '<br/>'));
+  }
+  return this;
+};
+
+$.fn.wrapInnerLink = function(url) {
+  this.wrapInner('<a href="' + url + '">');
+  return this;
+};
+
+
+/* ----------------------------------------------------------------------
+   Format dates
+*/
 
 $.fn.fmtShortDate = function(d) {
   if (_.isNumber(d)) d = new Date(d);
@@ -377,13 +383,9 @@ $.fn.fmtTimeInterval = function(seconds) {
   return this.html(days.toString() + 'd ' + hours.toString() + 'h ' + minutes.toString() + 'm');
 };
 
-$.fn.wrapInnerLink = function(url) {
-  this.wrapInner('<a href="' + url + '">');
-  return this;
-};
 
-/*
-  Error messages
+/* ----------------------------------------------------------------------
+   Format error messages
 */
 $.fn.fmtErrorMessage = function(err) {
   this.clearSpinner();
@@ -449,22 +451,6 @@ $.fn.clearSuccessMessage = function() {
   return this;
 };
 
-$.vjsModalDialog = function(title, options) {
-  var ret = $('<div class="modalDialogContents"></div>');
-  ret.dialog(hashMerge({position: 'top',
-                        draggable: false,
-                        resizable: false,
-                        title: title,
-                        width: 500,
-                        hide: {
-                          effect: 'slide',
-                          direction: 'up',
-                          duration: 300},
-                        zIndex: 800,
-                        modal: true}, options || {}));
-  return ret;
-};
-
 var flashErrorMessageTimeout = null;
 
 $.flashErrorMessage = function(msg) {
@@ -487,6 +473,10 @@ $.flashErrorMessage = function(msg) {
     });
   }, 2000);
 };
+
+/* ----------------------------------------------------------------------
+  DOM structure utilities
+*/
 
 $.fn.findOrCreate = function(sel, constructor) {
   var findSel = this.find(sel);
@@ -584,7 +574,8 @@ $.fn.syncChildren = function(newItems, options) {
   return oldEls;
 };
 
-/*
+
+/* ----------------------------------------------------------------------
   Animation
 */
 
@@ -614,7 +605,6 @@ $.fn.syncChildren = function(newItems, options) {
     };
 }());
 
-// 
 $.fn.animation = function(f, deltat) {
   var self = this;
   window.requestAnimationFrame(wrap);
@@ -648,6 +638,11 @@ $.fn.animation = function(f, deltat) {
   }
 };
 
+/* ----------------------------------------------------------------------
+   Track all key events within a document object. The hash (down) keeps track of what keys are down, 
+   and (changed) is called whenever anything changes.
+*/
+
 $.fn.trackKeys = function(down, changed) {
   $(window).on('keydown', function(ev) {
     var keyChar = String.fromCharCode(ev.which);
@@ -661,8 +656,9 @@ $.fn.trackKeys = function(down, changed) {
   });
 };
 
-/*
-  On some browsers on retina devices, the canvas is at css pixel resolution. This converts it to device pixel resolution.
+/* ----------------------------------------------------------------------
+  On some browsers on retina devices, the canvas is at css pixel resolution. 
+  This converts it to device pixel resolution.
 */
 $.fn.maximizeCanvasResolution = function() {
   this.find('canvas').each(function(index, canvas) {
@@ -700,23 +696,25 @@ function mkImage(src, width, height) {
    Console
 */
 
-function setupConsole() {
+function setupConsole(reloadKey) {
   // Gracefully degrade firebug logging
   function donothing () {}
   if (!window.console) {
     var names = ['log', 'debug', 'info', 'warn', 'error', 'assert', 'dir', 'dirxml', 'group', 
                  'groupEnd', 'time', 'timeEnd', 'count', 'trace', 'profile', 'profileEnd'];
-    var newConsole = {};
-    for (var i = 0; i<names.length; i++) newConsole[names[i]] = donothing;
-    window.console = newConsole;
+    window.console = {};
+    for (var i = 0; i<names.length; i++) window.console[names[i]] = donothing;
   }
 
+  // Create remote console over a websocket connection
   window.rconsole = mkWebSocket('console', {
     start: function() {
-      gotoHash(getLocationHash(), null);
-      startHistoryPoll();
+      if (reloadKey) {
+        // Ask the server to tell us to reload. Look for reloadKey in VjsSite.js for the control flow.
+        this.tx({cmd: 'reloadOn', reloadKey: reloadKey});
+      }
     },
-    cmd_reload: function(msg) {
+    cmd_reload: function(msg) { // server is asking us to reload, because it knows that javascript files have changed
       console.log('Reload');
       window.location.reload(true);
     },
@@ -726,7 +724,9 @@ function setupConsole() {
   });
 }
 
-
+/*
+  Log an error or warning to the browser developer console and the web server, through the websocket connection to /console
+*/
 function errlog() {
   // console.log isn't a function in IE8
   if (console && _.isFunction(console.log)) console.log.apply(console, arguments);
@@ -764,19 +764,6 @@ function errlog() {
    Session & URL management
 */
 
-
-function setupUrls() {
-  var host = window.location.host;
-  var hostname = window.location.hostname;
-  var protocol = window.location.protocol;
-  window.anyLiveBase = protocol + '//' + host + '/live/';
-  window.anySecureBase = 'http://' + host + '/';
-  window.anySecureLiveBase = 'http://' + host + '/live/';
-
-  var wsProtocol = (protocol === 'https') ? 'wss' : 'ws';
-  window.webSocketBase = wsProtocol + '://' + host + '/';
-}
-
 function setupClicks() {
   $(document.body).bind('click', function(e) {
     var closestA = $(e.target).closest('a');
@@ -792,11 +779,6 @@ function setupClicks() {
   });
 }
 
-function pageSetupFromHash() {
-  setupUrls();
-  setupConsole();
-  setupClicks();
-}
 
 /* ----------------------------------------------------------------------
   Interface to Mixpanel.
@@ -826,9 +808,23 @@ function setupMixpanel() {
 */
 
 function mkWebSocket(path, handlers) {
-  var wsUrl = window.webSocketBase + path;
+  var host = window.location.host;
+  var protocol = window.location.protocol;
+  var wsUrl = ((protocol === 'https') ? 'wss' : 'ws') + '://' + host + '/' + path;
+  // WRITEME: detect vendor-prefixed WebSocket.
+  // WRITEME: Give some appropriately dire error message if websocket not found or fails to connect
   var wsc = new WebSocket(wsUrl);
   return WebSocketBrowser.mkWebSocketRpc(wsc, handlers);
 };
 
+/* ----------------------------------------------------------------------
+   Called from web page setup code (search for pageSetupFromHash in Provider.js)
+*/
+
+function pageSetupFromHash(reloadKey) {
+  setupConsole(reloadKey);
+  setupClicks();
+  gotoHash(getLocationHash(), null);
+  startHistoryPoll();
+}
 

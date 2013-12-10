@@ -21,7 +21,6 @@ var WebSocketServer     = require('./WebSocketServer');
 
 exports.WebServer = WebServer;
 exports.setVerbose = function(v) { verbose = v; };
-exports.reloadAllBrowsers = reloadAllBrowsers;
 
 // ======================================================================
 
@@ -34,6 +33,7 @@ function WebServer() {
   webServer.wsHandlers = {};
   webServer.serverAccessCounts = {};
   webServer.wwwRoot = null;
+  webServer.allConsoleHandlers = [];
 }
 
 WebServer.prototype.setUrl = function(url, p) {
@@ -49,7 +49,13 @@ WebServer.prototype.setUrl = function(url, p) {
     }
   }
 
+  p.reloadKey = url;
   webServer.urlProviders['GET ' + url] = p; 
+  p.on('changed', function() {
+    if (p.reloadKey) {
+      webServer.reloadAllBrowsers(p.reloadKey);
+    }
+  });
 };
 
 WebServer.prototype.setSocketProtocol = function(url, f) {
@@ -102,7 +108,7 @@ WebServer.prototype.setupInternalUrls = function() {
     };
   }
 
-  webServer.setSocketProtocol('/console', mkConsoleHandler);
+  webServer.setSocketProtocol('/console', webServer.mkConsoleHandler.bind(webServer));
 
   // Files available from root of file server
   webServer.setUrl('/favicon.ico', require.resolve('./images/vjs.ico'));
@@ -243,17 +249,25 @@ WebServer.prototype.getContentStats = function(cb) {
   }));
 };
 
-var allConsoleHandlers = [];
+WebServer.prototype.reloadAllBrowsers = function(reloadKey) {
+  var webServer = this;
+  _.each(webServer.allConsoleHandlers, function(ch) {
+    if (ch.reloadKey === reloadKey) {
+      ch.tx({cmd: 'reload'});
+    }
+  });
+};
 
-function mkConsoleHandler() {
+WebServer.prototype.mkConsoleHandler = function() {
+  var webServer = this;
   return {
     start: function() {
       logio.I(this.label, 'Console started');
-      allConsoleHandlers.push(this);
+      webServer.allConsoleHandlers.push(this);
     },
     close: function() {
       var self = this;
-      allConsoleHandlers = _.filter(allConsoleHandlers, function(other) { return other !== self; });
+      webServer.allConsoleHandlers = _.filter(webServer.allConsoleHandlers, function(other) { return other !== self; });
     },
     cmd_errlog: function(msg) {
       logio.E(this.label, 'Errors in ' + msg.ua);
@@ -264,12 +278,10 @@ function mkConsoleHandler() {
         }
         util.puts(err.replace(/^/mg, '    '));
       }
+    },
+    cmd_reloadOn: function(msg) {
+      this.reloadKey = msg.reloadKey;
     }
   };
 }
 
-function reloadAllBrowsers() {
-  _.each(allConsoleHandlers, function(ch) {
-    ch.tx({cmd: 'reload'});
-  });
-}
