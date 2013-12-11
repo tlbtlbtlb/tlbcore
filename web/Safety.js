@@ -5,6 +5,7 @@ var _ = require('underscore');
 */
 
 exports.isValidRobotName = isValidRobotName;
+exports.isValidLogName = isValidLogName;
 exports.isValidServerName = isValidServerName;
 exports.isValidEventName = isValidEventName;
 exports.isValidEmail = isValidEmail;
@@ -24,6 +25,12 @@ function isValidRobotName(robotName) {
   if (!(typeof robotName === 'string')) return false;
   if (!(/^[\w\.]+$/.test(robotName))) return false;
   if (robotName === 'all') return false; // special value
+  return true;
+}
+
+function isValidLogName(logName) {
+  if (!(typeof logName === 'string')) return false;
+  if (!(/^[\w\.]+$/.test(logName))) return false;
   return true;
 }
 

@@ -30,7 +30,6 @@ exports.emit302 = emit302;
 // ======================================================================
 
 var verbose           = 1;
-var monitorInterval = 500;
 
 function removeComments(content) {
   content = content.replace(/\'(\\.|[^\\\'])*\'|\"(?:\\.|[^\\\"])*\"|\/\/[\S \t]*|\/\*[\s\S]*?\*\//g, function(m) {
@@ -206,16 +205,30 @@ function persistentReadFile(fn, encoding, cb) {
       }
     });
   }
-  if (monitorInterval) {
-    fs.watchFile(fn, {interval: monitorInterval}, function (curr, prev) {
-      var delta = curr.mtime - prev.mtime;
-      if (0 !== delta) {
-        logio.I(fn, 'changed ' + Math.floor(delta/1000) + ' seconds newer');
-        readit();
-      }
+  fs.stat(fn, function(err, stats) {
+    if (err) {
+      logio.E(fn, err);
+      return cb(null);
+    }
+    
+    var prevStats = stats;
+    fs.watch(fn, {persistent: false}, function(event, fn1) {
+      fs.stat(fn, function(err, newStats) {
+        if (err) {
+          logio.E(fn, err);
+          return;
+        }
+        
+        var delta = newStats.mtime - prevStats.mtime;
+        if (0 !== delta) {
+          logio.I(fn, 'changed ' + Math.floor(delta/1000) + ' seconds newer');
+          prevStats = newStats;
+          readit();
+        }
+      });
     });
-  }
-  readit();
+    readit();
+  });
 }
 
 // Convert 'foo/bar.html' => 'bar'
