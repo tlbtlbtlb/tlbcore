@@ -23,9 +23,7 @@
 #define _TLBCORE_JSWRAPBASE_H_
 
 #include <node.h>
-#include <node_object_wrap.h>
-#include <v8.h>
-#include <uv.h>
+#include <node_buffer.h>
 
 enum JsWrapStyle {
   JSWRAP_NONE,

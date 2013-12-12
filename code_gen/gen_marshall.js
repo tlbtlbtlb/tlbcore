@@ -1,4 +1,15 @@
 'use strict';
+/*
+  This generates most of the stuff in the build.src directory.
+  
+  TYPENAME_purejs.js:
+     A javascript file to access the structures on disk from Javascript.
+     A cool feature is that we can save the javascript file on disk with traces, so that if the schema changes we can still get at the data from javascript
+
+  TYPENAME_decl.h
+     A C++ header defining the structure of each type
+     
+*/
 var fs = require('fs');
 var util = require('util');
 var crypto = require('crypto');
@@ -218,7 +229,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
 
   f('void jsInit_functions(Handle<Object> target) {');
   _.each(this.wrapFunctions, function(funcinfos, jsFuncname) {
-    f('NODE_SET_METHOD(target, "' + jsFuncname + '", jsWrap_' + jsFuncname + ');');
+    f('node::SetMethod(target, "' + jsFuncname + '", jsWrap_' + jsFuncname + ');');
   });
   
   f('}');
@@ -350,6 +361,7 @@ CType.prototype.getFns = function() {
     hostCode: base + '_host.cc',
     embeddedCode: base + '_embedded.c',
     pureJsCode: base + '_purejs.js',
+    pureJsTestCode: 'test_' + base + '.js',
     typeHeader: base + '_decl.h',
     jsWrapHeader: base + '_jsWrap.h',
     jsWrapCode: base + '_jsWrap.cc',
@@ -363,6 +375,9 @@ CType.prototype.emitAll = function(files) {
   }
   if (fns.pureJsCode) {
     this.emitPureJsCode(files.getFile(fns.pureJsCode).child({TYPENAME: this.typename}));
+  }
+  if (fns.pureJsTestCode) {
+    this.emitPureJsTestCode(files.getFile(fns.pureJsTestCode).child({TYPENAME: this.typename}));
   }
   if (fns.embeddedCode) {
     this.emitEmbeddedCode(files.getFile(fns.embeddedCode).child({TYPENAME: this.typename}));
@@ -422,6 +437,15 @@ CType.prototype.getDefnDependencies = function() {
   return sortTypes(this.extraDefnDependencies);
 };
 
+CType.prototype.getPureJsAccessors = function() {
+  var accum = {
+    offset: 0,
+    accessors: []
+  };
+  this.accumPureJsAccessors(null, accum);
+  return accum;
+}
+
 // ----------------------------------------------------------------------
 
 CType.prototype.emitHeader = function(f) {
@@ -449,6 +473,10 @@ CType.prototype.emitHostCode = function(f) {
 
 CType.prototype.emitPureJsCode = function(f) {
   this.emitPureJsImpl(f);
+};
+
+CType.prototype.emitPureJsTestCode = function(f) {
+  this.emitPureJsTestImpl(f);
 };
 
 CType.prototype.emitEmbeddedCode = function(f) {
@@ -501,6 +529,9 @@ CType.prototype.emitHostImpl = function(f) {
 };
 
 CType.prototype.emitPureJsImpl = function(f) {
+};
+
+CType.prototype.emitPureJsTestImpl = function(f) {
 };
 
 CType.prototype.emitEmbeddedImpl = function(f) {
@@ -561,6 +592,69 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
   }
 };
 
+PrimitiveCType.prototype.getMaxAlignment = function() {
+  switch(this.typename) {
+  case 'float': return 4;
+  case 'double': return 8;
+  case 'int': return 4;
+  case 'bool': return 1;
+  default: throw new Error('Unknown alignment for type ' + this.typename);
+  }
+}
+
+PrimitiveCType.prototype.accumPureJsAccessors = function(prefix, accum) {
+  var getExpr, setExpr;
+
+  switch(this.typename) {
+  case 'float': 
+    accum.offset = Math.ceil(accum.offset / 4) * 4; 
+    getExpr = 'buffer.readFloatLE(offset + ' + accum.offset.toString() + ')';
+    setExpr = 'buffer.writeFloatLE(value, offset + ' + accum.offset.toString() + ')';
+    accum.offset += 4;
+    break;
+  case 'double': 
+    accum.offset = Math.ceil(accum.offset / 8) * 8;
+    getExpr = 'buffer.readDoubleLE(offset + ' + accum.offset.toString() + ')';
+    setExpr = 'buffer.writeDoubleLE(value, offset + ' + accum.offset.toString() + ')';
+    accum.offset += 8;
+    break;
+  case 'int':
+    accum.offset = Math.ceil(accum.offset / 4) * 4;
+    getExpr = 'buffer.readInt32LE(offset + ' + accum.offset.toString() + ')';
+    setExpr = 'buffer.writeInt32LE(value, offset + ' + accum.offset.toString() + ')';
+    accum.offset += 4;
+    break;
+  case 'bool':
+    accum.offset = Math.ceil(accum.offset / 1) * 1;
+    getExpr = 'buffer.readUint8(offset + ' + accum.offset.toString() + ') ? true : false';
+    setExpr = 'buffer.writeUint8LE(value ? 1 : 0, offset + ' + accum.offset.toString() + ')';
+    accum.offset += 1;
+    break;
+  default:
+  }
+
+  accum.accessors.push({name: prefix, getExpr: getExpr, setExpr: setExpr});
+};
+
+PrimitiveCType.prototype.getExampleValueJs = function() {
+  switch(this.typename) {
+  case 'int':
+    return '7';
+    break;
+  case 'float':
+    return '5.5';
+    break;
+  case 'double':
+    return '9.5';
+    break;
+  case 'bool':
+    return 'true';
+    break;
+  default:
+    throw new Error('PrimitiveCType.getExampleValue unimplemented for type ' + this.typename);
+  }
+}
+
 
 // ----------------------------------------------------------------------
 
@@ -576,7 +670,8 @@ function CStructType(reg, typename) {
 
 _.extend(CStructType.prototype, CType.prototype);
 
-CType.prototype.hasArrayNature = function() {
+CStructType.prototype.hasArrayNature = function() {
+  //return false; // XXX
   var mt = this.getMemberTypes();
   return (mt.length === 1);
 };
@@ -588,6 +683,36 @@ CStructType.prototype.getSynopsis = function() {
     return self.nameToType[name].getSynopsis();
   }).join(',') + '})';
 };
+
+CStructType.prototype.getMaxAlignment = function() {
+  var self = this;
+  var structAlignment = 1;
+  _.each(self.orderedTypes, function(name) {
+    structAlignment = Math.max(structAlignment, self.nameToType[name].getMaxAlignment());
+  });
+  return structAlignment;
+}
+
+CStructType.prototype.accumPureJsAccessors = function(prefix, accum) {
+  var self = this;
+  var structAlignment = this.getMaxAlignment();
+  accum.offset = Math.ceil(accum.offset / structAlignment) * structAlignment;
+
+  accum.accessors.push({
+    name: prefix,
+    getExpr: '{\n    ' + _.map(self.orderedNames, function(name) {
+      return name + ': getters' + (prefix ? '.' + prefix : '') + '.' + name + '(buffer, offset)';
+    }).join(',\n    ') + '}',
+    setExpr: '\n    ' + _.map(self.orderedNames, function(name) {
+      return 'setters' + (prefix ? '.' + prefix : '') + '.' + name + '(buffer, offset, value.' + name + ')';
+    }).join(';\n    ')
+  });
+  
+  _.each(this.orderedNames, function(name) {
+    self.nameToType[name].accumPureJsAccessors(prefix ? (prefix + '.' + name) : name, accum);
+  });
+};
+
 
 CStructType.prototype.getDeclDependencies = function() {
   return sortTypes(this.getMemberTypes().concat(CType.prototype.getDeclDependencies.call(this)));
@@ -642,8 +767,8 @@ CStructType.prototype.emitTypeDecl = function(f) {
   f('struct TYPENAME {');
   f('typedef TYPENAME selftype;');
   f('TYPENAME();'); // declare default constructor
-  if (this.hasFullConstructor()) {
-    f('TYPENAME(' + _.map(this.orderedNames, function(name) {
+  if (self.hasFullConstructor()) {
+    f('TYPENAME(' + _.map(self.orderedNames, function(name) {
       return self.nameToType[name].typename + ' _' + name;
     }).join(', ') + ');');
   }
@@ -651,19 +776,20 @@ CStructType.prototype.emitTypeDecl = function(f) {
   f('static TYPENAME allOne();');
   f('static TYPENAME allNan();');
 
-  _.each(this.orderedNames, function(name) {
+  _.each(self.orderedNames, function(name) {
     self.nameToType[name].emitVarDecl(f, name);
   });
 
   f('TYPENAME copy() const;');
 
-  if (this.hasArrayNature()) {
-    f('inline element_t & operator[] (int i) { return (&%s)[i]; }' % (this.orderedNames[0]))
-    f('inline element_t const & operator[] (int i) const { return (&%s)[i]; }' % (this.orderedNames[0]))
+  if (self.hasArrayNature()) {
+    f('typedef ' + self.nameToType[self.orderedNames[0]].typename + ' element_t;');
+    f('inline element_t & operator[] (int i) { return (&' + self.orderedNames[0] + ')[i]; }');
+    f('inline element_t const & operator[] (int i) const { return (&' + self.orderedNames[0] + ')[i]; }');
   }
 
 
-  _.each(this.extraMemberDecls, function(l) {
+  _.each(self.extraMemberDecls, function(l) {
     f(l);
   });
 
@@ -764,12 +890,45 @@ CStructType.prototype.emitHostImpl = function(f) {
   this.emitRdJson(f);
 };
 
-CStructType.prototype.emitPureJsImpl = function(f) {
-  _.each(this.orderedNames, function(name) {
-    f('// ' + name);
-  });
+CStructType.prototype.getExampleValueJs = function() {
+  var self = this;
+  return 'new ur.' + self.typename + '(' + _.map(self.orderedNames, function(name) {
+    return self.nameToType[name].getExampleValueJs();
+  }).join(', ') + ')';
 };
 
+CStructType.prototype.emitPureJsImpl = function(f) {
+  var self = this;
+  var accum = self.getPureJsAccessors();
+  _.each(accum.accessors, function(a) {
+    f((a.name ? 'getters.' + a.name : 'var getters') + ' = function(buffer, offset) { return ' + a.getExpr + '; }');
+    f((a.name ? 'setters.' + a.name : 'var setters') + ' = function(buffer, offset, value) { ' + a.setExpr + '; }');
+  });
+  f('setters.sizeof = getters.sizeof = ' + accum.offset.toString() + ';');
+  f('exports.getters = getters;');
+  f('exports.setters = setters;');
+};
+
+CStructType.prototype.emitPureJsTestImpl = function(f) {
+  var self = this;
+  f('var _ = require("underscore");');
+  f('var ur = require("../nodeif/bin/ur");');
+  f('var util = require("util");');
+  f('var assert = require("assert");');
+  f('describe("TYPENAME C++ impl", function() {');
+  f('it("should work", function() {');
+
+  f('var t1 = ' + self.getExampleValueJs() + ';');
+  f('var t2 = ur.TYPENAME.fromString(t1.toString());');
+  f('assert.strictEqual(t1.toString(), t2.toString());');
+
+  f('var t1b = t1.toBuffer();');
+  f('var t3 = ur.TYPENAME.fromBuffer(t1b);');
+  f('assert.strictEqual(t1.toString(), t3.toString());');
+
+  f('});');
+  f('});');
+};
 
 // JSON
 
@@ -881,12 +1040,11 @@ CStructType.prototype.emitJsWrapDecl = function(f) {
   f('static TYPENAME *Extract(Handle<Value> value);');
   f('static Persistent<Function> constructor;');
   f('};');
-  f('');
 };
 
 CStructType.prototype.emitJsWrapImpl = function(f) {
   var self = this;
-  var methods = ['toString'];
+  var methods = ['toString', 'toBuffer'];
   var factories = ['allOne', 'allZero', 'allNan'];
   var accessors = this.orderedNames;
 
@@ -915,6 +1073,14 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('');
   }
 
+  if (0) {
+    f('JsWrap_TYPENAME_aview::JsWrap_TYPENAME(TYPENAME *_arr, size_t _n_arr) :arr(_arr), n_arr(_n_arr) {}')
+    f('JsWrap_TYPENAME_aview::~JsWrap_TYPENAME() { arr = 0; n_arr = 0; }');
+    f('Persistent<Function> JsWrap_TYPENAME_aview::constructor;');
+    f('');
+  }
+
+
   if (1) {
     f('static Handle<Value> jsNew_TYPENAME(const Arguments& args) {')
     f('HandleScope scope;');
@@ -922,6 +1088,18 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();');
 
     f('JsWrap_TYPENAME* obj = new JsWrap_TYPENAME();');
+    f('return obj->JsConstructor(args);')
+    f('}');
+    f('');
+  }
+
+  if (0) { // FIXME
+    f('static Handle<Value> jsNew_TYPENAME_aview(const Arguments& args) {')
+    f('HandleScope scope;');
+
+    f('if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();');
+
+    f('JsWrap_TYPENAME_aview* obj = new JsWrap_TYPENAME_aview();');
     f('return obj->JsConstructor(args);')
     f('}');
     f('');
@@ -1017,7 +1195,21 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('return scope.Close(JsWrap_TYPENAME::NewInstance(it));');
     f('}');
 
-    // WRITEME: toBuffer / fromBuffer
+
+    f('static Handle<Value> jsMethod_TYPENAME_toBuffer(const Arguments& args) {')
+    f('HandleScope scope;');
+    f('JsWrap_TYPENAME* obj = node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(args.This());');
+    f('node::Buffer *buf = node::Buffer::New((const char *)obj->it, sizeof(TYPENAME));');
+    f('return scope.Close(Persistent<Object>::New(buf->handle_));');
+    f('}');
+
+    f('static Handle<Value> jsFunc_TYPENAME_fromBuffer(const Arguments& args) {')
+    f('HandleScope scope;');
+    f('Handle<Value> buf = args[0];');
+    f('char * bufData = node::Buffer::Data(buf);');
+    f('TYPENAME it(*(TYPENAME const *)bufData);')
+    f('return scope.Close(JsWrap_TYPENAME::NewInstance(it));');
+    f('}');
   }
 
   if (1) {
@@ -1087,6 +1279,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('JsWrap_TYPENAME::constructor = Persistent<Function>::New(tpl->GetFunction());');
     f('target->Set(String::NewSymbol("TYPENAME"), JsWrap_TYPENAME::constructor);');
     f('JsWrap_TYPENAME::constructor->Set(String::NewSymbol("fromString"), FunctionTemplate::New(jsFunc_TYPENAME_fromString)->GetFunction());');
+    f('JsWrap_TYPENAME::constructor->Set(String::NewSymbol("fromBuffer"), FunctionTemplate::New(jsFunc_TYPENAME_fromBuffer)->GetFunction());');
     _.each(factories, function(name) {
       f('JsWrap_TYPENAME::constructor->Set(String::NewSymbol("' + name + '"), FunctionTemplate::New(jsFunc_TYPENAME_' + name + ')->GetFunction());');
     });

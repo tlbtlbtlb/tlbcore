@@ -33,6 +33,16 @@ describe('WebSocketHelper', function() {
   });
 });
 
+describe('JSON', function() {
+  it('should be efficient', function() {
+    var arr = _.map(_.range(0, 300), function(i) { return i*422; });
+    for (var i=0; i<500; i++) {
+      var arrS = JSON.stringify(arr);
+      var arr2 = JSON.parse(arrS);
+    }
+  });
+});
+
 
 describe('RpcPendingQueue', function() {
   it('should be efficient', function() {
