@@ -1,9 +1,9 @@
 #include "../common/std_headers.h"
 #include <node.h>
-#include <v8.h>
-#include <uv.h>
 #include "./TcpJsonConn.h"
 #include "./LatencyTest.h"
+
+using namespace v8;
 
 struct LoopbackRxApi : JsonApi {
   LoopbackRxApi(LatencyTest *_owner, bool _isServer)

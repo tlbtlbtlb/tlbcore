@@ -19,6 +19,20 @@ describe('Safety.isValidEmail', function() {
   });
 });
 
+describe('Safety.isValidLogName', function() {
+  function cgood(name) {
+    if (!Safety.isValidLogName(name)) throw new Error('should be valid, but isValidLogName=false: ' + name);
+  }
+  function cbad(name) {
+    if (Safety.isValidLogName(name)) throw new Error('should be invalid, but isValidLogName=true: ' + name);
+  }
+  it('should work', function() {
+    cgood('run_147');
+    cbad('');
+    cbad('../../etc/passwd');
+  });
+});
+
 
 describe('Safety.isValidPassword', function() {
   function cgood(password) {

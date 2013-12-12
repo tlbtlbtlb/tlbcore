@@ -2,6 +2,7 @@ var _ = require('underscore');
 
 /*
   Argument validation. This is how we protect ourselves from Bobby Tables.
+  Thou shalt not fuck with these without extensive testing
 */
 
 exports.isValidRobotName = isValidRobotName;

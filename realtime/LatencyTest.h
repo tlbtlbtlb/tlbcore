@@ -1,6 +1,8 @@
 #ifndef _TLBCORE_REALTIME_LATENCYTEST_H
 #define _TLBCORE_REALTIME_LATENCYTEST_H
 
+#include <node.h>
+
 struct LoopbackRxApi;
 struct TcpJsonConn;
 
@@ -9,7 +11,7 @@ struct LatencyTest : LogBase {
   void startServer();
   void startClient();
 
-  void collectStatus(Handle<Object> ret);
+  void collectStatus(v8::Handle<v8::Object> ret);
 
   uv_tcp_t *uvServer;
   TcpJsonConn *serverConn;

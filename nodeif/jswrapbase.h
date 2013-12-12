@@ -24,6 +24,8 @@
 
 #include <node.h>
 #include <node_buffer.h>
+using namespace node;
+using namespace v8;
 
 enum JsWrapStyle {
   JSWRAP_NONE,
@@ -31,8 +33,12 @@ enum JsWrapStyle {
   JSWRAP_BORROWED,
 };
 
-v8::Handle<v8::Value> ThrowInvalidArgs();
-v8::Handle<v8::Value> ThrowInvalidThis();
+Handle<Value> ThrowInvalidArgs();
+Handle<Value> ThrowInvalidThis();
+Handle<Value> ThrowTypeError(char const *s);
+
+string convJsStringToStl(Handle<String> it);
+Handle<Value> convStlStringToJs(string const &it);
 
 template <typename CONTENTS>
 struct JsWrapGeneric : node::ObjectWrap {
@@ -60,18 +66,18 @@ struct JsWrapGeneric : node::ObjectWrap {
   CONTENTS *it;
   JsWrapStyle wrapStyle;
 
-  static v8::Handle<v8::Value> NewInstance(CONTENTS const &it) {
-    v8::HandleScope scope;
-    v8::Local<v8::Object> instance = constructor->NewInstance(0, NULL);
+  static Handle<Value> NewInstance(CONTENTS const &it) {
+    HandleScope scope;
+    Local<Object> instance = constructor->NewInstance(0, NULL);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     *w->it = it;
     return scope.Close(instance);
   }
 
-  static CONTENTS *Extract(v8::Handle<v8::Value> value) {
+  static CONTENTS *Extract(Handle<Value> value) {
     if (value->IsObject()) {
-      v8::Handle<v8::Object> valueObject = value->ToObject();
-      v8::Local<v8::String> valueTypeName = valueObject->GetConstructorName();
+      Handle<Object> valueObject = value->ToObject();
+      Local<String> valueTypeName = valueObject->GetConstructorName();
       if (valueTypeName == constructor->GetName()) {
         return node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(valueObject)->it;
       }
@@ -79,7 +85,7 @@ struct JsWrapGeneric : node::ObjectWrap {
     return NULL;
   }
 
-  static v8::Persistent<v8::Function> constructor;
+  static Persistent<Function> constructor;
 };
 
 template <typename CONTENTS>

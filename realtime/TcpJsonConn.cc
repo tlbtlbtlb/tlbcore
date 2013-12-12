@@ -1,5 +1,6 @@
 #include "../common/std_headers.h"
 #include "./TcpJsonConn.h"
+using namespace v8;
 
 Local<Object> parseJson(string const &s)
 {
@@ -323,7 +324,7 @@ sockaddr_storage TcpJsonConn::getRemoteAddr()
 
 void TcpJsonConn::collectStatus(Handle<Object> ret)
 {
-  LogBase::collectStatus(ret);
+  //LogBase::collectStatus(ret);
 
   double time0 = realtime();
   ret->Set(String::NewSymbol("lastRtt"), Number::New(lastRtt));

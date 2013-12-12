@@ -6,8 +6,6 @@
 #include <typeinfo>
 #include <string>
 #include <string.h>
-#include <v8.h>
-using namespace v8;
 
 struct LogBase {
 
@@ -44,11 +42,12 @@ struct LogBase {
   static void setLoglevel(string const &name, int amount=1);
   void setLoglevel(int ll);
 
-  virtual void remoteCmd(Handle<Object> cmd, Handle<Object> rsp);
-  static void globalRemoteCmd(Handle<Object> cmd, Handle<Object> rsp);
-
   virtual int writeVitals(ostream &s);
   char const *shortTypeName() const;
+
+#if 0
+  virtual void remoteCmd(Handle<Object> cmd, Handle<Object> rsp);
+  static void globalRemoteCmd(Handle<Object> cmd, Handle<Object> rsp);
 
   virtual void collectStatus(Handle<Object> ret);
   virtual void collectHealth(Handle<Object> ret);
@@ -57,6 +56,8 @@ struct LogBase {
   Handle<Object> getInfo();
   static Handle<Object> getAllInfo();
   static Handle<Object> getAllHealth();
+
+#endif
 
   static map<string, int> &verboseByName();
   static map<string, int> &loglevelByName();

@@ -1,21 +1,29 @@
 'use strict';
 /*
   This generates most of the stuff in the build.src directory.
-  
-  TYPENAME_purejs.js:
-     A javascript file to access the structures on disk from Javascript.
-     A cool feature is that we can save the javascript file on disk with traces, so that if the schema changes we can still get at the data from javascript
+  For each type it knows about, it generates the following files:
+    
+    TYPENAME_decl.h
+      A C++ header defining the structure of each type
 
-  TYPENAME_decl.h
-     A C++ header defining the structure of each type
-     
+    TYPENAME_host.cc
+      A C++ definition of the type. It has no nodejs dependencies so you can use it in a pure C++ program.
+      It includes constructors, an << operator for printing, and marshalling/unmarshalling to JSON.
+       
+    TYPENAME_jsWrap.{h,cc}
+      A, wrapping of the type for nodejs. It depends on both nodejs and v8. 
+       
+    TYPENAME_purejs.js:
+      A javascript file to access the structures on disk from Javascript.
+      A cool feature is that we can save the javascript file on disk with traces, so that if the schema changes we can still get at the data from javascript
+
 */
-var fs = require('fs');
-var util = require('util');
-var crypto = require('crypto');
-var _ = require('underscore');
-var cgen = require('./cgen');
-var gen_functions = require('./gen_functions');
+var _                   = require('underscore');
+var fs                  = require('fs');
+var util                = require('util');
+var crypto              = require('crypto');
+var cgen                = require('./cgen');
+var gen_functions       = require('./gen_functions');
 
 exports.TypeRegistry = TypeRegistry;
 
@@ -32,18 +40,19 @@ function sortTypes(types) {
 }
 
 function TypeRegistry(groupname) {
-  this.groupname = groupname;
-  this.moduleToTypes = {};
-  this.typeToModule = {};
-  this.toEmit = [];
-  this.types = {};
-  this.enums = [];
-  this.consts = {};
-  this.wrapFunctions = {};
-  this.rtFunctions = {};
-  this.extraJsWrapFuncsHeaders = [];
+  var self = this;
+  self.groupname = groupname;
+  self.moduleToTypes = {};
+  self.typeToModule = {};
+  self.toEmit = [];
+  self.types = {};
+  self.enums = [];
+  self.consts = {};
+  self.wrapFunctions = {};
+  self.rtFunctions = {};
+  self.extraJsWrapFuncsHeaders = [];
 
-  this.setPrimitives();
+  self.setPrimitives();
 }
 
 TypeRegistry.prototype.scanJsDefn = function(fn) {
@@ -53,25 +62,25 @@ TypeRegistry.prototype.scanJsDefn = function(fn) {
   f(this, cgen, _, util);
 };
 
-
-
 TypeRegistry.prototype.setPrimitives = function() {
   this.types['bool'] = new PrimitiveCType(this, 'bool');
   this.types['float'] = new PrimitiveCType(this, 'float');
   this.types['double'] = new PrimitiveCType(this, 'double');
   this.types['int'] = new PrimitiveCType(this, 'int');
+  this.types['string'] = new PrimitiveCType(this, 'string');
 };
 
 TypeRegistry.prototype.struct = function(typename) {
-  if (typename in this.types) throw 'Already defined';
-  var t = new CStructType(this, typename);
-  this.types[typename] = t;
-  this.toEmit.push(typename);
+  var self = this;
+  if (typename in self.types) throw 'Already defined';
+  var t = new CStructType(self, typename);
+  self.types[typename] = t;
+  self.toEmit.push(typename);
   try {
     for (var i=1; i<arguments.length; i++) {
       var name = arguments[i][0];
       var type = arguments[i][1];
-      if (_.isString(type)) type = this.types[type];
+      if (_.isString(type)) type = self.types[type];
       t.add(name, type);
     }
   } catch(e) {
@@ -88,20 +97,22 @@ TypeRegistry.prototype.loadDeclarations = function(modulename) {
 TypeRegistry.prototype.emitAll = function(files) {
   var self = this;
 
-  _.each(this.types, function(typeobj, typename) {
+  _.each(self.types, function(typeobj, typename) {
     typeobj.emitAll(files);
   });
 
-  this.emitJsWrapFuncs(files);
-  this.emitJsBoot(files);
-  this.emitRtFunctions(files);
-  this.emitGypFile(files);
+  self.emitJsWrapFuncs(files);
+  self.emitJsBoot(files);
+  self.emitRtFunctions(files);
+  self.emitGypFile(files);
 };
 
 TypeRegistry.prototype.emitJsBoot = function(files) {
+  var self = this;
   var f = files.getFile('jsboot.cc');
   f('#include "tlbcore/common/std_headers.h"');
-  _.each(this.types, function(typeobj, typename) {
+  f('#include "tlbcore/nodeif/jswrapbase.h"');
+  _.each(self.types, function(typeobj, typename) {
     if (typeobj.hasJsWrapper()) {
       f('void jsInit_' + typename + '(Handle<Object> target);');
     }
@@ -109,7 +120,7 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
   f('void jsInit_functions(Handle<Object> target);');
   f('');
   f('void jsBoot(Handle<Object> target) {');
-  _.each(this.types, function(typeobj, typename) {
+  _.each(self.types, function(typeobj, typename) {
     if (typeobj.hasJsWrapper()) {
       f('jsInit_' + typename + '(target);');
     }
@@ -120,12 +131,13 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
 };
 
 TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
+  var self = this;
   var f = files.getFile('functions_jsWrap.cc');
   f('#include "tlbcore/common/std_headers.h"');
   f('#include "tlbcore/nodeif/jswrapbase.h"');
   f('#include "./rtfns.h"');
-  _.each(this.extraJsWrapFuncsHeaders, f);
-  _.each(this.types, function(typeobj, typename) {
+  _.each(self.extraJsWrapFuncsHeaders, f);
+  _.each(self.types, function(typeobj, typename) {
     var fns = typeobj.getFns();
     if (fns.jsWrapHeader) {
       f('#include "' + fns.jsWrapHeader + '"');
@@ -133,15 +145,16 @@ TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
   });
   f('');
 
-  this.emitFunctionWrappers(f);
+  self.emitFunctionWrappers(f);
   f.end();
 };
 
 TypeRegistry.prototype.emitGypFile = function(files) {
+  var self = this;
   var f = files.getFile('sources.gypi');
   f('{');
   f('"sources": [');
-  _.each(this.types, function(typeobj, typename) {
+  _.each(self.types, function(typeobj, typename) {
     var fns = typeobj.getFns();
     if (fns.hostCode) {
       f('\"' + fns.hostCode + '\",');
@@ -174,7 +187,7 @@ function funcnameCToJs(name) {
 
 TypeRegistry.prototype.emitFunctionWrappers = function(f) {
   var self = this;
-  _.each(this.wrapFunctions, function(funcinfos, jsFuncname) {
+  _.each(self.wrapFunctions, function(funcinfos, jsFuncname) {
     f('Handle<Value> jsWrap_' + jsFuncname + '(Arguments const &args) {');
     f('HandleScope scope;');
     _.each(funcinfos, function(funcinfo) {
@@ -194,6 +207,19 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
           f(arginfo.typename + ' a' + argi + ' = args[' + argi + ']->NumberValue();');
           callargs.push('a' + argi);
           break;
+
+        case 'bool':
+          f('if (args[' + argi + ']->IsBoolean()) {')
+          f(arginfo.typename + ' a' + argi + ' = args[' + argi + ']->BooleanValue();');
+          callargs.push('a' + argi);
+          break;
+
+        case 'string':
+          f('if (args[' + argi + ']->IsString()) {')
+          f(arginfo.typename + ' a' + argi + ' = convJsToStlString(args[' + argi + ']->ToString());');
+          callargs.push('a' + argi);
+          break;
+
         default:
           f(arginfo.typename + ' *a' + argi + ' = JsWrap_' + arginfo.typename + '::Extract(args[' + argi + ']);');
           f('if (a' + argi + ') {');
@@ -202,20 +228,30 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
       });
 
       switch(funcinfo.returnTypename) {
+      case 'void':
+        f(funcinfo.funcname + '(' + callargs.join(', ') + ');');
+        break;
+      default:
+        f(funcinfo.returnTypename + ' ret = ' + funcinfo.funcname + '(' + callargs.join(', ') + ');');
+      }
+
+      switch(funcinfo.returnTypename) {
       case 'int':
       case 'float':
       case 'double':
-        f('return scope.Close(Number::New(' + funcinfo.funcname + '(' + callargs.join(', ') + ')));');
+        f('return scope.Close(Number::New(ret));');
         break;
       case 'bool':
-        f('return scope.Close(Boolean::New(' + funcinfo.funcname + '(' + callargs.join(', ') + ')));');
+        f('return scope.Close(Boolean::New(ret));');
+        break;
+      case 'string':
+        f('return scope.Close(String::New(ret));');
         break;
       case 'void':
-        f(funcinfo.funcname + '(' + callargs.join(', ') + ');');
-        f('return scope.Close(Undefined());')
+        f('return scope.Close(Undefined());');
         break;
       default:
-        f('return scope.Close(JsWrap_' + funcinfo.returnTypename + '::NewInstance(' + funcinfo.funcname + '(' + callargs.join(', ') + ')));')
+        f('return scope.Close(JsWrap_' + funcinfo.returnTypename + '::NewInstance(ret));');
       };
 
       _.each(funcinfo.args, function() {
@@ -228,7 +264,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
   });
 
   f('void jsInit_functions(Handle<Object> target) {');
-  _.each(this.wrapFunctions, function(funcinfos, jsFuncname) {
+  _.each(self.wrapFunctions, function(funcinfos, jsFuncname) {
     f('node::SetMethod(target, "' + jsFuncname + '", jsWrap_' + jsFuncname + ');');
   });
   
@@ -237,7 +273,8 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
 };
 
 TypeRegistry.prototype.scanCFunctions = function(text) {
-  var typenames = _.keys(this.types);
+  var self = this;
+  var typenames = _.keys(self.types);
   var typenameExpr = typenames.join('|');
   var typeExpr = '(' + typenameExpr + ')\\s+' + '(|const\\s+&|&)';
   var argExpr = typeExpr + '\\s*(\\w+)';
@@ -267,17 +304,18 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
                 argname: m[5+i*3]};
       });
 
-      this.addWrapFunction(desc, funcname, returnTypename, args);
+      self.addWrapFunction(desc, funcname, returnTypename, args);
 
     }
   }
-  if (0) console.log(this.wrapFunctions);
+  if (0) console.log(self.wrapFunctions);
 };
 
 TypeRegistry.prototype.scanCHeader = function(fn) {
+  var self = this;
   var rawFile = fs.readFileSync(fn, 'utf8');
-  this.scanCFunctions(rawFile);
-  this.extraJsWrapFuncsHeaders.push('#include "' + fn + '"');
+  self.scanCFunctions(rawFile);
+  self.extraJsWrapFuncsHeaders.push('#include "' + fn + '"');
 };
 
 TypeRegistry.prototype.emitRtFunctions = function(files) {
@@ -307,11 +345,12 @@ TypeRegistry.prototype.emitRtFunctions = function(files) {
 
 
 TypeRegistry.prototype.addWrapFunction = function(desc, funcname, returnTypename, args) {
+  var self = this;
   var jsFuncname = funcnameCToJs(funcname);
-  if (!(jsFuncname in this.wrapFunctions)) {
-    this.wrapFunctions[jsFuncname] = [];
+  if (!(jsFuncname in self.wrapFunctions)) {
+    self.wrapFunctions[jsFuncname] = [];
   }
-  this.wrapFunctions[jsFuncname].push({desc: desc,
+  self.wrapFunctions[jsFuncname].push({desc: desc,
                                        funcname: funcname,
                                        returnTypename: returnTypename,
                                        args: args});
@@ -359,7 +398,7 @@ CType.prototype.getFns = function() {
   var base = this.getFnBase();
   return {
     hostCode: base + '_host.cc',
-    embeddedCode: base + '_embedded.c',
+    //embeddedCode: base + '_embedded.c',
     pureJsCode: base + '_purejs.js',
     pureJsTestCode: 'test_' + base + '.js',
     typeHeader: base + '_decl.h',
@@ -400,9 +439,9 @@ CType.prototype.getCustomerIncludes = function() {
 };
 
 CType.prototype.getHeaderIncludes = function() {
-  var dd = this.getDeclDependencies();
+  var self = this;
   var ret = [];
-  _.each(dd, function(othertype) {
+  _.each(self.getDeclDependencies(), function(othertype) {
     var fns = othertype.getFns();
     if (fns && fns.typeHeader) {
       ret.push('#include "' + fns.typeHeader + '"');
@@ -568,6 +607,7 @@ PrimitiveCType.prototype.getAllOneExpr = function() {
   case 'double': return '1.0';
   case 'int': return '1';
   case 'bool': return 'true';
+  case 'string': return 'string("1")';
   default: return '***ALL_ONE***';
   }
 };
@@ -578,6 +618,7 @@ PrimitiveCType.prototype.getAllZeroExpr = function() {
   case 'double': return '0.0';
   case 'int': return '0';
   case 'bool': return 'false';
+  case 'string': return 'string()';
   default: return '***ALL_ZERO***';
   }
 };
@@ -588,16 +629,18 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
   case 'double': return 'numeric_limits<double>::quiet_NaN()';
   case 'int': return '0x80000000';
   case 'bool': return 'false';
+  case 'string': return 'string()';
   default: return '***ALL_NAN***';
   }
 };
 
-PrimitiveCType.prototype.getMaxAlignment = function() {
+PrimitiveCType.prototype.getAlignment = function() {
   switch(this.typename) {
   case 'float': return 4;
   case 'double': return 8;
   case 'int': return 4;
   case 'bool': return 1;
+  case 'string': return 8; // XXX wrong for 32-bit machines
   default: throw new Error('Unknown alignment for type ' + this.typename);
   }
 }
@@ -630,6 +673,13 @@ PrimitiveCType.prototype.accumPureJsAccessors = function(prefix, accum) {
     setExpr = 'buffer.writeUint8LE(value ? 1 : 0, offset + ' + accum.offset.toString() + ')';
     accum.offset += 1;
     break;
+  case 'string':
+    // Wrong
+    accum.offset = Math.ceil(accum.offset / 8) * 8;
+    getExpr = '""';
+    setExpr = '';
+    accum.offset += 8;
+    break;
   default:
   }
 
@@ -640,23 +690,27 @@ PrimitiveCType.prototype.getExampleValueJs = function() {
   switch(this.typename) {
   case 'int':
     return '7';
-    break;
   case 'float':
     return '5.5';
-    break;
   case 'double':
     return '9.5';
-    break;
   case 'bool':
     return 'true';
-    break;
+  case 'string':
+    return '"foo"';
   default:
     throw new Error('PrimitiveCType.getExampleValue unimplemented for type ' + this.typename);
   }
 }
 
+/* ----------------------------------------------------------------------
+   Template types
+   WRITEME: support vector<TYPENAME> and such things
+*/
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   C Structs. Can be POD or not
+*/
 
 function CStructType(reg, typename) {
   CType.call(this, reg, typename);
@@ -684,18 +738,18 @@ CStructType.prototype.getSynopsis = function() {
   }).join(',') + '})';
 };
 
-CStructType.prototype.getMaxAlignment = function() {
+CStructType.prototype.getAlignment = function() {
   var self = this;
   var structAlignment = 1;
   _.each(self.orderedTypes, function(name) {
-    structAlignment = Math.max(structAlignment, self.nameToType[name].getMaxAlignment());
+    structAlignment = Math.max(structAlignment, self.nameToType[name].getAlignment());
   });
   return structAlignment;
 }
 
 CStructType.prototype.accumPureJsAccessors = function(prefix, accum) {
   var self = this;
-  var structAlignment = this.getMaxAlignment();
+  var structAlignment = this.getAlignment();
   accum.offset = Math.ceil(accum.offset / structAlignment) * structAlignment;
 
   accum.accessors.push({
@@ -804,8 +858,8 @@ CStructType.prototype.emitTypeDecl = function(f) {
   f('bool rdJson(const char *&s, TYPENAME &obj);');
   f('size_t wrJsonSize(TYPENAME const &x);');
 
-  f('void wrPacket(packet &p, const TYPENAME *x, size_t n);');
-  f('void rdPacket(packet &p, TYPENAME *x, size_t n);');
+  f('void packet_wr_addfunc(packet &p, const TYPENAME *x, size_t n);');
+  f('void packet_rd_getfunc(packet &p, TYPENAME *x, size_t n);');
   
   CType.prototype.emitTypeDecl.call(this, f);
   f('');
@@ -821,22 +875,22 @@ CStructType.prototype.emitHostImpl = function(f) {
   if (1) {
     // Default constructor
     f('TYPENAME::TYPENAME()');
-    if (this.orderedNames.length) {
-      f(':' + _.map(this.orderedNames, function(name) {
+    if (self.orderedNames.length) {
+      f(':' + _.map(self.orderedNames, function(name) {
         return name + '(' + self.getMemberInitExpr(name) + ')';
       }).join(',\n'));
     }
     f('{');
-    _.each(this.extraConstructorCode, function(l) {
+    _.each(self.extraConstructorCode, function(l) {
       f(l);
     });
     f('}');
   }
-  if (this.hasFullConstructor()) {
-    f('TYPENAME::TYPENAME(' + _.map(this.orderedNames, function(name) {
+  if (self.hasFullConstructor()) {
+    f('TYPENAME::TYPENAME(' + _.map(self.orderedNames, function(name) {
       return self.nameToType[name].typename + ' _' + name;
     }).join(', ') + ')');
-    f(':' + _.map(this.orderedNames, function(name) {
+    f(':' + _.map(self.orderedNames, function(name) {
       return name + '(_' + name + ')';
     }).join(', '))
     f('{}');
@@ -844,14 +898,14 @@ CStructType.prototype.emitHostImpl = function(f) {
 
 
   if (1) {
-    f('char const * TYPENAME::versionString ="' + this.getSignature() + '";');
-    f('char const * TYPENAME::typeVersionString = "' + this.getTypeAndVersion() + '";');
+    f('char const * TYPENAME::versionString ="' + self.getSignature() + '";');
+    f('char const * TYPENAME::typeVersionString = "' + self.getTypeAndVersion() + '";');
     f('char const * TYPENAME::typeName = "TYPENAME";');
   }
 
   f('TYPENAME TYPENAME::allZero() {');
   f('TYPENAME ret;');
-  _.each(this.orderedNames, function(name) {
+  _.each(self.orderedNames, function(name) {
     var memberType = self.nameToType[name];
     f('ret.' + name + ' = ' + memberType.getAllZeroExpr() + ';');
   });
@@ -859,7 +913,7 @@ CStructType.prototype.emitHostImpl = function(f) {
   f('}');
   f('TYPENAME TYPENAME::allOne() {');
   f('TYPENAME ret;');
-  _.each(this.orderedNames, function(name) {
+  _.each(self.orderedNames, function(name) {
     var memberType = self.nameToType[name];
     f('ret.' + name + ' = ' + memberType.getAllOneExpr() + ';');
   });
@@ -867,7 +921,7 @@ CStructType.prototype.emitHostImpl = function(f) {
   f('}');
   f('TYPENAME TYPENAME::allNan() {');
   f('TYPENAME ret;');
-  _.each(this.orderedNames, function(name) {
+  _.each(self.orderedNames, function(name) {
     var memberType = self.nameToType[name];
     f('ret.' + name + ' = ' + memberType.getAllNanExpr() + ';');
   });
@@ -877,8 +931,8 @@ CStructType.prototype.emitHostImpl = function(f) {
 
   if (1) {
     f('ostream & operator<<(ostream &s, const TYPENAME &obj) {');
-    f('s << "' + this.typename + '{";');
-    _.each(this.orderedNames, function(name, namei) {
+    f('s << "' + self.typename + '{";');
+    _.each(self.orderedNames, function(name, namei) {
       f('s << "' + (namei > 0 ? ', ' : '') + name + '=" << obj.' + name + ';');
     });
     f('s << "}";');
@@ -886,8 +940,9 @@ CStructType.prototype.emitHostImpl = function(f) {
     f('}');
   }
 
-  this.emitWrJson(f);
-  this.emitRdJson(f);
+  self.emitWrJson(f);
+  self.emitRdJson(f);
+  self.emitPacketIo(f);
 };
 
 CStructType.prototype.getExampleValueJs = function() {
@@ -930,9 +985,33 @@ CStructType.prototype.emitPureJsTestImpl = function(f) {
   f('});');
 };
 
+// Packet
+CStructType.prototype.emitPacketIo = function(f) {
+  var self = this;
+
+  f('void packet_wr_addfunc(packet &p, const TYPENAME *x, size_t n) {');
+  f('for ( ; n>0; x++, n--) {');
+  _.each(self.orderedNames, function(name) {
+    f('p.add(x->' + name + ');');
+  });
+  f('}');
+  f('}');
+
+  f('void packet_rd_getfunc(packet &p, TYPENAME *x, size_t n) {');
+  f('for ( ; n>0; x++, n--) {');
+  _.each(self.orderedNames, function(name) {
+    f('p.get(x->' + name + ');');
+  });
+  f('}');
+  f('}');
+  
+};
+
+
 // JSON
 
 CStructType.prototype.emitWrJson = function(f) {
+  var self = this;
   function emitstr(s) {
     var b = new Buffer(s, 'utf8');
     f(_.map(_.range(0, b.length), function(ni) {
@@ -940,8 +1019,8 @@ CStructType.prototype.emitWrJson = function(f) {
     }).join(' ') + ' // ' + cgen.escapeCString(s));
   }
   f('void wrJson(char *&s, const TYPENAME &obj) {');
-  emitstr('{"type":"' + this.typename + '"');
-  _.each(this.orderedNames, function(name, namei) {
+  emitstr('{"type":"' + self.typename + '"');
+  _.each(self.orderedNames, function(name, namei) {
     emitstr(',\"' + name + '\":');
     f('wrJson(s, obj.' + name + ');');
   });
@@ -949,18 +1028,19 @@ CStructType.prototype.emitWrJson = function(f) {
   f('}');
 
   f('size_t wrJsonSize(const TYPENAME &obj) {');
-  f('return ' + _.map(this.orderedNames, function(name, namei) {
+  f('return ' + _.map(self.orderedNames, function(name, namei) {
     return (new Buffer(name, 'utf8').length + 4).toString() + '+wrJsonSize(obj.' + name + ')';
-  }).join(' + ') + ';');
+  }).join(' + ') + ' + 2;');
   f('}');
 };
 
 CStructType.prototype.emitRdJson = function(f) {
+  var self = this;
   var actions = {};
   actions['}'] = function() {
     f('return typeOk;');
   };
-  _.each(this.orderedNames, function(name) {
+  _.each(self.orderedNames, function(name) {
     actions['"' + name + '":'] = function() {
       f('if (rdJson(s, obj.' + name + ')) {');
       f('c = *s++;');
@@ -969,7 +1049,7 @@ CStructType.prototype.emitRdJson = function(f) {
       f('}');
     };
   });
-  actions['"type":"' + this.typename + '"'] = function() {
+  actions['"type":"' + self.typename + '"'] = function() {
     f('typeOk = true;');
     f('c = *s++;');
     f('if (c == \',\') continue;');
@@ -1027,7 +1107,6 @@ CStructType.prototype.hasJsWrapper = function(f) {
 
 CStructType.prototype.emitJsWrapDecl = function(f) {
   var self = this;
-
   f('struct JsWrap_TYPENAME : node::ObjectWrap {');
   f('JsWrap_TYPENAME();')
   f('JsWrap_TYPENAME(TYPENAME *_it);')
@@ -1046,15 +1125,15 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
   var self = this;
   var methods = ['toString', 'toBuffer'];
   var factories = ['allOne', 'allZero', 'allNan'];
-  var accessors = this.orderedNames;
+  var accessors = self.orderedNames;
 
-  _.each(this.getDeclDependencies(), function(othertype) {
+  _.each(self.getDeclDependencies(), function(othertype) {
     var fns = othertype.getFns();
     if (fns && fns.jsWrapHeader) {
       f('#include "' + fns.jsWrapHeader + '"');
     };    
   });
-  f('#include "' + this.getFns().jsWrapHeader + '"');
+  f('#include "' + self.getFns().jsWrapHeader + '"');
 
   if (1) {
     f('JsWrap_TYPENAME::JsWrap_TYPENAME() :it(new TYPENAME), wrapStyle(JSWRAP_OWNED) {}')
@@ -1107,11 +1186,11 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
 
   if (1) {
     f('Handle<Value> JsWrap_TYPENAME::JsConstructor(const Arguments& args) {');
-    if (this.hasFullConstructor()) {
+    if (self.hasFullConstructor()) {
       f('if (args.Length() == 0) {')
       f('}')
-      f('else if (args.Length() == ' + this.orderedNames.length + ') {')
-      _.each(this.orderedNames, function(name, argi) {
+      f('else if (args.Length() == ' + self.orderedNames.length + ') {')
+      _.each(self.orderedNames, function(name, argi) {
         var argType = self.nameToType[name];
         switch(argType.typename) {
         case 'float':
@@ -1123,6 +1202,10 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
         case 'bool':
           f('if (!args[' + argi + ']->IsBoolean()) return ThrowInvalidArgs();');
           f('it->' + name + ' = args[' + argi + ']->ToBoolean()->BooleanValue();');
+          break;
+        case 'string':
+          f('if (!args[' + argi + ']->IsString()) return ThrowInvalidArgs();');
+          f('it->' + name + ' = convJsStringToStl(args[' + argi + ']->ToString());')
           break;
         default:
           f(argType.typename + ' *a' + argi + ' = JsWrap_' + argType.typename + '::Extract(args[' + argi + ']);');
@@ -1183,15 +1266,12 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
 
     f('static Handle<Value> jsFunc_TYPENAME_fromString(const Arguments& args) {')
     f('HandleScope scope;');
-    f('Handle<String> jss = args[0]->ToString();');
-    f('size_t sl = jss->Utf8Length()+1;');
-    f('char *s = new char[sl];')
-    f('jss->WriteUtf8(s, sl);');
-    f('const char *p = s;');
+    f('String::Utf8Value a0str(args[0]->ToString());');
+    f('const char *s = *a0str;');
+    f('if (!s) return ThrowInvalidArgs();');
     f('TYPENAME it;')
-    f('bool ok = rdJson(p, it);');
+    f('bool ok = rdJson(s, it);');
     f('if (!ok) return ThrowInvalidArgs();');
-    f('delete s;');
     f('return scope.Close(JsWrap_TYPENAME::NewInstance(it));');
     f('}');
 
@@ -1199,17 +1279,24 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('static Handle<Value> jsMethod_TYPENAME_toBuffer(const Arguments& args) {')
     f('HandleScope scope;');
     f('JsWrap_TYPENAME* obj = node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(args.This());');
-    // WRITEME: check length
-    f('node::Buffer *buf = node::Buffer::New((const char *)obj->it, sizeof(TYPENAME));');
+    f('packet wr;')
+    f('wr.add(*obj->it);');
+    f('node::Buffer *buf = node::Buffer::New((const char *)wr.rd_ptr(), wr.size());');
     f('return scope.Close(Persistent<Object>::New(buf->handle_));');
     f('}');
 
     f('static Handle<Value> jsFunc_TYPENAME_fromBuffer(const Arguments& args) {')
     f('HandleScope scope;');
     f('Handle<Value> buf = args[0];');
-    // WRITEME: check length
-    f('char * bufData = node::Buffer::Data(buf);');
-    f('TYPENAME it(*(TYPENAME const *)bufData);')
+    f('if (!node::Buffer::HasInstance(buf)) return ThrowInvalidArgs();');
+    f('packet rd(node::Buffer::Length(buf));');
+    f('rd.add(node::Buffer::Data(buf), node::Buffer::Length(buf));');
+    f('TYPENAME it;');
+    f('try {');
+    f('rd.get(it);');
+    f('} catch(tlbcore_err const &ex) {');
+    f('return ThrowTypeError(ex.str().c_str());');
+    f('};');
     f('return scope.Close(JsWrap_TYPENAME::NewInstance(it));');
     f('}');
   }
@@ -1229,13 +1316,14 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('HandleScope scope;');
     f('JsWrap_TYPENAME* obj = node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(ai.This());');
     switch (memberTypename) {
-    case 'double':
-    case 'float':
-    case 'int':
+    case 'double': case 'float': case 'int':
       f('return scope.Close(Number::New(obj->it->' + name + '));');
       break;
     case 'bool':
       f('return scope.Close(Boolean::New(obj->it->' + name + '));');
+      break;
+    case 'string':
+      f('return scope.Close(convStlStringToJs(obj->it->' + name + '));');
       break;
     default:
       // TESTME
@@ -1246,13 +1334,14 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('HandleScope scope;');
     f('JsWrap_TYPENAME* obj = node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(ai.This());');
     switch (memberTypename) {
-    case 'double':
-    case 'float':
-    case 'int':
+    case 'double': case 'float': case 'int':
       f('obj->it->' + name + ' = value->NumberValue();');
       break;
     case 'bool':
       f('obj->it->' + name + ' = value->BooleanValue();');
+      break;
+    case 'string':
+      f('obj->it->' + name + ' = convJsStringToStl(value->ToString());');
       break;
     default:
       f('JsWrap_' + memberTypename + '* valobj = node::ObjectWrap::Unwrap<JsWrap_' + memberTypename + '>(value->ToObject());');

@@ -6,8 +6,6 @@
 #endif
 #include "./LogBase.h"
 
-using namespace v8;
-
 static int deExistVerbose = 0;
 
 static string withoutSlashes(string s)
@@ -181,6 +179,7 @@ LogBase::setLoglevel(string const &name, int amount)
 
 // ----------------------------------------------------------------------
 
+#if 0
 void LogBase::collectStatus(Handle<Object> ret)
 {
 }
@@ -300,6 +299,8 @@ void LogBase::globalRemoteCmd(json &cmds, json &rsps)
     rsps[name] = rsp;
   }
 }
+#endif
+
 #endif
 
 bool isSafeCaptureFn(string fn)

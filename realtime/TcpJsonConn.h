@@ -3,17 +3,18 @@
 #define _TLBCORE_REALTIME_TcpJsonConn_H
 
 #include "../common/LogBase.h"
+#include <node.h>
 #include <uv.h>
 
 struct TcpJsonConn;
 
 struct JsonApi {
-  virtual void call(Handle<Object> pkt, LogBase *sender)=0;
+  virtual void call(v8::Handle<v8::Object> pkt, LogBase *sender)=0;
 };
 
 struct TcpJsonConnRxApi : JsonApi {
   TcpJsonConnRxApi(TcpJsonConn *_owner);
-  void call(Handle<Object> pkt, LogBase *sender);
+  void call(v8::Handle<v8::Object> pkt, LogBase *sender);
   TcpJsonConn *owner;
 };
 
@@ -29,14 +30,14 @@ struct TcpJsonConn : LogBase {
   sockaddr_storage getRemoteAddr();
 
   // LogBase
-  void collectStatus(Handle<Object> ret);
+  void collectStatus(v8::Handle<v8::Object> ret);
   
-  void txPkt(Handle<Object> wr);
+  void txPkt(v8::Handle<v8::Object> wr);
   void txPing();
 
   // local
   void onRxLine(string const &s);
-  void onRxJson(Handle<Object> pkt);
+  void onRxJson(v8::Handle<v8::Object> pkt);
   void onConnect(uv_connect_t *req, int status);
   void onRead(ssize_t nread, uv_buf_t buf);
   void onResolve(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res);
@@ -55,7 +56,7 @@ struct TcpJsonConn : LogBase {
 
   uv_stream_t *sock;
 
-  deque<Persistent<Object> > txQ;
+  deque<v8::Persistent<v8::Object> > txQ;
   string rxLinebuf;
 
   double lastConnectTs;
