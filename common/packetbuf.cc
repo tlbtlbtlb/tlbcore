@@ -94,6 +94,12 @@ packet::packet()
 {
 }
 
+packet::packet(u_char const *data, size_t size)
+  :contents(alloc_contents(size)), annotations(NULL), rd_pos(0), wr_pos(size)
+{
+  memcpy(contents->buf, data, size);
+}
+
 packet::packet(size_t size)
   :contents(alloc_contents(size)), annotations(NULL), rd_pos(0), wr_pos(0)
 {
@@ -543,7 +549,7 @@ string packet::get_nl_string()
   return ret;
 }
 
-void packet::add_type_tag(char const *tag)
+void packet::add_typetag(char const *tag)
 {
   size_t size = strlen(tag);
   assert (size < 255);
@@ -555,7 +561,7 @@ void packet::add_type_tag(char const *tag)
   Check for a given type tag. Consume the tag if matched, else rewind.
   There must be a proper type tag, though, or an exception will be thrown.
  */
-bool packet::test_type_tag(char const *expected)
+bool packet::test_typetag(char const *expected)
 {
   int save_rd_pos = rd_pos;
   size_t size = (size_t) fget<u_char>();
@@ -569,14 +575,13 @@ bool packet::test_type_tag(char const *expected)
   return true;
 }
 
-void packet::check_type_tag(char const *expected)
+void packet::check_typetag(char const *expected)
 {
   size_t size = (size_t) fget<u_char>();
   char got[256];
   get(got, size);
   got[size] = 0;
   if (strcmp(expected, got)) {
-    printf("packet_rd_type_err expected=%s got=%s\n", expected, got);
     throw packet_rd_type_err(expected, got); // takes a copy of both strings
   }
 }
@@ -701,71 +706,94 @@ string packet_rd_type_err::str() const
 // ----------------------------------------------------------------------
 
 
-void packet_wr_addfunc(packet &p, const signed char *x, size_t n)     { p.add((const u_char *)x, sizeof(*x) * n); }
-void packet_rd_getfunc(packet &p, signed char *x, size_t n)           { p.get((u_char *)x, sizeof(*x) * n); }
+void packet_wr_typetag(packet &p, signed char const &x)     { p.add_typetag("schar"); }
+void packet_wr_typetag(packet &p, char const &x)            { p.add_typetag("char"); }
+void packet_wr_typetag(packet &p, unsigned char const &x)   { p.add_typetag("uchar"); }
+void packet_wr_typetag(packet &p, short const &x)           { p.add_typetag("short"); }
+void packet_wr_typetag(packet &p, unsigned short const &x)  { p.add_typetag("ushort"); }
+void packet_wr_typetag(packet &p, int const &x)             { p.add_typetag("int"); }
+void packet_wr_typetag(packet &p, unsigned int const &x)    { p.add_typetag("uint"); }
+void packet_wr_typetag(packet &p, long const &x)            { p.add_typetag("long"); }
+void packet_wr_typetag(packet &p, unsigned long const &x)   { p.add_typetag("ulong"); }
+void packet_wr_typetag(packet &p, float const &x)           { p.add_typetag("float"); }
+void packet_wr_typetag(packet &p, double const &x)          { p.add_typetag("double"); }
+void packet_wr_typetag(packet &p, timeval const &x)         { p.add_typetag("timeval"); }
+void packet_wr_typetag(packet &p, bool const &x)            { p.add_typetag("bool"); }
 
-void packet_wr_addfunc(packet &p, const char *x, size_t n)            { p.add((const u_char *)x, sizeof(*x) * n); }
-void packet_wr_addfunc(packet &p, const unsigned char *x, size_t n)   { p.add((const u_char *)x, sizeof(*x) * n); }
+void packet_rd_typetag(packet &p, signed char const &x)     { p.check_typetag("schar"); }
+void packet_rd_typetag(packet &p, char const &x)            { p.check_typetag("char"); }
+void packet_rd_typetag(packet &p, unsigned char const &x)   { p.check_typetag("uchar"); }
+void packet_rd_typetag(packet &p, short &x)                 { p.check_typetag("short"); }
+void packet_rd_typetag(packet &p, unsigned short &x)        { p.check_typetag("ushort"); }
+void packet_rd_typetag(packet &p, int &x)                   { p.check_typetag("int"); }
+void packet_rd_typetag(packet &p, unsigned int &x)          { p.check_typetag("uint"); }
+void packet_rd_typetag(packet &p, long &x)                  { p.check_typetag("long"); }
+void packet_rd_typetag(packet &p, unsigned long &x)         { p.check_typetag("ulong"); }
+void packet_rd_typetag(packet &p, float &x)                 { p.check_typetag("float"); }
+void packet_rd_typetag(packet &p, double &x)                { p.check_typetag("double"); }
+void packet_rd_typetag(packet &p, timeval &x)               { p.check_typetag("timeval"); }
+void packet_rd_typetag(packet &p, bool &x)                  { p.check_typetag("bool"); }
 
-void packet_rd_getfunc(packet &p, unsigned char *x, size_t n)         { p.get((u_char *)x, sizeof(*x) * n); }
-void packet_rd_getfunc(packet &p, char *x, size_t n)                  { p.get((u_char *)x, sizeof(*x) * n); }
+void packet_wr_value(packet &p, signed char const &x)       { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, char const &x)              { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, unsigned char const &x)     { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, short const &x)             { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, unsigned short const &x)    { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, int const &x)               { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, unsigned int const &x)      { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, long const &x)              { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, unsigned long const &x)     { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, float const &x)             { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, double const &x)            { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, timeval const &x)           { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, bool const &x)              { p.add((const u_char *)&x, sizeof(x)); }
 
-void packet_wr_addfunc(packet &p, const short *x, size_t n)           { p.add((const u_char *)x, sizeof(*x) * n); }
-void packet_wr_addfunc(packet &p, const unsigned short *x, size_t n)  { p.add((const u_char *)x, sizeof(*x) * n); }
-void packet_wr_addfunc(packet &p, const int *x, size_t n)             { p.add((const u_char *)x, sizeof(*x) * n); }
-void packet_wr_addfunc(packet &p, const unsigned int *x, size_t n)    { p.add((const u_char *)x, sizeof(*x) * n); }
-void packet_wr_addfunc(packet &p, const long *x, size_t n)            { p.add((const u_char *)x, sizeof(*x) * n); }
-void packet_wr_addfunc(packet &p, const unsigned long *x, size_t n)   { p.add((const u_char *)x, sizeof(*x) * n); }
-void packet_wr_addfunc(packet &p, const float *x, size_t n)           { p.add((const u_char *)x, sizeof(*x) * n); }
-void packet_wr_addfunc(packet &p, const double *x, size_t n)          { p.add((const u_char *)x, sizeof(*x) * n); }
-void packet_wr_addfunc(packet &p, const timeval *x, size_t n)         { p.add((const u_char *)x, sizeof(*x) * n); }
-void packet_wr_addfunc(packet &p, const bool *x, size_t n)            { p.add((const u_char *)x, sizeof(*x) * n); }
-
-void packet_rd_getfunc(packet &p, short *x, size_t n)                 { p.get((u_char *)x, sizeof(*x) * n); }
-void packet_rd_getfunc(packet &p, unsigned short *x, size_t n)        { p.get((u_char *)x, sizeof(*x) * n); }
-void packet_rd_getfunc(packet &p, int *x, size_t n)                   { p.get((u_char *)x, sizeof(*x) * n); }
-void packet_rd_getfunc(packet &p, unsigned int *x, size_t n)          { p.get((u_char *)x, sizeof(*x) * n); }
-void packet_rd_getfunc(packet &p, long *x, size_t n)                  { p.get((u_char *)x, sizeof(*x) * n); }
-void packet_rd_getfunc(packet &p, unsigned long *x, size_t n)         { p.get((u_char *)x, sizeof(*x) * n); }
-void packet_rd_getfunc(packet &p, float *x, size_t n)                 { p.get((u_char *)x, sizeof(*x) * n); }
-void packet_rd_getfunc(packet &p, double *x, size_t n)                { p.get((u_char *)x, sizeof(*x) * n); }
-void packet_rd_getfunc(packet &p, timeval *x, size_t n)               { p.get((u_char *)x, sizeof(*x) * n); }
-void packet_rd_getfunc(packet &p, bool *x, size_t n)                  { p.get((u_char *)x, sizeof(*x) * n); }
+void packet_rd_value(packet &p, signed char &x)             { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, unsigned char &x)           { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, char &x)                    { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, short &x)                   { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, unsigned short &x)          { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, int &x)                     { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, unsigned int &x)            { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, long &x)                    { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, unsigned long &x)           { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, float &x)                   { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, double &x)                  { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, timeval &x)                 { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, bool &x)                    { p.get((u_char *)&x, sizeof(x)); }
 
 
-void packet_wr_addfunc(packet &p, const string *x, size_t n) {
-  for (size_t ni=0; ni<n; ni++) {
-    size_t size = x[ni].size();
+
+void packet_wr_typetag(packet &p, const string &x) { p.add_typetag("string"); }
+void packet_wr_value(packet &p, const string &x) {
+  size_t size = x.size();
     
-    if (size<0xff) {
-      u_char smallsize = (u_char)size;
-      p.add(smallsize);
-    } else {
-      u_char smallsize = 0xff;
-      p.add(smallsize);
-      p.add((u_int)size);
-    }
-
-    p.add(&x[ni][0], size);
+  if (size<0xff) {
+    u_char smallsize = (u_char)size;
+    p.add(smallsize);
+  } else {
+    u_char smallsize = 0xff;
+    p.add(smallsize);
+    p.add((u_int)size);
   }
+  
+  p.add(&x[0], size);
 }
 
-void packet_rd_getfunc(packet &p, string *x, size_t n) {
-  for (size_t ni=0; ni<n; ni++) {
-    u_char smallsize;
-    p.get(smallsize);
-    size_t size;
-    if (smallsize==0xff) {
-      size = (size_t)p.fget<u_int>();
-    } else {
-      size = smallsize;
-    }
-    if (size > (size_t)p.remaining()) {
-      throw packet_rd_overrun_err(size - p.remaining());
-    }
-    x[ni].resize(size);
-    p.get(&x[ni][0], size);
+void packet_rd_value(packet &p, string &x) {
+  u_char smallsize;
+  p.get(smallsize);
+  size_t size;
+  if (smallsize==0xff) {
+    size = (size_t)p.fget<u_int>();
+  } else {
+    size = smallsize;
   }
+  if (size > (size_t)p.remaining()) {
+    throw packet_rd_overrun_err(size - p.remaining());
+  }
+  x.resize(size);
+  p.get(&x[0], size);
 }
 
 

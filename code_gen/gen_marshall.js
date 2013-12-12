@@ -13,10 +13,6 @@
     TYPENAME_jsWrap.{h,cc}
       A, wrapping of the type for nodejs. It depends on both nodejs and v8. 
        
-    TYPENAME_purejs.js:
-      A javascript file to access the structures on disk from Javascript.
-      A cool feature is that we can save the javascript file on disk with traces, so that if the schema changes we can still get at the data from javascript
-
 */
 var _                   = require('underscore');
 var fs                  = require('fs');
@@ -40,19 +36,19 @@ function sortTypes(types) {
 }
 
 function TypeRegistry(groupname) {
-  var self = this;
-  self.groupname = groupname;
-  self.moduleToTypes = {};
-  self.typeToModule = {};
-  self.toEmit = [];
-  self.types = {};
-  self.enums = [];
-  self.consts = {};
-  self.wrapFunctions = {};
-  self.rtFunctions = {};
-  self.extraJsWrapFuncsHeaders = [];
+  var typereg = this;
+  typereg.groupname = groupname;
+  typereg.moduleToTypes = {};
+  typereg.typeToModule = {};
+  typereg.toEmit = [];
+  typereg.types = {};
+  typereg.enums = [];
+  typereg.consts = {};
+  typereg.wrapFunctions = {};
+  typereg.rtFunctions = {};
+  typereg.extraJsWrapFuncsHeaders = [];
 
-  self.setPrimitives();
+  typereg.setPrimitives();
 }
 
 TypeRegistry.prototype.scanJsDefn = function(fn) {
@@ -70,23 +66,17 @@ TypeRegistry.prototype.setPrimitives = function() {
   this.types['string'] = new PrimitiveCType(this, 'string');
 };
 
-TypeRegistry.prototype.struct = function(typename) {
-  var self = this;
-  if (typename in self.types) throw 'Already defined';
-  var t = new CStructType(self, typename);
-  self.types[typename] = t;
-  self.toEmit.push(typename);
-  try {
-    for (var i=1; i<arguments.length; i++) {
-      var name = arguments[i][0];
-      var type = arguments[i][1];
-      if (_.isString(type)) type = self.types[type];
-      t.add(name, type);
-    }
-  } catch(e) {
-    console.log(e, arguments);
-    throw e;
-  };
+TypeRegistry.prototype.struct = function(typename /* varargs */) {
+  var typereg = this;
+  if (typename in typereg.types) throw 'Already defined';
+  var t = new CStructType(typereg, typename);
+  typereg.types[typename] = t;
+  typereg.toEmit.push(typename);
+  for (var i=1; i<arguments.length; i++) {
+    var name = arguments[i][0];
+    var type = arguments[i][1];
+    t.add(name, type);
+  }
   return t;
 };
 
@@ -95,24 +85,24 @@ TypeRegistry.prototype.loadDeclarations = function(modulename) {
 };
 
 TypeRegistry.prototype.emitAll = function(files) {
-  var self = this;
+  var typereg = this;
 
-  _.each(self.types, function(typeobj, typename) {
+  _.each(typereg.types, function(typeobj, typename) {
     typeobj.emitAll(files);
   });
 
-  self.emitJsWrapFuncs(files);
-  self.emitJsBoot(files);
-  self.emitRtFunctions(files);
-  self.emitGypFile(files);
+  typereg.emitJsWrapFuncs(files);
+  typereg.emitJsBoot(files);
+  typereg.emitRtFunctions(files);
+  typereg.emitGypFile(files);
 };
 
 TypeRegistry.prototype.emitJsBoot = function(files) {
-  var self = this;
+  var typereg = this;
   var f = files.getFile('jsboot.cc');
   f('#include "tlbcore/common/std_headers.h"');
   f('#include "tlbcore/nodeif/jswrapbase.h"');
-  _.each(self.types, function(typeobj, typename) {
+  _.each(typereg.types, function(typeobj, typename) {
     if (typeobj.hasJsWrapper()) {
       f('void jsInit_' + typename + '(Handle<Object> target);');
     }
@@ -120,7 +110,7 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
   f('void jsInit_functions(Handle<Object> target);');
   f('');
   f('void jsBoot(Handle<Object> target) {');
-  _.each(self.types, function(typeobj, typename) {
+  _.each(typereg.types, function(typeobj, typename) {
     if (typeobj.hasJsWrapper()) {
       f('jsInit_' + typename + '(target);');
     }
@@ -131,13 +121,13 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
 };
 
 TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
-  var self = this;
+  var typereg = this;
   var f = files.getFile('functions_jsWrap.cc');
   f('#include "tlbcore/common/std_headers.h"');
   f('#include "tlbcore/nodeif/jswrapbase.h"');
   f('#include "./rtfns.h"');
-  _.each(self.extraJsWrapFuncsHeaders, f);
-  _.each(self.types, function(typeobj, typename) {
+  _.each(typereg.extraJsWrapFuncsHeaders, f);
+  _.each(typereg.types, function(typeobj, typename) {
     var fns = typeobj.getFns();
     if (fns.jsWrapHeader) {
       f('#include "' + fns.jsWrapHeader + '"');
@@ -145,16 +135,16 @@ TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
   });
   f('');
 
-  self.emitFunctionWrappers(f);
+  typereg.emitFunctionWrappers(f);
   f.end();
 };
 
 TypeRegistry.prototype.emitGypFile = function(files) {
-  var self = this;
+  var typereg = this;
   var f = files.getFile('sources.gypi');
   f('{');
   f('"sources": [');
-  _.each(self.types, function(typeobj, typename) {
+  _.each(typereg.types, function(typeobj, typename) {
     var fns = typeobj.getFns();
     if (fns.hostCode) {
       f('\"' + fns.hostCode + '\",');
@@ -186,8 +176,8 @@ function funcnameCToJs(name) {
 }
 
 TypeRegistry.prototype.emitFunctionWrappers = function(f) {
-  var self = this;
-  _.each(self.wrapFunctions, function(funcinfos, jsFuncname) {
+  var typereg = this;
+  _.each(typereg.wrapFunctions, function(funcinfos, jsFuncname) {
     f('Handle<Value> jsWrap_' + jsFuncname + '(Arguments const &args) {');
     f('HandleScope scope;');
     _.each(funcinfos, function(funcinfo) {
@@ -264,7 +254,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
   });
 
   f('void jsInit_functions(Handle<Object> target) {');
-  _.each(self.wrapFunctions, function(funcinfos, jsFuncname) {
+  _.each(typereg.wrapFunctions, function(funcinfos, jsFuncname) {
     f('node::SetMethod(target, "' + jsFuncname + '", jsWrap_' + jsFuncname + ');');
   });
   
@@ -273,8 +263,8 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
 };
 
 TypeRegistry.prototype.scanCFunctions = function(text) {
-  var self = this;
-  var typenames = _.keys(self.types);
+  var typereg = this;
+  var typenames = _.keys(typereg.types);
   var typenameExpr = typenames.join('|');
   var typeExpr = '(' + typenameExpr + ')\\s+' + '(|const\\s+&|&)';
   var argExpr = typeExpr + '\\s*(\\w+)';
@@ -304,29 +294,29 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
                 argname: m[5+i*3]};
       });
 
-      self.addWrapFunction(desc, funcname, returnTypename, args);
+      typereg.addWrapFunction(desc, funcname, returnTypename, args);
 
     }
   }
-  if (0) console.log(self.wrapFunctions);
+  if (0) console.log(typereg.wrapFunctions);
 };
 
 TypeRegistry.prototype.scanCHeader = function(fn) {
-  var self = this;
+  var typereg = this;
   var rawFile = fs.readFileSync(fn, 'utf8');
-  self.scanCFunctions(rawFile);
-  self.extraJsWrapFuncsHeaders.push('#include "' + fn + '"');
+  typereg.scanCFunctions(rawFile);
+  typereg.extraJsWrapFuncsHeaders.push('#include "' + fn + '"');
 };
 
 TypeRegistry.prototype.emitRtFunctions = function(files) {
-  var self = this;
+  var typereg = this;
 
   // For now put them all in one file. It might make sense to split out at some point
   var hl = files.getFile('rtfns.h');
 
   // Make a list of all includes: collect all types for all functions, then collect the customerIncludes for each type, and remove dups
-  var allIncludes = _.uniq(_.flatten(_.map(_.flatten(_.map(self.rtFunctions, function(func) { return func.getAllTypes(); })), function(typename) {
-    var type = self.types[typename];
+  var allIncludes = _.uniq(_.flatten(_.map(_.flatten(_.map(typereg.rtFunctions, function(func) { return func.getAllTypes(); })), function(typename) {
+    var type = typereg.types[typename];
     return type.getCustomerIncludes();
   })));
   _.each(allIncludes, function(incl) {
@@ -337,7 +327,7 @@ TypeRegistry.prototype.emitRtFunctions = function(files) {
   cl('#include "tlbcore/common/std_headers.h"');
   cl('#include "./rtfns.h"');
 
-  _.each(self.rtFunctions, function(func, funcname) {
+  _.each(typereg.rtFunctions, function(func, funcname) {
     func.emitDecl(hl);
     func.emitDefn(cl);
   });
@@ -345,12 +335,12 @@ TypeRegistry.prototype.emitRtFunctions = function(files) {
 
 
 TypeRegistry.prototype.addWrapFunction = function(desc, funcname, returnTypename, args) {
-  var self = this;
+  var typereg = this;
   var jsFuncname = funcnameCToJs(funcname);
-  if (!(jsFuncname in self.wrapFunctions)) {
-    self.wrapFunctions[jsFuncname] = [];
+  if (!(jsFuncname in typereg.wrapFunctions)) {
+    typereg.wrapFunctions[jsFuncname] = [];
   }
-  self.wrapFunctions[jsFuncname].push({desc: desc,
+  typereg.wrapFunctions[jsFuncname].push({desc: desc,
                                        funcname: funcname,
                                        returnTypename: returnTypename,
                                        args: args});
@@ -365,21 +355,21 @@ TypeRegistry.prototype.addRtFunction = function(name, inargs, outargs) {
 // ----------------------------------------------------------------------
 
 function CType(reg, typename) {
-  this.reg = reg;
-  this.typename = typename;
+  var type = this;
+  type.reg = reg;
+  type.typename = typename;
   
-  this.extraFunctionDecls = [];
-  this.extraMemberDecls = [];
-  this.extraHostCode = [];
-  this.extraEmbeddedCode = [];
-  this.extraDeclDependencies = [];
-  this.extraDefnDependencies = [];
-  this.extraHeaderIncludes = [];
-  this.extraConstructorCode = [];
-  this.arrayConversions = [];
+  type.extraFunctionDecls = [];
+  type.extraMemberDecls = [];
+  type.extraHostCode = [];
+  type.extraDeclDependencies = [];
+  type.extraDefnDependencies = [];
+  type.extraHeaderIncludes = [];
+  type.extraConstructorCode = [];
+  type.arrayConversions = [];
 
-  this.hasNumericNature = false;
-  this.hasPutMethod = false;
+  type.hasNumericNature = false;
+  type.hasPutMethod = false;
 }
 
 CType.prototype.hasArrayNature = function() {
@@ -395,12 +385,11 @@ CType.prototype.getFnBase = function() {
 };
 
 CType.prototype.getFns = function() {
-  var base = this.getFnBase();
+  var type = this;
+  var base = type.getFnBase();
   return {
     hostCode: base + '_host.cc',
-    //embeddedCode: base + '_embedded.c',
-    pureJsCode: base + '_purejs.js',
-    pureJsTestCode: 'test_' + base + '.js',
+    jsTestCode: 'test_' + base + '.js',
     typeHeader: base + '_decl.h',
     jsWrapHeader: base + '_jsWrap.h',
     jsWrapCode: base + '_jsWrap.cc',
@@ -408,40 +397,36 @@ CType.prototype.getFns = function() {
 };
 
 CType.prototype.emitAll = function(files) {
-  var fns = this.getFns();
+  var type = this;
+  var fns = type.getFns();
   if (fns.hostCode) {
-    this.emitHostCode(files.getFile(fns.hostCode).child({TYPENAME: this.typename}));
+    type.emitHostCode(files.getFile(fns.hostCode).child({TYPENAME: type.typename}));
   }
-  if (fns.pureJsCode) {
-    this.emitPureJsCode(files.getFile(fns.pureJsCode).child({TYPENAME: this.typename}));
-  }
-  if (fns.pureJsTestCode) {
-    this.emitPureJsTestCode(files.getFile(fns.pureJsTestCode).child({TYPENAME: this.typename}));
-  }
-  if (fns.embeddedCode) {
-    this.emitEmbeddedCode(files.getFile(fns.embeddedCode).child({TYPENAME: this.typename}));
+  if (fns.jsTestCode) {
+    type.emitJsTestCode(files.getFile(fns.jsTestCode).child({TYPENAME: type.typename}));
   }
   if (fns.typeHeader) {
-    this.emitHeader(files.getFile(fns.typeHeader).child({TYPENAME: this.typename}));
+    type.emitHeader(files.getFile(fns.typeHeader).child({TYPENAME: type.typename}));
   }
   if (fns.jsWrapHeader) {
-    this.emitJsWrapHeader(files.getFile(fns.jsWrapHeader).child({TYPENAME: this.typename}));
+    type.emitJsWrapHeader(files.getFile(fns.jsWrapHeader).child({TYPENAME: type.typename}));
   }
   if (fns.jsWrapCode) {
-    this.emitJsWrapCode(files.getFile(fns.jsWrapCode).child({TYPENAME: this.typename}));
+    type.emitJsWrapCode(files.getFile(fns.jsWrapCode).child({TYPENAME: type.typename}));
   }
 };
 
 
 CType.prototype.getCustomerIncludes = function() {
-  var base = this.getFnBase();
+  var type = this;
+  var base = type.getFnBase();
   return ['#include "' + base + '_decl.h"'];
 };
 
 CType.prototype.getHeaderIncludes = function() {
-  var self = this;
+  var type = this;
   var ret = [];
-  _.each(self.getDeclDependencies(), function(othertype) {
+  _.each(type.getDeclDependencies(), function(othertype) {
     var fns = othertype.getFns();
     if (fns && fns.typeHeader) {
       ret.push('#include "' + fns.typeHeader + '"');
@@ -451,102 +436,93 @@ CType.prototype.getHeaderIncludes = function() {
 };
 
 CType.prototype.getSignature = function() {
-  var syn = this.getSynopsis();
+  var type = this;
+  var syn = type.getSynopsis();
   var h = crypto.createHash('sha1');
   h.update(syn);
-  return h.digest('hex');
+  return h.digest('base64').substr(0, 8);
 };
 
 CType.prototype.getTypeAndVersion = function() {
-  return this.typename + '::' + this.getSignature();
+  var type = this;
+  return type.typename + '@' + type.getSignature();
 };
 
 CType.prototype.declMember = function(it) {
-  this.extraMemberDecls.push(it);
+  var type = this;
+  type.extraMemberDecls.push(it);
 };
 
 CType.prototype.declFunctions = function(it) {
-  this.extraFunctionDecls.push(it);
+  var type = this;
+  type.extraFunctionDecls.push(it);
 };
 
 CType.prototype.getDeclDependencies = function() {
-  return sortTypes(this.extraDeclDependencies);
+  var type = this;
+  return sortTypes(type.extraDeclDependencies);
 };
 CType.prototype.getDefnDependencies = function() {
-  return sortTypes(this.extraDefnDependencies);
+  var type = this;
+  return sortTypes(type.extraDefnDependencies);
 };
-
-CType.prototype.getPureJsAccessors = function() {
-  var accum = {
-    offset: 0,
-    accessors: []
-  };
-  this.accumPureJsAccessors(null, accum);
-  return accum;
-}
 
 // ----------------------------------------------------------------------
 
 CType.prototype.emitHeader = function(f) {
-  _.each(this.getHeaderIncludes(), function(l) {
+  var type = this;
+  _.each(type.getHeaderIncludes(), function(l) {
     f(l);
   });
-  this.emitForwardDecl(f);
-  this.emitTypeDecl(f);
-  this.emitFunctionDecl(f);
+  type.emitForwardDecl(f);
+  type.emitTypeDecl(f);
+  type.emitFunctionDecl(f);
 };
 
 CType.prototype.emitHostCode = function(f) {
+  var type = this;
   f('#include "tlbcore/common/std_headers.h"');
   f('#include "tlbcore/common/jsonio.h"');
-  var fns = this.getFns();
+  var fns = type.getFns();
   if (fns.typeHeader) {
     f('#include "' + fns.typeHeader + '"');
   }
   f('');
-  this.emitHostImpl(f);
-  _.each(this.extraHostCode, function(l) {
+  type.emitHostImpl(f);
+  _.each(type.extraHostCode, function(l) {
     f(l);
   });
 };
 
-CType.prototype.emitPureJsCode = function(f) {
-  this.emitPureJsImpl(f);
-};
-
-CType.prototype.emitPureJsTestCode = function(f) {
-  this.emitPureJsTestImpl(f);
-};
-
-CType.prototype.emitEmbeddedCode = function(f) {
-  this.emitEmbeddedImpl(f);
-  _.each(this.extraEmbeddedCode, function(l) {
-    f(l);
-  });
+CType.prototype.emitJsTestCode = function(f) {
+  var type = this;
+  type.emitJsTestImpl(f);
 };
 
 CType.prototype.emitJsWrapHeader = function(f) {
-  _.each(this.getDeclDependencies().concat([this]), function(othertype) {
+  var type = this;
+  _.each(type.getDeclDependencies().concat([type]), function(othertype) {
     var fns = othertype.getFns();
     if (fns && fns.typeHeader) {
       f('#include "' + fns.typeHeader + '"');
     };    
   });
 
-  this.emitJsWrapDecl(f);
+  type.emitJsWrapDecl(f);
 };
 
 CType.prototype.emitJsWrapCode = function(f) {
+  var type = this;
   f('#include "tlbcore/common/std_headers.h"');
   f('#include "tlbcore/nodeif/jswrapbase.h"');
-  var fns = this.getFns();
+  var fns = type.getFns();
   if (fns.typeHeader) {
     f('#include "' + fns.typeHeader + '"');
   }
   if (fns.jsWrapHeader) {
     f('#include "' + fns.jsWrapHeader + '"');
   }
-  this.emitJsWrapImpl(f);
+  type.emitJsWrapImpl(f);
 };
 
 // ----------------------------------------------------------------------
@@ -559,7 +535,8 @@ CType.prototype.emitTypeDecl = function(f) {
 };
 
 CType.prototype.emitFunctionDecl = function(f) {
-  _.each(this.extraFunctionDecls, function(l) {
+  var type = this;
+  _.each(type.extraFunctionDecls, function(l) {
     f(l);
   });
 };
@@ -567,13 +544,7 @@ CType.prototype.emitFunctionDecl = function(f) {
 CType.prototype.emitHostImpl = function(f) {
 };
 
-CType.prototype.emitPureJsImpl = function(f) {
-};
-
-CType.prototype.emitPureJsTestImpl = function(f) {
-};
-
-CType.prototype.emitEmbeddedImpl = function(f) {
+CType.prototype.emitJsTestImpl = function(f) {
 };
 
 CType.prototype.emitJsWrapDecl = function(f) {
@@ -583,7 +554,8 @@ CType.prototype.emitJsWrapImpl = function(f) {
 };
 
 CType.prototype.emitVarDecl = function(f, varname) {
-  f(this.typename + ' ' + varname + ';');
+  var type = this;
+  f(type.typename + ' ' + varname + ';');
 };
 
 // ----------------------------------------------------------------------
@@ -645,47 +617,6 @@ PrimitiveCType.prototype.getAlignment = function() {
   }
 }
 
-PrimitiveCType.prototype.accumPureJsAccessors = function(prefix, accum) {
-  var getExpr, setExpr;
-
-  switch(this.typename) {
-  case 'float': 
-    accum.offset = Math.ceil(accum.offset / 4) * 4; 
-    getExpr = 'buffer.readFloatLE(offset + ' + accum.offset.toString() + ')';
-    setExpr = 'buffer.writeFloatLE(value, offset + ' + accum.offset.toString() + ')';
-    accum.offset += 4;
-    break;
-  case 'double': 
-    accum.offset = Math.ceil(accum.offset / 8) * 8;
-    getExpr = 'buffer.readDoubleLE(offset + ' + accum.offset.toString() + ')';
-    setExpr = 'buffer.writeDoubleLE(value, offset + ' + accum.offset.toString() + ')';
-    accum.offset += 8;
-    break;
-  case 'int':
-    accum.offset = Math.ceil(accum.offset / 4) * 4;
-    getExpr = 'buffer.readInt32LE(offset + ' + accum.offset.toString() + ')';
-    setExpr = 'buffer.writeInt32LE(value, offset + ' + accum.offset.toString() + ')';
-    accum.offset += 4;
-    break;
-  case 'bool':
-    accum.offset = Math.ceil(accum.offset / 1) * 1;
-    getExpr = 'buffer.readUint8(offset + ' + accum.offset.toString() + ') ? true : false';
-    setExpr = 'buffer.writeUint8LE(value ? 1 : 0, offset + ' + accum.offset.toString() + ')';
-    accum.offset += 1;
-    break;
-  case 'string':
-    // Wrong
-    accum.offset = Math.ceil(accum.offset / 8) * 8;
-    getExpr = '""';
-    setExpr = '';
-    accum.offset += 8;
-    break;
-  default:
-  }
-
-  accum.accessors.push({name: prefix, getExpr: getExpr, setExpr: setExpr});
-};
-
 PrimitiveCType.prototype.getExampleValueJs = function() {
   switch(this.typename) {
   case 'int':
@@ -725,59 +656,41 @@ function CStructType(reg, typename) {
 _.extend(CStructType.prototype, CType.prototype);
 
 CStructType.prototype.hasArrayNature = function() {
-  //return false; // XXX
-  var mt = this.getMemberTypes();
+  var type = this;
+  var mt = type.getMemberTypes();
   return (mt.length === 1);
 };
 
 
 CStructType.prototype.getSynopsis = function() {
-  var self = this;
-  return '(' + this.typename + '={' + _.map(this.orderedNames, function(name) {
-    return self.nameToType[name].getSynopsis();
+  var type = this;
+  return '(' + type.typename + '={' + _.map(type.orderedNames, function(name) {
+    return type.nameToType[name].getSynopsis();
   }).join(',') + '})';
 };
 
 CStructType.prototype.getAlignment = function() {
-  var self = this;
+  var type = this;
   var structAlignment = 1;
-  _.each(self.orderedTypes, function(name) {
-    structAlignment = Math.max(structAlignment, self.nameToType[name].getAlignment());
+  _.each(type.orderedTypes, function(name) {
+    structAlignment = Math.max(structAlignment, type.nameToType[name].getAlignment());
   });
   return structAlignment;
 }
 
-CStructType.prototype.accumPureJsAccessors = function(prefix, accum) {
-  var self = this;
-  var structAlignment = this.getAlignment();
-  accum.offset = Math.ceil(accum.offset / structAlignment) * structAlignment;
-
-  accum.accessors.push({
-    name: prefix,
-    getExpr: '{\n    ' + _.map(self.orderedNames, function(name) {
-      return name + ': getters' + (prefix ? '.' + prefix : '') + '.' + name + '(buffer, offset)';
-    }).join(',\n    ') + '}',
-    setExpr: '\n    ' + _.map(self.orderedNames, function(name) {
-      return 'setters' + (prefix ? '.' + prefix : '') + '.' + name + '(buffer, offset, value.' + name + ')';
-    }).join(';\n    ')
-  });
-  
-  _.each(this.orderedNames, function(name) {
-    self.nameToType[name].accumPureJsAccessors(prefix ? (prefix + '.' + name) : name, accum);
-  });
-};
-
-
 CStructType.prototype.getDeclDependencies = function() {
-  return sortTypes(this.getMemberTypes().concat(CType.prototype.getDeclDependencies.call(this)));
+  var type = this;
+  return sortTypes(type.getMemberTypes().concat(CType.prototype.getDeclDependencies.call(this)));
 };
 
 CStructType.prototype.getMemberTypes = function() {
-  return sortTypes(_.values(this.nameToType));
+  var type = this;
+  return sortTypes(_.values(type.nameToType));
 };
 
 CStructType.prototype.getAllTypes = function() {
-  return sortTypes(_.flatten(_.map(this.getMemberTypes(), function(t) { return t.getAllTypes(); })));
+  var type = this;
+  return sortTypes(_.flatten(_.map(type.getMemberTypes(), function(t) { return t.getAllTypes(); })));
 };
 
 CStructType.prototype.getAllOneExpr = function() {
@@ -790,64 +703,71 @@ CStructType.prototype.getAllNanExpr = function() {
   return this.typename + '::allNan()';
 };
 
-CStructType.prototype.add = function(name, typeobj) {
-  var self = this;
-  if (_.isString(name)) {
-    if (name in this.nameToType) return;
-    if (!typeobj) typeobj = this.reg.types['float'];
-    this.orderedNames.push(name);
-    this.nameToType[name] = typeobj;
+CStructType.prototype.add = function(memberName, memberType) {
+  var type = this;
+  if (_.isString(memberType)) {
+    memberType = type.reg.types[memberType];
+  }
+  if (_.isString(memberName)) {
+    if (!memberType) memberType = type.reg.types['float'];
+    if (memberName in type.nameToType) {
+      if (types.nameToType[memberName] !== memberType) throw new Error('Duplicate member ' + memberName + ' with different types');
+      return; // duplicate entry. Warn?
+    }
+    type.nameToType[memberName] = memberType;
+    type.orderedNames.push(memberName);
   } else {
-    _.each(name, function(name1) {
-      self.add(name1, typeobj);
+    _.each(memberName, function(memberName1) {
+      type.add(memberName1, memberType);
     });
   }
 };
 
 CStructType.prototype.hasFullConstructor = function() {
-  return this.orderedNames.length < 99 && this.orderedNames.length > 0;
+  var type = this;
+  return type.orderedNames.length < 99 && type.orderedNames.length > 0;
 };
 
 CStructType.prototype.getMemberInitExpr = function(name) {
-  if (name in this.nameToInitExpr) {
-    return this.nameToInitExpr(name);
+  var type = this;
+  if (name in type.nameToInitExpr) {
+    return type.nameToInitExpr(name);
   } else {
-    return this.nameToType[name].getAllZeroExpr();
+    return type.nameToType[name].getAllZeroExpr();
   }
 };
 
 CStructType.prototype.emitTypeDecl = function(f) {
-  var self = this;
+  var type = this;
   f('struct TYPENAME {');
   f('typedef TYPENAME selftype;');
   f('TYPENAME();'); // declare default constructor
-  if (self.hasFullConstructor()) {
-    f('TYPENAME(' + _.map(self.orderedNames, function(name) {
-      return self.nameToType[name].typename + ' _' + name;
+  if (type.hasFullConstructor()) {
+    f('TYPENAME(' + _.map(type.orderedNames, function(name) {
+      return type.nameToType[name].typename + ' _' + name;
     }).join(', ') + ');');
   }
   f('static TYPENAME allZero();');
   f('static TYPENAME allOne();');
   f('static TYPENAME allNan();');
 
-  _.each(self.orderedNames, function(name) {
-    self.nameToType[name].emitVarDecl(f, name);
+  _.each(type.orderedNames, function(name) {
+    type.nameToType[name].emitVarDecl(f, name);
   });
 
   f('TYPENAME copy() const;');
 
-  if (self.hasArrayNature()) {
-    f('typedef ' + self.nameToType[self.orderedNames[0]].typename + ' element_t;');
-    f('inline element_t & operator[] (int i) { return (&' + self.orderedNames[0] + ')[i]; }');
-    f('inline element_t const & operator[] (int i) const { return (&' + self.orderedNames[0] + ')[i]; }');
+  if (type.hasArrayNature()) {
+    f('typedef ' + type.nameToType[type.orderedNames[0]].typename + ' element_t;');
+    f('inline element_t & operator[] (int i) { return (&' + type.orderedNames[0] + ')[i]; }');
+    f('inline element_t const & operator[] (int i) const { return (&' + type.orderedNames[0] + ')[i]; }');
   }
 
 
-  _.each(self.extraMemberDecls, function(l) {
+  _.each(type.extraMemberDecls, function(l) {
     f(l);
   });
 
-  f('static char const * versionString;');
   f('static char const * typeVersionString;');
   f('static char const * typeName;');
 
@@ -858,39 +778,37 @@ CStructType.prototype.emitTypeDecl = function(f) {
   f('bool rdJson(const char *&s, TYPENAME &obj);');
   f('size_t wrJsonSize(TYPENAME const &x);');
 
-  f('void packet_wr_addfunc(packet &p, const TYPENAME *x, size_t n);');
-  f('void packet_rd_getfunc(packet &p, TYPENAME *x, size_t n);');
+  f('void packet_wr_typetag(packet &p, const TYPENAME &x);');
+  f('void packet_rd_typetag(packet &p, TYPENAME &x);');
+  f('void packet_wr_value(packet &p, const TYPENAME &x);');
+  f('void packet_rd_value(packet &p, TYPENAME &x);');
   
-  CType.prototype.emitTypeDecl.call(this, f);
+  CType.prototype.emitTypeDecl.call(type, f);
   f('');
 };
 
-CStructType.prototype.emitEmbeddedImpl = function(f) {
-  
-};
-
 CStructType.prototype.emitHostImpl = function(f) {
-  var self = this;
+  var type = this;
 
   if (1) {
     // Default constructor
     f('TYPENAME::TYPENAME()');
-    if (self.orderedNames.length) {
-      f(':' + _.map(self.orderedNames, function(name) {
-        return name + '(' + self.getMemberInitExpr(name) + ')';
+    if (type.orderedNames.length) {
+      f(':' + _.map(type.orderedNames, function(name) {
+        return name + '(' + type.getMemberInitExpr(name) + ')';
       }).join(',\n'));
     }
     f('{');
-    _.each(self.extraConstructorCode, function(l) {
+    _.each(type.extraConstructorCode, function(l) {
       f(l);
     });
     f('}');
   }
-  if (self.hasFullConstructor()) {
-    f('TYPENAME::TYPENAME(' + _.map(self.orderedNames, function(name) {
-      return self.nameToType[name].typename + ' _' + name;
+  if (type.hasFullConstructor()) {
+    f('TYPENAME::TYPENAME(' + _.map(type.orderedNames, function(name) {
+      return type.nameToType[name].typename + ' _' + name;
     }).join(', ') + ')');
-    f(':' + _.map(self.orderedNames, function(name) {
+    f(':' + _.map(type.orderedNames, function(name) {
       return name + '(_' + name + ')';
     }).join(', '))
     f('{}');
@@ -898,31 +816,30 @@ CStructType.prototype.emitHostImpl = function(f) {
 
 
   if (1) {
-    f('char const * TYPENAME::versionString ="' + self.getSignature() + '";');
-    f('char const * TYPENAME::typeVersionString = "' + self.getTypeAndVersion() + '";');
+    f('char const * TYPENAME::typeVersionString = "' + type.getTypeAndVersion() + '";');
     f('char const * TYPENAME::typeName = "TYPENAME";');
   }
 
   f('TYPENAME TYPENAME::allZero() {');
   f('TYPENAME ret;');
-  _.each(self.orderedNames, function(name) {
-    var memberType = self.nameToType[name];
+  _.each(type.orderedNames, function(name) {
+    var memberType = type.nameToType[name];
     f('ret.' + name + ' = ' + memberType.getAllZeroExpr() + ';');
   });
   f('return ret;');
   f('}');
   f('TYPENAME TYPENAME::allOne() {');
   f('TYPENAME ret;');
-  _.each(self.orderedNames, function(name) {
-    var memberType = self.nameToType[name];
+  _.each(type.orderedNames, function(name) {
+    var memberType = type.nameToType[name];
     f('ret.' + name + ' = ' + memberType.getAllOneExpr() + ';');
   });
   f('return ret;');
   f('}');
   f('TYPENAME TYPENAME::allNan() {');
   f('TYPENAME ret;');
-  _.each(self.orderedNames, function(name) {
-    var memberType = self.nameToType[name];
+  _.each(type.orderedNames, function(name) {
+    var memberType = type.nameToType[name];
     f('ret.' + name + ' = ' + memberType.getAllNanExpr() + ';');
   });
   f('return ret;');
@@ -931,8 +848,8 @@ CStructType.prototype.emitHostImpl = function(f) {
 
   if (1) {
     f('ostream & operator<<(ostream &s, const TYPENAME &obj) {');
-    f('s << "' + self.typename + '{";');
-    _.each(self.orderedNames, function(name, namei) {
+    f('s << "' + type.typename + '{";');
+    _.each(type.orderedNames, function(name, namei) {
       f('s << "' + (namei > 0 ? ', ' : '') + name + '=" << obj.' + name + ';');
     });
     f('s << "}";');
@@ -940,32 +857,20 @@ CStructType.prototype.emitHostImpl = function(f) {
     f('}');
   }
 
-  self.emitWrJson(f);
-  self.emitRdJson(f);
-  self.emitPacketIo(f);
+  type.emitWrJson(f);
+  type.emitRdJson(f);
+  type.emitPacketIo(f);
 };
 
 CStructType.prototype.getExampleValueJs = function() {
-  var self = this;
-  return 'new ur.' + self.typename + '(' + _.map(self.orderedNames, function(name) {
-    return self.nameToType[name].getExampleValueJs();
+  var type = this;
+  return 'new ur.' + type.typename + '(' + _.map(type.orderedNames, function(name) {
+    return type.nameToType[name].getExampleValueJs();
   }).join(', ') + ')';
 };
 
-CStructType.prototype.emitPureJsImpl = function(f) {
-  var self = this;
-  var accum = self.getPureJsAccessors();
-  _.each(accum.accessors, function(a) {
-    f((a.name ? 'getters.' + a.name : 'var getters') + ' = function(buffer, offset) { return ' + a.getExpr + '; }');
-    f((a.name ? 'setters.' + a.name : 'var setters') + ' = function(buffer, offset, value) { ' + a.setExpr + '; }');
-  });
-  f('setters.sizeof = getters.sizeof = ' + accum.offset.toString() + ';');
-  f('exports.getters = getters;');
-  f('exports.setters = setters;');
-};
-
-CStructType.prototype.emitPureJsTestImpl = function(f) {
-  var self = this;
+CStructType.prototype.emitJsTestImpl = function(f) {
+  var type = this;
   f('var _ = require("underscore");');
   f('var ur = require("../nodeif/bin/ur");');
   f('var util = require("util");');
@@ -973,8 +878,9 @@ CStructType.prototype.emitPureJsTestImpl = function(f) {
   f('describe("TYPENAME C++ impl", function() {');
   f('it("should work", function() {');
 
-  f('var t1 = ' + self.getExampleValueJs() + ';');
-  f('var t2 = ur.TYPENAME.fromString(t1.toString());');
+  f('var t1 = ' + type.getExampleValueJs() + ';');
+  f('var t1s = t1.toString();');
+  f('var t2 = ur.TYPENAME.fromString(t1s);');
   f('assert.strictEqual(t1.toString(), t2.toString());');
 
   f('var t1b = t1.toBuffer();');
@@ -987,22 +893,26 @@ CStructType.prototype.emitPureJsTestImpl = function(f) {
 
 // Packet
 CStructType.prototype.emitPacketIo = function(f) {
-  var self = this;
+  var type = this;
 
-  f('void packet_wr_addfunc(packet &p, const TYPENAME *x, size_t n) {');
-  f('for ( ; n>0; x++, n--) {');
-  _.each(self.orderedNames, function(name) {
-    f('p.add(x->' + name + ');');
-  });
-  f('}');
+  f('void packet_wr_typetag(packet &p, const TYPENAME &x) {');
+  f('p.add_typetag(x.typeVersionString);');
   f('}');
 
-  f('void packet_rd_getfunc(packet &p, TYPENAME *x, size_t n) {');
-  f('for ( ; n>0; x++, n--) {');
-  _.each(self.orderedNames, function(name) {
-    f('p.get(x->' + name + ');');
+  f('void packet_wr_value(packet &p, const TYPENAME &x) {');
+  _.each(type.orderedNames, function(name) {
+    f('packet_wr_value(p, x.' + name + ');');
   });
   f('}');
+
+  f('void packet_rd_typetag(packet &p, TYPENAME &x) {');
+  f('p.check_typetag(x.typeVersionString);');
+  f('}');
+
+  f('void packet_rd_value(packet &p, TYPENAME &x) {');
+  _.each(type.orderedNames, function(name) {
+    f('packet_rd_value(p, x.' + name + ');');
+  });
   f('}');
   
 };
@@ -1011,7 +921,7 @@ CStructType.prototype.emitPacketIo = function(f) {
 // JSON
 
 CStructType.prototype.emitWrJson = function(f) {
-  var self = this;
+  var type = this;
   function emitstr(s) {
     var b = new Buffer(s, 'utf8');
     f(_.map(_.range(0, b.length), function(ni) {
@@ -1019,8 +929,8 @@ CStructType.prototype.emitWrJson = function(f) {
     }).join(' ') + ' // ' + cgen.escapeCString(s));
   }
   f('void wrJson(char *&s, const TYPENAME &obj) {');
-  emitstr('{"type":"' + self.typename + '"');
-  _.each(self.orderedNames, function(name, namei) {
+  emitstr('{"type":"' + type.typename + '"');
+  _.each(type.orderedNames, function(name, namei) {
     emitstr(',\"' + name + '\":');
     f('wrJson(s, obj.' + name + ');');
   });
@@ -1028,19 +938,19 @@ CStructType.prototype.emitWrJson = function(f) {
   f('}');
 
   f('size_t wrJsonSize(const TYPENAME &obj) {');
-  f('return ' + _.map(self.orderedNames, function(name, namei) {
+  f('return ' + _.map(type.orderedNames, function(name, namei) {
     return (new Buffer(name, 'utf8').length + 4).toString() + '+wrJsonSize(obj.' + name + ')';
   }).join(' + ') + ' + 2;');
   f('}');
 };
 
 CStructType.prototype.emitRdJson = function(f) {
-  var self = this;
+  var type = this;
   var actions = {};
   actions['}'] = function() {
     f('return typeOk;');
   };
-  _.each(self.orderedNames, function(name) {
+  _.each(type.orderedNames, function(name) {
     actions['"' + name + '":'] = function() {
       f('if (rdJson(s, obj.' + name + ')) {');
       f('c = *s++;');
@@ -1049,7 +959,7 @@ CStructType.prototype.emitRdJson = function(f) {
       f('}');
     };
   });
-  actions['"type":"' + self.typename + '"'] = function() {
+  actions['"type":"' + type.typename + '"'] = function() {
     f('typeOk = true;');
     f('c = *s++;');
     f('if (c == \',\') continue;');
@@ -1102,11 +1012,12 @@ CStructType.prototype.emitRdJson = function(f) {
 };
 
 CStructType.prototype.hasJsWrapper = function(f) {
+  var type = this;
   return true;
 };
 
 CStructType.prototype.emitJsWrapDecl = function(f) {
-  var self = this;
+  var type = this;
   f('struct JsWrap_TYPENAME : node::ObjectWrap {');
   f('JsWrap_TYPENAME();')
   f('JsWrap_TYPENAME(TYPENAME *_it);')
@@ -1118,22 +1029,23 @@ CStructType.prototype.emitJsWrapDecl = function(f) {
   f('static Handle<Value> NewInstance(TYPENAME const &it);');
   f('static TYPENAME *Extract(Handle<Value> value);');
   f('static Persistent<Function> constructor;');
+  f('static Handle<Value> ToJSON(TYPENAME const &it);');
   f('};');
 };
 
 CStructType.prototype.emitJsWrapImpl = function(f) {
-  var self = this;
-  var methods = ['toString', 'toBuffer'];
+  var type = this;
+  var methods = ['toString', 'toBuffer', 'toJSON'];
   var factories = ['allOne', 'allZero', 'allNan'];
-  var accessors = self.orderedNames;
+  var accessors = type.orderedNames;
 
-  _.each(self.getDeclDependencies(), function(othertype) {
+  _.each(type.getDeclDependencies(), function(othertype) {
     var fns = othertype.getFns();
     if (fns && fns.jsWrapHeader) {
       f('#include "' + fns.jsWrapHeader + '"');
     };    
   });
-  f('#include "' + self.getFns().jsWrapHeader + '"');
+  f('#include "' + type.getFns().jsWrapHeader + '"');
 
   if (1) {
     f('JsWrap_TYPENAME::JsWrap_TYPENAME() :it(new TYPENAME), wrapStyle(JSWRAP_OWNED) {}')
@@ -1186,12 +1098,12 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
 
   if (1) {
     f('Handle<Value> JsWrap_TYPENAME::JsConstructor(const Arguments& args) {');
-    if (self.hasFullConstructor()) {
+    if (type.hasFullConstructor()) {
       f('if (args.Length() == 0) {')
       f('}')
-      f('else if (args.Length() == ' + self.orderedNames.length + ') {')
-      _.each(self.orderedNames, function(name, argi) {
-        var argType = self.nameToType[name];
+      f('else if (args.Length() == ' + type.orderedNames.length + ') {')
+      _.each(type.orderedNames, function(name, argi) {
+        var argType = type.nameToType[name];
         switch(argType.typename) {
         case 'float':
         case 'double':
@@ -1224,6 +1136,34 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('}');
   }
 
+  if (1) {
+    f('Handle<Value> JsWrap_TYPENAME::ToJSON(const TYPENAME &it) {');
+    f('Local<Object> ret = Object::New();');
+    f('ret->Set(String::NewSymbol("type"), String::NewSymbol("TYPENAME"));');
+    _.each(type.orderedNames, function(name) {
+      var memberType = type.nameToType[name];
+      switch(memberType.typename) {
+      case 'int': case 'float': case 'double':
+        f('ret->Set(String::NewSymbol("' + name + '"), Number::New(it.' + name + '));');
+        break;
+      case 'bool':
+        f('ret->Set(String::NewSymbol("' + name + '"), Boolean::New(it.' + name + '));');
+        break;
+      case 'string':
+        f('ret->Set(String::NewSymbol("' + name + '"), convStlStringToJs(it.' + name + '));');
+        break;
+      default:
+        f('ret->Set(String::NewSymbol("' + name + '"), JsWrap_' + memberType.typename + '::ToJSON(it.' + name + '));');
+      }
+    });
+    f('return ret;');
+    f('}');
+    f('Handle<Value> jsMethod_TYPENAME_toJSON(const Arguments &args) {');
+    f('HandleScope scope;');
+    f('JsWrap_TYPENAME* obj = node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(args.This());');
+    f('return scope.Close(JsWrap_TYPENAME::ToJSON(*obj->it));');
+    f('}');
+  }
 
   if (1) {
     f('Handle<Value> JsWrap_TYPENAME::NewInstance(TYPENAME const &it) {');
@@ -1280,7 +1220,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('HandleScope scope;');
     f('JsWrap_TYPENAME* obj = node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(args.This());');
     f('packet wr;')
-    f('wr.add(*obj->it);');
+    f('wr.add_checked(*obj->it);');
     f('node::Buffer *buf = node::Buffer::New((const char *)wr.rd_ptr(), wr.size());');
     f('return scope.Close(Persistent<Object>::New(buf->handle_));');
     f('}');
@@ -1293,7 +1233,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('rd.add(node::Buffer::Data(buf), node::Buffer::Length(buf));');
     f('TYPENAME it;');
     f('try {');
-    f('rd.get(it);');
+    f('rd.get_checked(it);');
     f('} catch(tlbcore_err const &ex) {');
     f('return ThrowTypeError(ex.str().c_str());');
     f('};');
@@ -1311,7 +1251,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
   }
 
   _.each(accessors, function(name) {
-    var memberTypename = self.nameToType[name].typename;
+    var memberTypename = type.nameToType[name].typename;
     f('static Handle<Value> jsGet_TYPENAME_' + name + '(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_TYPENAME* obj = node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(ai.This());');
@@ -1383,45 +1323,52 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
 // ----------------------------------------------------------------------
 
 function CDspType(reg, lbits, rbits) {
-  this.lbits = lbits;
-  this.rbits = rbits;
-  this.tbits = lbits + rbits;
+  var type = this;
+  type.lbits = lbits;
+  type.rbits = rbits;
+  type.tbits = lbits + rbits;
 
   var typename = 'dsp' + lbits.toString() + rBits.toString();
-  CType.call(this, reg, typename);
+  CType.call(type, reg, typename);
 };
 _.extend(CDspType.prototype, CType.prototype);
 
 CDspType.prototype.getFns = function() {
+  var type = this;
   return {};
 };
 
 CDspType.prototype.getSynopsis = function() {
-  return '(' + this.typename + ')';
+  var type = this;
+  return '(' + type.typename + ')';
 };
 
 CDspType.prototype.getHeaderIncludes = function() {
-  return ['#include "tlbcore/common/dspcore.h"'].concat(CType.prototype.getHeaderIncludes.call(this));
+  var type = this;
+  return ['#include "tlbcore/common/dspcore.h"'].concat(CType.prototype.getHeaderIncludes.call(type));
 };
 
 CDspType.prototype.getAllOneExpr = function() {
-  switch (this.tbits) {
+  var type = this;
+  switch (type.tbits) {
   case 16:
   case 32:
-    return '(1<<' + this.rbits + ')';
+    return '(1<<' + type.rbits + ')';
   case 64:
-    return '(1LL<<' + this.rbits + ')';
+    return '(1LL<<' + type.rbits + ')';
   default:
     return '***ALL_ONE***';
   }
 };
 
 CDspType.prototype.getAllZeroExpr = function() {
+  var type = this;
   return '0';
 };
 
 CDspType.prototype.getAllNanExpr = function() {
-  switch (this.tbits) {
+  var type = this;
+  switch (type.tbits) {
   case 16:
     return '0x800';
   case 32:

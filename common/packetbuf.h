@@ -28,8 +28,8 @@
 
   Writing:
 
-  The interesting work is done in overloaded packet_wr_addfunc functions.
-  These should correspond to packet_rd_getfunc functions which extract
+  The interesting work is done in overloaded packet_wr_value functions.
+  These should correspond to packet_rd_value functions which extract
   the data item back out.
  
   Example: {
@@ -114,6 +114,7 @@ struct packet_stats {
 struct packet {
   packet();
   explicit packet(size_t size);
+  explicit packet(u_char const *data, size_t size);
   packet(const packet &other);
   packet & operator= (packet const &other);
   ~packet();
@@ -161,13 +162,18 @@ struct packet {
   void add_nl_string(char const *s);
   void add_nl_string(string const &s);
 
-  void add_type_tag(char const *s);
+  void add_typetag(char const *s);
 
   template<typename T>
-  void add(const T &x) { packet_wr_addfunc(*this, &x, 1); }
-
+  void add_checked(const T &x) { 
+    packet_wr_typetag(*this, x); 
+    packet_wr_value(*this, x); 
+  }
+  
   template<typename T>
-  void add(const T *x, size_t n) { packet_wr_addfunc(*this, x, n); }
+  void add(const T &x) { 
+    packet_wr_value(*this, x); 
+  }
   
   void add_be_uint32(uint32_t x);
   void add_be_uint24(uint32_t x);
@@ -195,18 +201,35 @@ struct packet {
   void get_reversed(uint8_t *data, size_t size);
   
   template<typename T>
-  void get(T &x) { packet_rd_getfunc(*this, &x, 1); }
+  void get(T &x) { 
+    packet_rd_value(*this, x); 
+  }
 
   template<typename T>
-  void get(T *x, size_t n) { packet_rd_getfunc(*this, x, n); }
+  void get_checked(T &x) {
+    packet_rd_typetag(*this, x);
+    packet_rd_value(*this, x); 
+  }
 
   template<typename T>
-  T fget() { T ret; packet_rd_getfunc(*this, &ret, 1); return ret; }
+  T fget() { 
+    T ret; 
+    packet_rd_value(*this, ret); 
+    return ret; 
+  }
+
+  template<typename T>
+  T fget_checked() { 
+    T ret;
+    packet_rd_typetag(*this, ret);
+    packet_rd_value(*this, ret); 
+    return ret; 
+  }
 
   packet get_pkt();
 
-  bool test_type_tag(char const *expected);
-  void check_type_tag(char const *expected);
+  bool test_typetag(char const *expected);
+  void check_typetag(char const *expected);
   
   uint32_t get_be_uint32();
   uint32_t get_be_uint24();
@@ -237,8 +260,8 @@ struct packet {
   // ------------
   packet_contents *contents;
   packet_annotations *annotations;
-  int rd_pos;
-  int wr_pos;
+  size_t rd_pos;
+  size_t wr_pos;
 
   static packet_stats stats;
 };
@@ -269,42 +292,42 @@ bool operator ==(packet const &a, packet const &b);
   Whatever.
 */
 
-void packet_wr_addfunc(packet &p, const bool *x, size_t n);
-void packet_wr_addfunc(packet &p, const char *x, size_t n);
-void packet_wr_addfunc(packet &p, const signed char *x, size_t n);
-void packet_wr_addfunc(packet &p, const unsigned char *x, size_t n);
-void packet_wr_addfunc(packet &p, const short *x, size_t n);
-void packet_wr_addfunc(packet &p, const unsigned short *x, size_t n);
-void packet_wr_addfunc(packet &p, const int *x, size_t n);
-void packet_wr_addfunc(packet &p, const unsigned int *x, size_t n);
-void packet_wr_addfunc(packet &p, const long *x, size_t n);
-void packet_wr_addfunc(packet &p, const unsigned long *x, size_t n);
-void packet_wr_addfunc(packet &p, const float *x, size_t n);
-void packet_wr_addfunc(packet &p, const double *x, size_t n);
+void packet_wr_value(packet &p, const bool &x);
+void packet_wr_value(packet &p, const char &x);
+void packet_wr_value(packet &p, const signed char &x);
+void packet_wr_value(packet &p, const unsigned char &x);
+void packet_wr_value(packet &p, const short &x);
+void packet_wr_value(packet &p, const unsigned short &x);
+void packet_wr_value(packet &p, const int &x);
+void packet_wr_value(packet &p, const unsigned int &x);
+void packet_wr_value(packet &p, const long &x);
+void packet_wr_value(packet &p, const unsigned long &x);
+void packet_wr_value(packet &p, const float &x);
+void packet_wr_value(packet &p, const double &x);
 #if !defined(WIN32)
-void packet_wr_addfunc(packet &p, const timeval *x, size_t n);
+void packet_wr_value(packet &p, const timeval &x);
 #endif
-void packet_wr_addfunc(packet &p, const string *s, size_t n);
+void packet_wr_value(packet &p, const string &s);
 
-void packet_rd_getfunc(packet &p, bool *x, size_t n);
-void packet_rd_getfunc(packet &p, char *x, size_t n);
-void packet_rd_getfunc(packet &p, signed char *x, size_t n);
-void packet_rd_getfunc(packet &p, unsigned char *x, size_t n);
-void packet_rd_getfunc(packet &p, short *x, size_t n);
-void packet_rd_getfunc(packet &p, unsigned short *x, size_t n);
-void packet_rd_getfunc(packet &p, int *x, size_t n);
-void packet_rd_getfunc(packet &p, unsigned int *x, size_t n);
-void packet_rd_getfunc(packet &p, long *x, size_t n);
-void packet_rd_getfunc(packet &p, unsigned long *x, size_t n);
-void packet_rd_getfunc(packet &p, float *x, size_t n);
-void packet_rd_getfunc(packet &p, double *x, size_t n);
+void packet_rd_value(packet &p, bool &x);
+void packet_rd_value(packet &p, char &x);
+void packet_rd_value(packet &p, signed char &x);
+void packet_rd_value(packet &p, unsigned char &x);
+void packet_rd_value(packet &p, short &x);
+void packet_rd_value(packet &p, unsigned short &x);
+void packet_rd_value(packet &p, int &x);
+void packet_rd_value(packet &p, unsigned int &x);
+void packet_rd_value(packet &p, long &x);
+void packet_rd_value(packet &p, unsigned long &x);
+void packet_rd_value(packet &p, float &x);
+void packet_rd_value(packet &p, double &x);
 #if !defined(WIN32)
-void packet_rd_getfunc(packet &p, timeval *x, size_t n);
+void packet_rd_value(packet &p, timeval &x);
 #endif
-void packet_rd_getfunc(packet &p, string *s, size_t n);
+void packet_rd_value(packet &p, string &s);
 
 /*
-  Any vector is handled by writing a size followed by the items Watch
+  Any vector is handled by writing a size followed by the items. Watch
   out for heap overflows. stl_vector seems to protect against this by
   computing maximum size (# elements) as (size_t)-1 / sizeof(ITEM),
   but we check again here by comparing against p.remaining() / sizeof(ITEM).
@@ -312,143 +335,71 @@ void packet_rd_getfunc(packet &p, string *s, size_t n);
   We use uint32_t rather than size_t for compatibility
 */
 template<typename T>
-void packet_wr_addfunc(packet &p, const vector<T> *x, size_t n) {
-  p.add_type_tag("vector:1");
-  for ( ; n > 0; x++, n--) {
-    p.add((uint32_t)x->size());
-    p.add(&(*x)[0], x->size());
+void packet_wr_typetag(packet &p, vector<T> const &x) {
+  p.add_typetag("vector:1");
+  T dummy;
+  packet_wr_typetag(p, dummy);
+}
+
+template<typename T>
+void packet_wr_value(packet &p, vector<T> const &x) {
+  assert(x.size() < 0x3fffffff);
+  p.add((uint32_t)x.size());
+  for (size_t i=0; i<x.size(); i++) {
+    p.add(x[i]);
   }
 }
 
 template<typename T>
-void packet_rd_getfunc(packet &p, vector<T> *x, size_t n) {
-  p.check_type_tag("vector:1");
-  for ( ; n > 0; x++, n--) {
-    uint32_t size;
-    p.get(size);
-    if (size > p.remaining() / sizeof(T)) throw packet_rd_overrun_err(size*sizeof(T) - p.remaining());
-    x->resize(size);
-    p.get(&(*x)[0], size);
+void packet_rd_typetag(packet &p, vector<T> &x) {
+  p.check_typetag("vector:1");
+  T dummy; // or use x[0]?
+  packet_rd_typetag(p, dummy);
+}
+
+template<typename T>
+void packet_rd_value(packet &p, vector<T> &x) {
+  uint32_t size;
+  p.get(size);
+  assert(size < 0x3fffffff);
+  if (size > p.remaining() / sizeof(T)) throw packet_rd_overrun_err(size*sizeof(T) - p.remaining());
+  x.resize(size);
+  for (size_t i=0; i<x.size(); i++) {
+    p.get(x[i]);
   }
 }
 
 template<typename T1, typename T2>
-void packet_wr_addfunc(packet &p, const pair<T1, T2> *x, size_t n)
+void packet_wr_typetag(packet &p, pair<T1, T2> const &x)
 {
-  p.add_type_tag("pair:1");
-  for ( ; n > 0; x++, n--) {
-    p.add(x->first);
-    p.add(x->second);
-  }
+  p.add_typetag("pair:1");
+  packet_wr_typetag(x.first);
+  packet_wr_typetag(x.second);
 }
 
 template<typename T1, typename T2>
-void packet_rd_getfunc(packet &p, pair<T1, T2> *x, size_t n)
+void packet_wr_value(packet &p, pair<T1, T2> const &x)
 {
-  p.check_type_tag("pair:1");
-  for ( ; n > 0; x++, n--) {
-    p.get(x->first);
-    p.get(x->second);
-  }
+  p.add(x.first);
+  p.add(x.second);
 }
 
-/*
-  Deques can't be done as cleverly
- */
-
-template<typename T>
-void packet_wr_addfunc(packet &p, const deque<T> *x, size_t n) {
-  p.add_type_tag("deque:1");
-  for ( ; n > 0; x++, n--) {
-    p.add(x->size());
-    for (size_t i=0; i < x->size(); i++) {
-      p.add((*x)[i]);
-    }
-  }
+template<typename T1, typename T2>
+void packet_rd_typetag(packet &p, pair<T1, T2> &x)
+{
+  p.check_typetag("pair:1");
+  packet_rd_typetag(x.first);
+  packet_rd_typetag(x.second);
 }
 
-template<typename T>
-void packet_rd_getfunc(packet &p, deque<T> *x, size_t n) {
-  p.check_type_tag("deque:1");
-  for ( ; n > 0; x++, n--) {
-    size_t size;
-    p.get(size);
-    if (size > p.remaining() / sizeof(T)) throw packet_rd_overrun_err((int)size*sizeof(T) - p.remaining());
-    x->resize(size);
-    for (size_t i=0; i<x->size(); i++) {
-      p.get((*x)[i]);
-    }
-  }
+template<typename T1, typename T2>
+void packet_rd_value(packet &p, pair<T1, T2> &x)
+{
+  p.get(x.first);
+  p.get(x.second);
 }
-
-
 
 // ----------------------------------------------------------------------
-
-/*
-  The simplest way of dealing with a struct is to use PACKETBUF_WR_BINARY, which defines
-  a packet_wr_addfunc and a packet_rd_getfunc that do a straight binary copy.
-*/
-#define PACKETBUF_RW_BINARY(T) \
-inline void packet_wr_addfunc(packet &p, const T *x, size_t n) \
-{ \
-  p.add((const uint8_t *)x, sizeof(T) * n); \
-} \
-inline void packet_rd_getfunc(packet &p, T *x, size_t n)        \
-{ \
-  p.get((uint8_t *)x, sizeof(T) * n); \
-} \
-extern void packet_dummy()
-
-#define PACKETBUF_RW_BINARY_TAGGED(T, TAG)                         \
-inline void packet_wr_addfunc(packet &p, const T *x, size_t n) \
-{ \
-  p.add_type_tag(TAG); \
-  p.add((const uint8_t *)x, sizeof(T) * n); \
-} \
-inline void packet_rd_getfunc(packet &p, T *x, size_t n)        \
-{ \
-  p.check_type_tag(TAG); \
-  p.get((uint8_t *)x, sizeof(T) * n); \
-} \
-extern void packet_dummy()
-
-/*
-  A template version of packet_rd::aget that returns the data instead
-  of writing it to a reference parameter.
-
-  Example: {
-    packet rd(buf, nr);
-    int foo = from_packet<int>(rd);
-    float bar = from_packet<float>(rd);
-    string buz = from_packet<string>(rd);
-  }
-  
- */
-
-template<typename T>
-T from_packet(packet &rd)
-{
-  T ret;
-  rd.get(ret);
-  return ret;
-}
-
-/*
-  Backwards versions, used by boosted classes
-*/
-template<typename T>
-void add_to_packet(T const &it, packet &wr)
-{
-  wr.add(it);
-}
-
-template<typename T>
-void get_from_packet(T &it, packet &rd)
-{
-  rd.get(it);
-}
-
 
 typedef deque<packet> packet_queue;
 
