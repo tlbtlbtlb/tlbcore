@@ -1199,6 +1199,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('static Handle<Value> jsMethod_TYPENAME_toBuffer(const Arguments& args) {')
     f('HandleScope scope;');
     f('JsWrap_TYPENAME* obj = node::ObjectWrap::Unwrap<JsWrap_TYPENAME>(args.This());');
+    // WRITEME: check length
     f('node::Buffer *buf = node::Buffer::New((const char *)obj->it, sizeof(TYPENAME));');
     f('return scope.Close(Persistent<Object>::New(buf->handle_));');
     f('}');
@@ -1206,6 +1207,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('static Handle<Value> jsFunc_TYPENAME_fromBuffer(const Arguments& args) {')
     f('HandleScope scope;');
     f('Handle<Value> buf = args[0];');
+    // WRITEME: check length
     f('char * bufData = node::Buffer::Data(buf);');
     f('TYPENAME it(*(TYPENAME const *)bufData);')
     f('return scope.Close(JsWrap_TYPENAME::NewInstance(it));');
