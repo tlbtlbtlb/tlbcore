@@ -154,6 +154,21 @@ $.enhance['div.includeContent'] = function() {
   DOM utility functions
 */
 
+$.defPage = function(prefix, parseToken, fmtToken, fmtPage) {
+  var pageFuncName = 'page' + prefix;
+
+  $.action[parseToken ? (prefix+'_') : prefix] = function(e, tail) {
+    var o = parseToken ? parseToken(tail) : {};
+    $.fn[pageFuncName].call(this, o);
+    return false;
+  };
+  $.fn[pageFuncName] = function(o) {
+    this.setHash(prefix + (fmtToken ? ('_' + fmtToken(o)) : ''));
+    fmtPage.call(this, o);
+    return this;
+  };
+};
+
 $.simplePage = function(name, renderFunc) {
 
   var fullfn = 'page_' + name;

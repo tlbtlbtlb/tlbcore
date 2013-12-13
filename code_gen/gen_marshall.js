@@ -163,7 +163,7 @@ TypeRegistry.prototype.emitGypFile = function(files) {
 
 
 function funcnameCToJs(name) {
-  switch(name) {
+  switch (name) {
   case 'operator+': return 'add';
   case 'operator-': return 'sub';
   case 'operator*': return 'mul';
@@ -186,7 +186,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
       var callargs = [];
 
       _.each(funcinfo.args, function(arginfo, argi) {
-        switch(arginfo.typename) {
+        switch (arginfo.typename) {
         case 'int':
         case 'float':
         case 'double':
@@ -217,7 +217,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         }
       });
 
-      switch(funcinfo.returnTypename) {
+      switch (funcinfo.returnTypename) {
       case 'void':
         f(funcinfo.funcname + '(' + callargs.join(', ') + ');');
         break;
@@ -225,7 +225,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         f(funcinfo.returnTypename + ' ret = ' + funcinfo.funcname + '(' + callargs.join(', ') + ');');
       }
 
-      switch(funcinfo.returnTypename) {
+      switch (funcinfo.returnTypename) {
       case 'int':
       case 'float':
       case 'double':
@@ -558,6 +558,11 @@ CType.prototype.emitVarDecl = function(f, varname) {
   f(type.typename + ' ' + varname + ';');
 };
 
+CType.prototype.getFormalParameter = function(varname) {
+  var type = this;
+  return type.typename + ' ' + varname;
+};
+
 // ----------------------------------------------------------------------
 
 function PrimitiveCType(reg, typename) {
@@ -574,7 +579,7 @@ PrimitiveCType.prototype.getSynopsis = function() {
 };
 
 PrimitiveCType.prototype.getAllOneExpr = function() {
-  switch(this.typename) {
+  switch (this.typename) {
   case 'float': return '1.0f';
   case 'double': return '1.0';
   case 'int': return '1';
@@ -585,7 +590,7 @@ PrimitiveCType.prototype.getAllOneExpr = function() {
 };
 
 PrimitiveCType.prototype.getAllZeroExpr = function() {
-  switch(this.typename) {
+  switch (this.typename) {
   case 'float': return '0.0f';
   case 'double': return '0.0';
   case 'int': return '0';
@@ -596,7 +601,7 @@ PrimitiveCType.prototype.getAllZeroExpr = function() {
 };
 
 PrimitiveCType.prototype.getAllNanExpr = function() {
-  switch(this.typename) {
+  switch (this.typename) {
   case 'float': return 'numeric_limits<float>::quiet_NaN()';
   case 'double': return 'numeric_limits<double>::quiet_NaN()';
   case 'int': return '0x80000000';
@@ -606,19 +611,8 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
   }
 };
 
-PrimitiveCType.prototype.getAlignment = function() {
-  switch(this.typename) {
-  case 'float': return 4;
-  case 'double': return 8;
-  case 'int': return 4;
-  case 'bool': return 1;
-  case 'string': return 8; // XXX wrong for 32-bit machines
-  default: throw new Error('Unknown alignment for type ' + this.typename);
-  }
-}
-
 PrimitiveCType.prototype.getExampleValueJs = function() {
-  switch(this.typename) {
+  switch (this.typename) {
   case 'int':
     return '7';
   case 'float':
@@ -632,7 +626,28 @@ PrimitiveCType.prototype.getExampleValueJs = function() {
   default:
     throw new Error('PrimitiveCType.getExampleValue unimplemented for type ' + this.typename);
   }
-}
+};
+
+PrimitiveCType.prototype.isPod = function() {
+  var type = this;
+  switch (type.typename) {
+  case 'string':
+    return false;
+  default:
+    return true;
+  }
+};
+
+PrimitiveCType.prototype.getFormalParameter = function(varname) {
+  var type = this;
+  switch (type.typename) {
+  case 'string':
+    return type.typename + ' const &' + varname;
+  default:
+    return type.typename + ' ' + varname;
+  }
+};
+
 
 /* ----------------------------------------------------------------------
    Template types
@@ -661,6 +676,10 @@ CStructType.prototype.hasArrayNature = function() {
   return (mt.length === 1);
 };
 
+CStructType.prototype.getFormalParameter = function(varname) {
+  var type = this;
+  return type.typename + ' const &' + varname;
+};
 
 CStructType.prototype.getSynopsis = function() {
   var type = this;
@@ -668,15 +687,6 @@ CStructType.prototype.getSynopsis = function() {
     return type.nameToType[name].getSynopsis();
   }).join(',') + '})';
 };
-
-CStructType.prototype.getAlignment = function() {
-  var type = this;
-  var structAlignment = 1;
-  _.each(type.orderedTypes, function(name) {
-    structAlignment = Math.max(structAlignment, type.nameToType[name].getAlignment());
-  });
-  return structAlignment;
-}
 
 CStructType.prototype.getDeclDependencies = function() {
   var type = this;
@@ -744,7 +754,7 @@ CStructType.prototype.emitTypeDecl = function(f) {
   f('TYPENAME();'); // declare default constructor
   if (type.hasFullConstructor()) {
     f('TYPENAME(' + _.map(type.orderedNames, function(name) {
-      return type.nameToType[name].typename + ' _' + name;
+      return type.nameToType[name].getFormalParameter('_' + name);
     }).join(', ') + ');');
   }
   f('static TYPENAME allZero();');
@@ -806,7 +816,7 @@ CStructType.prototype.emitHostImpl = function(f) {
   }
   if (type.hasFullConstructor()) {
     f('TYPENAME::TYPENAME(' + _.map(type.orderedNames, function(name) {
-      return type.nameToType[name].typename + ' _' + name;
+      return type.nameToType[name].getFormalParameter('_' + name);
     }).join(', ') + ')');
     f(':' + _.map(type.orderedNames, function(name) {
       return name + '(_' + name + ')';
@@ -1067,7 +1077,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('JsWrap_TYPENAME::JsWrap_TYPENAME(TYPENAME *_it) :it(_it), wrapStyle(JSWRAP_BORROWED) {}')
     f('JsWrap_TYPENAME::JsWrap_TYPENAME(TYPENAME const &_it) :it(new TYPENAME(_it)), wrapStyle(JSWRAP_OWNED) {}')
     f('JsWrap_TYPENAME::~JsWrap_TYPENAME() {');
-    f('switch(wrapStyle) {');
+    f('switch (wrapStyle) {');
     f('case JSWRAP_OWNED: delete it; break;');
     f('case JSWRAP_BORROWED: break;');
     f('default: break;');
@@ -1119,7 +1129,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
       f('else if (args.Length() == ' + type.orderedNames.length + ') {')
       _.each(type.orderedNames, function(name, argi) {
         var argType = type.nameToType[name];
-        switch(argType.typename) {
+        switch (argType.typename) {
         case 'float':
         case 'double':
         case 'int':
@@ -1157,7 +1167,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('ret->Set(String::NewSymbol("type"), String::NewSymbol("TYPENAME"));');
     _.each(type.orderedNames, function(name) {
       var memberType = type.nameToType[name];
-      switch(memberType.typename) {
+      switch (memberType.typename) {
       case 'int': case 'float': case 'double':
         f('ret->Set(String::NewSymbol("' + name + '"), Number::New(it.' + name + '));');
         break;
@@ -1245,7 +1255,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('Handle<Value> buf = args[0];');
     f('if (!node::Buffer::HasInstance(buf)) return ThrowInvalidArgs();');
     f('packet rd(node::Buffer::Length(buf));');
-    f('rd.add(node::Buffer::Data(buf), node::Buffer::Length(buf));');
+    f('rd.add_bytes(node::Buffer::Data(buf), node::Buffer::Length(buf));');
     f('TYPENAME it;');
     f('try {');
     f('rd.get_checked(it);');

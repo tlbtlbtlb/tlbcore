@@ -105,10 +105,13 @@ struct packet {
   packet();
   explicit packet(size_t size);
   explicit packet(u_char const *data, size_t size);
+  explicit packet(string const &data);
   packet(const packet &other);
   packet & operator= (packet const &other);
   ~packet();
 
+  string as_string();
+  
   int rd_to_file(int fd) const;
   int rd_to_file(FILE *fp) const;
   int to_file(int fd) const;
@@ -146,8 +149,8 @@ struct packet {
 
   // writing
   void add_pkt(packet const &other);
-  void add(char const *data, size_t size);
-  void add(uint8_t const *data, size_t size);
+  void add_bytes(char const *data, size_t size);
+  void add_bytes(uint8_t const *data, size_t size);
   void add_reversed(uint8_t const *data, size_t size);
   void add_nl_string(char const *s);
   void add_nl_string(string const &s);
@@ -186,8 +189,8 @@ struct packet {
   void get_skip(int n);
 
   bool get_test(uint8_t *data, size_t size); // returns false if it fails
-  void get(uint8_t *data, size_t size); // throws packet_rd_overrun_err if it fails
-  void get(char *data, size_t size); // throws packet_rd_overrun_err if it fails
+  void get_bytes(uint8_t *data, size_t size); // throws packet_rd_overrun_err if it fails
+  void get_bytes(char *data, size_t size); // throws packet_rd_overrun_err if it fails
 
   void get_reversed(uint8_t *data, size_t size);
   

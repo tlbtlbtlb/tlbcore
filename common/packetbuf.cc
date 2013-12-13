@@ -59,7 +59,7 @@ void packet::incref(packet_annotations *it)
 void packet::reserve(size_t new_size)
 {
   if (new_size > contents->alloc || contents->refcnt > 1) {
-    if (new_size > 1000000000) die("packet::reserve too large (0x%lx)", (u_long)new_size);
+    if (new_size > size_t(0x3fffffff)) die("packet::reserve too large (0x%lx)", (u_long)new_size);
     packet_contents *old_contents = contents;
 
     size_t new_alloc = old_contents->alloc;
@@ -100,6 +100,12 @@ packet::packet(u_char const *data, size_t size)
   memcpy(contents->buf, data, size);
 }
 
+packet::packet(string const &data)
+  :contents(alloc_contents(data.size())), annotations(NULL), rd_pos(0), wr_pos(data.size())
+{
+  memcpy(contents->buf, data.data(), data.size());
+}
+
 packet::packet(size_t size)
   :contents(alloc_contents(size)), annotations(NULL), rd_pos(0), wr_pos(0)
 {
@@ -138,10 +144,15 @@ packet::~packet()
 size_t packet::size() const { return wr_pos; }
 ssize_t packet::remaining() const { return wr_pos - rd_pos; }
 
+string packet::as_string()
+{
+  return string((char *)wr_ptr(), (size_t)remaining());
+}
+
 packet packet::get_remainder()
 {
   packet ret;
-  ret.add(rd_ptr(), remaining());
+  ret.add_bytes(rd_ptr(), remaining());
   return ret;
 }
 
@@ -333,44 +344,44 @@ void packet::add_file_contents(FILE *fp)
 }
 
 
-void packet::add(const u_char *data, size_t size) 
+void packet::add_bytes(const u_char *data, size_t size) 
 {
   reserve(wr_pos + size);
   memcpy(contents->buf + wr_pos, data, size);
   wr_pos += size;
 }
 
-void packet::add(const char *data, size_t size)
+void packet::add_bytes(const char *data, size_t size)
 {
-  add((const u_char *)data, size);
+  add_bytes((const u_char *)data, size);
 }
 
 void packet::add_reversed(const u_char *data, size_t size)
 {
   for (size_t i=0; i<size; i++) {
-    add((const u_char *)&data[size-1-i], 1);
+    add_bytes((const u_char *)&data[size-1-i], 1);
   }
 }
 
 void packet::add_nl_string(const char *s)
 {
   size_t slen = strlen(s);
-  add(s, slen);
-  add("\n", 1);
+  add_bytes(s, slen);
+  add_bytes("\n", 1);
 }
 
 void packet::add_nl_string(string const &s)
 {
   size_t slen = s.size();
-  add(s.data(), slen);
-  add("\n", 1);
+  add_bytes(s.data(), slen);
+  add_bytes("\n", 1);
 }
 
 
 void packet::add_pkt(packet const &wr) 
 {
   add((u_int)wr.remaining());
-  add(wr.rd_ptr(), wr.remaining());
+  add_bytes(wr.rd_ptr(), wr.remaining());
 }
 
 void packet::add_be_uint32(u_int x) {
@@ -379,7 +390,7 @@ void packet::add_be_uint32(u_int x) {
   buf[1]=(x>>16)&0xff;
   buf[2]=(x>>8)&0xff;
   buf[3]=(x>>0)&0xff;
-  add(buf, sizeof(buf));
+  add_bytes(buf, sizeof(buf));
 }
   
 void packet::add_be_uint24(u_int x) {
@@ -387,20 +398,20 @@ void packet::add_be_uint24(u_int x) {
   buf[0]=(x>>16)&0xff;
   buf[1]=(x>>8)&0xff;
   buf[2]=(x>>0)&0xff;
-  add(buf, sizeof(buf));
+  add_bytes(buf, sizeof(buf));
 }
   
 void packet::add_be_uint16(u_int x) {
   u_char buf[2];
   buf[0]=(x>>8)&0xff;
   buf[1]=(x>>0)&0xff;
-  add(buf, sizeof(buf));
+  add_bytes(buf, sizeof(buf));
 }
   
 void packet::add_be_uint8(u_int x) {
   u_char buf[1];
   buf[0]=(x>>0)&0xff;
-  add(buf, sizeof(buf));
+  add_bytes(buf, sizeof(buf));
 }
 
 void packet::add_be_double(double x) {
@@ -414,7 +425,7 @@ void packet::add_be_double(double x) {
 #if BYTE_ORDER==LITTLE_ENDIAN  
   add_reversed(it.bytes, 8);
 #elif BYTE_ORDER==BIG_ENDIAN
-  add(it.bytes, 8);
+  add_bytes(it.bytes, 8);
 #else
 #error "unexpected byte order"
 #endif
@@ -461,22 +472,22 @@ bool packet::get_test(u_char *data, size_t size)
   return false;
 }
 
-void packet::get(u_char *data, size_t size) 
+void packet::get_bytes(u_char *data, size_t size) 
 {
   if (!get_test(data, size)) {
     throw packet_rd_overrun_err(size - remaining());
   }
 }
 
-void packet::get(char *data, size_t size) 
+void packet::get_bytes(char *data, size_t size) 
 {
-  get((u_char *)data, size);
+  get_bytes((u_char *)data, size);
 }
 
 void packet::get_reversed(u_char *data, size_t size)
 {
   for (size_t i=0; i<size; i++) {
-    get(&data[size-1-i], 1);
+    get_bytes(&data[size-1-i], 1);
   }
 }
 
@@ -499,7 +510,7 @@ packet packet::get_pkt()
 u_int packet::get_be_uint32() 
 {
   u_char buf[4];
-  get(buf, 4);
+  get_bytes(buf, 4);
     
   return (((u_int)buf[0]<<24) |
           ((u_int)buf[1]<<16) |
@@ -510,7 +521,7 @@ u_int packet::get_be_uint32()
 u_int packet::get_be_uint24() 
 {
   u_char buf[3];
-  get(buf, 3);
+  get_bytes(buf, 3);
     
   return (((u_int)buf[0]<<16) |
           ((u_int)buf[1]<<8) |
@@ -520,7 +531,7 @@ u_int packet::get_be_uint24()
 u_short packet::get_be_uint16() 
 {
   u_char buf[2];
-  get(buf, 2);
+  get_bytes(buf, 2);
     
   return (((u_short)buf[0]<<8) |
           ((u_short)buf[1]<<0));
@@ -529,7 +540,7 @@ u_short packet::get_be_uint16()
 u_char packet::get_be_uint8() 
 {
   u_char buf[1];
-  get(buf, 1);
+  get_bytes(buf, 1);
     
   return (u_char)buf[0];
 }
@@ -544,7 +555,7 @@ double packet::get_be_double()
 #if BYTE_ORDER==LITTLE_ENDIAN  
   get_reversed(it.bytes, 8);
 #elif BYTE_ORDER==BIG_ENDIAN  
-  get(it.bytes, 8);
+  get_bytes(it.bytes, 8);
 #else
 #error "unexpected byte order"
 #endif
@@ -568,7 +579,7 @@ void packet::add_typetag(char const *tag)
   size_t size = strlen(tag);
   assert (size < 255);
   add((u_char)size);
-  add(tag, size);
+  add_bytes(tag, size);
 }  
 
 /*
@@ -580,7 +591,7 @@ bool packet::test_typetag(char const *expected)
   int save_rd_pos = rd_pos;
   size_t size = (size_t) fget<u_char>();
   char got[256];
-  get(got, size);
+  get_bytes(got, size);
   got[size] = 0;
   if (strcmp(expected, got)) {
     rd_pos = save_rd_pos;
@@ -593,7 +604,7 @@ void packet::check_typetag(char const *expected)
 {
   size_t size = (size_t) fget<u_char>();
   char got[256];
-  get(got, size);
+  get_bytes(got, size);
   got[size] = 0;
   if (strcmp(expected, got)) {
     throw packet_rd_type_err(expected, got); // takes a copy of both strings
@@ -749,33 +760,33 @@ void packet_rd_typetag(packet &p, double &x)                { p.check_typetag("d
 void packet_rd_typetag(packet &p, timeval &x)               { p.check_typetag("timeval"); }
 void packet_rd_typetag(packet &p, bool &x)                  { p.check_typetag("bool"); }
 
-void packet_wr_value(packet &p, signed char const &x)       { p.add((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, char const &x)              { p.add((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, unsigned char const &x)     { p.add((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, short const &x)             { p.add((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, unsigned short const &x)    { p.add((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, int const &x)               { p.add((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, unsigned int const &x)      { p.add((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, long const &x)              { p.add((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, unsigned long const &x)     { p.add((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, float const &x)             { p.add((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, double const &x)            { p.add((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, timeval const &x)           { p.add((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, bool const &x)              { p.add((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, signed char const &x)       { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, char const &x)              { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, unsigned char const &x)     { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, short const &x)             { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, unsigned short const &x)    { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, int const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, unsigned int const &x)      { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, long const &x)              { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, unsigned long const &x)     { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, float const &x)             { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, double const &x)            { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, timeval const &x)           { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, bool const &x)              { p.add_bytes((const u_char *)&x, sizeof(x)); }
 
-void packet_rd_value(packet &p, signed char &x)             { p.get((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, unsigned char &x)           { p.get((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, char &x)                    { p.get((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, short &x)                   { p.get((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, unsigned short &x)          { p.get((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, int &x)                     { p.get((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, unsigned int &x)            { p.get((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, long &x)                    { p.get((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, unsigned long &x)           { p.get((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, float &x)                   { p.get((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, double &x)                  { p.get((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, timeval &x)                 { p.get((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, bool &x)                    { p.get((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, signed char &x)             { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, unsigned char &x)           { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, char &x)                    { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, short &x)                   { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, unsigned short &x)          { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, int &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, unsigned int &x)            { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, long &x)                    { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, unsigned long &x)           { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, float &x)                   { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, double &x)                  { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, timeval &x)                 { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, bool &x)                    { p.get_bytes((u_char *)&x, sizeof(x)); }
 
 
 
@@ -787,7 +798,7 @@ void packet_wr_value(packet &p, const string &x) {
     u_char smallsize = (u_char)size;
     p.add(smallsize);
   } 
-  else if (size < 0x3fffffff) {
+  else if (size < size_t(0x3fffffff)) {
     u_char smallsize = 0xff;
     p.add(smallsize);
     p.add((u_int)size);
@@ -796,7 +807,7 @@ void packet_wr_value(packet &p, const string &x) {
     abort();
   }
   
-  p.add(&x[0], size);
+  p.add_bytes(&x[0], size);
 }
 
 void packet_rd_typetag(packet &p, string &x) { p.check_typetag("string"); }
@@ -806,7 +817,7 @@ void packet_rd_value(packet &p, string &x) {
   size_t size;
   if (smallsize==0xff) {
     size = (size_t)p.fget<u_int>();
-    if (size >= 0x3fffffff) abort();
+    if (size >= size_t(0x3fffffff)) abort();
   } else {
     size = smallsize;
   }
@@ -814,7 +825,7 @@ void packet_rd_value(packet &p, string &x) {
     throw packet_rd_overrun_err(size - p.remaining());
   }
   x.resize(size);
-  p.get(&x[0], size);
+  p.get_bytes(&x[0], size);
 }
 
 

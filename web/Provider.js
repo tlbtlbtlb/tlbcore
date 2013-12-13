@@ -8,6 +8,7 @@ var assert = require('assert');
 var jsmin = require('jsmin2');
 var base64 = require('base64');
 var xml = require('xmldom');
+var markdown = require('markdown');
 
 var logio = require('./logio');
 
@@ -20,6 +21,7 @@ exports.ScriptProvider = ScriptProvider;
 exports.JsonProvider = JsonProvider;
 exports.CssProvider = CssProvider;
 exports.SvgProvider = SvgProvider;
+exports.MarkdownProvider = MarkdownProvider;
 exports.ProviderSet = ProviderSet;
 exports.emitBinaryDoc = emitBinaryDoc;
 exports.emitXhtml = emitXhtml;
@@ -612,6 +614,35 @@ SvgProvider.prototype.getType = function() {
 
 // ----------------------------------------------------------------------
 
+function MarkdownProvider(fn, contentName) {
+  AnyProvider.call(this);
+  this.fn = fn;
+  this.basename = getBasename(fn);
+  this.contentName = contentName;
+}
+MarkdownProvider.prototype = Object.create(AnyProvider.prototype);
+
+MarkdownProvider.prototype.start = function() {
+  var self = this;
+  if (self.started) return;
+  self.started = true;
+  self.pending = true;
+
+  persistentReadFile(self.fn, 'utf8', function(data) {
+    var html = markdown.markdown.toHTML(data);
+    // Use JSON.stringify instead? Result may be slightly larger because it uses and escapes double quotes
+    self.asScriptBody = '$.defContent("' + self.contentName + '",' + JSON.stringify(html) + ');\n';
+    self.pending = false;
+    self.emit('changed');
+  });
+};
+
+MarkdownProvider.prototype.getType = function() {
+  return 'markdown';
+};
+
+// ----------------------------------------------------------------------
+
 function ProviderSet() {
   AnyProvider.call(this);
   this.providers = [];
@@ -644,6 +675,9 @@ ProviderSet.prototype.addModule = function(name) {
 };
 ProviderSet.prototype.addSvg = function(name) {
   this.addProvider(new SvgProvider(name));
+};
+ProviderSet.prototype.addMarkdown = function(name, contentName) {
+  this.addProvider(new MarkdownProvider(name, contentName));
 };
 ProviderSet.prototype.addXmlContent = function(name) {
   this.addProvider(new XmlContentProvider(name));
