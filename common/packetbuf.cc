@@ -58,8 +58,8 @@ void packet::incref(packet_annotations *it)
 
 void packet::reserve(size_t new_size)
 {
-  if (new_size > 1000000000) die("packet::reserve too large (0x%lx)", (u_long)new_size);
   if (new_size > contents->alloc || contents->refcnt > 1) {
+    if (new_size > 1000000000) die("packet::reserve too large (0x%lx)", (u_long)new_size);
     packet_contents *old_contents = contents;
 
     size_t new_alloc = old_contents->alloc;
@@ -136,7 +136,7 @@ packet::~packet()
 }
 
 size_t packet::size() const { return wr_pos; }
-int packet::remaining() const { return wr_pos - rd_pos; }
+ssize_t packet::remaining() const { return wr_pos - rd_pos; }
 
 packet packet::get_remainder()
 {
@@ -255,7 +255,7 @@ void packet::to_file_boxed(int fd) const
 int packet::rd_to_file(int fd) const
 {
 #if !defined(WIN32)
-  int todo = remaining();
+  ssize_t todo = remaining();
   int nw = write(fd, rd_ptr(), todo);
   return nw;
 #else
@@ -266,17 +266,16 @@ int packet::rd_to_file(int fd) const
 
 int packet::rd_to_file(FILE *fp) const
 {
-  int todo = remaining();
+  ssize_t todo = remaining();
   int nw = fwrite(rd_ptr(), 1, todo, fp);
   return nw;
 }
 
-int packet::add_read(int fd, int readsize)
+ssize_t packet::add_read(int fd, size_t readsize)
 {
 #if !defined(WIN32)
   reserve(wr_pos + readsize);
-  int todo = min(readsize, (int)(contents->alloc - wr_pos));
-  int nr = read(fd, wr_ptr(), todo);
+  ssize_t nr = read(fd, wr_ptr(), readsize);
   if (nr > 0) {
     wr_pos += nr;
   }
@@ -287,10 +286,25 @@ int packet::add_read(int fd, int readsize)
 #endif
 }
 
-int packet::add_read(FILE *fp, int readsize)
+ssize_t packet::add_pread(int fd, size_t readsize, off_t offset)
+{
+#if !defined(WIN32)
+  reserve(wr_pos + readsize);
+  ssize_t nr = pread(fd, wr_ptr(), readsize, offset);
+  if (nr > 0) {
+    wr_pos += nr;
+  }
+  return nr;
+#else
+  die("WRITEME: packet::add_read");
+  return -1;
+#endif
+}
+
+ssize_t packet::add_read(FILE *fp, size_t readsize)
 {
   reserve(wr_pos + readsize);
-  int nr = fread(wr_ptr(), 1, readsize, fp);
+  ssize_t nr = fread(wr_ptr(), 1, readsize, fp);
   if (nr > 0) {
     wr_pos += nr;
   }
@@ -355,7 +369,7 @@ void packet::add_nl_string(string const &s)
 
 void packet::add_pkt(packet const &wr) 
 {
-  add((int)wr.remaining());
+  add((u_int)wr.remaining());
   add(wr.rd_ptr(), wr.remaining());
 }
 
@@ -468,11 +482,11 @@ void packet::get_reversed(u_char *data, size_t size)
 
 packet packet::get_pkt()
 {
-  int len;
+  u_int len;
   get(len);
 
-  if (len < 0 || len > remaining()) {
-    printf("packet_rd_overrun_err needed=%d had=%d\n", len, remaining());
+  if ((ssize_t)len > remaining()) {
+    printf("packet_rd_overrun_err needed=%ld had=%ld\n", (long)len, (long)remaining());
     throw packet_rd_overrun_err(len - remaining());
   }
   packet ret(*this);
@@ -589,6 +603,7 @@ void packet::check_typetag(char const *expected)
 ostream & operator <<(ostream &s, packet const &it)
 {
   s << "packet(" << it.size() << " bytes)";
+  // WRITEME: if size < 100, print in hex
   return s;
 }
 
@@ -771,25 +786,31 @@ void packet_wr_value(packet &p, const string &x) {
   if (size<0xff) {
     u_char smallsize = (u_char)size;
     p.add(smallsize);
-  } else {
+  } 
+  else if (size < 0x3fffffff) {
     u_char smallsize = 0xff;
     p.add(smallsize);
     p.add((u_int)size);
+  }
+  else {
+    abort();
   }
   
   p.add(&x[0], size);
 }
 
+void packet_rd_typetag(packet &p, string &x) { p.check_typetag("string"); }
 void packet_rd_value(packet &p, string &x) {
   u_char smallsize;
   p.get(smallsize);
   size_t size;
   if (smallsize==0xff) {
     size = (size_t)p.fget<u_int>();
+    if (size >= 0x3fffffff) abort();
   } else {
     size = smallsize;
   }
-  if (size > (size_t)p.remaining()) {
+  if ((ssize_t)size > p.remaining()) {
     throw packet_rd_overrun_err(size - p.remaining());
   }
   x.resize(size);

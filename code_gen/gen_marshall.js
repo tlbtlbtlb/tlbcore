@@ -876,8 +876,8 @@ CStructType.prototype.emitJsTestImpl = function(f) {
   f('var util = require("util");');
   f('var assert = require("assert");');
   f('describe("TYPENAME C++ impl", function() {');
-  f('it("should work", function() {');
 
+  f('it("should work", function() {');
   f('var t1 = ' + type.getExampleValueJs() + ';');
   f('var t1s = t1.toString();');
   f('var t2 = ur.TYPENAME.fromString(t1s);');
@@ -886,7 +886,21 @@ CStructType.prototype.emitJsTestImpl = function(f) {
   f('var t1b = t1.toBuffer();');
   f('var t3 = ur.TYPENAME.fromBuffer(t1b);');
   f('assert.strictEqual(t1.toString(), t3.toString());');
+  f('});');
 
+  f('if (0) it("fromBuffer should be fuzz-resistant", function() {');
+  f('var t1 = ' + type.getExampleValueJs() + ';');
+  f('var bufLen = t1.toBuffer().length;');
+  f('for (var i=0; i<bufLen; i++) {');
+  f('for (var turd=0; turd<256; turd++) {');
+  f('var t1buf = t1.toBuffer();');
+  f('t1buf.writeUInt8(turd, i);');
+  f('try {');
+  f('var t2 = ur.TestStruct.fromBuffer(t1buf);');
+  f('} catch(ex) {');
+  f('}');
+  f('}');
+  f('}');
   f('});');
   f('});');
 };
@@ -899,6 +913,7 @@ CStructType.prototype.emitPacketIo = function(f) {
   f('p.add_typetag(x.typeVersionString);');
   f('}');
 
+  // WRITEME maybe: for POD types, consider writing directly
   f('void packet_wr_value(packet &p, const TYPENAME &x) {');
   _.each(type.orderedNames, function(name) {
     f('packet_wr_value(p, x.' + name + ');');

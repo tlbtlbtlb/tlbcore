@@ -42,20 +42,10 @@
   
 */
 
-#include <assert.h>
-#include <vector>
-#include <deque>
-#include <map>
-#include <string>
 #include "./exceptions.h"
 
 struct packet_contents;
 struct packet_annotations;
-
-#ifdef _WIN32
-#include <stdint.h>
-using namespace std;
-#endif
 
 /*
   This is the actual data in the packet
@@ -181,15 +171,16 @@ struct packet {
   void add_be_uint8(uint32_t x);
   void add_be_double(double x);
 
-  int add_read(int fd, int readsize);
-  int add_read(FILE *fp, int readsize);
+  ssize_t add_read(int fd, size_t readsize);
+  ssize_t add_pread(int fd, size_t readsize, off_t offset);
+  ssize_t add_read(FILE *fp, size_t readsize);
   void add_file_contents(int fd);
   void add_file_contents(FILE *fp);
 
 
   // reading
   void rewind();
-  int remaining() const;
+  ssize_t remaining() const;
   packet get_remainder();
 
   void get_skip(int n);
