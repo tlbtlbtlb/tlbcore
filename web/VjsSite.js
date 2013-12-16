@@ -122,7 +122,8 @@ WebServer.prototype.setupContent = function(dirs) {
   webServer.setupInternalUrls();
 
   _.each(dirs, function(dir) {
-    require('../../' + dir + '/load').load(webServer);
+    // Start with process.cwd, since these directory names are specified on the command line
+    require(path.join(process.cwd(), dir, 'load')).load(webServer);
   });
 
   webServer.startAllContent();

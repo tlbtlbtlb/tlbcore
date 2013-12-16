@@ -5,6 +5,7 @@ var WebSocketBrowser    = require('WebSocketBrowser');
 */
 
 $.action = {};
+$.actionPrefix = {};
 $.enhance = {};
 $.allContent = {};
 
@@ -30,52 +31,35 @@ var Safety = {
 };
 
 function gotoHash(hash, e) {
-  var action, rc;
+  var action, rc, rest;
 
-  if (hash === '') {
-    action = $.action.front;
-    if (action) {
-      try {
-        rc = action.call($(document.body), e, '');
-      } catch(ex) {
-        errlog('action', {hash: hash}, ex);
-        return;
-      }
-      if (rc === false) {
-        if (e) {
-          e.stopPropagation();
-          e.preventDefault();
-        }
-        gotoHash.activeHash = getLocationHash();
-        return;
-      }
-    }
+  var action = $.action[hash];
+  if (!action) {
+    var hl = hash.split('_', 2);
+    rest = hl[1] || '';
+    action = $.actionPrefix[hl[0]];
   }
 
-  // Try every prefix of hash (including hash itself) starting with the longest until we find something
-  for (var i=hash.length; i > 0; i--) {
-    action = $.action[hash.substr(0, i)];
-    if (action) {
-      try {
-        rc = action.call($(document.body), e, hash.substr(i));
-      } catch(ex) {
-        errlog('action', {hash: hash}, ex);
-        return;
+  if (action) {
+    try {
+      rc = action.call($(document.body), e, rest);
+    } catch(ex) {
+      errlog('action', {hash: hash}, ex);
+      return;
+    }
+    if (rc === false) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
       }
-      if (rc === false) {
-        if (e) {
-          e.stopPropagation();
-          e.preventDefault();
-        }
-        gotoHash.activeHash = getLocationHash();
-        return;
-      }
+      gotoHash.activeHash = getLocationHash();
+      return;
     }
   }
 
   $.fn.setHash(hash);
   errlog('hashNotFound', {hash: hash});
-  $(document.body).pageNotFound();
+  $(document.body).page_notFound();
 }
 
 function historyPoll() {
@@ -106,7 +90,7 @@ $.fn.setHash = function(h) {
   return this;
 };
 
-$.fn.pageNotFound = function(o) {
+$.fn.page_notFound = function(o) {
   document.title = 'Not Found';
   this.html('<h3>Not Found</h3>');
 };
@@ -154,30 +138,33 @@ $.enhance['div.includeContent'] = function() {
   DOM utility functions
 */
 
-$.defPage = function(prefix, parseToken, fmtToken, fmtPage) {
-  var pageFuncName = 'page' + prefix;
+$.defPage = function(prefix, fmtPage) {
+  var pageFuncName = 'page_' + prefix;
 
-  $.action[parseToken ? (prefix+'_') : prefix] = function(e, tail) {
-    var o = parseToken ? parseToken(tail) : {};
-    $.fn[pageFuncName].call(this, o);
+  $.action[prefix] = function(e, tail) {
+    $.fn[pageFuncName].call(this, {});
     return false;
   };
   $.fn[pageFuncName] = function(o) {
-    this.setHash(prefix + (fmtToken ? ('_' + fmtToken(o)) : ''));
+    this.setHash(prefix);
     fmtPage.call(this, o);
     return this;
   };
 };
 
-$.simplePage = function(name, renderFunc) {
+$.defPages = function(prefix, parseToken, fmtToken, fmtPage) {
+  var pageFuncName = 'page_' + prefix;
 
-  var fullfn = 'page_' + name;
-
-  $.action[name] = function(o) {
-    this[fullfn](o);
+  $.actionPrefix[prefix] = function(e, tail) {
+    var o = parseToken(tail);
+    $.fn[pageFuncName].call(this, o);
     return false;
   };
-  $.fn[fullfn] = renderFunc;
+  $.fn[pageFuncName] = function(o) {
+    this.setHash(prefix + '_' + fmtToken(o));
+    fmtPage.call(this, o);
+    return this;
+  };
 };
 
 $.fn.exec = function(f, a, b, c, d, e) {
