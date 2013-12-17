@@ -716,12 +716,14 @@ CStructType.prototype.getAllNanExpr = function() {
 CStructType.prototype.add = function(memberName, memberType) {
   var type = this;
   if (_.isString(memberType)) {
-    memberType = type.reg.types[memberType];
+    var newMemberType = type.reg.types[memberType];
+    if (!newMemberType) throw new Error('Unknown member type ' + memberType);
+    memberType = newMemberType;
   }
   if (_.isString(memberName)) {
     if (!memberType) memberType = type.reg.types['float'];
     if (memberName in type.nameToType) {
-      if (types.nameToType[memberName] !== memberType) throw new Error('Duplicate member ' + memberName + ' with different types');
+      if (type.nameToType[memberName] !== memberType) throw new Error('Duplicate member ' + memberName + ' with different types');
       return; // duplicate entry. Warn?
     }
     type.nameToType[memberName] = memberType;
