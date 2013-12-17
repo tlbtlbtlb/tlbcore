@@ -123,7 +123,9 @@ WebServer.prototype.setupContent = function(dirs) {
 
   _.each(dirs, function(dir) {
     // Start with process.cwd, since these directory names are specified on the command line
-    require(path.join(process.cwd(), dir, 'load')).load(webServer);
+    var fn = fs.realpathSync(path.join(dir, 'load.js'));
+    util.print('Load ' + fn + '\n');
+    require(fn).load(webServer);
   });
 
   webServer.startAllContent();

@@ -45,7 +45,6 @@ function main() {
       break;
 
     default:
-      util.print('Load ' + arg + '\n');
       sites.push(arg);
       break;
     }
