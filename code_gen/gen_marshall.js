@@ -114,7 +114,7 @@ TypeRegistry.prototype.emitAll = function(files) {
 
 TypeRegistry.prototype.emitJsBoot = function(files) {
   var typereg = this;
-  var f = files.getFile('jsboot.cc');
+  var f = files.getFile('jsboot_' + typereg.groupname + '.cc');
   f('#include "tlbcore/common/std_headers.h"');
   f('#include "tlbcore/nodeif/jswrapbase.h"');
   _.each(typereg.types, function(typeobj, typename) {
@@ -137,10 +137,10 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
 
 TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
   var typereg = this;
-  var f = files.getFile('functions_jsWrap.cc');
+  var f = files.getFile('functions_' + typereg.groupname + '_jsWrap.cc');
   f('#include "tlbcore/common/std_headers.h"');
   f('#include "tlbcore/nodeif/jswrapbase.h"');
-  f('#include "./rtfns.h"');
+  f('#include "./rtfns_' + typereg.groupname + '.h"');
   _.each(typereg.extraJsWrapFuncsHeaders, f);
   _.each(typereg.types, function(typeobj, typename) {
     var fns = typeobj.getFns();
@@ -156,7 +156,7 @@ TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
 
 TypeRegistry.prototype.emitGypFile = function(files) {
   var typereg = this;
-  var f = files.getFile('sources.gypi');
+  var f = files.getFile('sources_' + typereg.groupname + '.gypi');
   f('{');
   f('"sources": [');
   _.each(typereg.types, function(typeobj, typename) {
@@ -168,9 +168,9 @@ TypeRegistry.prototype.emitGypFile = function(files) {
       f('\"' + fns.jsWrapCode + '\",');
     }
   });
-  f('\"' + 'jsboot.cc' + '\",');
-  f('\"' + 'rtfns.cc' + '\",');
-  f('\"' + 'functions_jsWrap.cc' + '\",');
+  f('\"' + 'jsboot_' + typereg.groupname + '.cc' + '\",');
+  f('\"' + 'rtfns_' + typereg.groupname + '.cc' + '\",');
+  f('\"' + 'functions_' + typereg.groupname + '_jsWrap.cc' + '\",');
   f(']');
   f('}');
 
@@ -351,7 +351,7 @@ TypeRegistry.prototype.emitRtFunctions = function(files) {
   var typereg = this;
 
   // For now put them all in one file. It might make sense to split out at some point
-  var hl = files.getFile('rtfns.h');
+  var hl = files.getFile('rtfns_' + typereg.groupname + '.h');
 
   // Make a list of all includes: collect all types for all functions, then collect the customerIncludes for each type, and remove dups
   var allIncludes = _.uniq(_.flatten(_.map(_.flatten(_.map(typereg.rtFunctions, function(func) { return func.getAllTypes(); })), function(typename) {
@@ -362,9 +362,9 @@ TypeRegistry.prototype.emitRtFunctions = function(files) {
     hl(incl);
   });
 
-  var cl = files.getFile('rtfns.cc');
+  var cl = files.getFile('rtfns_' + typereg.groupname + '.cc');
   cl('#include "tlbcore/common/std_headers.h"');
-  cl('#include "./rtfns.h"');
+  cl('#include "./rtfns_' + typereg.groupname + '.h"');
 
   _.each(typereg.rtFunctions, function(func, funcname) {
     func.emitDecl(hl);

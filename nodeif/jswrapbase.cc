@@ -47,10 +47,27 @@ Handle<Value> convStlStringToJs(string const &it) {
 
 
 
+/* ----------------------------------------------------------------------
+   Convert JS arrays, both regular and native, to vector<double>
+   See https://github.com/joyent/node/issues/4201 for details on native arrays
+*/
 
+vector<double> convJsToDoubleVector(Handle<Object> it) {
+  if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) {
+    size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
+    double* itData = static_cast<double*>(it->GetIndexedPropertiesExternalArrayData());
 
-vector<double> convJsToDoubleVector(Handle<Object> it)
-{
+    return vector<double>(itData, itData+itLen);
+  }
+
+  if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) {
+    size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
+    float* itData = static_cast<float*>(it->GetIndexedPropertiesExternalArrayData());
+
+    return vector<double>(itData, itData+itLen);
+  }
+
+  // Also handle regular JS arrays
   if (it->IsArray()) {
     Handle<Array> itArr = Handle<Array>::Cast(it);
     size_t itArrLen = itArr->Length();
@@ -61,25 +78,10 @@ vector<double> convJsToDoubleVector(Handle<Object> it)
     return ret;
   }
 
-  if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) {
-    size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
-    double* data = static_cast<double*>(it->GetIndexedPropertiesExternalArrayData());
-
-    return vector<double>(data, data+itLen);
-  }
-
-  if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) {
-    size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
-    float* data = static_cast<float*>(it->GetIndexedPropertiesExternalArrayData());
-
-    return vector<double>(data, data+itLen);
-  }
-
   throw new tlbcore_type_err("convJsToDoubleVector: not an array");
 }
 
-Handle<Object> convDoubleVectorToJs(vector<double> const &it)
-{
+Handle<Object> convDoubleVectorToJs(vector<double> const &it) {
   static Persistent<Function> float64_array_constructor;
 
   if (float64_array_constructor.IsEmpty()) {
