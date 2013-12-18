@@ -47,7 +47,7 @@ function mkCodeGen(filename, subs) {
     var expContents = [];
     expandContents(expContents);
 
-    if (/\.(c|cc|cpp|h)$/.exec(filename)) {
+    if (/\.(c|cc|cpp|h|js)$/.exec(filename)) {
       cIndent(expContents);
     }
     if (/\.h$/.exec(filename)) {

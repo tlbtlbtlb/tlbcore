@@ -70,4 +70,4 @@ typereg.struct('Polyfit3',
                ['c3', 'double'])
 
 
-typereg.scanCHeader('geom/geom_math.h');
+typereg.scanCHeader(require.resolve('./geom_math.h'));

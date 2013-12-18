@@ -53,6 +53,11 @@ function main() {
       //rtfn.node('scalar.poly', [1,2,3,4,5,6], ['a.foo'], ['b.buz']);
     }
 
+    if (1) {
+      typereg.struct('TestStructString', 
+                     ['foo', 'string']);
+    }
+
     _.each(files, function(fn) {
       util.puts('Load ' + fn);
       if (/\.js$/.test(fn)) {

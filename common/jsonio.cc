@@ -86,7 +86,7 @@ void wrJson(char *&s, int const &value) {
     *s++ = '0';
   }
   else {
-    s += sprintf(s, "%d", value);
+    s += snprintf(s, 12, "%d", value);
   }
 }
 bool rdJson(const char *&s, int &value) {
@@ -107,7 +107,7 @@ void wrJson(char *&s, float const &value) {
     *s++ = '0';
   }
   else {
-    s += sprintf(s, "%g", value);
+    s += snprintf(s, 16, "%g", value);
   }
 }
 bool rdJson(const char *&s, float &value) {
@@ -128,7 +128,7 @@ void wrJson(char *&s, double const &value) {
     *s++ = '0';
   }
   else {
-    s += sprintf(s, "%g", value);
+    s += snprintf(s, 20, "%g", value);
   }
 }
 bool rdJson(const char *&s, double &value) {
@@ -172,13 +172,17 @@ void wrJson(char *&s, string const &value) {
       *s++ = 0x5c;
       *s++ = 0x5c;
     }
+    else if (c == (u_char)0x0a) {
+      *s++ = 0x5c;
+      *s++ = 'n';
+    }
     else if (c < 0x20) {
+      // Only ascii control characters are turned into \uxxxx escapes.
+      // Multibyte characters just get passed through, which is legal.
       *s++ = 0x5c;
       *s++ = 'u';
-      // We only handle 8-bit characters here, so first two digits will always be zero.
-      // multibyte characters just get passed through, which is legal.
-      *s++ = toHexDigit((c >> 12) & 0x0f);
-      *s++ = toHexDigit((c >> 8) & 0x0f);
+      *s++ = '0';
+      *s++ = '0';
       *s++ = toHexDigit((c >> 4) & 0x0f);
       *s++ = toHexDigit((c >> 0) & 0x0f);
     }
@@ -218,6 +222,7 @@ bool rdJson(const char *&s, string &value) {
           value.push_back(0x09);
         }
         else if (c == 'u') {
+          if (0) eprintf("Got unicode escape %s\n", s);
           uint32_t codept = 0;
           c = *s++;
           if (!isHexDigit(c)) return false;
@@ -231,7 +236,25 @@ bool rdJson(const char *&s, string &value) {
           c = *s++;
           if (!isHexDigit(c)) return false;
           codept |= fromHexDigit(c) << 0;
-          value.push_back((char)c); // should convert to multibyte
+
+          if (0) eprintf("Got codept %d\n", (int)codept);
+
+          // Why can't I find a simple library for this?
+          if (codept < 0x80) {
+            value.push_back((char)(codept & 0x7f));
+          }
+          else if (codept < 0x800) {
+            value.push_back((char)(((codept>>6) & 0x1f) | 0xc0));
+            value.push_back((char)(((codept>>0) & 0x3f) | 0x80));
+          }
+          else if (codept < 0x10000) {
+            value.push_back((char)(((codept>>12) & 0x0f) | 0xe0));
+            value.push_back((char)(((codept>>6) & 0x3f) | 0x80));
+            value.push_back((char)(((codept>>0) & 0x3f) | 0x80));
+          }
+          else {
+            value.push_back('*'); // don't go beyond 16 bits
+          }
         }
       }
       // WRITEME: handle other escapes

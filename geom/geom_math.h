@@ -13,6 +13,8 @@
 
 double sqr(double x);
 
+double limit(double v, double lo, double hi);
+
 Vec2 operator +(Vec2 const &u, Vec2 const &v);
 Vec3 operator +(Vec3 const &u, Vec3 const &v);
 Vec4 operator +(Vec4 const &u, Vec4 const &v);

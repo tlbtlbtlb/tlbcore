@@ -7,6 +7,12 @@ double sqr(double x) {
   return x*x;
 }
 
+double limit(double v, double lo, double hi) {
+  if (v < lo) return lo;
+  if (v > hi) return hi;
+  return v;
+}
+
 Vec2 operator +(Vec2 const &u, Vec2 const &v)
 {
   return Vec2(u.x + v.x, u.y + v.y);
@@ -1084,5 +1090,5 @@ double getValue(Polyfit3 const &u, double t)
 }
 double getDerivative(Polyfit3 const &u, double t)
 {
-  return u.c1 + 2.0*u.c2*t + 3.0f*u.c3*t*t;
+  return u.c1 + 2.0*u.c2*t + 3.0*u.c3*t*t;
 }

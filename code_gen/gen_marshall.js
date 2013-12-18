@@ -1,6 +1,6 @@
 'use strict';
 /*
-  This generates most of the stuff in the build.src directory.
+  This (called by mk_marshall.js) generates most of the stuff in the build.src directory.
   For each type it knows about, it generates the following files:
     
     TYPENAME_decl.h
@@ -9,15 +9,20 @@
     TYPENAME_host.cc
       A C++ definition of the type. It has no nodejs dependencies so you can use it in a pure C++ program.
       It includes constructors, an << operator for printing, and marshalling/unmarshalling to JSON.
+      The _host is a legacy of when we also had an _embedded version for microcontrollers
        
     TYPENAME_jsWrap.{h,cc}
-      A, wrapping of the type for nodejs. It depends on both nodejs and v8. 
+      A wrapping of the type for nodejs. It depends on both nodejs and v8. 
+
+    test_TYPENAME.js
+      A Mocha test file, exercises the basics
        
 */
 var _                   = require('underscore');
 var fs                  = require('fs');
 var util                = require('util');
 var crypto              = require('crypto');
+var path                = require('path');
 var cgen                = require('./cgen');
 var gen_functions       = require('./gen_functions');
 
@@ -53,9 +58,17 @@ function TypeRegistry(groupname) {
 
 TypeRegistry.prototype.scanJsDefn = function(fn) {
   var rawFile = fs.readFileSync(fn, 'utf8');
-  var wrappedFile = '(function(typereg, cgen, _, util) {\n' + rawFile + '\n})';
+  var wrappedFile = '(function(typereg, cgen, _, util, require) {\n' + rawFile + '\n})';
   var f = eval(wrappedFile);
-  f(this, cgen, _, util);
+
+  function subRequire(path) {
+    return require(path);
+  }
+  subRequire.resolve = function(pn) {
+    return path.join(path.dirname(fn), pn);
+  }
+
+  f(this, cgen, _, util, subRequire);
 };
 
 TypeRegistry.prototype.setPrimitives = function() {
@@ -95,6 +108,7 @@ TypeRegistry.prototype.emitAll = function(files) {
   typereg.emitJsBoot(files);
   typereg.emitRtFunctions(files);
   typereg.emitGypFile(files);
+  typereg.emitMochaFile(files);
 };
 
 TypeRegistry.prototype.emitJsBoot = function(files) {
@@ -159,6 +173,21 @@ TypeRegistry.prototype.emitGypFile = function(files) {
   f(']');
   f('}');
 
+};
+
+
+TypeRegistry.prototype.emitMochaFile = function(files) {
+  var typereg = this;
+  var f = files.getFile('test_' + typereg.groupname + '.js');
+  f('var _ = require("underscore");');
+  f('var ur = require("../nodeif/bin/ur");');
+  f('var util = require("util");');
+  f('var assert = require("assert");');
+  
+  _.each(typereg.types, function(type, typename) {
+    type.emitJsTestImpl(f.child({TYPENAME: type.typename}));
+    f('');
+  });
 };
 
 
@@ -273,7 +302,7 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
   // try to eliminate class-scoped functions.
   // text = text.replace(/struct.*{[.\n]*\n}/, '');
 
-  for (var arity=0; arity < 4; arity++) {
+  for (var arity=0; arity < 8; arity++) {
 
     var argsExpr = _.range(0, arity).map(function() { return argExpr; }).join('\\s*,\\s*');
     
@@ -402,9 +431,6 @@ CType.prototype.emitAll = function(files) {
   if (fns.hostCode) {
     type.emitHostCode(files.getFile(fns.hostCode).child({TYPENAME: type.typename}));
   }
-  if (fns.jsTestCode) {
-    type.emitJsTestCode(files.getFile(fns.jsTestCode).child({TYPENAME: type.typename}));
-  }
   if (fns.typeHeader) {
     type.emitHeader(files.getFile(fns.typeHeader).child({TYPENAME: type.typename}));
   }
@@ -494,11 +520,6 @@ CType.prototype.emitHostCode = function(f) {
   });
 };
 
-CType.prototype.emitJsTestCode = function(f) {
-  var type = this;
-  type.emitJsTestImpl(f);
-};
-
 CType.prototype.emitJsWrapHeader = function(f) {
   var type = this;
   _.each(type.getDeclDependencies().concat([type]), function(othertype) {
@@ -525,6 +546,9 @@ CType.prototype.emitJsWrapCode = function(f) {
   type.emitJsWrapImpl(f);
 };
 
+CType.prototype.emitJsTestImpl = function(f) {
+};
+
 // ----------------------------------------------------------------------
 
 
@@ -542,9 +566,6 @@ CType.prototype.emitFunctionDecl = function(f) {
 };
 
 CType.prototype.emitHostImpl = function(f) {
-};
-
-CType.prototype.emitJsTestImpl = function(f) {
 };
 
 CType.prototype.emitJsWrapDecl = function(f) {
@@ -883,10 +904,6 @@ CStructType.prototype.getExampleValueJs = function() {
 
 CStructType.prototype.emitJsTestImpl = function(f) {
   var type = this;
-  f('var _ = require("underscore");');
-  f('var ur = require("../nodeif/bin/ur");');
-  f('var util = require("util");');
-  f('var assert = require("assert");');
   f('describe("TYPENAME C++ impl", function() {');
 
   f('it("should work", function() {');
@@ -900,20 +917,22 @@ CStructType.prototype.emitJsTestImpl = function(f) {
   f('assert.strictEqual(t1.toString(), t3.toString());');
   f('});');
 
-  f('if (0) it("fromBuffer should be fuzz-resistant", function() {');
-  f('var t1 = ' + type.getExampleValueJs() + ';');
-  f('var bufLen = t1.toBuffer().length;');
-  f('for (var i=0; i<bufLen; i++) {');
-  f('for (var turd=0; turd<256; turd++) {');
-  f('var t1buf = t1.toBuffer();');
-  f('t1buf.writeUInt8(turd, i);');
-  f('try {');
-  f('var t2 = ur.TestStruct.fromBuffer(t1buf);');
-  f('} catch(ex) {');
-  f('}');
-  f('}');
-  f('}');
-  f('});');
+  if (0) {
+    f('it("fromBuffer should be fuzz-resistant", function() {');
+    f('var t1 = ' + type.getExampleValueJs() + ';');
+    f('var bufLen = t1.toBuffer().length;');
+    f('for (var i=0; i<bufLen; i++) {');
+    f('for (var turd=0; turd<256; turd++) {');
+    f('var t1buf = t1.toBuffer();');
+    f('t1buf.writeUInt8(turd, i);');
+    f('try {');
+    f('var t2 = ur.TestStruct.fromBuffer(t1buf);');
+    f('} catch(ex) {');
+    f('}');
+    f('}');
+    f('}');
+    f('});');
+  }
   f('});');
 };
 
@@ -965,9 +984,9 @@ CStructType.prototype.emitWrJson = function(f) {
   f('}');
 
   f('size_t wrJsonSize(const TYPENAME &obj) {');
-  f('return ' + _.map(type.orderedNames, function(name, namei) {
+  f('return 10 + ' + (new Buffer(type.typename, 'utf8').length).toString() + ' + ' + _.map(type.orderedNames, function(name, namei) {
     return (new Buffer(name, 'utf8').length + 4).toString() + '+wrJsonSize(obj.' + name + ')';
-  }).join(' + ') + ' + 2;');
+  }).join(' + ') + ' + 1;');
   f('}');
 };
 
@@ -1125,6 +1144,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
 
   if (1) {
     f('Handle<Value> JsWrap_TYPENAME::JsConstructor(const Arguments& args) {');
+    f('HandleScope scope;');
     if (type.hasFullConstructor()) {
       f('if (args.Length() == 0) {')
       f('}')
@@ -1224,7 +1244,15 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('char *s = new char[maxSize];');
     f('char *p = s;');
     f('wrJson(p, *obj->it);');
-    f('assert((size_t)(p - s + 2) < maxSize);');
+    if (0) {
+      f('if ((size_t)(p - s + 1) >= maxSize) {');
+      f('eprintf("TYPENAME: maxsize=%lu but generated %lu bytes\\n", (u_long)maxSize, (u_long)(p-s+1));');
+      f('*p = 0;');
+      f('eprintf("String: %s\\n", s);');
+      f('}');
+    } else {
+      f('assert((size_t)(p - s + 1) < maxSize);');
+    }
     f('*p = 0;');
     f('Local<String> jss = String::New(s, p-s);');
     f('delete s;');
@@ -1319,7 +1347,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
   });
 
   if (1) { // Setup template and prototype
-    f('void jsInit_TYPENAME(Handle<Object> target) {');
+    f('void jsInit_TYPENAME(Handle<Object> exports) {');
     f('Local<FunctionTemplate> tpl = FunctionTemplate::New(jsNew_TYPENAME);');
     f('tpl->SetClassName(String::NewSymbol("TYPENAME"));');
     f('tpl->InstanceTemplate()->SetInternalFieldCount(1);');
@@ -1335,7 +1363,7 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('');
     
     f('JsWrap_TYPENAME::constructor = Persistent<Function>::New(tpl->GetFunction());');
-    f('target->Set(String::NewSymbol("TYPENAME"), JsWrap_TYPENAME::constructor);');
+    f('exports->Set(String::NewSymbol("TYPENAME"), JsWrap_TYPENAME::constructor);');
     f('JsWrap_TYPENAME::constructor->Set(String::NewSymbol("fromString"), FunctionTemplate::New(jsFunc_TYPENAME_fromString)->GetFunction());');
     f('JsWrap_TYPENAME::constructor->Set(String::NewSymbol("fromBuffer"), FunctionTemplate::New(jsFunc_TYPENAME_fromBuffer)->GetFunction());');
     _.each(factories, function(name) {
