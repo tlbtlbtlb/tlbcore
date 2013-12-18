@@ -77,6 +77,7 @@ TypeRegistry.prototype.setPrimitives = function() {
   this.types['double'] = new PrimitiveCType(this, 'double');
   this.types['int'] = new PrimitiveCType(this, 'int');
   this.types['string'] = new PrimitiveCType(this, 'string');
+  this.types['vector<double>'] = new PrimitiveCType(this, 'vector<double>');
 };
 
 TypeRegistry.prototype.struct = function(typename /* varargs */) {
@@ -239,6 +240,12 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
           callargs.push('a' + argi);
           break;
 
+        case 'vector<double>':
+          f('if (args[' + argi + ']->IsObject()) {')
+          f(arginfo.typename + ' a' + argi + ' = convJsToDoubleVector(args[' + argi + ']->ToObject());');
+          callargs.push('a' + argi);
+          break;
+
         default:
           f(arginfo.typename + ' *a' + argi + ' = JsWrap_' + arginfo.typename + '::Extract(args[' + argi + ']);');
           f('if (a' + argi + ') {');
@@ -268,6 +275,9 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         break;
       case 'void':
         f('return scope.Close(Undefined());');
+        break;
+      case 'vector<double>':
+        f('return scope.Close(convDoubleVectorToJs(ret));');
         break;
       default:
         f('return scope.Close(JsWrap_' + funcinfo.returnTypename + '::NewInstance(ret));');

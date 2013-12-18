@@ -40,6 +40,9 @@ Handle<Value> ThrowTypeError(char const *s);
 string convJsStringToStl(Handle<String> it);
 Handle<Value> convStlStringToJs(string const &it);
 
+vector<double> convJsToDoubleVector(Handle<Object> it);
+Handle<Object> convDoubleVectorToJs(vector<double> const &it);
+
 template <typename CONTENTS>
 struct JsWrapGeneric : node::ObjectWrap {
   JsWrapGeneric()

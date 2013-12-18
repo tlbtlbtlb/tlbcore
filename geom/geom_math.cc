@@ -1082,7 +1082,9 @@ Mat33 twaddle(Mat33 const &u, double rotsigma, int niter)
   return tmp;
 }
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   Polyfit 
+*/
 
 double getValue(Polyfit3 const &u, double t)
 {
@@ -1092,3 +1094,4 @@ double getDerivative(Polyfit3 const &u, double t)
 {
   return u.c1 + 2.0*u.c2*t + 3.0*u.c3*t*t;
 }
+

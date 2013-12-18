@@ -4,17 +4,19 @@
   'sources': [
     '../nodeif/jswrapbase.cc',
     '../geom/geom_math.cc',
-    '../genes/genes.cc', 
+    '../genes/genes.cc',
     '../genes/test_genes.cc',
-    '../realtime/TcpJsonConn.cc', 
+    '../realtime/TcpJsonConn.cc',
     '../realtime/LatencyTest.cc',
-    '../common/LogBase.cc', 
-    '../common/hacks.cc', 
-    '../common/refcount.cc', 
+    '../common/LogBase.cc',
+    '../common/hacks.cc',
+    '../common/refcount.cc',
     '../common/packetbuf.cc',
-    '../common/exceptions.cc', 
-    '../common/anythreads.cc', 
-    '../common/host_debug.cc', 
-    '../common/jsonio.cc'
+    '../common/exceptions.cc',
+    '../common/anythreads.cc',
+    '../common/host_debug.cc',
+    '../common/jsonio.cc',
+    '../lapack/lapack_if.cc',
+    '../lapack/polyfit.cc'
   ]
 }

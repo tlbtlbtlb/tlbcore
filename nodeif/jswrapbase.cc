@@ -45,3 +45,58 @@ Handle<Value> convStlStringToJs(string const &it) {
   return String::New(it.data(), it.size());
 }
 
+
+
+
+
+vector<double> convJsToDoubleVector(Handle<Object> it)
+{
+  if (it->IsArray()) {
+    Handle<Array> itArr = Handle<Array>::Cast(it);
+    size_t itArrLen = itArr->Length();
+    vector<double> ret(itArrLen);
+    for (size_t i=0; i<itArrLen; i++) {
+      ret[i] = itArr->Get(i)->NumberValue();
+    }
+    return ret;
+  }
+
+  if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) {
+    size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
+    double* data = static_cast<double*>(it->GetIndexedPropertiesExternalArrayData());
+
+    return vector<double>(data, data+itLen);
+  }
+
+  if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) {
+    size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
+    float* data = static_cast<float*>(it->GetIndexedPropertiesExternalArrayData());
+
+    return vector<double>(data, data+itLen);
+  }
+
+  throw new tlbcore_type_err("convJsToDoubleVector: not an array");
+}
+
+Handle<Object> convDoubleVectorToJs(vector<double> const &it)
+{
+  static Persistent<Function> float64_array_constructor;
+
+  if (float64_array_constructor.IsEmpty()) {
+    Local<Object> global = Context::GetCurrent()->Global();
+    Local<Value> val = global->Get(String::New("Float64Array"));
+    assert(!val.IsEmpty() && "type not found: Float64Array");
+    assert(val->IsFunction() && "not a constructor: Float64Array");
+    float64_array_constructor = Persistent<Function>::New(val.As<Function>());
+  }
+
+  Local<Value> itSize = Integer::NewFromUnsigned((u_int)it.size());
+  Local<Object> ret = float64_array_constructor->NewInstance(1, &itSize);
+  assert(ret->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray);
+  assert((size_t)ret->GetIndexedPropertiesExternalArrayDataLength() == it.size());
+
+  double* retData = static_cast<double*>(ret->GetIndexedPropertiesExternalArrayData());
+  memcpy(retData, &it[0], it.size() * sizeof(double));
+  
+  return ret;
+}
