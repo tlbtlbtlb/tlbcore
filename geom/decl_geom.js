@@ -69,5 +69,13 @@ typereg.struct('Polyfit3',
                ['c2', 'double'],
                ['c3', 'double'])
 
+typereg.struct('Polyfit5',
+               ['c0', 'double'],
+               ['c1', 'double'],
+               ['c2', 'double'],
+               ['c3', 'double'],
+               ['c4', 'double'],
+               ['c5', 'double']);
+
 
 typereg.scanCHeader(require.resolve('./geom_math.h'));
