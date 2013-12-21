@@ -1,4 +1,24 @@
 /*
+  The server side (nodejs) of a WebSocket connection.
+  The API is symmetrical, but the browser end is implemented in WebSocketBrowser because of the narcissism of small differences.
+
+  Call mkWebSocketRpc(aWebSocketRequest, aWebSocketConnection, handlers)
+
+  handlers should be {
+    cmd_foo: function(msg) { do something }
+    req_bar: function(msg, cb) { do something, then call cb(answer); to reply }
+  }
+  This module also fills in some new fields in handlers, like .tx = a function to send on the websocket, and .label = a name for it useful for logging
+  So you can initiate a one-way command with
+  
+  handlers.tx({cmd: 'foo', fooInfo: ...})
+  
+  Or create an RPC with
+
+  handlers.rpc({cmd: 'bar', barInfo: ...}, function(barRsp) {
+    barRsp is the response from the other end
+  });
+  
   
   Info:
     https://developer.mozilla.org/en-US/docs/WebSockets/Writing_WebSocket_client_applications
