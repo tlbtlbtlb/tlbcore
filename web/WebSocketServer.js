@@ -90,6 +90,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
           handlers.tx(rsp);
         });
       } catch(ex) {
+        logio.E(handlers.label, 'Error handling', msg, ex);
         if (!done) {
           done = true;
           handlers.tx({rspId: msg.reqId, err: ex.toString()});

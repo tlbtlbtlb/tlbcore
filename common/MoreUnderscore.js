@@ -149,14 +149,14 @@ _.mixin({
     if (x === undefined || x === null) {
       return "";
     }
-    return x.toFixed(3);
+    return (x < 0 ? '' : '+') + x.toFixed(3);
   },
   
   fmt6: function(x) {
     if (x === undefined || x === null) {
       return "";
     }
-    return x.toFixed(6);
+    return (x < 0 ? '' : '+') + x.toFixed(6);
   }
 });
 
@@ -353,3 +353,4 @@ _.mixin({
     subClassFunc.prototype = Object.create(superClassFunc.prototype);
   }
 });
+
