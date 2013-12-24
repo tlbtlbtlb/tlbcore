@@ -685,6 +685,33 @@ $.fn.maximizeCanvasResolution = function() {
   return this;
 };
 
+/*
+  mkDeferQ is a way of deferring drawing some elements on a canvas so they can be layered on top.
+  Usage: 
+    ctx.textLayer = mkContextLayer();
+    ...
+    ctx.textLayer(function() {   // the closure is queued
+      ctx.fillText(...);
+    });
+    ...
+    ctx.textLayer.now();   // the fillText gets executed
+*/
+
+function mkDeferQ() {
+  var q = [];
+  function defer(f) {
+    q.push(f);
+  }
+  defer.now = function() {
+    for (var i=0; i<q.length; i++) {
+      q[i]();
+    }
+    q.length = 0;
+  };
+
+  return defer;
+}
+
 function mkImage(src, width, height) {
   var ret = new Image();
   ret.src = src;
