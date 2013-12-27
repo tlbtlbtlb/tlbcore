@@ -680,6 +680,8 @@ $.fn.maximizeCanvasResolution = function() {
 
       canvas.style.width = oldWidth + 'px';
       canvas.style.height = oldHeight + 'px';
+    } else {
+      canvas.pixelRatio = 1;
     }
   });
   return this;

@@ -120,6 +120,7 @@ function mkWebSocketRpc(wsc, handlers) {
   }
 
   function emitMsg(msg) {
+    // Consider async.queue to limit concurrency here if it's a problem
     var msgParts = WebSocketHelper.stringify(msg);
     _.each(msgParts.binaries, function(data) {
       wsc.send(data);
