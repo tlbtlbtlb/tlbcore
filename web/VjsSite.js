@@ -1,3 +1,6 @@
+/*
+  It's reasonable to use this behind nginx. See http://nginx.org/en/docs/
+*/
 var _                   = require('underscore');
 var util                = require('util');
 var http                = require('http');
@@ -15,9 +18,6 @@ var Topology            = require('./Topology');
 var Safety              = require('./Safety');
 var Image               = require('./Image');
 var WebSocketServer     = require('./WebSocketServer');
-
-/*
-*/
 
 exports.WebServer = WebServer;
 exports.setVerbose = function(v) { verbose = v; };
