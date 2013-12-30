@@ -40,6 +40,7 @@ function sortTypes(types) {
   return _.uniq(_.sortBy(types, getTypename), true, getTypename);
 }
 
+
 function TypeRegistry(groupname) {
   var typereg = this;
   typereg.groupname = groupname;
@@ -110,6 +111,7 @@ TypeRegistry.prototype.emitAll = function(files) {
   typereg.emitRtFunctions(files);
   typereg.emitGypFile(files);
   typereg.emitMochaFile(files);
+  typereg.emitSchema(files);
 };
 
 TypeRegistry.prototype.emitJsBoot = function(files) {
@@ -124,6 +126,15 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
   });
   f('void jsInit_functions(Handle<Object> target);');
   f('');
+  var schemas = typereg.getSchemas();
+  f('static Handle<Value> getSchemas() {')
+  f('HandleScope scope;');
+  // WRITEME: if this is a common thing, make a wrapper function
+  f('Handle<Value> ret = Script::Compile(String::New("("' + cgen.escapeCJson(schemas) + '")"), String::New("binding:script"))->Run();');
+  f('return scope.Close(ret);');
+  f('}');
+  f('');
+
   f('void jsBoot(Handle<Object> target) {');
   _.each(typereg.types, function(typeobj, typename) {
     if (typeobj.hasJsWrapper()) {
@@ -131,6 +142,7 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
     }
   });
   f('jsInit_functions(target);');
+  f('target->Set(String::New("schemas"), getSchemas());');
   f('}');
   f.end();
 };
@@ -301,6 +313,25 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
 
 };
 
+TypeRegistry.prototype.getSchemas = function() {
+  var typereg = this;
+  var schemas = {};
+  _.each(typereg.types, function(typeobj, typename) {
+    schemas[typename] = typeobj.getSchema();
+  });
+  return schemas;
+};
+
+TypeRegistry.prototype.emitSchema = function(files) {
+  var typereg = this;
+  var f = files.getFile('schema_' + typereg.groupname + '.json');
+  var schemas = typereg.getSchemas();
+  f(JSON.stringify(schemas));
+}
+
+/* ----------------------------------------------------------------------
+*/
+
 TypeRegistry.prototype.scanCFunctions = function(text) {
   var typereg = this;
   var typenames = _.keys(typereg.types);
@@ -406,9 +437,6 @@ function CType(reg, typename) {
   type.extraHeaderIncludes = [];
   type.extraConstructorCode = [];
   type.arrayConversions = [];
-
-  type.hasNumericNature = false;
-  type.hasPutMethod = false;
 }
 
 CType.prototype.hasArrayNature = function() {
@@ -417,7 +445,16 @@ CType.prototype.hasArrayNature = function() {
 
 CType.prototype.hasJsWrapper = function() {
   return false;
-}
+};
+
+CType.prototype.getSchema = function() {
+  return {typename: this.typename, hasArrayNature: this.hasArrayNature(), members: this.getMembers()};
+};
+
+
+CType.prototype.getMembers = function() {
+  return [];
+};
 
 CType.prototype.getFnBase = function() {
   return this.typename;
@@ -710,6 +747,13 @@ CStructType.prototype.hasArrayNature = function() {
 CStructType.prototype.getFormalParameter = function(varname) {
   var type = this;
   return type.typename + ' const &' + varname;
+};
+
+CStructType.prototype.getMembers = function() {
+  var type = this;
+  return _.map(type.orderedNames, function(memberName) {
+    return {memberName: memberName, typename: type.nameToType[memberName].typename};
+  });
 };
 
 CStructType.prototype.getSynopsis = function() {
@@ -1120,14 +1164,6 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('');
   }
 
-  if (0) {
-    f('JsWrap_TYPENAME_aview::JsWrap_TYPENAME(TYPENAME *_arr, size_t _n_arr) :arr(_arr), n_arr(_n_arr) {}')
-    f('JsWrap_TYPENAME_aview::~JsWrap_TYPENAME() { arr = 0; n_arr = 0; }');
-    f('Persistent<Function> JsWrap_TYPENAME_aview::constructor;');
-    f('');
-  }
-
-
   if (1) {
     f('static Handle<Value> jsNew_TYPENAME(const Arguments& args) {')
     f('HandleScope scope;');
@@ -1135,18 +1171,6 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     f('if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();');
 
     f('JsWrap_TYPENAME* obj = new JsWrap_TYPENAME();');
-    f('return obj->JsConstructor(args);')
-    f('}');
-    f('');
-  }
-
-  if (0) { // FIXME
-    f('static Handle<Value> jsNew_TYPENAME_aview(const Arguments& args) {')
-    f('HandleScope scope;');
-
-    f('if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();');
-
-    f('JsWrap_TYPENAME_aview* obj = new JsWrap_TYPENAME_aview();');
     f('return obj->JsConstructor(args);')
     f('}');
     f('');

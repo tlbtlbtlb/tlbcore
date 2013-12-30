@@ -8,9 +8,21 @@ require('../common/MoreUnderscore');
 
 exports.FileGen = FileGen;
 exports.escapeCString = escapeCString;
+exports.escapeCJson = escapeCJson;
 
 function escapeCString(s) {
-  return s.replace(/[\000-\040\\\^\$\*\+\?\|]/g, "\\$&");
+  return s.replace(/[\000-\040\\"\'|]/g, "\\$&");
+}
+
+function escapeCJson(o) {
+  var oStr = JSON.stringify(o);
+  var oStrLen = oStr.length;
+  var cStrings = ['""'];
+  var chunk = 50;
+  for (var i=0; i<oStrLen; i+= chunk) {
+    cStrings.push('"' + escapeCString(oStr.substr(i, chunk)) + '"');
+  }
+  return cStrings.join('\n    ');
 }
 
 function mkCodeGen(filename, subs) {
