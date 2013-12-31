@@ -641,6 +641,42 @@ $.fn.animation = function(f, deltat) {
   }
 };
 
+$.fn.animation2 = function(m) {
+  var top = this;
+
+  var lastTime = 0;
+  var mChangeCounter = 0;
+  var vChangeCounter = 0;
+  var afActive = false;
+  m.on('changed', function() {
+    if (mChangeCounter === vChangeCounter) mChangeCounter++;
+    if (!afActive) {
+      afActive = true;
+      window.requestAnimationFrame(wrap);
+    }
+  });
+  return;
+
+  function wrap(curTime) {
+    if (top.closest('body').length === 0) {
+      if (console) console.log(top, 'disconnected');
+      return; // leaving afActive true, so we shouldn't get called any more
+    }
+
+    afActive = false;
+    if (vChangeCounter !== mChangeCounter) {
+      vChangeCounter = mChangeCounter;
+
+      var nTicks = Math.min(curTime - lastTime, 200);
+      m.animate(nTicks);
+      m.emit('animate');
+      afActive = true;
+      window.requestAnimationFrame(wrap);
+    }
+  }
+};
+
+
 /* ----------------------------------------------------------------------
    Track all key events within a document object. The hash (down) keeps track of what keys are down, 
    and (changed) is called whenever anything changes.
