@@ -15,13 +15,13 @@ function RtFunction(typereg, name, inargs, outargs, nodes) {
   this.nodes = nodes || [];
   this.checkArgs();
   this.registerWrapper();
-};
+}
 
 RtFunction.prototype.writeToFile = function(fn, onDone) {
   var s = JSON.stringify({typereg: this.typereg, name: this.name, inargs: this.inargs, outargs: this.outargs, nodes: this.nodes});
   fs.writeFile(fn, s, function(err) {
     if (err) console.log(fn + ': write failed');
-    onDone && onDone();
+    if (onDone) onDone();
   });
 };
 
@@ -59,7 +59,6 @@ RtFunction.prototype.collectArgs = function(argFunc) {
   return _.map(_.sortBy(_.keys(self.inargs), _.identity), function(argname) {
     var argTypename = self.inargs[argname];
     return argFunc(argname, argTypename, false);
-    return {typename: argtypename, passing: 'const &'}
   }).concat(_.map(_.sortBy(_.keys(self.outargs), _.identity), function(argname) {
     var argTypename = self.outargs[argname];
     return argFunc(argname, argTypename, true);
@@ -229,4 +228,4 @@ function emitNode(l, node) {
         break;
 
     }
-};
+}

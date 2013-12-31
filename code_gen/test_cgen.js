@@ -6,13 +6,13 @@ var util = require('util');
 
 describe('CodeGen', function() {
   it('should work', function() {
-    var files = new cgen.FileGen('/tmp/')
+    var files = new cgen.FileGen('/tmp/');
     var cg = files.getFile('cgen_test.h');
     var o = cg.child({XXX: '37'});
     o('int test1() {');
     o('return 7 + XXX;');
     o('while (1) {}');
-    o('foo(1,')
+    o('foo(1,');
     o('2,3);');
     o('}');
     cg.end();
