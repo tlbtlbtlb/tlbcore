@@ -470,8 +470,8 @@ $.flashErrorMessage = function(msg) {
     clearTimeout(flashErrorMessageTimeout);
   }
   flashErrorMessageTimeout = setTimeout(function() {
-    fem.effect('fade', 500, function() {
-      fem.empty();
+    fem.fadeOut(500, function() {
+      $(this).empty();
     });
   }, 2000);
 };
@@ -496,14 +496,15 @@ $.fn.toplevel = function() {
 
 
 $.fn.syncChildren = function(newItems, options) {
-  if (this.length === 0) return;
-  if (this.length > 1) return this.first().syncChildren(newItems, options);
+  var top = this;
+  if (top.length === 0) return;
+  if (top.length > 1) return top.first().syncChildren(newItems, options);
 
   var domKey = options.domKey || 'syncDomChildren';
   var domClass = options.domClass || 'syncDomChildren';
   
   var removeEl = options.removeEl || function(name) {
-    this.effect('fadeOut', 500, function() { $(this).remove(); });
+    top.fadeOut(500, function() { $(this).empty(); });
   };
   var createEl = options.createEl || function(name) {
     return $('<div class="' + domClass + '">');
@@ -516,7 +517,7 @@ $.fn.syncChildren = function(newItems, options) {
   // Find all contained dom elements with domClass, index them by domKey
   var oldEls = {};
 
-  _.each(this.children(), function(oldEl) {
+  _.each(top.children(), function(oldEl) {
     var name = $(oldEl).data(domKey);
     if (name !== undefined) {
       oldEls[name] = oldEl;
@@ -551,7 +552,7 @@ $.fn.syncChildren = function(newItems, options) {
         $(afterEl).after(newEl);
         afterEl = newEl;
       } else {
-        this.prepend(newEl);
+        top.prepend(newEl);
         afterEl = newEl;
       }
       setupEl.call($(newEl), name);
