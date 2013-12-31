@@ -3,6 +3,7 @@ function HitDetector() {
   var hd = this;
   hd.hits = [];
   hd.scrolls = [];
+  hd.keys = [];
   hd.buttonDown = false;
   hd.mdX = hd.mdY = null;
   hd.ctx = null;
@@ -12,6 +13,7 @@ HitDetector.prototype.clear = function() {
   var hd = this;
   hd.hits = null;
   hd.scrolls = null;
+  hd.keys = null;
   hd.ctx = null;
 };
 
@@ -20,6 +22,7 @@ HitDetector.prototype.beginDrawing = function(ctx) {
   hd.ctx = ctx;
   hd.hits.length = 0;
   hd.scrolls.length = 0;
+  hd.keys.length = 0;
 };
 
 HitDetector.prototype.endDrawing = function(ctx) {
@@ -33,10 +36,10 @@ HitDetector.prototype.mouseIn = function(l, t, r,b) {
 };
 
 
-HitDetector.prototype.add = function(l, t, r, b, draw, click) {
+HitDetector.prototype.add = function(l, t, r, b, draw, onClick) {
   var hd = this;
-  if (click) {
-    hd.hits.push([l, t, r, b, click]);
+  if (onClick) {
+    hd.hits.push([l, t, r, b, onClick]);
   }
   if (draw) {
     hd.ctx.save();
@@ -52,9 +55,14 @@ HitDetector.prototype.add = function(l, t, r, b, draw, click) {
   }
 };
 
-HitDetector.prototype.addScroll = function(l, t, r, b, scroll) {
+HitDetector.prototype.addScroll = function(l, t, r, b, onScroll) {
   var hd = this;
-  hd.scrolls.push([l, t, r, b, scroll]);
+  hd.scrolls.push([l, t, r, b, onScroll]);
+};
+
+HitDetector.prototype.addKey = function(l, t, r, b, onKey) {
+  var hd = this;
+  hd.keys.push([l, t, r, b, onKey]);
 };
 
 
@@ -80,6 +88,19 @@ HitDetector.prototype.findScroll = function(x, y) {
     if (x >= scroll[0] && x <= scroll[2] &&
         y >= scroll[1] && y <= scroll[3]) {
       return scroll[4];
+    }
+  }
+};
+
+HitDetector.prototype.findKey = function(x, y) {
+  var hd = this;
+  var keys = hd.keys;
+  var keysLen = keys.length;
+  for (var i=0; i<keysLen; i++) {
+    var key = keys[i];
+    if (x >= key[0] && x <= key[2] &&
+        y >= key[1] && y <= key[3]) {
+      return key[4];
     }
   }
 };
