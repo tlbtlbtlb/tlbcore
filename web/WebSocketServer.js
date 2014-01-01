@@ -139,5 +139,5 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     });
     wsc.sendUTF(msgParts.json);
     if (verbose >= 2) logio.O(handlers.label, msgParts.json);
-  };
-};
+  }
+}

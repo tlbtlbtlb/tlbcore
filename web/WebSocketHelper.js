@@ -124,7 +124,7 @@ function RpcPendingQueue() {
 
 RpcPendingQueue.prototype.getNewId = function() {
   return this.uniqueId++;
-}
+};
 
 RpcPendingQueue.prototype.get = function(rspId) {
   for (var i=0; i<this.pending.length; i++) {

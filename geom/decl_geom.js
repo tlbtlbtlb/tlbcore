@@ -49,7 +49,7 @@ typereg.struct('Mat44',
                ['ax', 'double'],
                ['ay', 'double'],
                ['az', 'double'],
-               ['aa', 'double'])
+               ['aa', 'double']);
 
 
 typereg.struct('Ea3',
@@ -67,7 +67,7 @@ typereg.struct('Polyfit3',
                ['c0', 'double'],
                ['c1', 'double'],
                ['c2', 'double'],
-               ['c3', 'double'])
+               ['c3', 'double']);
 
 typereg.struct('Polyfit5',
                ['c0', 'double'],

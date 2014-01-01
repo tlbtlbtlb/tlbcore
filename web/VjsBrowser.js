@@ -33,7 +33,7 @@ var Safety = {
 function gotoHash(hash, e) {
   var action, rc, rest;
 
-  var action = $.action[hash];
+  action = $.action[hash];
   if (!action) {
     var hl = hash.split('_', 2);
     rest = hl[1] || '';
@@ -356,7 +356,7 @@ $.fn.fmtTimeSince = function(lastUpdate) {
     this.html('unknown');
     return this;
   }
-  var seconds = realtime() - lastUpdate;
+  var seconds = +(new Date()) - lastUpdate;
   if (seconds < 0) seconds = 1;
   this.fmtTimeInterval(seconds);
 };
@@ -867,7 +867,7 @@ function setupMixpanel() {
   } catch(ex) {
     errlog('setupMixpanel', ex);
   }
-};
+}
 
 
 
@@ -883,7 +883,7 @@ function mkWebSocket(path, handlers) {
   // WRITEME: Give some appropriately dire error message if websocket not found or fails to connect
   var wsc = new WebSocket(wsUrl);
   return WebSocketBrowser.mkWebSocketRpc(wsc, handlers);
-};
+}
 
 /* ----------------------------------------------------------------------
    Called from web page setup code (search for pageSetupFromHash in Provider.js)

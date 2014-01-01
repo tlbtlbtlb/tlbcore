@@ -1,6 +1,6 @@
-_                       = require('underscore');
-assert                  = require('assert');
-WebSocketHelper         = require('./WebSocketHelper');
+var _                   = require('underscore');
+var assert              = require('assert');
+var WebSocketHelper     = require('./WebSocketHelper');
 
 function wshPipe(msg) {
   var msgParts = WebSocketHelper.stringify(msg);
@@ -24,10 +24,10 @@ describe('WebSocketHelper', function() {
   });
 
   it('should handle typed arrays', function() {
-    _.each([Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array, Float64Array], function(t) {
-      var msg2 = wshPipe({foo: 1, bar: new t(3)});
+    _.each([Int8Array, Uint8Array, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array, Float64Array], function(T) {
+      var msg2 = wshPipe({foo: 1, bar: new T(3)});
       assert.ok(msg2.foo === 1);
-      assert.ok(msg2.bar.constructor === t);
+      assert.ok(msg2.bar.constructor === T);
       assert.ok(msg2.bar.length === 3);
     });
   });

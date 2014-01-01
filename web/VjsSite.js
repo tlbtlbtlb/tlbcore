@@ -94,7 +94,7 @@ WebServer.prototype.setupInternalUrls = function() {
   var webServer = this;
 
   // WRITEME: ditch this, figure out how to upload over a websocket
-  if (0) {
+  /*
     webServer.urlProviders['POST /uploadImage'] = {
       start: function() {},
       mirrorTo: function(dst) {},
@@ -107,7 +107,7 @@ WebServer.prototype.setupInternalUrls = function() {
         });
       }
     };
-  }
+  */
 
   webServer.setSocketProtocol('/console', webServer.mkConsoleHandler.bind(webServer));
 
@@ -287,5 +287,5 @@ WebServer.prototype.mkConsoleHandler = function() {
       this.reloadKey = msg.reloadKey;
     }
   };
-}
+};
 

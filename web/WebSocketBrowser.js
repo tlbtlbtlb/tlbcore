@@ -130,5 +130,5 @@ function mkWebSocketRpc(wsc, handlers) {
     wsc.send(msgParts.json);
   }
 
-};
+}
 

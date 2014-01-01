@@ -83,7 +83,7 @@ function mkCodeGen(filename, subs) {
     
     fs.writeFileSync(filename, fullContentsStr, 'utf8');
     util.puts('Wrote ' + filename);
-  };
+  }
   
   function hProtect(expContents) {
     var hpsym = 'INCLUDE_' + filename.replace(/[^a-zA-Z0-9]+/g, '_');
