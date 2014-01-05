@@ -60,14 +60,11 @@ function main() {
 
     _.each(files, function(fn) {
       util.puts('Load ' + fn);
-      if (/\.js$/.test(fn)) {
-        typereg.scanJsDefn(fn);
-      }
-      else if (/\.h$/.test(fn)) {
+      if (/\.h$/.test(fn)) {
         typereg.scanCHeader(fn);
       }
       else {
-        throw new Error(fn + ': Unknown file extension');
+        typereg.scanJsDefn(fn);
       }
     });
     typereg.emitAll(filegen);

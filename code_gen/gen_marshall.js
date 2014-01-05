@@ -58,18 +58,9 @@ function TypeRegistry(groupname) {
 }
 
 TypeRegistry.prototype.scanJsDefn = function(fn) {
-  var rawFile = fs.readFileSync(fn, 'utf8');
-  var wrappedFile = '(function(typereg, cgen, _, util, require) {\n' + rawFile + '\n})';
-  var f = eval(wrappedFile);
-
-  function subRequire(path) {
-    return require(path);
-  }
-  subRequire.resolve = function(pn) {
-    return path.join(path.dirname(fn), pn);
-  };
-
-  f(this, cgen, _, util, subRequire);
+  var typereg = this;
+  var scanModule = require(fs.realpathSync(fn));
+  scanModule(typereg);
 };
 
 TypeRegistry.prototype.setPrimitives = function() {
