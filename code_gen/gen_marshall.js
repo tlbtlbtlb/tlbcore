@@ -1380,6 +1380,8 @@ CStructType.prototype.emitJsWrapImpl = function(f) {
     _.each(methods, function(name) {
       f('tpl->PrototypeTemplate()->Set(String::NewSymbol("' + name + '"), FunctionTemplate::New(jsMethod_TYPENAME_' + name + ')->GetFunction());');
     });
+    f('tpl->PrototypeTemplate()->Set(String::NewSymbol("toJsonString"), FunctionTemplate::New(jsMethod_TYPENAME_toString)->GetFunction());');
+
     _.each(accessors, function(name) {
       f('tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("' + name + '"), ' +
         '&jsGet_TYPENAME_' + name + ', ' +
