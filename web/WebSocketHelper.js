@@ -143,7 +143,7 @@ RpcPendingQueue.prototype.add = function(rspId, rspFunc) {
   }
   this.pending.push({rspId: rspId, rspFunc: rspFunc});
   if (this.pending.length % 50 === 0) {
-    console.log(wsc.url + ' ! pending=' + this.pending.length);
+    console.log('! pending=' + this.pending.length);
   }
 };
 
