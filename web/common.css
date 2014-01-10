@@ -30,14 +30,14 @@ img {
 
 .footer {
     text-align: center;
-    margin-top:  30px;
-    font-size:  7.0pt;
+    margin-top: 30px;
+    font-size: 7.0pt;
 }
 .footer a:link, .footer a:visited {
-    text-decoration:  none;
+    text-decoration: none;
 }
 .footer a:hover {
-    text-decoration:  underline;
+    text-decoration: underline;
 }
 
 blockquote {
