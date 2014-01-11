@@ -115,7 +115,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
   }
 
   function setupHandlers() {
-    handlers.label = wsc.remoteAddress + '!ws' + wsr.resource;
+    handlers.labelWs = handlers.label = wsc.remoteAddress + '!ws' + wsr.resource;
     handlers.rpc = function(req, rspFunc) {
       var reqId = pending.getnewId();
       req.reqId = reqId;
