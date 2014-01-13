@@ -95,7 +95,37 @@ $.fn.page_notFound = function(o) {
   this.html('<h3>Not Found</h3>');
 };
 
+/* ----------------------------------------------------------------------
+   Jquery magic
+*/
 
+// Arrange for a 'destroyed' event to be fired when dom entries are removed.
+// http://stackoverflow.com/questions/2200494/jquery-trigger-event-when-an-element-is-removed-from-the-dom/10172676#10172676
+
+$.event.special.destroyed = {
+  remove: function(o) {
+    if (o.handler) {
+      o.handler()
+    }
+  }
+};
+
+/*
+  Establish listeners at the window level for events, and remove those listeners when the DOM object is destroyed.
+  Great if you want to do something special with window resize while an item is on screen
+*/
+$.fn.bogartWindowEvents = function(evMap) {
+  var top = this;
+  _.each(evMap, function(fn, name) {
+    $(window).on(name, fn);
+  });
+  top.bind('destroyed', function() {
+    if (0) console.log(top, 'destroyed, removing window events');
+    _.each(evMap, function(fn, name) {
+      $(window).off(name, fn);
+    });
+  });
+}
 
 /* ----------------------------------------------------------------------
    Content enhancers -- things that recognize magical constructions in the xml and add functionality

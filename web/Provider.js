@@ -1,3 +1,9 @@
+/*
+  Maybe replace with node-browserify?
+  This has a couple nice features I don't want to lose, though:
+    - automatic reloading when files change
+    - handles css, svg, markdown, and it's easy to add others
+*/
 var _ = require('underscore');
 var events = require('events');
 var net = require('net');
