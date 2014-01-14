@@ -535,6 +535,7 @@ CType.prototype.getDefnDependencies = function() {
 
 CType.prototype.emitHeader = function(f) {
   var type = this;
+  f('#include "tlbcore/common/jsonio.h"');
   _.each(type.getHeaderIncludes(), function(l) {
     f(l);
   });
@@ -546,7 +547,6 @@ CType.prototype.emitHeader = function(f) {
 CType.prototype.emitHostCode = function(f) {
   var type = this;
   f('#include "tlbcore/common/std_headers.h"');
-  f('#include "tlbcore/common/jsonio.h"');
   var fns = type.getFns();
   if (fns.typeHeader) {
     f('#include "' + fns.typeHeader + '"');
@@ -848,6 +848,8 @@ CStructType.prototype.emitTypeDecl = function(f) {
 
   f('static char const * typeVersionString;');
   f('static char const * typeName;');
+  f('static char const * schema;');
+  f('static void addSchemas(map<string, jsonstr> &all);');
 
   f('};');
 
@@ -896,6 +898,19 @@ CStructType.prototype.emitHostImpl = function(f) {
   if (1) {
     f('char const * TYPENAME::typeVersionString = "' + type.getTypeAndVersion() + '";');
     f('char const * TYPENAME::typeName = "TYPENAME";');
+    f('char const * TYPENAME::schema = "' + cgen.escapeCString(JSON.stringify(type.getSchema())) + '";');
+  }
+
+  if (1) {
+    f('void TYPENAME::addSchemas(map<string, jsonstr> &all) {');
+    f('if (all["TYPENAME"].it.size()) return;');
+    f('all["TYPENAME"] = jsonstr(string(schema));');
+    _.each(type.getMemberTypes(), function(type) {
+      if (type.constructor !== PrimitiveCType) {
+        f(type.typename + '::addSchemas(all);');
+      }
+    });
+    f('}');
   }
 
   f('TYPENAME TYPENAME::allZero() {');

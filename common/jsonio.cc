@@ -1,6 +1,21 @@
 #include "./std_headers.h"
 #include "./jsonio.h"
 
+
+jsonstr::jsonstr()
+{
+}
+
+jsonstr::jsonstr(string const &_it) 
+  : it(_it) 
+{
+}
+
+jsonstr::~jsonstr()
+{
+}
+
+
 // Spec at http://www.json.org/
 
 static bool isHexDigit(u_char c) {
@@ -271,5 +286,21 @@ bool rdJson(const char *&s, string &value) {
     }
   }
   s--;
+  return false;
+}
+
+
+
+size_t wrJsonSize(jsonstr const &value) {
+  return value.it.size();
+}
+
+void wrJson(char *&s, jsonstr const &value) {
+  memcpy(s, value.it.data(), value.it.size());
+  s += value.it.size();
+}
+
+bool rdJson(char *&s, jsonstr &value) {
+  // WRITEME
   return false;
 }
