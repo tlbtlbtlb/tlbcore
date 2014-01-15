@@ -7,9 +7,20 @@ jsonstr::jsonstr()
 }
 
 jsonstr::jsonstr(string const &_it) 
-  : it(_it) 
+  :it(_it) 
 {
 }
+
+jsonstr::jsonstr(const char *str)
+  :it(str)
+{
+}
+
+jsonstr::jsonstr(const char *begin, const char *end)
+  :it(begin, end)
+{
+}
+
 
 jsonstr::~jsonstr()
 {
@@ -56,6 +67,7 @@ void wrJson(char *&s, bool const &value) {
 }
 bool rdJson(const char *&s, bool &value) {
   u_char c;
+  while (isspace(*s)) s++;
   c = *s++;
   if (c == 't') {
     c = *s++;
@@ -106,6 +118,7 @@ void wrJson(char *&s, int const &value) {
 }
 bool rdJson(const char *&s, int &value) {
   char *end = 0;
+  while (isspace(*s)) s++;
   value = strtol(s, &end, 10);
   s = end;
   return true;
@@ -127,6 +140,7 @@ void wrJson(char *&s, float const &value) {
 }
 bool rdJson(const char *&s, float &value) {
   char *end = 0;
+  while (isspace(*s)) s++;
   value = strtof(s, &end);
   s = end;
   return true;
@@ -148,6 +162,7 @@ void wrJson(char *&s, double const &value) {
 }
 bool rdJson(const char *&s, double &value) {
   char *end = 0;
+  while (isspace(*s)) s++;
   value = strtod(s, &end);
   s = end;
   return true;
@@ -166,7 +181,7 @@ size_t wrJsonSize(string const &value) {
     else if (c == (u_char)0x5c) {
       ret += 2;
     }
-    else if (c < 0x20) {
+    else if (c < 0x20 || c >= 0x80) {
       ret += 6;
     }
     else {
@@ -177,6 +192,10 @@ size_t wrJsonSize(string const &value) {
 }
 void wrJson(char *&s, string const &value) {
   *s++ = 0x22;
+#if JSONIO_USE_MULTIBYTE
+  mbstate_t mbs;
+  memset(&mbs, 0, sizeof(mbs));
+#endif
   for (string::const_iterator vi = value.begin(); vi != value.end(); vi++) {
     u_char c = *vi;
     if (c == (u_char)0x22) {
@@ -201,6 +220,30 @@ void wrJson(char *&s, string const &value) {
       *s++ = toHexDigit((c >> 4) & 0x0f);
       *s++ = toHexDigit((c >> 0) & 0x0f);
     }
+#if JSONIO_USE_MULTIBYTE
+    else if (c >= 0x80) {
+      wchar_t mbc = 0;
+      size_t mblen = mbrtowc(&mbc, &*vi, value.end() - vi, &mbs);
+      eprintf("Got mblen=%d at %s (n=%d)\n", (int)mblen, &*vi, (int)(value.end() - vi));
+      if (mblen == 0) {
+      }
+      else if (mblen == (size_t)-1) {
+        *s++ = '*';
+      }
+      else if (mblen == (size_t)-2) {
+        *s++ = '*';
+      }
+      else {
+        vi += mblen - 1;
+        *s++ = 0x5c;
+        *s++ = 'u';
+        *s++ = toHexDigit((mbc >> 12) & 0x0f);
+        *s++ = toHexDigit((mbc >> 8) & 0x0f);
+        *s++ = toHexDigit((mbc >> 4) & 0x0f);
+        *s++ = toHexDigit((mbc >> 0) & 0x0f);
+      } 
+    }
+#endif
     else {
       *s++ = c;
     }
@@ -209,6 +252,7 @@ void wrJson(char *&s, string const &value) {
 }
 bool rdJson(const char *&s, string &value) {
   u_char c;
+  while (isspace(*s)) s++;
   c = *s++;
   if (c == 0x22) {
     while (1) {
@@ -252,23 +296,10 @@ bool rdJson(const char *&s, string &value) {
           if (!isHexDigit(c)) return false;
           codept |= fromHexDigit(c) << 0;
 
-          if (0) eprintf("Got codept %d\n", (int)codept);
-
-          // Why can't I find a simple library for this?
-          if (codept < 0x80) {
-            value.push_back((char)(codept & 0x7f));
-          }
-          else if (codept < 0x800) {
-            value.push_back((char)(((codept>>6) & 0x1f) | 0xc0));
-            value.push_back((char)(((codept>>0) & 0x3f) | 0x80));
-          }
-          else if (codept < 0x10000) {
-            value.push_back((char)(((codept>>12) & 0x0f) | 0xe0));
-            value.push_back((char)(((codept>>6) & 0x3f) | 0x80));
-            value.push_back((char)(((codept>>0) & 0x3f) | 0x80));
-          }
-          else {
-            value.push_back('*'); // don't go beyond 16 bits
+          char mb[MB_LEN_MAX];
+          int mblen = wctomb(mb, (wchar_t)codept);
+          for (int mbi=0; mbi < mblen; mbi++) {
+            value.push_back(mb[mbi]);
           }
         }
       }
@@ -300,7 +331,71 @@ void wrJson(char *&s, jsonstr const &value) {
   s += value.it.size();
 }
 
-bool rdJson(char *&s, jsonstr &value) {
-  // WRITEME
-  return false;
+
+bool skipJson(char const *&s) {  
+  while (isspace(*s)) s++;
+  if (*s == '\"') {
+    s++;
+    string tmp;
+    rdJson(s, tmp);
+  }
+  else if (*s == '[') {
+    s++;
+    while (isspace(*s)) s++;
+    while (1) {
+      if (*s == ',') {
+        s++;
+      }
+      else if (*s == ']') {
+        s++;
+        break;
+      }
+      else {
+        if (!skipJson(s)) return false;
+      }
+    }
+  }
+  else if (*s == '{') {
+    s++;
+    while (isspace(*s)) s++;
+    while (1) {
+      if (*s == ',') {
+        s++;
+      }
+      else if (*s == ':') {
+        s++;
+      }
+      else if (*s == '}') {
+        s++;
+        break;
+      }
+      else {
+        if (!skipJson(s)) return false;
+      }
+    }
+  }
+  else {
+    while (isalnum(*s) || *s=='.') s++;
+  }
+  
+  return true;
+}
+
+
+bool rdJson(char const *&s, jsonstr &value) {
+  while (isspace(*s)) s++;
+  char const *begin = s;
+  if (!skipJson(s)) {
+    eprintf("skipJson from %s: false\n", begin);
+    return false;
+  }
+  value.it = string(begin, s);
+  return true;
+}
+
+
+
+ostream & operator<<(ostream &s, const jsonstr &obj)
+{
+  return s << obj.it;
 }

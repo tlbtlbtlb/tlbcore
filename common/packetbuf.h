@@ -46,6 +46,7 @@
 
 struct packet_contents;
 struct packet_annotations;
+struct jsonstr;
 
 /*
   This is the actual data in the packet
@@ -302,6 +303,25 @@ void packet_wr_value(packet &p, const double &x);
 void packet_wr_value(packet &p, const timeval &x);
 #endif
 void packet_wr_value(packet &p, const string &s);
+void packet_wr_value(packet &p, const jsonstr &s);
+
+void packet_wr_typetag(packet &p, const bool &x);
+void packet_wr_typetag(packet &p, const char &x);
+void packet_wr_typetag(packet &p, const signed char &x);
+void packet_wr_typetag(packet &p, const unsigned char &x);
+void packet_wr_typetag(packet &p, const short &x);
+void packet_wr_typetag(packet &p, const unsigned short &x);
+void packet_wr_typetag(packet &p, const int &x);
+void packet_wr_typetag(packet &p, const unsigned int &x);
+void packet_wr_typetag(packet &p, const long &x);
+void packet_wr_typetag(packet &p, const unsigned long &x);
+void packet_wr_typetag(packet &p, const float &x);
+void packet_wr_typetag(packet &p, const double &x);
+#if !defined(WIN32)
+void packet_wr_typetag(packet &p, const timeval &x);
+#endif
+void packet_wr_typetag(packet &p, const string &s);
+void packet_wr_typetag(packet &p, const jsonstr &s);
 
 void packet_rd_value(packet &p, bool &x);
 void packet_rd_value(packet &p, char &x);
@@ -319,6 +339,25 @@ void packet_rd_value(packet &p, double &x);
 void packet_rd_value(packet &p, timeval &x);
 #endif
 void packet_rd_value(packet &p, string &s);
+void packet_rd_value(packet &p, jsonstr &s);
+
+void packet_rd_typetag(packet &p, signed char const &x);
+void packet_rd_typetag(packet &p, char const &x);
+void packet_rd_typetag(packet &p, unsigned char const &x);
+void packet_rd_typetag(packet &p, short const &x);
+void packet_rd_typetag(packet &p, unsigned short const &x);
+void packet_rd_typetag(packet &p, int const &x);
+void packet_rd_typetag(packet &p, unsigned int const &x);
+void packet_rd_typetag(packet &p, long const &x);
+void packet_rd_typetag(packet &p, unsigned long const &x);
+void packet_rd_typetag(packet &p, float const &x);
+void packet_rd_typetag(packet &p, double const &x);
+#if !defined(WIN32)
+void packet_rd_typetag(packet &p, timeval const &x);
+#endif
+void packet_rd_typetag(packet &p, bool const &x);
+void packet_rd_typetag(packet &p, string const &s);
+void packet_rd_typetag(packet &p, jsonstr const &s);
 
 /*
   Any vector is handled by writing a size followed by the items. Watch
@@ -382,8 +421,8 @@ template<typename T1, typename T2>
 void packet_rd_typetag(packet &p, pair<T1, T2> &x)
 {
   p.check_typetag("pair:1");
-  packet_rd_typetag(x.first);
-  packet_rd_typetag(x.second);
+  packet_rd_typetag(p, x.first);
+  packet_rd_typetag(p, x.second);
 }
 
 template<typename T1, typename T2>
@@ -391,6 +430,46 @@ void packet_rd_value(packet &p, pair<T1, T2> &x)
 {
   p.get(x.first);
   p.get(x.second);
+}
+
+template<typename T1, typename T2>
+void packet_wr_typetag(packet &p, map<T1, T2> const &x)
+{
+  p.add_typetag("map:1");
+  packet_wr_typetag(p, T1());
+  packet_wr_typetag(p, T2());
+}
+
+template<typename T1, typename T2>
+void packet_wr_value(packet &p, map<T1, T2> const &x)
+{
+  p.add((uint32_t)x.size());
+  for (typename map<T1, T2>::const_iterator it = x.begin(); it != x.end(); it++) {
+    p.add(it->first);
+    p.add(it->second);
+  }
+}
+
+template<typename T1, typename T2>
+void packet_rd_typetag(packet &p, map<T1, T2> &x)
+{
+  p.check_typetag("map:1");
+  packet_rd_typetag(p, T1());
+  packet_rd_typetag(p, T2());
+}
+
+template<typename T1, typename T2>
+void packet_rd_value(packet &p, map<T1, T2> &x)
+{
+  uint32_t x_size = 0;
+  p.get(x_size);
+  for (size_t xi=0; xi < x_size; xi++) {
+    T1 first;
+    T2 second;
+    p.get(first);
+    p.get(second);
+    x[first] = second;
+  }
 }
 
 // ----------------------------------------------------------------------

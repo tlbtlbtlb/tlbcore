@@ -1,6 +1,7 @@
 #include "std_headers.h"
 #include <sys/stat.h>
 #include "anythreads.h"
+#include "jsonio.h"
 
 packet_stats packet::stats;
 
@@ -749,16 +750,16 @@ void packet_wr_typetag(packet &p, bool const &x)            { p.add_typetag("boo
 void packet_rd_typetag(packet &p, signed char const &x)     { p.check_typetag("schar"); }
 void packet_rd_typetag(packet &p, char const &x)            { p.check_typetag("char"); }
 void packet_rd_typetag(packet &p, unsigned char const &x)   { p.check_typetag("uchar"); }
-void packet_rd_typetag(packet &p, short &x)                 { p.check_typetag("short"); }
-void packet_rd_typetag(packet &p, unsigned short &x)        { p.check_typetag("ushort"); }
-void packet_rd_typetag(packet &p, int &x)                   { p.check_typetag("int"); }
-void packet_rd_typetag(packet &p, unsigned int &x)          { p.check_typetag("uint"); }
-void packet_rd_typetag(packet &p, long &x)                  { p.check_typetag("long"); }
-void packet_rd_typetag(packet &p, unsigned long &x)         { p.check_typetag("ulong"); }
-void packet_rd_typetag(packet &p, float &x)                 { p.check_typetag("float"); }
-void packet_rd_typetag(packet &p, double &x)                { p.check_typetag("double"); }
-void packet_rd_typetag(packet &p, timeval &x)               { p.check_typetag("timeval"); }
-void packet_rd_typetag(packet &p, bool &x)                  { p.check_typetag("bool"); }
+void packet_rd_typetag(packet &p, short const &x)           { p.check_typetag("short"); }
+void packet_rd_typetag(packet &p, unsigned short const &x)  { p.check_typetag("ushort"); }
+void packet_rd_typetag(packet &p, int const &x)             { p.check_typetag("int"); }
+void packet_rd_typetag(packet &p, unsigned int const &x)    { p.check_typetag("uint"); }
+void packet_rd_typetag(packet &p, long const &x)            { p.check_typetag("long"); }
+void packet_rd_typetag(packet &p, unsigned long const &x)   { p.check_typetag("ulong"); }
+void packet_rd_typetag(packet &p, float const &x)           { p.check_typetag("float"); }
+void packet_rd_typetag(packet &p, double const &x)          { p.check_typetag("double"); }
+void packet_rd_typetag(packet &p, timeval const &x)         { p.check_typetag("timeval"); }
+void packet_rd_typetag(packet &p, bool const &x)            { p.check_typetag("bool"); }
 
 void packet_wr_value(packet &p, signed char const &x)       { p.add_bytes((const u_char *)&x, sizeof(x)); }
 void packet_wr_value(packet &p, char const &x)              { p.add_bytes((const u_char *)&x, sizeof(x)); }
@@ -790,7 +791,7 @@ void packet_rd_value(packet &p, bool &x)                    { p.get_bytes((u_cha
 
 
 
-void packet_wr_typetag(packet &p, const string &x) { p.add_typetag("string"); }
+void packet_wr_typetag(packet &p, string const &x) { p.add_typetag("string"); }
 void packet_wr_value(packet &p, const string &x) {
   size_t size = x.size();
     
@@ -810,7 +811,7 @@ void packet_wr_value(packet &p, const string &x) {
   p.add_bytes(&x[0], size);
 }
 
-void packet_rd_typetag(packet &p, string &x) { p.check_typetag("string"); }
+void packet_rd_typetag(packet &p, string const &x) { p.check_typetag("string"); }
 void packet_rd_value(packet &p, string &x) {
   u_char smallsize;
   p.get(smallsize);
@@ -827,6 +828,12 @@ void packet_rd_value(packet &p, string &x) {
   x.resize(size);
   p.get_bytes(&x[0], size);
 }
+
+
+void packet_wr_typetag(packet &p, jsonstr const &x) { p.add_typetag("json"); }
+void packet_wr_value(packet &p, jsonstr const &x) { packet_wr_value(p, x.it); }
+void packet_rd_typetag(packet &p, jsonstr const &x) { p.check_typetag("json"); }
+void packet_rd_value(packet &p, jsonstr &x) { packet_rd_value(p, x.it); }
 
 
 // ----------------------------------------------------------------------

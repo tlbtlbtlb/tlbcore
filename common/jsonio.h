@@ -1,15 +1,23 @@
 #ifndef INCLUDE_tlbcore_jsonio_h
 #define INCLUDE_tlbcore_jsonio_h
+#include <ctype.h>
 /*
   Define JSON mappings for all the built-in types.
+
+  jsonstr is a wrapper around string, that doesn't get string-encoded when converting to json. So use it to store already-encoded blobs.
+  
 */
 
 struct jsonstr {
   jsonstr();
   jsonstr(string const &_it);
+  jsonstr(const char *str);
+  jsonstr(const char *begin, const char *end);
   ~jsonstr();
   string it;
 };
+
+ostream & operator<<(ostream &s, jsonstr const &obj);
 
 size_t wrJsonSize(bool const &value);
 size_t wrJsonSize(int const &value);
@@ -54,17 +62,17 @@ void wrJson(char *&s, vector<T> const &arr) {
 }
 
 template<typename T>
-bool rdJson(char *&s, vector<T> &arr) {
-  while (*s == ' ') s++;
+bool rdJson(const char *&s, vector<T> &arr) {
+  while (isspace(*s)) s++;
   if (*s != '[') return false;
   s++;
   arr.clear();
   while (1) {
-    while (*s == ' ') s++;
+    while (isspace(*s)) s++;
     if (*s == ']') break;
     T tmp;
     if (!rdJson(s, tmp)) return false;
-    while (*s == ' ') s++;
+    while (isspace(*s)) s++;
     arr.push_back(tmp);
     if (*s == ',') {
       s++;
@@ -105,23 +113,23 @@ void wrJson(char *&s, map<KT, VT> const &arr) {
 }
 
 template<typename KT, typename VT>
-bool rdJson(char *&s, map<KT, VT> &arr) {
-  while (*s == ' ') s++;
+bool rdJson(const char *&s, map<KT, VT> &arr) {
+  while (isspace(*s)) s++;
   if (*s != '{') return false;
   s++;
   arr.clear();
   while (1) {
-    while (*s == ' ') s++;
+    while (isspace(*s)) s++;
     if (*s == '}') break;
     KT ktmp;
     VT vtmp;
     if (!rdJson(s, ktmp)) return false;
-    while (*s == ' ') s++;
+    while (isspace(*s)) s++;
     if (*s != ':') return false;
     s++;
-    while (*s == ' ') s++;
+    while (isspace(*s)) s++;
     if (!rdJson(s, vtmp)) return false;
-    while (*s == ' ') s++;
+    while (isspace(*s)) s++;
 
     arr[ktmp] = vtmp;
     if (*s == ',') {
@@ -144,14 +152,14 @@ bool rdJson(char *&s, map<KT, VT> &arr) {
 
 
 template <typename T>
-string asJson(const T &value) {
+jsonstr asJson(const T &value) {
   size_t retSize = wrJsonSize(value);
-  char *ret = new char[retSize];
-  char *p = ret;
+  char *buf = new char[retSize];
+  char *p = buf;
   wrJson(p, value);
-  string retStr(ret, p);
-  delete ret;
-  return retStr;
+  jsonstr ret(buf, p);
+  delete buf;
+  return ret;
 }
 
 #endif
