@@ -28,10 +28,10 @@ using namespace node;
 using namespace v8;
 
 struct JsWrapOwnership {
-  JsWrapOwnership() : refcnt(1) {}
+  JsWrapOwnership() : refcnt(0) {}
   virtual ~JsWrapOwnership() {}
   void ref() { 
-    assert(refcnt > 0);
+    assert(refcnt >= 0);
     refcnt++;
   }
   void unref() {
@@ -81,18 +81,29 @@ struct JsWrapGeneric : node::ObjectWrap {
   :memory(new JsWrapOwnershipGeneric<CONTENTS>(_contents)),
    it(&((JsWrapOwnershipGeneric<CONTENTS> *)memory)->contents)
   {
+    memory->ref();
   }
   
   JsWrapGeneric(JsWrapOwnership *_memory, CONTENTS *_it)
     :memory(_memory),
      it(_it)
   {
+    memory->ref();
   }
 
+  void assign(JsWrapOwnership *_memory, CONTENTS *_it)
+  {
+    if (memory) memory->unref();
+    memory = _memory;
+    memory->ref();
+    it = _it;
+  }
+  
   void assign(CONTENTS const &_contents)
   {
     if (memory) memory->unref();
     memory = new JsWrapOwnershipGeneric<CONTENTS>(_contents);
+    memory->ref();
     it = &((JsWrapOwnershipGeneric<CONTENTS> *)memory)->contents;
   }
   
@@ -100,6 +111,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   {
     if (memory) memory->unref();
     memory = new JsWrapOwnershipGeneric<CONTENTS>();
+    memory->ref();
     it = &((JsWrapOwnershipGeneric<CONTENTS> *)memory)->contents;
   }
   
@@ -117,21 +129,18 @@ struct JsWrapGeneric : node::ObjectWrap {
     HandleScope scope;
     Local<Object> instance = constructor->NewInstance(0, NULL);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->memory = new JsWrapOwnershipGeneric<CONTENTS>(_contents);
-    w->it = &((JsWrapOwnershipGeneric<CONTENTS> *)w->memory)->contents;
+    w->assign(_contents);
     return scope.Close(instance);
   }
 
   /*
     Create an instance pointing into memory already owned by a JsWrap
   */
-  static Handle<Value> ChildInstance(JsWrapOwnership *memory, CONTENTS *_it) {
+  static Handle<Value> ChildInstance(JsWrapOwnership *_memory, CONTENTS *_it) {
     HandleScope scope;
     Local<Object> instance = constructor->NewInstance(0, NULL);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    memory->ref();
-    w->memory = memory;
-    w->it = _it;
+    w->assign(_memory, _it);
     return scope.Close(instance);
   }
 
