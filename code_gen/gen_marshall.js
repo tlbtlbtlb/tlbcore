@@ -998,7 +998,23 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
 };
 
 
+StlCollectionCType.prototype.emitJsTestImpl = function(f) {
+  var type = this;
+  f('describe("JSTYPE C++ impl", function() {');
 
+  f('it("should work", function() {');
+  f('var t1 = ' + type.getExampleValueJs() + ';');
+  f('var t1s = t1.toString();');
+  f('var t2 = ur.JSTYPE.fromString(t1s);');
+  f('assert.strictEqual(t1.toString(), t2.toString());');
+
+  f('var t1b = t1.toBuffer();');
+  f('var t3 = ur.JSTYPE.fromBuffer(t1b);');
+  f('assert.strictEqual(t1.toString(), t3.toString());');
+  f('});');
+  f('});');
+
+}
 
 
 /* ----------------------------------------------------------------------
@@ -1254,11 +1270,11 @@ StructCType.prototype.emitJsTestImpl = function(f) {
   f('it("should work", function() {');
   f('var t1 = ' + type.getExampleValueJs() + ';');
   f('var t1s = t1.toString();');
-  f('var t2 = ur.TYPENAME.fromString(t1s);');
+  f('var t2 = ur.JSTYPE.fromString(t1s);');
   f('assert.strictEqual(t1.toString(), t2.toString());');
 
   f('var t1b = t1.toBuffer();');
-  f('var t3 = ur.TYPENAME.fromBuffer(t1b);');
+  f('var t3 = ur.JSTYPE.fromBuffer(t1b);');
   f('assert.strictEqual(t1.toString(), t3.toString());');
   f('});');
 
@@ -1473,7 +1489,6 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       f('else if (args.Length() == ' + type.orderedNames.length + ') {');
       _.each(type.orderedNames, function(name, argi) {
         var argType = type.nameToType[name];
-        if (argType.isStlCollection) return; // WRITEME: implement this somehow
         switch (argType.typename) {
         case 'float':
         case 'double':
@@ -1516,7 +1531,6 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f('ret->Set(String::NewSymbol("__type"), String::NewSymbol("JSTYPE"));');
     _.each(type.orderedNames, function(name) {
       var memberType = type.nameToType[name];
-      if (memberType.isStlCollection) return; // WRITEME: implement this somehow
       switch (memberType.typename) {
       case 'int': case 'float': case 'double':
         f('ret->Set(String::NewSymbol("' + name + '"), Number::New(it.' + name + '));');
@@ -1531,7 +1545,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         f('ret->Set(String::NewSymbol("' + name + '"), convStlStringToJs(it.' + name + '.it));');
         break;
       default:
-        f('ret->Set(String::NewSymbol("' + name + '"), JsWrap_' + memberType.typename + '::ToJSON(it.' + name + '));');
+        f('ret->Set(String::NewSymbol("' + name + '"), JsWrap_' + memberType.jsTypename + '::ToJSON(it.' + name + '));');
       }
     });
     f('return ret;');
@@ -1638,8 +1652,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
   _.each(accessors, function(name) {
     var memberType = type.nameToType[name];
-    if (memberType.isStlCollection) return; // WRITEME: implement this somehow
-    f('static Handle<Value> jsGet_TYPENAME_' + name + '(Local<String> name, AccessorInfo const &ai) {');
+    f('static Handle<Value> jsGet_JSTYPE_' + name + '(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* obj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
     switch (memberType.typename) {
@@ -1657,10 +1670,10 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       break;
     default:
       // TESTME
-      f('return scope.Close(JsWrap_' + memberType.typename + '::NewInstance(obj->it->' + name + '));');
+      f('return scope.Close(JsWrap_' + memberType.jsTypename + '::NewInstance(obj->it->' + name + '));');
     }
     f('}');
-    f('static void jsSet_TYPENAME_' + name + '(Local<String> name, Local<Value> value, AccessorInfo const &ai) {');
+    f('static void jsSet_JSTYPE_' + name + '(Local<String> name, Local<Value> value, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* obj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
     switch (memberType.typename) {
@@ -1677,7 +1690,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       f('obj->it->' + name + ' = jsonstr(convJsStringToStl(value->ToString()));');
       break;
     default:
-      f('JsWrap_' + memberType.typename + '* valobj = node::ObjectWrap::Unwrap<JsWrap_' + memberType.typename + '>(value->ToObject());');
+      f('JsWrap_' + memberType.jsTypename + '* valobj = node::ObjectWrap::Unwrap<JsWrap_' + memberType.jsTypename + '>(value->ToObject());');
       f('if (valobj && valobj->it) obj->it->' + name + ' = *valobj->it;');
     }
     f('}');
@@ -1697,7 +1710,6 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
     _.each(accessors, function(name) {
       var memberType = type.nameToType[name];
-      if (memberType.isStlCollection) return; // WRITEME: implement this somehow
       f('tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("' + name + '"), ' +
         '&jsGet_JSTYPE_' + name + ', ' +
         '&jsSet_JSTYPE_' + name + ');');
