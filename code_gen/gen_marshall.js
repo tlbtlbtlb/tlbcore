@@ -65,6 +65,7 @@ TypeRegistry.prototype.scanJsDefn = function(fn) {
 };
 
 TypeRegistry.prototype.setPrimitives = function() {
+  this.types['void'] = new PrimitiveCType(this, 'void');
   this.types['bool'] = new PrimitiveCType(this, 'bool');
   this.types['float'] = new PrimitiveCType(this, 'float');
   this.types['double'] = new PrimitiveCType(this, 'double');
@@ -276,30 +277,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         f(funcinfo.returnTypename + ' ret = ' + funcinfo.funcname + '(' + callargs.join(', ') + ');');
       }
 
-      switch (funcinfo.returnTypename) {
-      case 'int':
-      case 'float':
-      case 'double':
-        f('return scope.Close(Number::New(ret));');
-        break;
-      case 'bool':
-        f('return scope.Close(Boolean::New(ret));');
-        break;
-      case 'string':
-        f('return scope.Close(String::New(ret));');
-        break;
-      case 'jsonstr':
-        f('return scope.Close(String::New(ret.it));');
-        break;
-      case 'void':
-        f('return scope.Close(Undefined());');
-        break;
-      case 'vector<double>':
-        f('return scope.Close(convDoubleVectorToJs(ret));');
-        break;
-      default:
-        f('return scope.Close(JsWrap_' + funcinfo.returnTypename + '::NewInstance(ret));');
-      }
+      f('return scope.Close(' + cToJsConvertCode(typereg.types[funcinfo.returnTypename], 'ret') + ');');
 
       _.each(funcinfo.args, function() {
         f('}');
@@ -440,7 +418,57 @@ TypeRegistry.prototype.addRtFunction = function(name, inargs, outargs) {
   return this.rtFunctions[name] = new gen_functions.RtFunction(this, name, inargs, outargs);
 };
 
+// ----------------------------------------------------------------------
 
+function cToJsConvertCode(valueType, valueExpr, memoryExpr) {
+  switch (valueType.typename) {
+  case 'double': 
+  case 'float': 
+  case 'int':
+    return 'Number::New(' + valueExpr + ')';
+  break;
+  case 'bool':
+    return 'Boolean::New(' + valueExpr + ')';
+    break;
+  case 'string':
+    return 'convStlStringToJs(' + valueExpr  + ')';
+    break;
+  case 'jsonstr':
+    return 'convStlStringToJs(' + valueExpr + '.it)';
+    break;
+  case 'void':
+    return 'Undefined()';
+    break;
+  default:
+    if (memoryExpr) {
+      return 'JsWrap_' + valueType.jsTypename + '::ChildInstance(' + memoryExpr + ', &(' + valueExpr + '))';
+    } else {
+      return 'JsWrap_' + valueType.jsTypename + '::NewInstance((' + valueExpr + '))';
+    }
+  }
+}
+
+function jsToCConvertCode(valueType, valueExpr) {
+  switch (valueType.typename) {
+  case 'double': case 'float': case 'int':
+    return '(' + valueExpr + ')->NumberValue()';
+
+  case 'bool':
+    return '(' + valueExpr + ')->BooleanValue()';
+
+  case 'void':
+    return '';
+
+  case 'string':
+    return 'convJsStringToStl((' + valueExpr + ')->ToString())';
+
+  case 'jsonstr':
+    return 'jsonstr(convJsStringToStl((' + valueExpr + ')->ToString()))';
+
+  default:
+    return 'convJsWrapToC(node::ObjectWrap::Unwrap<JsWrap_' + valueType.jsTypename + '>((' + valueExpr + ')->ToObject()))';
+  }
+}
 
 // ----------------------------------------------------------------------
 
@@ -778,8 +806,35 @@ PrimitiveCType.prototype.getFormalParameter = function(varname) {
 */
 
 function StlCollectionCType(reg, typename) {
-  CType.call(this, reg, typename);
-  this.templatename = (/^(\w+)/.exec(typename))[1];
+  var type = this;
+  CType.call(type, reg, typename);
+
+  type.templatename = '';
+  type.templateargs = [];
+  
+  var depth = 0;
+  var argi = 0;
+  _.each(typename, function(c) {
+    if (c === '<') {
+      depth ++;
+    }
+    else if (c === '>') {
+      depth --;
+    }
+    else if (c === ',') {
+      if (depth === 1) argi++;
+    }
+    else {
+      if (depth === 0) {
+        type.templatename = type.templatename + c;
+      }
+      else {
+        if (!type.templateargs[argi]) type.templateargs[argi] = '';
+        type.templateargs[argi] = type.templateargs[argi] + c;
+      }
+    }
+  });
+  console.log('template', typename, type.templatename, type.templateargs);
 }
 StlCollectionCType.prototype = Object.create(CType.prototype);
 StlCollectionCType.prototype.isStlCollection = true
@@ -829,19 +884,9 @@ StlCollectionCType.prototype.getMemberTypes = function() {
 
 StlCollectionCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
-  f('struct JsWrap_JSTYPE : node::ObjectWrap {');
-  f('JsWrap_JSTYPE();');
-  f('JsWrap_JSTYPE(TYPENAME *_it);');
-  f('JsWrap_JSTYPE(TYPENAME const &_it);');
-  f('~JsWrap_JSTYPE();');
-  f('TYPENAME *it;');
-  f('JsWrapStyle wrapStyle;');
-  f('Handle<Value> JsConstructor(const Arguments &args);');
-  f('static Handle<Value> NewInstance(TYPENAME const &it);');
-  f('static TYPENAME *Extract(Handle<Value> value);');
-  f('static Persistent<Function> constructor;');
-  f('static Handle<Value> ToJSON(TYPENAME const &it);');
-  f('};');
+  f('typedef JsWrapGeneric< TYPENAME > JsWrap_JSTYPE;');
+  f('Handle<Value> jsConstructor_JSTYPE(JsWrap_JSTYPE *it, const Arguments &args);');
+  f('Handle<Value> jsToJSON_JSTYPE(TYPENAME const &it);');
 };
 
 StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
@@ -849,77 +894,56 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
   var methods = ['toString', 'toBuffer', 'toJSON'];
 
   if (1) {
-    f('JsWrap_JSTYPE::JsWrap_JSTYPE() :it(new TYPENAME), wrapStyle(JSWRAP_OWNED) {}');
-    f('JsWrap_JSTYPE::JsWrap_JSTYPE(TYPENAME *_it) :it(_it), wrapStyle(JSWRAP_BORROWED) {}');
-    f('JsWrap_JSTYPE::JsWrap_JSTYPE(TYPENAME const &_it) :it(new TYPENAME(_it)), wrapStyle(JSWRAP_OWNED) {}');
-    f('JsWrap_JSTYPE::~JsWrap_JSTYPE() {');
-    f('switch (wrapStyle) {');
-    f('case JSWRAP_OWNED: delete it; break;');
-    f('case JSWRAP_BORROWED: break;');
-    f('default: break;');
-    f('}');
-    f('it = 0;');
-    f('wrapStyle = JSWRAP_NONE;');
-    f('}');
-    f('Persistent<Function> JsWrap_JSTYPE::constructor;');
-    f('');
-  }
-
-  if (1) {
     f('static Handle<Value> jsNew_JSTYPE(const Arguments& args) {');
     f('HandleScope scope;');
-
     f('if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();');
-
     f('JsWrap_JSTYPE* obj = new JsWrap_JSTYPE();');
-    f('return obj->JsConstructor(args);');
+    f('return jsConstructor_JSTYPE(obj, args);');
     f('}');
     f('');
   }
 
   if (1) {
-    f('Handle<Value> JsWrap_JSTYPE::JsConstructor(const Arguments& args) {');
+    f('Handle<Value> jsConstructor_JSTYPE(JsWrap_JSTYPE *it, const Arguments& args) {');
     f('HandleScope scope;');
-    f('Wrap(args.This());');
+    f('it->assign();')
+    f('it->Wrap2(args.This());');
     f('return args.This();');
     f('}');
   }
 
   if (1) {
-    f('Handle<Value> JsWrap_JSTYPE::ToJSON(const TYPENAME &it) {');
+    f('Handle<Value> jsToJSON_JSTYPE(const TYPENAME &it) {');
     f('Local<Object> ret = Object::New();');
     f('ret->Set(String::NewSymbol("__type"), String::NewSymbol("JSTYPE"));');
     // WRITEME: actually do something?
     f('return ret;');
     f('}');
+
     f('Handle<Value> jsMethod_JSTYPE_toJSON(const Arguments &args) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* obj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
-    f('return scope.Close(JsWrap_JSTYPE::ToJSON(*obj->it));');
+    f('return scope.Close(jsToJSON_JSTYPE(*obj->it));');
     f('}');
   }
 
-  if (1) {
-    f('Handle<Value> JsWrap_JSTYPE::NewInstance(TYPENAME const &it) {');
+  if (type.templatename === 'map' && type.templateargs[0] === 'string') {
+    f('static Handle<Value> jsGetNamed_JSTYPE(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
-  
-    f('Local<Object> instance = constructor->NewInstance(0, NULL);');
-    f('JsWrap_JSTYPE* w = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(instance);');
-    f('*w->it = it;');
-    f('return scope.Close(instance);');
+    f('JsWrap_JSTYPE* obj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('string key = convJsStringToStl(name);');
+    f('TYPENAME::iterator iter = obj->it->find(key);');
+    f('if (iter == obj->it->end()) return scope.Close(Handle<Value>());'); // return undefined if not found, will be looked up on prototype chain
+    f('return scope.Close(' + cToJsConvertCode(type.reg.types[type.templateargs[1]], 'iter->second', 'obj->memory') + ');')
     f('}');
-  }
 
-  if (1) {
-    f('TYPENAME *JsWrap_JSTYPE::Extract(Handle<Value> value) {');
-    f('if (value->IsObject()) {');
-    f('Handle<Object> valueObject = value->ToObject();');
-    f('Local<String> valueTypeName = valueObject->GetConstructorName();');
-    f('if (valueTypeName == constructor->GetName()) {');
-    f('return node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(valueObject)->it;');
-    f('}');
-    f('}');
-    f('return NULL;');
+    f('static Handle<Value> jsSetNamed_JSTYPE(Local<String> name, Local<Value> value, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* obj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('string key = convJsStringToStl(name);');
+    f(type.templateargs[1] + ' cvalue(' + jsToCConvertCode(type.reg.types[type.templateargs[1]], 'value') + ');');
+    f('(*obj->it)[key] = cvalue;');
+    f('return scope.Close(value);')
     f('}');
   }
 
@@ -979,6 +1003,9 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('Local<FunctionTemplate> tpl = FunctionTemplate::New(jsNew_JSTYPE);');
     f('tpl->SetClassName(String::NewSymbol("JSTYPE"));');
     f('tpl->InstanceTemplate()->SetInternalFieldCount(1);');
+    if (type.templatename === 'map' && type.templateargs[0] === 'string') {
+      f('tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE, jsSetNamed_JSTYPE);');
+    }
 
     _.each(methods, function(name) {
       f('tpl->PrototypeTemplate()->Set(String::NewSymbol("' + name + '"), FunctionTemplate::New(jsMethod_JSTYPE_' + name + ')->GetFunction());');
@@ -1430,19 +1457,9 @@ StructCType.prototype.hasJsWrapper = function(f) {
 
 StructCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
-  f('struct JsWrap_JSTYPE : node::ObjectWrap {');
-  f('JsWrap_JSTYPE();');
-  f('JsWrap_JSTYPE(TYPENAME *_it);');
-  f('JsWrap_JSTYPE(TYPENAME const &_it);');
-  f('~JsWrap_JSTYPE();');
-  f('TYPENAME *it;');
-  f('JsWrapStyle wrapStyle;');
-  f('Handle<Value> JsConstructor(const Arguments &args);');
-  f('static Handle<Value> NewInstance(TYPENAME const &it);');
-  f('static TYPENAME *Extract(Handle<Value> value);');
-  f('static Persistent<Function> constructor;');
-  f('static Handle<Value> ToJSON(TYPENAME const &it);');
-  f('};');
+  f('typedef JsWrapGeneric< TYPENAME > JsWrap_JSTYPE;');
+  f('Handle<Value> jsConstructor_JSTYPE(JsWrap_JSTYPE *it, const Arguments &args);');
+  f('Handle<Value> jsToJSON_JSTYPE(TYPENAME const &it);');
 };
 
 StructCType.prototype.emitJsWrapImpl = function(f) {
@@ -1452,37 +1469,19 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   var accessors = type.orderedNames;
 
   if (1) {
-    f('JsWrap_JSTYPE::JsWrap_JSTYPE() :it(new TYPENAME), wrapStyle(JSWRAP_OWNED) {}');
-    f('JsWrap_JSTYPE::JsWrap_JSTYPE(TYPENAME *_it) :it(_it), wrapStyle(JSWRAP_BORROWED) {}');
-    f('JsWrap_JSTYPE::JsWrap_JSTYPE(TYPENAME const &_it) :it(new TYPENAME(_it)), wrapStyle(JSWRAP_OWNED) {}');
-    f('JsWrap_JSTYPE::~JsWrap_JSTYPE() {');
-    f('switch (wrapStyle) {');
-    f('case JSWRAP_OWNED: delete it; break;');
-    f('case JSWRAP_BORROWED: break;');
-    f('default: break;');
-    f('}');
-    f('it = 0;');
-    f('wrapStyle = JSWRAP_NONE;');
-    f('}');
-    f('Persistent<Function> JsWrap_JSTYPE::constructor;');
-    f('');
-  }
-
-  if (1) {
     f('static Handle<Value> jsNew_JSTYPE(const Arguments& args) {');
     f('HandleScope scope;');
-
     f('if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();');
-
     f('JsWrap_JSTYPE* obj = new JsWrap_JSTYPE();');
-    f('return obj->JsConstructor(args);');
+    f('return jsConstructor_JSTYPE(obj, args);');
     f('}');
     f('');
   }
 
   if (1) {
-    f('Handle<Value> JsWrap_JSTYPE::JsConstructor(const Arguments& args) {');
+    f('Handle<Value> jsConstructor_JSTYPE(JsWrap_JSTYPE *it, const Arguments& args) {');
     f('HandleScope scope;');
+    f('it->assign();')
     if (type.hasFullConstructor()) {
       f('if (args.Length() == 0) {');
       f('}');
@@ -1494,24 +1493,24 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         case 'double':
         case 'int':
           f('if (!args[' + argi + ']->IsNumber()) return ThrowInvalidArgs();');
-          f('it->' + name + ' = args[' + argi + ']->ToNumber()->NumberValue();');
+          f('it->it->' + name + ' = args[' + argi + ']->ToNumber()->NumberValue();');
           break;
         case 'bool':
           f('if (!args[' + argi + ']->IsBoolean()) return ThrowInvalidArgs();');
-          f('it->' + name + ' = args[' + argi + ']->ToBoolean()->BooleanValue();');
+          f('it->it->' + name + ' = args[' + argi + ']->ToBoolean()->BooleanValue();');
           break;
         case 'string':
           f('if (!args[' + argi + ']->IsString()) return ThrowInvalidArgs();');
-          f('it->' + name + ' = convJsStringToStl(args[' + argi + ']->ToString());');
+          f('it->it->' + name + ' = convJsStringToStl(args[' + argi + ']->ToString());');
           break;
         case 'jsonstr':
           f('if (!args[' + argi + ']->IsString()) return ThrowInvalidArgs();');
-          f('it->' + name + ' = jsonstr(convJsStringToStl(args[' + argi + ']->ToString()));');
+          f('it->it->' + name + ' = jsonstr(convJsStringToStl(args[' + argi + ']->ToString()));');
           break;
         default:
           f(argType.typename + ' *a' + argi + ' = JsWrap_' + argType.jsTypename + '::Extract(args[' + argi + ']);');
           f('if (!a' + argi + ') return ThrowInvalidArgs();');
-          f('it->' + name + ' = *a' + argi + ';');
+          f('it->it->' + name + ' = *a' + argi + ';');
         }
       });
       f('}');
@@ -1520,13 +1519,13 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       f('}');
     }
 
-    f('Wrap(args.This());');
+    f('it->Wrap2(args.This());');
     f('return args.This();');
     f('}');
   }
 
   if (1) {
-    f('Handle<Value> JsWrap_JSTYPE::ToJSON(const TYPENAME &it) {');
+    f('Handle<Value> jsToJSON_JSTYPE(const TYPENAME &it) {');
     f('Local<Object> ret = Object::New();');
     f('ret->Set(String::NewSymbol("__type"), String::NewSymbol("JSTYPE"));');
     _.each(type.orderedNames, function(name) {
@@ -1545,44 +1544,20 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         f('ret->Set(String::NewSymbol("' + name + '"), convStlStringToJs(it.' + name + '.it));');
         break;
       default:
-        f('ret->Set(String::NewSymbol("' + name + '"), JsWrap_' + memberType.jsTypename + '::ToJSON(it.' + name + '));');
+        f('ret->Set(String::NewSymbol("' + name + '"), jsToJSON_' + memberType.jsTypename + '(it.' + name + '));');
       }
     });
     f('return ret;');
     f('}');
-    f('Handle<Value> jsMethod_TYPENAME_toJSON(const Arguments &args) {');
+    f('Handle<Value> jsMethod_JSTYPE_toJSON(const Arguments &args) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* obj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
-    f('return scope.Close(JsWrap_JSTYPE::ToJSON(*obj->it));');
+    f('return scope.Close(jsToJSON_JSTYPE(*obj->it));');
     f('}');
   }
 
   if (1) {
-    f('Handle<Value> JsWrap_JSTYPE::NewInstance(TYPENAME const &it) {');
-    f('HandleScope scope;');
-  
-    f('Local<Object> instance = constructor->NewInstance(0, NULL);');
-    f('JsWrap_JSTYPE* w = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(instance);');
-    f('*w->it = it;');
-    f('return scope.Close(instance);');
-    f('}');
-  }
-
-  if (1) {
-    f('TYPENAME *JsWrap_JSTYPE::Extract(Handle<Value> value) {');
-    f('if (value->IsObject()) {');
-    f('Handle<Object> valueObject = value->ToObject();');
-    f('Local<String> valueTypeName = valueObject->GetConstructorName();');
-    f('if (valueTypeName == constructor->GetName()) {');
-    f('return node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(valueObject)->it;');
-    f('}');
-    f('}');
-    f('return NULL;');
-    f('}');
-  }
-
-  if (1) {
-    f('static Handle<Value> jsMethod_TYPENAME_toString(const Arguments& args) {');
+    f('static Handle<Value> jsMethod_JSTYPE_toString(const Arguments& args) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* obj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
     f('size_t maxSize = wrJsonSize(*obj->it) + 2;');
@@ -1604,7 +1579,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f('return scope.Close(jss);');
     f('}');
 
-    f('static Handle<Value> jsFunc_TYPENAME_fromString(const Arguments& args) {');
+    f('static Handle<Value> jsFunc_JSTYPE_fromString(const Arguments& args) {');
     f('HandleScope scope;');
     f('String::Utf8Value a0str(args[0]->ToString());');
     f('const char *s = *a0str;');
@@ -1616,7 +1591,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f('}');
 
 
-    f('static Handle<Value> jsMethod_TYPENAME_toBuffer(const Arguments& args) {');
+    f('static Handle<Value> jsMethod_JSTYPE_toBuffer(const Arguments& args) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* obj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
     f('packet wr;');
@@ -1625,7 +1600,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f('return scope.Close(Persistent<Object>::New(buf->handle_));');
     f('}');
 
-    f('static Handle<Value> jsFunc_TYPENAME_fromBuffer(const Arguments& args) {');
+    f('static Handle<Value> jsFunc_JSTYPE_fromBuffer(const Arguments& args) {');
     f('HandleScope scope;');
     f('Handle<Value> buf = args[0];');
     f('if (!node::Buffer::HasInstance(buf)) return ThrowInvalidArgs();');
@@ -1643,7 +1618,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
   if (1) {
     _.each(factories, function(name) {
-      f('static Handle<Value> jsFunc_TYPENAME_' + name + '(const Arguments& args) {');
+      f('static Handle<Value> jsFunc_JSTYPE_' + name + '(const Arguments& args) {');
       f('HandleScope scope;');
       f('return scope.Close(JsWrap_JSTYPE::NewInstance(TYPENAME::' + name + '()));');
       f('}');
@@ -1655,44 +1630,13 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f('static Handle<Value> jsGet_JSTYPE_' + name + '(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* obj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    switch (memberType.typename) {
-    case 'double': case 'float': case 'int':
-      f('return scope.Close(Number::New(obj->it->' + name + '));');
-      break;
-    case 'bool':
-      f('return scope.Close(Boolean::New(obj->it->' + name + '));');
-      break;
-    case 'string':
-      f('return scope.Close(convStlStringToJs(obj->it->' + name + '));');
-      break;
-    case 'jsonstr':
-      f('return scope.Close(convStlStringToJs(obj->it->' + name + '.it));');
-      break;
-    default:
-      // TESTME
-      f('return scope.Close(JsWrap_' + memberType.jsTypename + '::NewInstance(obj->it->' + name + '));');
-    }
+    f('return scope.Close(' + cToJsConvertCode(memberType, 'obj->it->' + name, 'obj->memory') + ');');
     f('}');
+
     f('static void jsSet_JSTYPE_' + name + '(Local<String> name, Local<Value> value, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* obj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    switch (memberType.typename) {
-    case 'double': case 'float': case 'int':
-      f('obj->it->' + name + ' = value->NumberValue();');
-      break;
-    case 'bool':
-      f('obj->it->' + name + ' = value->BooleanValue();');
-      break;
-    case 'string':
-      f('obj->it->' + name + ' = convJsStringToStl(value->ToString());');
-      break;
-    case 'jsonstr':
-      f('obj->it->' + name + ' = jsonstr(convJsStringToStl(value->ToString()));');
-      break;
-    default:
-      f('JsWrap_' + memberType.jsTypename + '* valobj = node::ObjectWrap::Unwrap<JsWrap_' + memberType.jsTypename + '>(value->ToObject());');
-      f('if (valobj && valobj->it) obj->it->' + name + ' = *valobj->it;');
-    }
+    f('obj->it->' + name + ' = ' + jsToCConvertCode(memberType, 'value') + ';');
     f('}');
     f('');
   });

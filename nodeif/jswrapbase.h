@@ -27,10 +27,35 @@
 using namespace node;
 using namespace v8;
 
-enum JsWrapStyle {
-  JSWRAP_NONE,
-  JSWRAP_OWNED,
-  JSWRAP_BORROWED,
+struct JsWrapOwnership {
+  JsWrapOwnership() : refcnt(1) {}
+  virtual ~JsWrapOwnership() {}
+  void ref() { 
+    assert(refcnt > 0);
+    refcnt++;
+  }
+  void unref() {
+    assert(refcnt > 0);
+    refcnt--;
+    if (refcnt == 0) delete this;
+  }
+  int refcnt;
+};
+
+template <typename CONTENTS>
+struct JsWrapOwnershipGeneric : JsWrapOwnership {
+  JsWrapOwnershipGeneric() {}
+  JsWrapOwnershipGeneric(CONTENTS const &_contents)
+  :contents(_contents)
+  {
+    if (0) eprintf("%p Alloc %s\n", (void *)this, typeid(contents).name());
+  }
+  virtual ~JsWrapOwnershipGeneric()
+  {
+    if (0) eprintf("%p Delete %s\n", (void *)this, typeid(contents).name());
+  }
+
+  CONTENTS contents;
 };
 
 Handle<Value> ThrowInvalidArgs();
@@ -43,37 +68,70 @@ Handle<Value> convStlStringToJs(string const &it);
 vector<double> convJsToDoubleVector(Handle<Object> it);
 Handle<Object> convDoubleVectorToJs(vector<double> const &it);
 
+
 template <typename CONTENTS>
 struct JsWrapGeneric : node::ObjectWrap {
   JsWrapGeneric()
-    :it(new CONTENTS), wrapStyle(JSWRAP_OWNED)
-  { 
-  }
-  JsWrapGeneric(CONTENTS *_it)
-  :it(_it), wrapStyle(JSWRAP_BORROWED)
+    :memory(NULL),
+     it(NULL)
   {
   }
   
-  JsWrapGeneric(CONTENTS const &_it)
-  :it(new CONTENTS(_it)), wrapStyle(JSWRAP_OWNED)
+  JsWrapGeneric(CONTENTS const &_contents)
+  :memory(new JsWrapOwnershipGeneric<CONTENTS>(_contents)),
+   it(&((JsWrapOwnershipGeneric<CONTENTS> *)memory)->contents)
+  {
+  }
+  
+  JsWrapGeneric(JsWrapOwnership *_memory, CONTENTS *_it)
+    :memory(_memory),
+     it(_it)
   {
   }
 
+  void assign(CONTENTS const &_contents)
+  {
+    if (memory) memory->unref();
+    memory = new JsWrapOwnershipGeneric<CONTENTS>(_contents);
+    it = &((JsWrapOwnershipGeneric<CONTENTS> *)memory)->contents;
+  }
+  
+  void assign()
+  {
+    if (memory) memory->unref();
+    memory = new JsWrapOwnershipGeneric<CONTENTS>();
+    it = &((JsWrapOwnershipGeneric<CONTENTS> *)memory)->contents;
+  }
+  
   ~JsWrapGeneric()
   {
-    if (wrapStyle == JSWRAP_OWNED) delete it;
+    if (memory) memory->unref();
+    memory = 0;
     it = 0;
-    wrapStyle = JSWRAP_NONE;
   }
 
+  JsWrapOwnership *memory;
   CONTENTS *it;
-  JsWrapStyle wrapStyle;
 
-  static Handle<Value> NewInstance(CONTENTS const &it) {
+  static Handle<Value> NewInstance(CONTENTS const &_contents) {
     HandleScope scope;
     Local<Object> instance = constructor->NewInstance(0, NULL);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    *w->it = it;
+    w->memory = new JsWrapOwnershipGeneric<CONTENTS>(_contents);
+    w->it = &((JsWrapOwnershipGeneric<CONTENTS> *)w->memory)->contents;
+    return scope.Close(instance);
+  }
+
+  /*
+    Create an instance pointing into memory already owned by a JsWrap
+  */
+  static Handle<Value> ChildInstance(JsWrapOwnership *memory, CONTENTS *_it) {
+    HandleScope scope;
+    Local<Object> instance = constructor->NewInstance(0, NULL);
+    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    memory->ref();
+    w->memory = memory;
+    w->it = _it;
     return scope.Close(instance);
   }
 
@@ -88,11 +146,28 @@ struct JsWrapGeneric : node::ObjectWrap {
     return NULL;
   }
 
+  // Because node::ObjectWrap::Wrap is protected
+  inline void Wrap2 (Handle<Object> handle) {
+    return Wrap(handle);
+  }
+
+
   static Persistent<Function> constructor;
 };
 
 template <typename CONTENTS>
 Persistent<Function> JsWrapGeneric<CONTENTS>::constructor;
+
+
+template<typename CONTENTS>
+CONTENTS convJsWrapToC(JsWrapGeneric<CONTENTS> *valobj) {
+  if (valobj && valobj->it) {
+    return *valobj->it;
+  } else {
+    return CONTENTS();
+  }
+}
+
 
 
 #endif
