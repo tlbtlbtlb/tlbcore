@@ -78,7 +78,7 @@ WebServer.prototype.setupBaseProvider = function() {
   if (1) p.addScript(require.resolve('underscore'), 'underscore');
   if (1) p.addScript(require.resolve('../common/MoreUnderscore.js'));
   if (1) p.addScript(require.resolve('eventemitter'));
-  if (1) p.addScript(require.resolve('./jquery/dist/jquery.js'));
+  if (1) p.addScript(require.resolve('jquery/dist/jquery.js'));
   if (1) p.addScript(require.resolve('./ajaxupload-lib/ajaxUpload.js'));       // http://valums.com/ajax-upload/
   if (0) p.addScript(require.resolve('./swf-lib/swfobject.js'));               // http://blog.deconcept.com/swfobject/
   if (1) p.addScript(require.resolve('./mixpanel-lib/mixpanel.js'));
