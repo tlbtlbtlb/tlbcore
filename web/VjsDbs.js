@@ -1,7 +1,5 @@
 var _                   = require('underscore');
 var redis               = require('redis');
-var sha                 = require('sha');
-
 var logio               = require('./logio');
 var Auth                = require('./Auth');
 var Storage             = require('./Storage');
