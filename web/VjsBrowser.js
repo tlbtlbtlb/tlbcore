@@ -682,6 +682,7 @@ $.fn.animation2 = function(m) {
     if (mChangeCounter === vChangeCounter) mChangeCounter++;
     if (!afActive) {
       afActive = true;
+      lastTime = 0;
       window.requestAnimationFrame(wrap);
     }
   });
@@ -696,7 +697,7 @@ $.fn.animation2 = function(m) {
     if (vChangeCounter !== mChangeCounter) {
       vChangeCounter = mChangeCounter;
 
-      var nTicks = Math.min(curTime - lastTime, 200);
+      var nTicks = lastTime ? Math.min(curTime - lastTime, 200) : 20;
       lastTime = curTime;
       m.animate(nTicks);
       m.emit('animate');
