@@ -693,15 +693,16 @@ $.fn.animation2 = function(m) {
       return; // leaving afActive true, so we shouldn't get called any more
     }
 
-    afActive = false;
     if (vChangeCounter !== mChangeCounter) {
       vChangeCounter = mChangeCounter;
 
       var nTicks = Math.min(curTime - lastTime, 200);
+      lastTime = curTime;
       m.animate(nTicks);
       m.emit('animate');
-      afActive = true;
       window.requestAnimationFrame(wrap);
+    } else {
+      afActive = false;
     }
   }
 };
