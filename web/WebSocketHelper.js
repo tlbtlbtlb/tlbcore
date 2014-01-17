@@ -11,7 +11,7 @@
     https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify
   
 */
-_ = require('underscore');
+var _                   = require('underscore');
 
 exports.stringify = stringify;
 exports.parse = parse;

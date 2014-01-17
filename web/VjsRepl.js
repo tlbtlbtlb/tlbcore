@@ -17,10 +17,10 @@ function addToContext(name, value) {
 }
 
 function setupReplCommon(r) {
-  _.each(gContexts, function(ctx) {
-    _.update(ctx, pendingContext);
-  });
   gContexts.push(r.context);
+  _.each(gContexts, function(ctx) {
+    _.extend(ctx, pendingContext);
+  });
 
   r.context.underscore = r.context_ = _;
   r.context.Auth = require('./Auth');

@@ -58,7 +58,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
         rxBinaries.push(event.binaryData);
       }
       else {
-        if (verbose >= 1) logio.E(handlers.label, 'Unknown type ' + m.type);
+        if (verbose >= 1) logio.E(handlers.label, 'Unknown type ' + event.type);
       }
     });
     wsc.on('close', function(code, desc) {

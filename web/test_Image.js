@@ -1,8 +1,11 @@
-// -*-js-indent-level:2-*-
+var logio               = require('./logio');
+var Image               = require('./Image');
+var util                = require('util');
+var sys                 = require('sys');
 
 function t_mkImageVersions(errs, cb) {
-  vsystem('cp website/images/robotsWrestlersOrig.jpg /tmp/rw.jpg', function() {
-    mkImageVersions('/tmp/rw.jpg', {}, function(versions) {
+  logio.vsystem('cp website/images/robotsWrestlersOrig.jpg /tmp/rw.jpg', function() {
+    Image.mkImageVersions('/tmp/rw.jpg', {}, function(versions) {
       util.puts(sys.inspect(versions));
       cb();
     });

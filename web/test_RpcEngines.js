@@ -42,7 +42,7 @@ describe('fs.writeStreamString binary', function() {
 describe('url.parse', function() {
   it('should work', function() {
     var up = url.parse('http://foo.bar/buz?a=apple&b=banana', true);
-    if (up.query.a != 'apple' || up.query.b != 'banana') {
+    if (up.query.a !== 'apple' || up.query.b !== 'banana') {
       throw new Error('query string wrong: ' + JSON.stringify(up.query));
     }
   });

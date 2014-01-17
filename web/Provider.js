@@ -42,7 +42,7 @@ var verbose           = 1;
 function removeComments(content) {
   content = content.replace(/\'(\\.|[^\\\'])*\'|\"(?:\\.|[^\\\"])*\"|\/\/[\S \t]*|\/\*[\s\S]*?\*\//g, function(m) {
     var full = m;
-    if (full[0]!='/') return full;
+    if (full[0] !== '/') return full;
     return ' ';
   });
 

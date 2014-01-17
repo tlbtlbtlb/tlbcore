@@ -317,7 +317,7 @@ TypeRegistry.prototype.getNamedType = function(typename) {
   var typereg = this;
   var type = typereg.types[typename];
   if (!type) {
-    if (/\</.test(typename)) {
+    if (/</.test(typename)) {
       if (0) console.log('Creating template', typename);
       type = new StlCollectionCType(typereg, typename);
     }
@@ -426,19 +426,19 @@ function cToJsConvertCode(valueType, valueExpr, memoryExpr) {
   case 'float': 
   case 'int':
     return 'Number::New(' + valueExpr + ')';
-  break;
+
   case 'bool':
     return 'Boolean::New(' + valueExpr + ')';
-    break;
+
   case 'string':
     return 'convStlStringToJs(' + valueExpr  + ')';
-    break;
+
   case 'jsonstr':
     return 'convStlStringToJs(' + valueExpr + '.it)';
-    break;
+
   case 'void':
     return 'Undefined()';
-    break;
+
   default:
     if (memoryExpr) {
       return 'JsWrap_' + valueType.jsTypename + '::ChildInstance(' + memoryExpr + ', &(' + valueExpr + '))';
@@ -603,7 +603,7 @@ CType.prototype.getDeclDependencies = function() {
 
 CType.prototype.getMemberTypes = function() {
   return [];
-}
+};
   
 
 // ----------------------------------------------------------------------
@@ -837,7 +837,7 @@ function StlCollectionCType(reg, typename) {
   console.log('template', typename, type.templatename, type.templateargs);
 }
 StlCollectionCType.prototype = Object.create(CType.prototype);
-StlCollectionCType.prototype.isStlCollection = true
+StlCollectionCType.prototype.isStlCollection = true;
 
 StlCollectionCType.prototype.hasJsWrapper = function() {
   return true;
@@ -906,7 +906,7 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
   if (1) {
     f('Handle<Value> jsConstructor_JSTYPE(JsWrap_JSTYPE *it, const Arguments& args) {');
     f('HandleScope scope;');
-    f('it->assign();')
+    f('it->assign();');
     f('it->Wrap2(args.This());');
     f('return args.This();');
     f('}');
@@ -934,7 +934,7 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('string key = convJsStringToStl(name);');
     f('TYPENAME::iterator iter = obj->it->find(key);');
     f('if (iter == obj->it->end()) return scope.Close(Handle<Value>());'); // return undefined if not found, will be looked up on prototype chain
-    f('return scope.Close(' + cToJsConvertCode(type.reg.types[type.templateargs[1]], 'iter->second', 'obj->memory') + ');')
+    f('return scope.Close(' + cToJsConvertCode(type.reg.types[type.templateargs[1]], 'iter->second', 'obj->memory') + ');');
     f('}');
 
     f('static Handle<Value> jsSetNamed_JSTYPE(Local<String> name, Local<Value> value, AccessorInfo const &ai) {');
@@ -943,7 +943,7 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('string key = convJsStringToStl(name);');
     f(type.templateargs[1] + ' cvalue(' + jsToCConvertCode(type.reg.types[type.templateargs[1]], 'value') + ');');
     f('(*obj->it)[key] = cvalue;');
-    f('return scope.Close(value);')
+    f('return scope.Close(value);');
     f('}');
   }
 
@@ -1041,7 +1041,7 @@ StlCollectionCType.prototype.emitJsTestImpl = function(f) {
   f('});');
   f('});');
 
-}
+};
 
 
 /* ----------------------------------------------------------------------
@@ -1227,8 +1227,8 @@ StructCType.prototype.emitHostImpl = function(f) {
 
   if (1) {
     f('void TYPENAME::addSchemas(map<string, jsonstr> &all) {');
-    f('if (all["JSTYPE"].it.size()) return;');
-    f('all["JSTYPE"] = jsonstr(string(schema));');
+    f('if (all["' + type.jsTypename + '"].it.size()) return;');
+    f('all["' + type.jsTypename + '"] = jsonstr(string(schema));');
     _.each(type.getMemberTypes(), function(type) {
       if (type.isStruct) {
         f(type.typename + '::addSchemas(all); /* ' + type.constructor.name + ' */');
@@ -1481,7 +1481,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   if (1) {
     f('Handle<Value> jsConstructor_JSTYPE(JsWrap_JSTYPE *it, const Arguments& args) {');
     f('HandleScope scope;');
-    f('it->assign();')
+    f('it->assign();');
     if (type.hasFullConstructor()) {
       f('if (args.Length() == 0) {');
       f('}');

@@ -1,4 +1,5 @@
-var ur = require("../../nodeif/bin/ur"); // argh
+var _                   = require('underscore');
+var ur                  = require("../../nodeif/bin/ur"); // argh
 
 
 describe('mkPolyfit3', function() {

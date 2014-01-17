@@ -61,7 +61,7 @@ function mkWebSocketRpc(wsc, handlers) {
     if (msg.cmd) {
       var cmdFunc = handlers['cmd_' + msg.cmd];
       if (!cmdFunc) {
-        if (verbose >= 1) console.log(wsc.url, 'Unknown cmd', cmd);
+        if (verbose >= 1) console.log(wsc.url, 'Unknown cmd', msg.cmd);
         return;
       }
       cmdFunc(msg);
@@ -76,7 +76,7 @@ function mkWebSocketRpc(wsc, handlers) {
       try {
         reqFunc.call(handlers, msg, function(rsp) {
           rsp.rspId = msg.reqId;
-          tx(rsp);
+          handlers.tx(rsp);
           done = true;
         });
       } catch(ex) {

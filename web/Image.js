@@ -26,12 +26,12 @@ function fillImageVersion(fn, version, options, sizeCb)
   var cmd;
   var fn2 = fn;
 
-  if (version != 'orig') {
+  if (version !== 'orig') {
     fn2 = fn.replace(/\.(\w+)$/, '_' + version + '.jpg');
-    if (fn2 == fn) {
+    if (fn2 === fn) {
       fn2 = fn + '_' + version + '$1';
     }
-    if (fn2 == fn) {
+    if (fn2 === fn) {
       sizeCb('fillImageVersion: failed to make unique fn=' + fn + ' fn2=' + fn2);
       return;
     }
@@ -47,7 +47,7 @@ function fillImageVersion(fn, version, options, sizeCb)
     pipe commands to.
   */
   
-  if (version == 'orig') {
+  if (version === 'orig') {
     cmd = ('identify -ping ' + fn);
   }
   else if (version.match(/^S\d+x\d+$/)) {

@@ -88,7 +88,7 @@ function mkRandomStream() {
 
       var h = crypto.createHmac('sha1', 'argh');
       h.update(randChunk + ' ' + t + ' ' + counter, 'ASCII');
-      if (counter == 100) nextChunk();
+      if (counter === 100) nextChunk();
       counter++;
       var mac = h.digest('base64');
       // remove non-alphanumerics

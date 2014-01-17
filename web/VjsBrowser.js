@@ -105,7 +105,7 @@ $.fn.page_notFound = function(o) {
 $.event.special.destroyed = {
   remove: function(o) {
     if (o.handler) {
-      o.handler()
+      o.handler();
     }
   }
 };
@@ -125,7 +125,7 @@ $.fn.bogartWindowEvents = function(evMap) {
       $(window).off(name, fn);
     });
   });
-}
+};
 
 /* ----------------------------------------------------------------------
    Content enhancers -- things that recognize magical constructions in the xml and add functionality
@@ -594,7 +594,7 @@ $.fn.syncChildren = function(newItems, options) {
     if (options.calcSignature) {
       var signature = options.calcSignature(name);
       var oldSignature = $(oldEls[name]).attr('signature');
-      if (signature != oldSignature) {
+      if (signature !== oldSignature) {
         $(oldEls[name]).attr('signature', signature);
         updateEl.call($(oldEls[name]), name);
       }
@@ -697,9 +697,9 @@ $.fn.animation2 = function(m) {
     if (vChangeCounter !== mChangeCounter) {
       vChangeCounter = mChangeCounter;
 
-      var nTicks = lastTime ? Math.min(curTime - lastTime, 200) : 20;
+      var dt = (lastTime ? Math.min(curTime - lastTime, 200) : 20) * 0.001;
       lastTime = curTime;
-      m.animate(nTicks);
+      m.animate(dt);
       m.emit('animate');
       window.requestAnimationFrame(wrap);
     } else {
