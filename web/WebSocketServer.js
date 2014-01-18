@@ -39,6 +39,7 @@ exports.mkWebSocketRpc = mkWebSocketRpc;
 
 function mkWebSocketRpc(wsr, wsc, handlers) {
   var pending = new WebSocketHelper.RpcPendingQueue();
+  var callbacks = {};
   var rxBinaries = [];
 
   setupWsc();
@@ -74,7 +75,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
         if (verbose >= 1) logio.E(handlers.label, 'Unknown cmd', msg.cmd);
         return;
       }
-      cmdFunc.call(handlers, msg);
+      cmdFunc.call(handlers, msg.args);
     }
     else if (msg.rpcReq) {
       var reqFunc = handlers['req_' + msg.rpcReq];
@@ -84,26 +85,26 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
       }
       var done = false;
       try {
-        reqFunc.call(handlers, msg, function(rsp) {
+        reqFunc.call(handlers, msg.args, function(rsp) {
           done = true;
-          rsp.rspId = msg.reqId;
-          handlers.tx(rsp);
+          handlers.tx({rpcId: msg.rpcId, rsp: rsp});
         });
       } catch(ex) {
         logio.E(handlers.label, 'Error handling', msg, ex);
         if (!done) {
           done = true;
-          handlers.tx({rspId: msg.reqId, err: ex.toString()});
+          handlers.tx({rpcId: msg.rpcId, rsp: {err: ex.toString()}});
         }
       }
     }
-    else if (msg.rspId) {
-      var rspFunc = pending.get(msg.rspId);
+    else if (msg.rpcId) {
+      var rspFunc = callbacks[msg.rpcId];
+      if (!rspFunc) rspFunc = pending.get(msg.rpcId);
       if (!rspFunc) {
-        if (verbose >= 1) logio.E(handlers.label, 'Unknown response', msg.rspId);
+        if (verbose >= 1) logio.E(handlers.label, 'Unknown response', msg.rpcId);
         return;
       }
-      rspFunc.call(handlers, msg);
+      rspFunc.call(handlers, msg.rsp);
     }
     else if (msg.hello) {
       handlers.hello = msg.hello;
@@ -116,11 +117,18 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
 
   function setupHandlers() {
     handlers.labelWs = handlers.label = wsc.remoteAddress + '!ws' + wsr.resource;
-    handlers.rpc = function(req, rspFunc) {
-      var reqId = pending.getnewId();
-      req.reqId = reqId;
-      pending.add(reqId, rspFunc);
-      handlers.tx(req);
+    handlers.cmd = function(cmd, args) {
+      handlers.tx({cmd: cmd, args: args});
+    };
+    handlers.rpc = function(rpcReq, args, rspFunc) {
+      var rpcId = pending.getnewId();
+      pending.add(rpcId, rspFunc);
+      handlers.tx({rpcReq: rpcReq, rpcId: rpcId, args: args});
+    };
+    handlers.callback = function(rpcReq, args, rspFunc) {
+      var rpcId = pending.getNewId();
+      callbacks[rpcId] = rspFunc;
+      handlers.tx({rpcReq: rpcReq, rpcId: rpcId, args: args});
     };
     handlers.tx = function(msg) {
       emitMsg(msg);

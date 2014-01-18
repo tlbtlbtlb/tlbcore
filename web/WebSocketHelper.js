@@ -120,6 +120,7 @@ function parse(json, binaries) {
 function RpcPendingQueue() {
   this.pending = [];
   this.uniqueId = 567;
+  this.pendingCount = 0;
 }
 
 RpcPendingQueue.prototype.getNewId = function() {
@@ -131,6 +132,7 @@ RpcPendingQueue.prototype.get = function(rspId) {
     if (this.pending[i] && this.pending[i].rspId === rspId) {
       var ret = this.pending[i].rspFunc;
       this.pending[i] = null;
+      this.pendingCount --;
       return ret;
     }
   }
@@ -138,10 +140,11 @@ RpcPendingQueue.prototype.get = function(rspId) {
 };
 
 RpcPendingQueue.prototype.add = function(rspId, rspFunc) {
-  while (this.pending.length && this.pending[0] === null) {
-    this.pending.shift();
+  if (this.pending.length % 32 === 31) {
+    this.pending = _.filter(this.pending, function(x) { return x !== null; });
   }
   this.pending.push({rspId: rspId, rspFunc: rspFunc});
+  this.pendingCount ++;
   if (this.pending.length % 50 === 0) {
     console.log('! pending=' + this.pending.length);
   }

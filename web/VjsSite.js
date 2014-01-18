@@ -258,7 +258,7 @@ WebServer.prototype.reloadAllBrowsers = function(reloadKey) {
   var webServer = this;
   _.each(webServer.allConsoleHandlers, function(ch) {
     if (ch.reloadKey === reloadKey) {
-      ch.tx({cmd: 'reload'});
+      ch.cmd('reload', {});
     }
   });
 };

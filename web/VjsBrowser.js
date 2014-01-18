@@ -811,7 +811,7 @@ function setupConsole(reloadKey) {
     start: function() {
       if (reloadKey) {
         // Ask the server to tell us to reload. Look for reloadKey in VjsSite.js for the control flow.
-        this.tx({cmd: 'reloadOn', reloadKey: reloadKey});
+        this.cmd('reloadOn', {reloadKey: reloadKey});
       }
     },
     cmd_reload: function(msg) { // server is asking us to reload, because it knows that javascript files have changed
