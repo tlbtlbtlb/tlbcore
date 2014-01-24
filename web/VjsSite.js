@@ -112,7 +112,7 @@ WebServer.prototype.setupInternalUrls = function() {
   webServer.setSocketProtocol('/console', webServer.mkConsoleHandler.bind(webServer));
 
   // Files available from root of file server
-  webServer.setUrl('/favicon.ico', require.resolve('./images/vjs.ico'));
+  webServer.setUrl('/favicon.ico', require.resolve('./images/umbrella.ico'));
   webServer.setUrl('/spinner-lib/spinner.gif', require.resolve('./spinner-lib/spinner.gif'));
   webServer.setUrl('/images/icons.png', require.resolve('./images/ui-icons_888888_256x240.png'));
 };
