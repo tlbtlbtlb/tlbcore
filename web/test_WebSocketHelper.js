@@ -56,12 +56,12 @@ describe('RpcPendingQueue', function() {
       localq.push(reqId);
       pending.add(reqId, 'foo' + reqId + 'bar');
 
-      if (localq.length >= outstanding) {
+      if (localq.length > outstanding) {
         var rspId = localq.shift();
         var rspFunc = pending.get(rspId);
         assert.strictEqual(rspFunc, 'foo' + rspId + 'bar');
       }
     }
-    assert.equal(pending.pending.length, outstanding);
+    assert.equal(pending.pendingCount, outstanding);
   });
 });
