@@ -30,6 +30,7 @@ function WebServer() {
   var webServer = this;
   webServer.urlProviders = {};
   webServer.dirProviders = {};
+  webServer.hostPrefixes = {};
   webServer.wsHandlers = {};
   webServer.serverAccessCounts = {};
   webServer.wwwRoot = null;
@@ -55,6 +56,16 @@ WebServer.prototype.setUrl = function(url, p) {
     if (p.reloadKey) {
       webServer.reloadAllBrowsers(p.reloadKey);
     }
+  });
+};
+
+WebServer.prototype.setPrefixHosts = function(prefix, hosts) {
+  var webServer = this;
+  prefix = path.join('/', prefix, '/');
+  
+  _.each(hosts, function(host) {
+    webServer.hostPrefixes[host] = prefix;
+    console.log('Set hostPrefix['+host+']='+prefix);
   });
 };
 
@@ -157,14 +168,14 @@ WebServer.prototype.mirrorAll = function() {
   }
 };
 
-WebServer.prototype.startHttpServer = function(port, bindHost) {
+WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
   var webServer = this;
-  if (!port) port = 8000;
+  if (!bindPort) bindPort = 8000;
   if (!bindHost) bindHost = '127.0.0.1';
   
   webServer.httpServer = http.createServer(httpHandler);
-  util.puts('Listening on ' + bindHost + ':' + port);
-  webServer.httpServer.listen(port, bindHost);
+  util.puts('Listening on ' + bindHost + ':' + bindPort);
+  webServer.httpServer.listen(bindPort, bindHost);
 
   webServer.ws = new websocket.server({httpServer: webServer.httpServer});
   webServer.ws.on('request', wsRequestHandler);
@@ -175,23 +186,26 @@ WebServer.prototype.startHttpServer = function(port, bindHost) {
     try {
       up = url.parse(req.url, true);
     } catch (ex) {
-      logio.E('http', 'Error parsing' + req.url, ex);
+      logio.E('http', 'Error parsing', req.url, ex);
       return Provider.emit404(res, 'Invalid url');
     }
 
     var remote = req.connection.remoteAddress + '!http';
     
-    if (!up.host) up.host = req.headers['host'];
-    if (!up.host) up.host = 'localhost';
-    if (up.host.match(/[^-\w\.\/\:]/)) {
+    if (!up.host) up.host = req.headers.host;
+    if (up.host.match(/[^-\w\.\:]/)) {
+      logio.E('http', 'Invalid host header', up.host);
       return Provider.emit404(res, 'Invalid host header');
     }
+    if (!up.host) up.host = 'localhost:' + bindPort.toString();
+    if (up.host.match(/^[\w\.]$/)) up.host = up.host + ':' + bindPort.toString()
+    logio.I('http', req.url, up, req.headers);
 
     var pathc = up.pathname.substr(1).split('/');
-    if (pathc[0] === 'live') {
-      pathc.shift();
-    }
-    var callid = req.method + ' /' + pathc.join('/');
+    var hostPrefix = webServer.hostPrefixes[up.host];
+    if (!hostPrefix) hostPrefix = '/';
+
+    var callid = req.method + ' ' + hostPrefix + pathc.join('/');
     webServer.serverAccessCounts[callid] = (webServer.serverAccessCounts[callid] || 0) + 1;
     if (webServer.urlProviders[callid]) {
       logio.I('http', callid);
