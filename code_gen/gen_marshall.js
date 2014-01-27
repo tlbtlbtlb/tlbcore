@@ -752,8 +752,8 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
   case 'double': return 'numeric_limits<double>::quiet_NaN()';
   case 'int': return '0x80000000';
   case 'bool': return 'false';
-  case 'string': return 'string()';
-  case 'jsonstr': return 'jsonstr()';
+  case 'string': return 'string(\"nan\")';
+  case 'jsonstr': return 'jsonstr(\"undefined\")';
   default: return '***ALL_NAN***';
   }
 };
@@ -1093,9 +1093,6 @@ StructCType.prototype.getMemberTypes = function() {
   return subtypes;
 };
 
-StructCType.prototype.getAllOneExpr = function() {
-  return this.typename + '::allOne()';
-};
 StructCType.prototype.getAllZeroExpr = function() {
   return this.typename + '::allZero()';
 };
@@ -1141,35 +1138,45 @@ StructCType.prototype.getMemberInitExpr = function(name) {
 
 StructCType.prototype.emitTypeDecl = function(f) {
   var type = this;
+  f('');
   f('struct TYPENAME {');
-  f('typedef TYPENAME selftype;');
   f('TYPENAME();'); // declare default constructor
   if (type.hasFullConstructor()) {
     f('TYPENAME(' + _.map(type.orderedNames, function(name) {
       return type.nameToType[name].getFormalParameter('_' + name);
     }).join(', ') + ');');
   }
+  
+  f('');
+  f('// Factory functions');
   f('static TYPENAME allZero();');
-  f('static TYPENAME allOne();');
   f('static TYPENAME allNan();');
-
+  f('TYPENAME copy() const;');
+  f('');
+  f('// Member variables');
   _.each(type.orderedNames, function(name) {
     type.nameToType[name].emitVarDecl(f, name);
   });
 
-  f('TYPENAME copy() const;');
 
   if (type.hasArrayNature()) {
+    f('');
+    f('// Array accessors');
     f('typedef ' + type.nameToType[type.orderedNames[0]].typename + ' element_t;');
     f('inline element_t & operator[] (int i) { return (&' + type.orderedNames[0] + ')[i]; }');
     f('inline element_t const & operator[] (int i) const { return (&' + type.orderedNames[0] + ')[i]; }');
   }
 
+  if (type.extraMemberDecls.length) {
+    f('');
+    f('// From .extraMemberDecls');
+    _.each(type.extraMemberDecls, function(l) {
+      f(l);
+    });
+  }
 
-  _.each(type.extraMemberDecls, function(l) {
-    f(l);
-  });
-
+  f('');
+  f('// Schema access');
   f('static char const * typeVersionString;');
   f('static char const * typeName;');
   f('static char const * schema;');
@@ -1177,6 +1184,8 @@ StructCType.prototype.emitTypeDecl = function(f) {
 
   f('};');
 
+  f('');
+  f('// IO');
   f('ostream & operator<<(ostream &s, const TYPENAME &obj);');
   f('void wrJson(char *&s, const TYPENAME &obj);');
   f('bool rdJson(const char *&s, TYPENAME &obj);');
@@ -1196,6 +1205,7 @@ StructCType.prototype.emitHostImpl = function(f) {
 
   if (1) {
     // Default constructor
+    f('');
     f('TYPENAME::TYPENAME()');
     if (type.orderedNames.length) {
       f(':' + _.map(type.orderedNames, function(name) {
@@ -1209,23 +1219,30 @@ StructCType.prototype.emitHostImpl = function(f) {
     f('}');
   }
   if (type.hasFullConstructor()) {
+    f('');
     f('TYPENAME::TYPENAME(' + _.map(type.orderedNames, function(name) {
       return type.nameToType[name].getFormalParameter('_' + name);
     }).join(', ') + ')');
     f(':' + _.map(type.orderedNames, function(name) {
       return name + '(_' + name + ')';
     }).join(', '));
-    f('{}');
+    f('{');
+    _.each(type.extraConstructorCode, function(l) {
+      f(l);
+    });
+    f('}');
   }
 
 
   if (1) {
+    f('');
     f('char const * TYPENAME::typeVersionString = "' + type.getTypeAndVersion() + '";');
     f('char const * TYPENAME::typeName = "TYPENAME";');
     f('char const * TYPENAME::schema = "' + cgen.escapeCString(JSON.stringify(type.getSchema())) + '";');
   }
 
   if (1) {
+    f('');
     f('void TYPENAME::addSchemas(map<string, jsonstr> &all) {');
     f('if (all["' + type.jsTypename + '"].it.size()) return;');
     f('all["' + type.jsTypename + '"] = jsonstr(string(schema));');
@@ -1237,33 +1254,28 @@ StructCType.prototype.emitHostImpl = function(f) {
     f('}');
   }
 
-  f('TYPENAME TYPENAME::allZero() {');
-  f('TYPENAME ret;');
-  _.each(type.orderedNames, function(name) {
-    var memberType = type.nameToType[name];
-    f('ret.' + name + ' = ' + memberType.getAllZeroExpr() + ';');
-  });
-  f('return ret;');
-  f('}');
-  f('TYPENAME TYPENAME::allOne() {');
-  f('TYPENAME ret;');
-  _.each(type.orderedNames, function(name) {
-    var memberType = type.nameToType[name];
-    f('ret.' + name + ' = ' + memberType.getAllOneExpr() + ';');
-  });
-  f('return ret;');
-  f('}');
-  f('TYPENAME TYPENAME::allNan() {');
-  f('TYPENAME ret;');
-  _.each(type.orderedNames, function(name) {
-    var memberType = type.nameToType[name];
-    f('ret.' + name + ' = ' + memberType.getAllNanExpr() + ';');
-  });
-  f('return ret;');
-  f('}');
-
+  if (1) {
+    f('');
+    f('TYPENAME TYPENAME::allZero() {');
+    f('TYPENAME ret;');
+    _.each(type.orderedNames, function(name) {
+      var memberType = type.nameToType[name];
+      f('ret.' + name + ' = ' + memberType.getAllZeroExpr() + ';');
+    });
+    f('return ret;');
+    f('}');
+    f('TYPENAME TYPENAME::allNan() {');
+    f('TYPENAME ret;');
+    _.each(type.orderedNames, function(name) {
+      var memberType = type.nameToType[name];
+      f('ret.' + name + ' = ' + memberType.getAllNanExpr() + ';');
+    });
+    f('return ret;');
+    f('}');
+  }
 
   if (1) {
+    f('');
     f('ostream & operator<<(ostream &s, const TYPENAME &obj) {');
     f('s << "' + type.typename + '{";');
     _.each(type.orderedNames, function(name, namei) {
@@ -1278,8 +1290,11 @@ StructCType.prototype.emitHostImpl = function(f) {
     f('}');
   }
 
+  f('');
   type.emitWrJson(f);
+  f('');
   type.emitRdJson(f);
+  f('');
   type.emitPacketIo(f);
 };
 
@@ -1387,7 +1402,7 @@ StructCType.prototype.emitRdJson = function(f) {
   _.each(type.orderedNames, function(name) {
     actions['"' + name + '":'] = function() {
       f('if (rdJson(s, obj.' + name + ')) {');
-      f('while (isspace(*s)) s++;');
+      f('jsonSkipSpace(s);');
       f('c = *s++;');
       f('if (c == \',\') continue;');
       f('if (c == \'}\') return typeOk;');
@@ -1404,11 +1419,11 @@ StructCType.prototype.emitRdJson = function(f) {
   f('bool rdJson(char const *&s, TYPENAME &obj) {');
   f('bool typeOk = false;');
   f('char c;');
-  f('while (isspace(*s)) s++;');
+  f('jsonSkipSpace(s);');
   f('c = *s++;');
   f('if (c == \'{\') {');
   f('while(1) {');
-  f('while (isspace(*s)) s++;');
+  f('jsonSkipSpace(s);');
   f('c = *s++;');
   emitPrefix('');
   f('s--;');
@@ -1465,7 +1480,7 @@ StructCType.prototype.emitJsWrapDecl = function(f) {
 StructCType.prototype.emitJsWrapImpl = function(f) {
   var type = this;
   var methods = ['toString', 'toBuffer', 'toJSON'];
-  var factories = ['allOne', 'allZero', 'allNan'];
+  var factories = ['allZero', 'allNan'];
   var accessors = type.orderedNames;
 
   if (1) {

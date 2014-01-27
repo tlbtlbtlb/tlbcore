@@ -162,4 +162,15 @@ jsonstr asJson(const T &value) {
   return ret;
 }
 
+inline void jsonSkipSpace(char const *&s) {
+  while (1) {
+    char c = *s;
+    if (c == ' ' || c == '\t' || c == '\n') {
+      s++;
+    } else {
+      break;
+    }
+  }
+}
+
 #endif
