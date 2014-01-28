@@ -78,6 +78,7 @@ module.exports = function(typereg) {
                  ['c4', 'double'],
                  ['c5', 'double']);
 
+  typereg.template('vector<Vec3>');
 
   typereg.scanCHeader(require.resolve('./geom_math.h'));
 };

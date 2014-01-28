@@ -1,6 +1,6 @@
-var ur = require('../nodeif/bin/tlbcore');
-var util = require('util');
-var assert = require('assert');
+var ur                  = require("../../nodeif/bin/ur"); // argh
+var util                = require('util');
+var assert              = require('assert');
 
 describe('Vec3', function() {
   it('should work', function() {
@@ -55,7 +55,7 @@ describe('Mat33', function() {
 
   it('fromString should be fast (5000x)', function() {
     for (var i=0; i<5000; i++) {
-      var t2 = ur.Mat33.fromString('{"type":"Mat33","xx":1.25,"xy":2.5,"xz":3.75,"yx":4,"yy":5.125,"yz":6,"zx":7,"zy":8,"zz":9}');
+      var t2 = ur.Mat33.fromString('{"__type":"Mat33","xx":1.25,"xy":2.5,"xz":3.75,"yx":4,"yy":5.125,"yz":6,"zx":7,"zy":8,"zz":9}');
       assert.equal(t2.yy, 5.125);
     }
   });
@@ -103,5 +103,15 @@ describe('Polyfit3', function() {
     assert.equal(ur.getValue(pf, 0.0), 1.0);
     assert.equal(ur.getValue(pf, 1.0), 2.0);
     assert.equal(ur.getValue(pf, 2.0), 4.8);
+  });
+});
+
+
+
+if (0) describe('vector<Vec3>', function() {
+  it('should work', function() {
+    var t1 = new ur.vector_Vec3_();
+    t1.pushBack(new ur.Vec3(1,2,3));
+    assert.equal(t1.toJsonString(), '[{"__type":"Vec3","x":1,"y":2,"z":3}]');
   });
 });

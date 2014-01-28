@@ -12,10 +12,12 @@ tlbcore_err::~tlbcore_err()
 tlbcore_type_err::tlbcore_type_err(const char *_type_name)
   :type_name(_type_name)
 {
+  eprintf("tlbcore_type_err: %s\n", type_name);
 }
 tlbcore_type_err::tlbcore_type_err(string const &_type_name)
   :type_name(strdup(_type_name.c_str()))
 {
+  eprintf("tlbcore_type_err: %s\n", type_name);
 }
 tlbcore_type_err::~tlbcore_type_err()
 {

@@ -40,6 +40,21 @@ bool rdJson(const char *&s, double &value);
 bool rdJson(const char *&s, string &value);
 bool rdJson(const char *&s, jsonstr &value);
 
+/*
+  Because isspace does funky locale-dependent stuff that I don't want
+*/
+inline void jsonSkipSpace(char const *&s) {
+  while (1) {
+    char c = *s;
+    if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+      s++;
+    } else {
+      break;
+    }
+  }
+}
+
+
 template<typename T>
 size_t wrJsonSize(vector<T> const &arr) {
   size_t ret = 2;
@@ -63,17 +78,17 @@ void wrJson(char *&s, vector<T> const &arr) {
 
 template<typename T>
 bool rdJson(const char *&s, vector<T> &arr) {
-  while (isspace(*s)) s++;
+  jsonSkipSpace(s);
   if (*s != '[') return false;
   s++;
   arr.clear();
   while (1) {
-    while (isspace(*s)) s++;
+    jsonSkipSpace(s);
     if (*s == ']') break;
     T tmp;
     if (!rdJson(s, tmp)) return false;
-    while (isspace(*s)) s++;
     arr.push_back(tmp);
+    jsonSkipSpace(s);
     if (*s == ',') {
       s++;
     }
@@ -114,24 +129,24 @@ void wrJson(char *&s, map<KT, VT> const &arr) {
 
 template<typename KT, typename VT>
 bool rdJson(const char *&s, map<KT, VT> &arr) {
-  while (isspace(*s)) s++;
+  jsonSkipSpace(s);
   if (*s != '{') return false;
   s++;
   arr.clear();
   while (1) {
-    while (isspace(*s)) s++;
+    jsonSkipSpace(s);
     if (*s == '}') break;
     KT ktmp;
     VT vtmp;
     if (!rdJson(s, ktmp)) return false;
-    while (isspace(*s)) s++;
+    jsonSkipSpace(s);
     if (*s != ':') return false;
     s++;
-    while (isspace(*s)) s++;
+    jsonSkipSpace(s);
     if (!rdJson(s, vtmp)) return false;
-    while (isspace(*s)) s++;
-
     arr[ktmp] = vtmp;
+
+    jsonSkipSpace(s);
     if (*s == ',') {
       s++;
     }
@@ -160,17 +175,6 @@ jsonstr asJson(const T &value) {
   jsonstr ret(buf, p);
   delete buf;
   return ret;
-}
-
-inline void jsonSkipSpace(char const *&s) {
-  while (1) {
-    char c = *s;
-    if (c == ' ' || c == '\t' || c == '\n') {
-      s++;
-    } else {
-      break;
-    }
-  }
 }
 
 #endif

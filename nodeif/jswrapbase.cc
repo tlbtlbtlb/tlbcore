@@ -52,32 +52,45 @@ Handle<Value> convStlStringToJs(string const &it) {
    See https://github.com/joyent/node/issues/4201 for details on native arrays
 */
 
-vector<double> convJsToDoubleVector(Handle<Object> it) {
-  if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) {
-    size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
-    double* itData = static_cast<double*>(it->GetIndexedPropertiesExternalArrayData());
-
-    return vector<double>(itData, itData+itLen);
+bool canConvJsToDoubleVector(Handle<Value> itv) {
+  if (itv->IsObject()) {
+    Handle<Object> it = itv->ToObject();
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) return true;
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) return true;
+    if (it->IsArray()) return true;
   }
+  return false;
+}
 
-  if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) {
-    size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
-    float* itData = static_cast<float*>(it->GetIndexedPropertiesExternalArrayData());
+vector<double> convJsToDoubleVector(Handle<Value> itv) {
+  if (itv->IsObject()) {
+    Handle<Object> it = itv->ToObject();
 
-    return vector<double>(itData, itData+itLen);
-  }
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) {
+      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
+      double* itData = static_cast<double*>(it->GetIndexedPropertiesExternalArrayData());
 
-  // Also handle regular JS arrays
-  if (it->IsArray()) {
-    Handle<Array> itArr = Handle<Array>::Cast(it);
-    size_t itArrLen = itArr->Length();
-    vector<double> ret(itArrLen);
-    for (size_t i=0; i<itArrLen; i++) {
-      ret[i] = itArr->Get(i)->NumberValue();
+      return vector<double>(itData, itData+itLen);
     }
-    return ret;
-  }
 
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) {
+      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
+      float* itData = static_cast<float*>(it->GetIndexedPropertiesExternalArrayData());
+
+      return vector<double>(itData, itData+itLen);
+    }
+
+    // Also handle regular JS arrays
+    if (it->IsArray()) {
+      Handle<Array> itArr = Handle<Array>::Cast(it);
+      size_t itArrLen = itArr->Length();
+      vector<double> ret(itArrLen);
+      for (size_t i=0; i<itArrLen; i++) {
+        ret[i] = itArr->Get(i)->NumberValue();
+      }
+      return ret;
+    }
+  }
   throw new tlbcore_type_err("convJsToDoubleVector: not an array");
 }
 

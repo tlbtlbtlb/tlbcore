@@ -18,7 +18,7 @@ function escapeCJson(o) {
   var oStr = JSON.stringify(o);
   var oStrLen = oStr.length;
   var cStrings = ['""'];
-  var chunk = 50;
+  var chunk = 80;
   for (var i=0; i<oStrLen; i+= chunk) {
     cStrings.push('"' + escapeCString(oStr.substr(i, chunk)) + '"');
   }

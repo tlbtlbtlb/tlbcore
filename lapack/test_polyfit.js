@@ -19,7 +19,7 @@ describe('mkPolyfit3', function() {
     var xs = _.range(-1, 1, 1/64);
     var ys = _.map(xs, function(x) { return Math.sin(x); });
 
-    var pf = ur.mkPolyfit3(xs, ys);
+    var pf = ur.mkPolyfit3(new ur.vector_double(xs), new ur.vector_double(ys));
     check(pf, xs, ys, 0.001);
   });
 
@@ -31,7 +31,7 @@ describe('mkPolyfit3', function() {
       ys[i] = Math.sin(xs[i]);
     }
 
-    var pf = ur.mkPolyfit3(xs, ys);
+    var pf = ur.mkPolyfit3(new ur.vector_double(xs), new ur.vector_double(ys));
     check(pf, xs, ys, 0.001);
   });
 

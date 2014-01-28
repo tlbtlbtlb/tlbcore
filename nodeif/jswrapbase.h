@@ -65,7 +65,8 @@ Handle<Value> ThrowTypeError(char const *s);
 string convJsStringToStl(Handle<String> it);
 Handle<Value> convStlStringToJs(string const &it);
 
-vector<double> convJsToDoubleVector(Handle<Object> it);
+bool canConvJsToDoubleVector(Handle<Value> it);
+vector<double> convJsToDoubleVector(Handle<Value> it);
 Handle<Object> convDoubleVectorToJs(vector<double> const &it);
 
 
