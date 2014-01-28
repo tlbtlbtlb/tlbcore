@@ -65,9 +65,12 @@ Handle<Value> ThrowTypeError(char const *s);
 string convJsStringToStl(Handle<String> it);
 Handle<Value> convStlStringToJs(string const &it);
 
-bool canConvJsToDoubleVector(Handle<Value> it);
-vector<double> convJsToDoubleVector(Handle<Value> it);
-Handle<Object> convDoubleVectorToJs(vector<double> const &it);
+bool canConvJsToVectorDouble(Handle<Value> it);
+vector<double> convJsToVectorDouble(Handle<Value> it);
+Handle<Object> convVectorDoubleToJs(vector<double> const &it);
+
+bool canConvJsToMapStringJsonstr(Handle<Value> itv);
+map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv);
 
 
 template <typename CONTENTS>

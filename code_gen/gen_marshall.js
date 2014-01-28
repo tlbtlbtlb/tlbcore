@@ -929,8 +929,15 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
 
     // When creating a vector<double>, allow passing in various native JS arrays
     if (type.templatename === 'vector' && type.templateargs[0] === 'double') {
-      f('if (args.Length() == 1 && canConvJsToDoubleVector(args[0])) {');
-      f('it->assign(convJsToDoubleVector(args[0]));');
+      f('if (args.Length() == 1 && canConvJsToVectorDouble(args[0])) {');
+      f('it->assign(convJsToVectorDouble(args[0]));');
+      f('}');
+    }
+
+    // When creating a map<string, jsonstr>, allow passing in an object
+    if (type.templatename === 'map' && type.templateargs[0] === 'string' && type.templateargs[1] === 'jsonstr') {
+      f('if (args.Length() == 1 && canConvJsToMapStringJsonstr(args[0])) {');
+      f('it->assign(convJsToMapStringJsonstr(args[0]));');
       f('}');
     }
 
@@ -1084,6 +1091,41 @@ StlCollectionCType.prototype.emitJsTestImpl = function(f) {
   f('var t3 = ur.JSTYPE.fromBuffer(t1b);');
   f('assert.strictEqual(t1.toString(), t3.toString());');
   f('});');
+
+  if (type.templatename === 'vector' && type.templateargs[0] === 'double') {
+    f('it("should accept vanilla arrays", function() {');
+    f('var t1 = new ur.JSTYPE([1.5,2,2.5]);');
+    f('t1.pushBack(2.75);');
+    f('assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5,2.75]");');
+    f('});');
+
+    f('it("should accept Float64 arrays", function() {');
+    f('var t1 = new ur.JSTYPE(new Float64Array([1.5,2,2.5]));');
+    f('assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5]");');
+    f('});');
+
+    f('it("should accept Float32 arrays", function() {');
+    f('var t1 = new ur.JSTYPE(new Float32Array([1.5,2,2.5]));');
+    f('assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5]");');
+    f('});');
+
+    f('it("should allow pushBack", function() {');
+    f('var t1 = new ur.JSTYPE();');
+    f('t1.pushBack(1.5);');
+    f('t1.pushBack(2.5);');
+    f('assert.strictEqual(t1.toJsonString(), "[1.5,2.5]");');
+    f('});');
+  }
+
+  if (type.templatename === 'map' && type.templateargs[0] === 'string' && type.templateargs[1] === 'jsonstr') {
+    f('it("should accept objects", function() {');
+    f('var t1 = new ur.JSTYPE({a: 1, b: "foo",c:{d:1}});');
+    f('assert.strictEqual(t1.toJsonString(), "{\\"a\\":1,\\"b\\":\\"foo\\",\\"c\\":{\\"d\\":1}}");');
+    f('});');
+    
+  }
+
+
   f('});');
 
 };

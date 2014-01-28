@@ -20,6 +20,7 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "../common/std_headers.h"
+#include "../common/jsonio.h"
 #include "./jswrapbase.h"
 
 
@@ -52,7 +53,7 @@ Handle<Value> convStlStringToJs(string const &it) {
    See https://github.com/joyent/node/issues/4201 for details on native arrays
 */
 
-bool canConvJsToDoubleVector(Handle<Value> itv) {
+bool canConvJsToVectorDouble(Handle<Value> itv) {
   if (itv->IsObject()) {
     Handle<Object> it = itv->ToObject();
     if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) return true;
@@ -62,7 +63,7 @@ bool canConvJsToDoubleVector(Handle<Value> itv) {
   return false;
 }
 
-vector<double> convJsToDoubleVector(Handle<Value> itv) {
+vector<double> convJsToVectorDouble(Handle<Value> itv) {
   if (itv->IsObject()) {
     Handle<Object> it = itv->ToObject();
 
@@ -91,10 +92,10 @@ vector<double> convJsToDoubleVector(Handle<Value> itv) {
       return ret;
     }
   }
-  throw new tlbcore_type_err("convJsToDoubleVector: not an array");
+  throw new tlbcore_type_err("convJsToVectorDouble: not an array");
 }
 
-Handle<Object> convDoubleVectorToJs(vector<double> const &it) {
+Handle<Object> convVectorDoubleToJs(vector<double> const &it) {
   static Persistent<Function> float64_array_constructor;
 
   if (float64_array_constructor.IsEmpty()) {
@@ -115,3 +116,55 @@ Handle<Object> convDoubleVectorToJs(vector<double> const &it) {
   
   return ret;
 }
+
+
+
+
+
+
+bool canConvJsToMapStringJsonstr(Handle<Value> itv) {
+  if (itv->IsObject()) return true;
+  return false;
+}
+
+map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
+
+  static Persistent<Object> JSON;
+  static Persistent<Function> JSON_stringify;
+
+  if (JSON_stringify.IsEmpty()) {
+    Local<Object> global = Context::GetCurrent()->Global();
+    Local<Value> tmpJSON = global->Get(String::New("JSON"));
+    assert(tmpJSON->IsObject());
+    JSON = Persistent<Object>::New(tmpJSON->ToObject());
+
+    Local<Value> tmpStringify = tmpJSON->ToObject()->Get(String::New("stringify"));
+    assert(!tmpStringify.IsEmpty() && "function not found: JSON.stringify");
+    assert(tmpStringify->IsFunction() && "not a function: JSON.stringify");
+    JSON_stringify = Persistent<Function>::New(tmpStringify.As<Function>());
+  }
+
+  if (itv->IsObject()) {
+    map < string, jsonstr > ret;
+
+    Handle<Object> it = itv->ToObject();
+    Handle<Array> itKeys = it->GetOwnPropertyNames();
+    
+    size_t itKeysLen = itKeys->Length();
+    for (size_t i=0; i<itKeysLen; i++) {
+      Handle<Value> itKey = itKeys->Get(i);
+      Handle<Value> itVal = it->Get(itKey);
+
+      string cKey = convJsStringToStl(itKey->ToString());
+
+      Handle<Value> itValJson = JSON_stringify->Call(JSON, 1, &itVal);
+
+      jsonstr cVal = convJsStringToStl(itValJson->ToString());
+
+      ret[cKey] = cVal;
+    }
+    return ret;
+  }
+  throw new tlbcore_type_err("convJsToMapStringJsonstr: not an object");
+}
+
