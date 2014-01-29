@@ -1,4 +1,4 @@
-var ur                  = require("../../nodeif/bin/ur"); // argh
+var ur                  = require('ur'); // argh
 var util                = require('util');
 var assert              = require('assert');
 

@@ -1,5 +1,5 @@
 var _                   = require('underscore');
-var ur                  = require("../../nodeif/bin/ur"); // argh
+var ur                  = require('ur');
 
 
 describe('mkPolyfit3', function() {

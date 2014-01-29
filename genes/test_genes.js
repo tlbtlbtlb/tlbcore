@@ -1,5 +1,5 @@
 var os = require('os');
-var ur = require('../nodeif/bin/tlbcore');
+var ur = require('ur');
 
 describe('ur.genes', function() {
   it('should work', function() {

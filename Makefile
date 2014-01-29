@@ -46,12 +46,12 @@ clean ::
 
 build :: build.nodeif
 build.nodeif :: 
-	cd nodeif && node-gyp build
+	cd nodeif && node-gyp build --jobs 8
 	ln -sf build/Release nodeif/bin
 
 
 test ::
-	mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js))
+	env NODE_PATH=$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js))
 
 
 size ::

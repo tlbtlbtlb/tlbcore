@@ -36,4 +36,4 @@ static void init(Handle<Object> target) {
   jsBoot(target);
 }
 
-NODE_MODULE(tlbcore, init);
+NODE_MODULE(ur, init);

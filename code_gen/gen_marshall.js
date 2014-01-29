@@ -197,7 +197,7 @@ TypeRegistry.prototype.emitMochaFile = function(files) {
   var typereg = this;
   var f = files.getFile('test_' + typereg.groupname + '.js');
   f('var _ = require("underscore");');
-  f('var ur = require("../nodeif/bin/ur");');
+  f('var ur = require("ur");');
   f('var util = require("util");');
   f('var assert = require("assert");');
   
@@ -1578,7 +1578,6 @@ StructCType.prototype.emitRdJson = function(f) {
 };
 
 StructCType.prototype.hasJsWrapper = function(f) {
-  var type = this;
   return true;
 };
 
