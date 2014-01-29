@@ -72,6 +72,7 @@ Handle<Object> convVectorDoubleToJs(vector<double> const &it);
 bool canConvJsToMapStringJsonstr(Handle<Value> itv);
 map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv);
 
+jsonstr jsonStringify(Handle<Value> value);
 
 template <typename CONTENTS>
 struct JsWrapGeneric : node::ObjectWrap {

@@ -127,11 +127,9 @@ bool canConvJsToMapStringJsonstr(Handle<Value> itv) {
   return false;
 }
 
-map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
-
+jsonstr jsonStringify(Handle<Value> value) {
   static Persistent<Object> JSON;
   static Persistent<Function> JSON_stringify;
-
   if (JSON_stringify.IsEmpty()) {
     Local<Object> global = Context::GetCurrent()->Global();
     Local<Value> tmpJSON = global->Get(String::New("JSON"));
@@ -143,6 +141,19 @@ map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
     assert(tmpStringify->IsFunction() && "not a function: JSON.stringify");
     JSON_stringify = Persistent<Function>::New(tmpStringify.As<Function>());
   }
+
+  if (value->IsObject()) {
+    Handle<Value> toJsonString = value->ToObject()->Get(String::New("toJsonString"));
+    if (!toJsonString.IsEmpty() && toJsonString->IsFunction()) {
+      Handle<Value> ret = toJsonString.As<Function>()->Call(value->ToObject(), 0, NULL);
+      return jsonstr(convJsStringToStl(ret->ToString()));
+    }
+  }
+
+  return jsonstr(convJsStringToStl(JSON_stringify->Call(JSON, 1, &value)->ToString()));
+}
+
+map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
 
   if (itv->IsObject()) {
     map < string, jsonstr > ret;
@@ -156,10 +167,7 @@ map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
       Handle<Value> itVal = it->Get(itKey);
 
       string cKey = convJsStringToStl(itKey->ToString());
-
-      Handle<Value> itValJson = JSON_stringify->Call(JSON, 1, &itVal);
-
-      jsonstr cVal = convJsStringToStl(itValJson->ToString());
+      jsonstr cVal = jsonStringify(itVal);
 
       ret[cKey] = cVal;
     }
