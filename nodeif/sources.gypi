@@ -1,6 +1,10 @@
 {
-  'cflags_cc!': ['-fno-rtti', '-fno-exceptions'],
-  'xcode_settings': {'GCC_ENABLE_CPP_EXCEPTIONS': 'YES', 'GCC_ENABLE_CPP_RTTI': 'YES'},
+  'xcode_settings': {
+    'GCC_ENABLE_CPP_EXCEPTIONS': 'YES', 
+    'GCC_ENABLE_CPP_RTTI': 'YES', 
+    'MACOSX_DEPLOYMENT_TARGET': '10.7',
+    'OTHER_CFLAGS': ['-stdlib=libc++']
+  },
   'sources': [
     '../nodeif/jswrapbase.cc',
     '../geom/geom_math.cc',

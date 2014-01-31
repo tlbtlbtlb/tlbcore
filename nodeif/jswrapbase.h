@@ -62,8 +62,10 @@ Handle<Value> ThrowInvalidArgs();
 Handle<Value> ThrowInvalidThis();
 Handle<Value> ThrowTypeError(char const *s);
 
-string convJsStringToStl(Handle<String> it);
-Handle<Value> convStlStringToJs(string const &it);
+bool canConvJsToString(Handle<Value> it);
+string convJsToString(Handle<Value> it);
+Handle<Value> convStringToJs(string const &it);
+Handle<Value> convStringToJsBuffer(string const &it);
 
 bool canConvJsToVectorDouble(Handle<Value> it);
 vector<double> convJsToVectorDouble(Handle<Value> it);
@@ -72,7 +74,8 @@ Handle<Object> convVectorDoubleToJs(vector<double> const &it);
 bool canConvJsToMapStringJsonstr(Handle<Value> itv);
 map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv);
 
-jsonstr jsonStringify(Handle<Value> value);
+jsonstr convJsToJsonstr(Handle<Value> value);
+Handle<Value> convJsonstrToJs(jsonstr const &it);
 
 template <typename CONTENTS>
 struct JsWrapGeneric : node::ObjectWrap {

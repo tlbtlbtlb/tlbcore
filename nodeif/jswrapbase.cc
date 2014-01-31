@@ -37,15 +37,31 @@ Handle<Value> ThrowTypeError(char const *s) {
 }
 
 
-string convJsStringToStl(Handle<String> it) {
-  String::Utf8Value v8str(it);
-  return string((char *) *v8str, v8str.length());
-}
 
-Handle<Value> convStlStringToJs(string const &it) {
+bool canConvJsToString(Handle<Value> it) {
+  return it->IsString() || node::Buffer::HasInstance(it);
+}
+string convJsToString(Handle<Value> it) {
+  if (it->IsString()) {
+    String::Utf8Value v8str(it);
+    return string((char *) *v8str, v8str.length());
+  }
+  else if (node::Buffer::HasInstance(it)) {
+    char *data = node::Buffer::Data(it);
+    size_t len = node::Buffer::Length(it);
+    return string(data, data+len);
+  }
+  else {
+    throw tlbcore_type_err("Can't convert to string");
+  }
+}
+Handle<Value> convStringToJs(string const &it) {
   return String::New(it.data(), it.size());
 }
-
+Handle<Value> convStringToJsBuffer(string const &it) {
+  node::Buffer *buf = node::Buffer::New(it.data(), it.size());
+  return Handle<Value>(buf->handle_);
+}
 
 
 /* ----------------------------------------------------------------------
@@ -118,6 +134,50 @@ Handle<Object> convVectorDoubleToJs(vector<double> const &it) {
 }
 
 
+static Persistent<Object> JSON;
+static Persistent<Function> JSON_stringify;
+static Persistent<Function> JSON_parse;
+
+static void setupJSON() {
+  if (JSON.IsEmpty()) {
+    Local<Object> global = Context::GetCurrent()->Global();
+    Local<Value> tmpJSON = global->Get(String::New("JSON"));
+    assert(tmpJSON->IsObject());
+    JSON = Persistent<Object>::New(tmpJSON->ToObject());
+    
+    Local<Value> tmpStringify = tmpJSON->ToObject()->Get(String::New("stringify"));
+    assert(!tmpStringify.IsEmpty() && "function not found: JSON.stringify");
+    assert(tmpStringify->IsFunction() && "not a function: JSON.stringify");
+    JSON_stringify = Persistent<Function>::New(tmpStringify.As<Function>());
+    
+    Local<Value> tmpParse = tmpJSON->ToObject()->Get(String::New("parse"));
+    assert(!tmpParse.IsEmpty() && "function not found: JSON.parse");
+    assert(tmpParse->IsFunction() && "not a function: JSON.parse");
+    JSON_parse = Persistent<Function>::New(tmpParse.As<Function>());
+  }
+}
+
+jsonstr convJsToJsonstr(Handle<Value> value) {
+  setupJSON();
+
+  if (value->IsObject()) {
+    Handle<Value> toJsonString = value->ToObject()->Get(String::New("toJsonString")); // defined on all generated stubs
+    if (!toJsonString.IsEmpty() && toJsonString->IsFunction()) {
+      Handle<Value> ret = toJsonString.As<Function>()->Call(value->ToObject(), 0, NULL);
+      return jsonstr(convJsToString(ret->ToString()));
+    }
+  }
+    
+  return jsonstr(convJsToString(JSON_stringify->Call(JSON, 1, &value)->ToString()));
+}
+
+Handle<Value> convJsonstrToJs(jsonstr const &it)
+{
+  setupJSON();
+  Handle<Value> itJs = convStringToJs(it.it);
+  Handle<Value> ret = JSON_parse->Call(JSON, 1, &itJs);
+  return ret;
+}
 
 
 
@@ -125,32 +185,6 @@ Handle<Object> convVectorDoubleToJs(vector<double> const &it) {
 bool canConvJsToMapStringJsonstr(Handle<Value> itv) {
   if (itv->IsObject()) return true;
   return false;
-}
-
-jsonstr jsonStringify(Handle<Value> value) {
-  static Persistent<Object> JSON;
-  static Persistent<Function> JSON_stringify;
-  if (JSON_stringify.IsEmpty()) {
-    Local<Object> global = Context::GetCurrent()->Global();
-    Local<Value> tmpJSON = global->Get(String::New("JSON"));
-    assert(tmpJSON->IsObject());
-    JSON = Persistent<Object>::New(tmpJSON->ToObject());
-
-    Local<Value> tmpStringify = tmpJSON->ToObject()->Get(String::New("stringify"));
-    assert(!tmpStringify.IsEmpty() && "function not found: JSON.stringify");
-    assert(tmpStringify->IsFunction() && "not a function: JSON.stringify");
-    JSON_stringify = Persistent<Function>::New(tmpStringify.As<Function>());
-  }
-
-  if (value->IsObject()) {
-    Handle<Value> toJsonString = value->ToObject()->Get(String::New("toJsonString"));
-    if (!toJsonString.IsEmpty() && toJsonString->IsFunction()) {
-      Handle<Value> ret = toJsonString.As<Function>()->Call(value->ToObject(), 0, NULL);
-      return jsonstr(convJsStringToStl(ret->ToString()));
-    }
-  }
-
-  return jsonstr(convJsStringToStl(JSON_stringify->Call(JSON, 1, &value)->ToString()));
 }
 
 map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
@@ -166,8 +200,8 @@ map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
       Handle<Value> itKey = itKeys->Get(i);
       Handle<Value> itVal = it->Get(itKey);
 
-      string cKey = convJsStringToStl(itKey->ToString());
-      jsonstr cVal = jsonStringify(itVal);
+      string cKey = convJsToString(itKey->ToString());
+      jsonstr cVal = convJsToJsonstr(itVal);
 
       ret[cKey] = cVal;
     }

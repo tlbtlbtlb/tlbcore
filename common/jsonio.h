@@ -177,4 +177,11 @@ jsonstr asJson(const T &value) {
   return ret;
 }
 
+template <typename T>
+bool rdJson(jsonstr const &sj, T &value) {
+  const char *s = sj.it.c_str();
+  return rdJson(s, value);
+}
+
+
 #endif

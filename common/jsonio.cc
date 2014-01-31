@@ -3,6 +3,7 @@
 
 
 jsonstr::jsonstr()
+  :it("null")
 {
 }
 
@@ -67,7 +68,7 @@ void wrJson(char *&s, bool const &value) {
 }
 bool rdJson(const char *&s, bool &value) {
   u_char c;
-  while (isspace(*s)) s++;
+  jsonSkipSpace(s);
   c = *s++;
   if (c == 't') {
     c = *s++;
@@ -99,6 +100,7 @@ bool rdJson(const char *&s, bool &value) {
     }
   }
   s--;
+  eprintf("rdJson/bool: failed at %s\n", s);
   return false;
 }
 
@@ -118,7 +120,7 @@ void wrJson(char *&s, int const &value) {
 }
 bool rdJson(const char *&s, int &value) {
   char *end = 0;
-  while (isspace(*s)) s++;
+  jsonSkipSpace(s);
   value = strtol(s, &end, 10);
   s = end;
   return true;
@@ -140,7 +142,7 @@ void wrJson(char *&s, float const &value) {
 }
 bool rdJson(const char *&s, float &value) {
   char *end = 0;
-  while (isspace(*s)) s++;
+  jsonSkipSpace(s);
   value = strtof(s, &end);
   s = end;
   return true;
@@ -162,7 +164,7 @@ void wrJson(char *&s, double const &value) {
 }
 bool rdJson(const char *&s, double &value) {
   char *end = 0;
-  while (isspace(*s)) s++;
+  jsonSkipSpace(s);
   value = strtod(s, &end);
   s = end;
   return true;
@@ -252,7 +254,7 @@ void wrJson(char *&s, string const &value) {
 }
 bool rdJson(const char *&s, string &value) {
   u_char c;
-  while (isspace(*s)) s++;
+  jsonSkipSpace(s);
   c = *s++;
   if (c == 0x22) {
     while (1) {
@@ -317,6 +319,7 @@ bool rdJson(const char *&s, string &value) {
     }
   }
   s--;
+  eprintf("rdJson/string: failed at %s\n", s);
   return false;
 }
 
@@ -333,15 +336,14 @@ void wrJson(char *&s, jsonstr const &value) {
 
 
 bool skipJson(char const *&s) {  
-  while (isspace(*s)) s++;
+  jsonSkipSpace(s);
   if (*s == '\"') {
-    s++;
     string tmp;
     rdJson(s, tmp);
   }
   else if (*s == '[') {
     s++;
-    while (isspace(*s)) s++;
+    jsonSkipSpace(s);
     while (1) {
       if (*s == ',') {
         s++;
@@ -357,7 +359,7 @@ bool skipJson(char const *&s) {
   }
   else if (*s == '{') {
     s++;
-    while (isspace(*s)) s++;
+    jsonSkipSpace(s);
     while (1) {
       if (*s == ',') {
         s++;
@@ -383,13 +385,14 @@ bool skipJson(char const *&s) {
 
 
 bool rdJson(char const *&s, jsonstr &value) {
-  while (isspace(*s)) s++;
+  jsonSkipSpace(s);
   char const *begin = s;
   if (!skipJson(s)) {
-    eprintf("skipJson from %s: false\n", begin);
+    if (0) eprintf("rdJson/jsonstr: failed at %s\n", begin);
     return false;
   }
   value.it = string(begin, s);
+  if (0) eprintf("rdJson: read `%s'\n", value.it.c_str());
   return true;
 }
 
