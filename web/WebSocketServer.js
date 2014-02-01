@@ -32,7 +32,7 @@ var util                = require('util');
 var logio               = require('./logio');
 var WebSocketHelper     = require('./WebSocketHelper');
 
-var verbose = 1;
+var verbose = 3;
 
 exports.mkWebSocketRpc = mkWebSocketRpc;
 
@@ -137,15 +137,23 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
   }
 
   function emitMsg(msg) {
-    var msgParts = WebSocketHelper.stringify(msg);
-    _.each(msgParts.binaries, function(data) {
+    var binaries = [];
+    var json;
+    if (JSON.withFastJson) {
+      JSON.withFastJson(function() {
+        json = WebSocketHelper.stringify(msg, binaries);
+      });
+    } else {
+      json = WebSocketHelper.stringify(msg, binaries);
+    }
+    _.each(binaries, function(data) {
       // See http://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer
       // and http://nodejs.org/api/buffer.html
-      var buf = new Buffer(new Uint8Array(data));
+      var buf = Buffer.isBuffer(data) ? data : new Buffer(new Uint8Array(data));
       if (verbose >= 3) logio.O(handlers.label, 'buffer length ' + buf.length);
       wsc.sendBytes(buf);
     });
-    wsc.sendUTF(msgParts.json);
-    if (verbose >= 2) logio.O(handlers.label, msgParts.json);
+    wsc.sendUTF(json);
+    if (verbose >= 2) logio.O(handlers.label, json);
   }
 }

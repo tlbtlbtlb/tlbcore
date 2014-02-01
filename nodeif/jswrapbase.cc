@@ -24,6 +24,8 @@
 #include "./jswrapbase.h"
 
 
+bool fastJsonFlag;
+
 Handle<Value> ThrowInvalidArgs() {
   return ThrowException(Exception::TypeError(String::New("Invalid arguments")));
 }

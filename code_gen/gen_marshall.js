@@ -249,6 +249,10 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         f(funcInfo.funcname + '(' + callargs.join(', ') + ');');
         f('return scope.Close(Undefined());');
         break;
+      case 'buffer':
+        f('string ret = ' + funcInfo.funcname + '(' + callargs.join(', ') + ');');
+        f('return scope.Close(convStringToJsBuffer(ret));');
+        break;
       default:
         f(funcInfo.returnTypename + ' ret = ' + funcInfo.funcname + '(' + callargs.join(', ') + ');');
         f('return scope.Close(' + typereg.types[funcInfo.returnTypename].getCppToJsExpr('ret') + ');');
@@ -402,7 +406,7 @@ function emitArgSwitch(f, typereg, thisType, argSets) {
   var ifSep = '';
   _.each(argSets, function(argSet) {
     
-    f(ifSep + 'if (args.Length() == ' + argSet.args.length +
+    f(ifSep + 'if (args.Length() ' + (argSet.ignoreExtra ? '>=' : '==') + ' ' + argSet.args.length +
       _.map(argSet.args, function(argInfo, argi) {
         var argType = typereg.types[argInfo.typename];
         return ' && ' + argType.getJsToCppTest('args[' + argi + ']');
@@ -415,11 +419,18 @@ function emitArgSwitch(f, typereg, thisType, argSets) {
     });
 
     if (argSet.returnTypename) {
-      var returnType = typereg.types[argSet.returnTypename];
-      f(returnType.getVarDecl('ret') + ';');
-      argSet.code();
-      
-      f('return scope.Close(' + returnType.getCppToJsExpr('ret') + ');');
+      switch (argSet.returnTypename) {
+      case 'buffer':
+        f('string ret;');
+        argSet.code();
+        f('return scope.Close(convStringToJsBuffer(ret));');
+        break;
+      default:
+        var returnType = typereg.types[argSet.returnTypename];
+        f(returnType.getVarDecl('ret') + ';');
+        argSet.code();
+        f('return scope.Close(' + returnType.getCppToJsExpr('ret') + ');');
+      }
     } else {
       argSet.code();
     }
@@ -853,7 +864,7 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, memoryExpr) {
   case 'string':
     return 'convStringToJs(' + valueExpr + ')';
   case 'jsonstr':
-    return 'convStringToJs((' + valueExpr + ').it)';
+    return 'convJsonstrToJs(' + valueExpr + ')';
   case 'void':
     return 'Undefined()';
   default:
@@ -1024,15 +1035,38 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
 
   if (1) {
     f('Handle<Value> jsToJSON_JSTYPE(const TYPENAME &it) {');
+    f('if (fastJsonFlag) {');
+    f('string fjbItem = asJson(it).it;');
+    f('if (fjbItem.size() > 20) {');
     f('Local<Object> ret = Object::New();');
-    f('ret->Set(String::NewSymbol("__type"), String::NewSymbol("JSTYPE"));');
-    // WRITEME: actually do something?
+    f('ret->Set(String::NewSymbol("__wsType"), String::New("jsonString"));');
+    f('ret->Set(String::NewSymbol("json"), convStringToJs(fjbItem));');
     f('return ret;');
     f('}');
+    f('}');
 
+    if (type.templateName === 'vector') {
+      f('Local<Array> ret = Array::New(it.size());');
+      f('for (size_t i=0; i<it.size(); i++) {');
+      f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
+      f('}');
+      f('return ret;');
+    }
+    else if (type.templateName === 'map' && type.templateArgs[0] === 'string') {
+      f('Local<Object> ret = Object::New();');
+      f('for (TYPENAME::const_iterator i=it.begin(); i!=it.end(); i++) {');
+      f('ret->Set(' + type.templateArgTypes[0].getCppToJsExpr('i->first') + ', ' + type.templateArgTypes[1].getCppToJsExpr('i->second') + ');');
+      f('}');
+      f('return ret;');
+    }
+    else {
+      f('return Undefined();');
+    }
+    f('}');
+  
     emitJsWrap(f, 'JSTYPE_toJSON', function() {
       emitArgSwitch(f, type.reg, type, [{
-        args: [], code: function() {
+        args: [], ignoreExtra: true, code: function() {
           f('return scope.Close(jsToJSON_JSTYPE(*thisObj->it));');
         }
       }]);
@@ -1436,8 +1470,8 @@ StructCType.prototype.emitHostImpl = function(f) {
   if (1) {
     f('');
     f('void TYPENAME::addSchemas(map<string, jsonstr> &all) {');
-    f('if (all["' + type.jsTypename + '"].it.size()) return;');
-    f('all["' + type.jsTypename + '"] = jsonstr(string(schema));');
+    f('if (!all["' + type.jsTypename + '"].isNull()) return;');
+    f('all["' + type.jsTypename + '"] = jsonstr(schema);');
     _.each(type.getMemberTypes(), function(type) {
       if (type.isStruct) {
         f(type.typename + '::addSchemas(all); /* ' + type.constructor.name + ' */');
@@ -1707,7 +1741,19 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
   if (1) {
     f('Handle<Value> jsToJSON_JSTYPE(const TYPENAME &it) {');
+
+    f('if (fastJsonFlag) {');
+    f('string fjbItem = asJson(it).it;');
+    f('if (fjbItem.size() > 20) {');
     f('Local<Object> ret = Object::New();');
+    f('ret->Set(String::NewSymbol("__wsType"), String::New("jsonString"));');
+    f('ret->Set(String::NewSymbol("json"), convStringToJs(fjbItem));');
+    f('return ret;');
+    f('}');
+    f('}');
+
+    f('Local<Object> ret = Object::New();');
+    
     f('ret->Set(String::NewSymbol("__type"), String::NewSymbol("JSTYPE"));');
     _.each(type.orderedNames, function(name) {
       var memberType = type.nameToType[name];
@@ -1730,11 +1776,14 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     });
     f('return ret;');
     f('}');
-    f('Handle<Value> jsWrap_JSTYPE_toJSON(const Arguments &args) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
-    f('return scope.Close(jsToJSON_JSTYPE(*thisObj->it));');
-    f('}');
+
+    emitJsWrap(f, 'JSTYPE_toJSON', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: [], ignoreExtra: true, code: function() {
+          f('return scope.Close(jsToJSON_JSTYPE(*thisObj->it));');
+        }
+      }]);
+    });
     methods.push('toJSON');
   }
 
@@ -1747,6 +1796,15 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       }]);
     });
     methods.push('toJsonString');
+
+    emitJsWrap(f, 'JSTYPE_toJsonBuffer', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: [], returnTypename: 'buffer', code: function() {
+          f('ret = asJson(*thisObj->it).it;');
+        }
+      }]);
+    });
+    methods.push('toJsonBuffer');
 
     emitJsWrap(f, 'JSTYPE_fromString', function() {
       emitArgSwitch(f, type.reg, null, [

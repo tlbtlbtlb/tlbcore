@@ -7,6 +7,7 @@
   },
   'sources': [
     '../nodeif/jswrapbase.cc',
+    '../nodeif/fastJson.cc',
     '../geom/geom_math.cc',
     '../genes/genes.cc',
     '../genes/test_genes.cc',

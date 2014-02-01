@@ -14,6 +14,7 @@ struct jsonstr {
   jsonstr(const char *str);
   jsonstr(const char *begin, const char *end);
   ~jsonstr();
+  bool isNull();
   string it;
 };
 

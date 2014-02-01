@@ -7,6 +7,7 @@ function HitDetector() {
   hd.mdX = hd.mdY = null;
   hd.ctx = null;
   hd.hoverActive = false;
+  hd.dragging = null;
 }
 
 HitDetector.prototype.clear = function() {
@@ -15,6 +16,7 @@ HitDetector.prototype.clear = function() {
   hd.scrolls = null;
   hd.ctx = null;
   hd.hoverActive = false;
+  hd.dragging = null;
 };
 
 HitDetector.prototype.beginDrawing = function(ctx) {
@@ -48,7 +50,7 @@ HitDetector.prototype.add = function(l, t, r, b, draw, onClick, onHover) {
     draw();
     hd.ctx.restore();
   }
-  if (onHover && inside && !hd.hoverActive) {
+  if (onHover && inside && !hd.hoverActive && !hd.dragging) {
     hd.hoverActive = true;
     onHover();
   }

@@ -17,11 +17,14 @@ exports.stringify = stringify;
 exports.parse = parse;
 exports.RpcPendingQueue = RpcPendingQueue;
 
-function stringify(msg) {
-
-  var binaries = [];
+function stringify(msg, binaries) {
 
   var json = JSON.stringify(msg, function(k, v) {
+    
+    /*
+      I'd like to use this optimization for objects that implement toJsonString, but it doesn't work because the .toJSON method is called first which
+      turns them into regular objects
+     */
     if (v && v.constructor) {
       if (v.constructor === ArrayBuffer) {
         binaries.push(v);
@@ -68,13 +71,16 @@ function stringify(msg) {
     return v;
   });
 
-  return {json: json, binaries: binaries};
+  return json;
 }
 
 function parse(json, binaries) {
   var msg = JSON.parse(json, function(k, v) {
     if (_.isObject(v) && v.__wsType) {
-      if (v.__wsType === 'ArrayBuffer') {
+      if (v.__wsType === 'jsonString') {
+        return JSON.parse(v.json);
+      }
+      else if (v.__wsType === 'ArrayBuffer') {
         return binaries[v.binaryIndex];
       }
       else if (v.__wsType === 'DataView') {

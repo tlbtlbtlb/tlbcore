@@ -28,11 +28,13 @@ Handle<Value> gene_t1(const Arguments &args) {
 }
 
 
+void jsInit_fastJson(Handle<Object> exports);
 void jsBoot(Handle<Object> target);
 
 static void init(Handle<Object> target) {
   NODE_SET_METHOD(target, "runLatencyTest", runLatencyTest);
   NODE_SET_METHOD(target, "gene_t1", gene_t1);
+  jsInit_fastJson(exports);
   jsBoot(target);
 }
 

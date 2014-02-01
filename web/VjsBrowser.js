@@ -856,7 +856,7 @@ function errlog() {
     }
     if (stack) err += '\n' + stack.toString();
 
-    window.rconsole.tx({cmd: 'errlog', err: err, ua: navigator.userAgent});
+    window.rconsole.tx({cmd: 'errlog', args: {err: err, ua: navigator.userAgent}});
   }
 }
 

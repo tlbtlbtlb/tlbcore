@@ -199,7 +199,7 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
     }
     if (!up.host) up.host = 'localhost:' + bindPort.toString();
     if (up.host.match(/^[\w\.]$/)) up.host = up.host + ':' + bindPort.toString()
-    logio.I('http', req.url, up, req.headers);
+    if (0) logio.I('http', req.url, up, req.headers);
 
     var pathc = up.pathname.substr(1).split('/');
     var hostPrefix = webServer.hostPrefixes[up.host];

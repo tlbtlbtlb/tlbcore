@@ -135,13 +135,14 @@ function mkWebSocketRpc(wsc, handlers) {
 
   function emitMsg(msg) {
     // Consider async.queue to limit concurrency here if it's a problem
-    var msgParts = WebSocketHelper.stringify(msg);
-    _.each(msgParts.binaries, function(data) {
+    var binaries = [];
+    var json = WebSocketHelper.stringify(msg, binaries);
+    _.each(binaries, function(data) {
       wsc.send(data);
       if (verbose >= 3) console.log(wsc.url + ' < binary length=', data.byteLength);
     });
-    if (verbose >= 2) console.log(wsc.url + ' <', msgParts.json);
-    wsc.send(msgParts.json);
+    if (verbose >= 2) console.log(wsc.url + ' <', json);
+    wsc.send(json);
   }
 
 }

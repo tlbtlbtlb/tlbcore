@@ -1,11 +1,19 @@
 var _                   = require('underscore');
 var assert              = require('assert');
 var WebSocketHelper     = require('./WebSocketHelper');
+var ur                  = require('ur');
 
 function wshPipe(msg) {
-  var msgParts = WebSocketHelper.stringify(msg);
-  if (0) console.log(msgParts.json, msgParts.binaries);
-  var msg2 = WebSocketHelper.parse(msgParts.json, msgParts.binaries);
+  var binaries = [];
+  var json;
+  if (JSON.withFastJson) {
+    JSON.withFastJson(function() {
+      json = WebSocketHelper.stringify(msg, binaries);
+    });
+  } else {
+    json = WebSocketHelper.stringify(msg, binaries);
+  }
+  var msg2 = WebSocketHelper.parse(json, binaries);
   return msg2;
 }
 
@@ -30,6 +38,20 @@ describe('WebSocketHelper', function() {
       assert.ok(msg2.bar.constructor === T);
       assert.ok(msg2.bar.length === 3);
     });
+  });
+});
+
+describe('WebSocketHelper', function() {
+  it('should be fast for large STL collections', function() {
+    var vd = new ur.vector_double();
+    for (var i=0; i<1000; i++) {
+      vd.pushBack(i*123);
+    }
+    var msg1 = {foo: vd};
+    for (var iter=0; iter<50; iter++) {
+      var msg2 = wshPipe(msg1);
+    }
+    assert.equal(msg2.foo[10], 1230);
   });
 });
 

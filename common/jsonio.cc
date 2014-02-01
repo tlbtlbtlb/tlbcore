@@ -27,6 +27,11 @@ jsonstr::~jsonstr()
 {
 }
 
+bool jsonstr::isNull()
+{
+  return it == string("null") || it.size() == 0;
+}
+
 
 // Spec at http://www.json.org/
 

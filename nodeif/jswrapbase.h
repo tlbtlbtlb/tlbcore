@@ -27,6 +27,8 @@
 using namespace node;
 using namespace v8;
 
+extern bool fastJsonFlag;
+
 struct JsWrapOwnership {
   JsWrapOwnership() : refcnt(0) {}
   virtual ~JsWrapOwnership() {}
