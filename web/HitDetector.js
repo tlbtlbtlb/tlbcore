@@ -38,27 +38,27 @@ HitDetector.prototype.mouseIn = function(l, t, r,b) {
 };
 
 
-HitDetector.prototype.add = function(l, t, r, b, draw, onClick, onHover) {
+HitDetector.prototype.add = function(l, t, r, b, actions) {
   var hd = this;
   var inside = hd.mouseIn(l, t, r, b);
-  if (onClick) {
-    hd.hits.push([l, t, r, b, onClick]);
+  if (actions.onClick || actions.onDown || actions.onUp) {
+    hd.hits.push([l, t, r, b, actions]);
   }
-  if (draw) {
+  if (actions.draw) {
     hd.ctx.save();
     if (!(hd.buttonDown && inside)) hd.ctx.globalAlpha = 0.5;
-    draw();
+    actions.draw();
     hd.ctx.restore();
   }
-  if (onHover && inside && !hd.hoverActive && !hd.dragging) {
+  if (actions.onHover && inside && !hd.hoverActive && !hd.dragging) {
     hd.hoverActive = true;
-    onHover();
+    actions.onHover();
   }
 };
 
-HitDetector.prototype.addScroll = function(l, t, r, b, onScroll) {
+HitDetector.prototype.addScroll = function(l, t, r, b, actions) {
   var hd = this;
-  hd.scrolls.push([l, t, r, b, onScroll]);
+  hd.scrolls.push([l, t, r, b, actions]);
 };
 
 HitDetector.prototype.find = function(x, y) {

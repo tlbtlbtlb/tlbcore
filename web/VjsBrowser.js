@@ -35,8 +35,8 @@ function gotoHash(hash, e) {
 
   action = $.action[hash];
   if (!action) {
-    var hl = hash.split('_', 2);
-    rest = hl[1] || '';
+    var hl = hash.split('_');
+    rest = hl.slice(1).join('_') || '';
     action = $.actionPrefix[hl[0]];
   }
 
@@ -707,6 +707,125 @@ $.fn.animation2 = function(m) {
     }
   }
 };
+
+
+$.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
+  var top = this;
+  var canvas = top[0];
+
+  var avgTime = null;
+  var drawCount = 0;
+  var hd = new HitDetector(); // Persistent
+
+  top.on('wheel', function(ev) {
+    var oev = ev.originalEvent;
+    var mdX = oev.offsetX; // offsetX not in ev for this event type, maybe it's not portable?
+    var mdY = oev.offsetY;
+    var action = hd.findScroll(mdX, mdY);
+    if (action && action.onScroll) {
+      onScroll(oev.deltaX, oev.deltaY);
+      m.emit('changed');
+      return false;
+    }
+  });
+  
+  top.on('mousedown', function(ev) {
+    var mdX = ev.offsetX;
+    var mdY = ev.offsetY;
+    var action = hd.find(mdX, mdY);
+    if (action && (action.onDown || action.onClick || action.onUp)) {
+      hd.buttonDown = true;
+      hd.mdX = mdX;
+      hd.mdY = mdY;
+      action.onDown(mdX, mdY);
+    }
+    m.emit('changed');
+    return false;
+  });
+
+  top.on('mousemove', function(ev) {
+    var mdX = ev.offsetX;
+    var mdY = ev.offsetY;
+    var action = hd.find(mdX, mdY);
+    if (hd.buttonDown || action || hd.hoverActive || hd.dragging) {
+      hd.mdX = mdX;
+      hd.mdY = mdY;
+      if (hd.dragging) {
+        hd.dragging(mdX, mdY);
+      }
+      m.emit('changed');
+    }
+  });
+  
+  top.on('mouseup', function(ev) {
+    hd.mdX = hd.mdY = null;
+    hd.buttonDown = false;
+    var mdX = ev.offsetX;
+    var mdY = ev.offsetY;
+    var action = hd.find(mdX, mdY);
+    if (action && action.onClick) {
+      action.onClick();
+    }
+    if (action && action.onUp) {
+      action.onUp();
+    }
+    hd.dragging = null;
+    m.emit('changed');
+    return false;
+  });
+
+  m.on('animate', function() {
+    var t0 = Date.now();
+    drawCount++;
+    var ctx = canvas.getContext('2d');
+    var pixelRatio = canvas.pixelRatio;
+    ctx.save();
+    ctx.scale(pixelRatio, pixelRatio); // setTransform(canvas.pixelRatio, 0, 0, 0, canvas.pixelRatio, 0);
+    ctx.textLayer = mkDeferQ();
+    ctx.buttonLayer = mkDeferQ();
+    ctx.cursorLayer = mkDeferQ();
+    hd.beginDrawing(ctx);
+    var cw = canvas.width / pixelRatio;
+    var ch = canvas.height / pixelRatio;
+    var lo = {boxL: 0, boxT: 0, boxR: cw, boxB: ch, 
+              px: 1, 
+              snap: function(x) { return Math.round(x * pixelRatio) / pixelRatio; },
+              snap5: function(x) { return (Math.round(x * pixelRatio - 0.5) + 0.5) / pixelRatio; },
+              thinWidth: 1 / pixelRatio
+             };
+
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.lineWidth = 1.0;
+    ctx.strokeStyle = '#000000';
+    ctx.fillStyle = '#000000';
+
+    drawFunc(m, ctx, hd, lo, o);
+
+    ctx.textLayer.now();
+    ctx.buttonLayer.now();
+    ctx.cursorLayer.now();
+    ctx.textLayer = ctx.buttonLayer = ctx.cursorLayer = undefined; // GC paranoia
+
+    if (m.uiDebug >= 1) {
+      var t1 = Date.now();
+      if (avgTime === null) {
+        avgTime = t1 - t0;
+      } else {
+        avgTime += (t1 - t0 - avgTime)*0.05;
+      }
+      ctx.fillStyle = '#888888';
+      ctx.font = '8px Arial';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+      ctx.fillText(drawCount.toString() + '  ' + avgTime.toFixed(2), lo.boxR - 5, lo.boxT + 1);
+    }
+    hd.endDrawing();
+    ctx.restore();
+  });
+};
+
+
+
 
 
 /* ----------------------------------------------------------------------
