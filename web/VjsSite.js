@@ -97,6 +97,7 @@ WebServer.prototype.setupBaseProvider = function() {
   if (1) p.addScript(require.resolve('./WebSocketBrowser.js'), 'WebSocketBrowser');
   if (1) p.addScript(require.resolve('./VjsBrowser.js'));
   if (1) p.addScript(require.resolve('./HitDetector.js'));
+  if (1) p.addScript(require.resolve('./canvasutils.js'));
 
   webServer.baseProvider = p;
 };
