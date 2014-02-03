@@ -4,42 +4,43 @@
 */
 
 function drawTooltip(ctx, lo, x, y, str) {
-  var lines = str.split('\n');
+  ctx.tooltipLayer(function() {
+    var lines = str.split('\n');
+    ctx.font = '12px Arial';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    var lineH = 20;
+    var textW = _.reduce(lines, function(prevMax, line) { return Math.max(prevMax, ctx.measureText(str).width); }, 20);
+    var textH = lineH * lines.length;
 
-  ctx.font = '12px Arial';
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'left';
-  var lineH = 20;
-  var textW = _.reduce(lines, function(prevMax, line) { return Math.max(prevMax, ctx.measureText(str).width); }, 20);
-  var textH = lineH * lines.length;
+    if (y < lo.boxT + textH + 10) { // close to top, show below
+      y += textH/2 + 10;
+    } else {
+      y -= textH/2 + 10;
+    }
+    if (x < lo.boxL + 10) {
+      x = lo.boxL + 10;
+    } 
+    else if (x > lo.boxR - 10 - textW) {
+      x = lo.boxR - 10 - textW;
+    }
 
-  if (y < lo.boxT + textH + 10) { // close to top, show below
-    y += textH/2 + 10;
-  } else {
-    y -= textH/2 + 10;
-  }
-  if (x < lo.boxL + 10) {
-    x = lo.boxL + 10;
-  } 
-  else if (x > lo.boxR - 10 - textW) {
-    x = lo.boxR - 10 - textW;
-  }
-
-  var ttL = x - 6;
-  var ttR = x + 6 + textW;
-  var ttT = y - textH/2;
-  var ttB = y + textH/2 + 2;
-  ctx.beginPath();
-  ctx.moveTo(ttL, ttT);
-  ctx.lineTo(ttR, ttT);
-  ctx.lineTo(ttR, ttB);
-  ctx.lineTo(ttL, ttB);
-  ctx.closePath();
-  ctx.fillStyle = 'rgba(255,255,202,0.9)';
-  ctx.fill();
-  ctx.fillStyle = '#000023';
-  _.each(lines, function(line, lineIndex) {
-    ctx.fillText(line, x, ttT + 10 + lineH * lineIndex);
+    var ttL = x - 6;
+    var ttR = x + 6 + textW;
+    var ttT = y - textH/2;
+    var ttB = y + textH/2 + 2;
+    ctx.beginPath();
+    ctx.moveTo(ttL, ttT);
+    ctx.lineTo(ttR, ttT);
+    ctx.lineTo(ttR, ttB);
+    ctx.lineTo(ttL, ttB);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,202,0.9)';
+    ctx.fill();
+    ctx.fillStyle = '#000023';
+    _.each(lines, function(line, lineIndex) {
+      ctx.fillText(line, x, ttT + 10 + lineH * lineIndex);
+    });
   });
 }
 

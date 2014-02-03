@@ -191,7 +191,9 @@ $.defPages = function(prefix, parseToken, fmtToken, fmtPage) {
     return false;
   };
   $.fn[pageFuncName] = function(o) {
-    this.setHash(prefix + '_' + fmtToken(o));
+    if (fmtToken) {
+      this.setHash(prefix + '_' + fmtToken(o));
+    }
     fmtPage.call(this, o);
     return this;
   };
@@ -737,7 +739,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       hd.buttonDown = true;
       hd.mdX = mdX;
       hd.mdY = mdY;
-      action.onDown(mdX, mdY);
+      if (action.onDown) action.onDown(mdX, mdY);
     }
     m.emit('changed');
     return false;
@@ -781,9 +783,11 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     var pixelRatio = canvas.pixelRatio;
     ctx.save();
     ctx.scale(pixelRatio, pixelRatio); // setTransform(canvas.pixelRatio, 0, 0, 0, canvas.pixelRatio, 0);
+    ctx.curLayer = function(f) { return f(); }
     ctx.textLayer = mkDeferQ();
     ctx.buttonLayer = mkDeferQ();
     ctx.cursorLayer = mkDeferQ();
+    ctx.tooltipLayer = mkDeferQ();
     hd.beginDrawing(ctx);
     var cw = canvas.width / pixelRatio;
     var ch = canvas.height / pixelRatio;
@@ -804,7 +808,8 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     ctx.textLayer.now();
     ctx.buttonLayer.now();
     ctx.cursorLayer.now();
-    ctx.textLayer = ctx.buttonLayer = ctx.cursorLayer = undefined; // GC paranoia
+    ctx.tooltipLayer.now();
+    ctx.textLayer = ctx.buttonLayer = ctx.cursorLayer = ctx.tooltipLayer = ctx.curLayer = undefined; // GC paranoia
 
     if (m.uiDebug >= 1) {
       var t1 = Date.now();

@@ -50,6 +50,9 @@ HitDetector.prototype.add = function(l, t, r, b, actions) {
     actions.draw();
     hd.ctx.restore();
   }
+  else if (actions.drawCustom) {
+    actions.drawCustom(hd.buttonDown && inside);
+  }
   if (actions.onHover && inside && !hd.hoverActive && !hd.dragging) {
     hd.hoverActive = true;
     actions.onHover();
