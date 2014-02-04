@@ -32,20 +32,20 @@ HitDetector.prototype.endDrawing = function(ctx) {
   hd.ctx = null;
 };
 
-HitDetector.prototype.mouseIn = function(l, t, r, b) {
+HitDetector.prototype.mouseIn = function(t, r, b, l) {
   var hd = this;
   return hd.mdX >= l && hd.mdX <= r && hd.mdY >= t && hd.mdY <= b;
 };
 
 
-HitDetector.prototype.add = function(l, t, r, b, actions) {
+HitDetector.prototype.add = function(t, r, b, l, actions) {
   var hd = this;
   if (!(l <= r && t <= b)) {
-    throw new Error('HitDetector region ' + l.toString() + ',' + t.toString() + ',' + r.toString() + ',' + b.toString() + ' invalid');
+    throw new Error('HitDetector region (' + t.toString() + ',' + r.toString() + ',' + b.toString() + ',' + l.toString() + ') invalid');
   }
-  var inside = hd.mouseIn(l, t, r, b);
+  var inside = hd.mouseIn(t, r, b, l);
   if (actions.onClick || actions.onDown || actions.onUp) {
-    hd.hits.push({l: l, t: t, r: r, b :b, actions: actions});
+    hd.hits.push({t: t, r: r, b :b, l: l, actions: actions});
   }
   if (actions.draw) {
     hd.ctx.save();
@@ -62,9 +62,9 @@ HitDetector.prototype.add = function(l, t, r, b, actions) {
   }
 };
 
-HitDetector.prototype.addScroll = function(l, t, r, b, actions) {
+HitDetector.prototype.addScroll = function(t, r, b, l, actions) {
   var hd = this;
-  hd.scrolls.push({l: l, t: t, r: r, b: b, actions: actions});
+  hd.scrolls.push({t: t, r: r, b: b, l: l, actions: actions});
 };
 
 /*

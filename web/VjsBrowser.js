@@ -742,15 +742,12 @@ $.fn.animation2 = function(m) {
     lo.child({boxL: (lo.boxL+lo.boxR)/2})
 
   Use .snap or .snap5 to snap a coordinate to the corner or center of a device pixel
-
-  I use ltbr order here, instead of trbl like CSS. Oops.
-
 */
-function BoxLayout(l, t, r, b, pixelRatio) {
-  this.boxL = this.canvasL = l;
+function BoxLayout(t, r, b, l, pixelRatio) {
   this.boxT = this.canvasT = t;
   this.boxR = this.canvasR = r;
   this.boxB = this.canvasB = b;
+  this.boxL = this.canvasL = l;
   this.pixelRatio = pixelRatio;
   this.thinWidth = 1 / pixelRatio;
 }
@@ -894,7 +891,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     hd.beginDrawing(ctx);
     var cw = canvas.width / pixelRatio;
     var ch = canvas.height / pixelRatio;
-    var lo = new BoxLayout(0, 0, cw, ch, pixelRatio);
+    var lo = new BoxLayout(0, cw, ch, 0, pixelRatio);
 
     ctx.clearRect(0, 0, cw, ch);
     ctx.lineWidth = 1.0;

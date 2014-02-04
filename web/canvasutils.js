@@ -44,7 +44,7 @@ function drawTooltip(ctx, lo, x, y, str) {
   });
 }
 
-function mkShinyPattern(ctx, butL, butT, butR, butB, loCol, hiCol) {
+function mkShinyPattern(ctx, butT, butR, butB, butL, loCol, hiCol) {
   var cX = (butL + butR)/2;
   var skew = 0;
   var pat = ctx.createLinearGradient(cX-skew, butT, cX+skew, butB); // vertical
@@ -56,7 +56,7 @@ function mkShinyPattern(ctx, butL, butT, butR, butB, loCol, hiCol) {
   return pat;
 }
 
-function drawRountangle(ctx, l, t, r, b, rad) {
+function drawRountangle(ctx, t, r, b, l, rad) {
   ctx.moveTo(l+rad, t);
   ctx.lineTo(r-rad, t);
   ctx.arc(r-rad, t+rad, rad, -Math.PI/2, 0);
