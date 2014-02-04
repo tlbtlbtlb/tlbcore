@@ -184,6 +184,7 @@ $.defPage = function(prefix, fmtPage) {
 
 $.defPages = function(prefix, parseToken, fmtToken, fmtPage) {
   var pageFuncName = 'page_' + prefix;
+  console.log('defPages', prefix);
 
   $.actionPrefix[prefix] = function(e, tail) {
     var o = parseToken(tail);
@@ -640,6 +641,12 @@ $.fn.syncChildren = function(newItems, options) {
     };
 }());
 
+/*
+  Arrange for a function to be called to animate the DOM.
+  The function should be called about once per deltat (in milliseconds).
+  It's called with (dom, nTicks) where nTicks is the count of deltat periods elapsed. It should be 1 most of the time
+  but can be more if we should jump multiple steps due to slow redraw
+*/
 $.fn.animation = function(f, deltat) {
   var self = this;
   window.requestAnimationFrame(wrap);
@@ -673,6 +680,25 @@ $.fn.animation = function(f, deltat) {
   }
 };
 
+/*
+  Arrange for a model to be used in animating the DOM efficiently.
+
+  Instead of just calling
+    m.on('changed', function() { ... draw stuff ... })
+  do this:
+    top.animation2(m);
+    m.on('animate', function() { ... draw stuff ... });
+
+  We use requestAnimationFrame to turn multiple 'changed' notifications into a single 'animate'
+  notification per screen refresh.
+
+  As well as emitting the 'animate' signal, it calls m.animate(dt) where dt is the time (in seconds) elapsed since
+  the last call, limited to reasonable bounds to provide smooth animation.
+  
+  It also checks on each animation whether the the dom element is still in the document, and shuts
+  down when not.
+
+*/
 $.fn.animation2 = function(m) {
   var top = this;
 
@@ -701,7 +727,7 @@ $.fn.animation2 = function(m) {
 
       var dt = (lastTime ? Math.min(curTime - lastTime, 200) : 20) * 0.001;
       lastTime = curTime;
-      m.animate(dt);
+      if (m.animate) m.animate(dt);
       m.emit('animate');
       window.requestAnimationFrame(wrap);
     } else {
@@ -710,9 +736,86 @@ $.fn.animation2 = function(m) {
   }
 };
 
+/*
+  Super-simple layout helper for drawing in canvases.
+  If you want to create a sub-box, do something like:
+    lo.child({boxL: (lo.boxL+lo.boxR)/2})
 
+  Use .snap or .snap5 to snap a coordinate to the corner or center of a device pixel
+
+  I use ltbr order here, instead of trbl like CSS. Oops.
+
+*/
+function BoxLayout(l, t, r, b, pixelRatio) {
+  this.boxL = this.canvasL = l;
+  this.boxT = this.canvasT = t;
+  this.boxR = this.canvasR = r;
+  this.boxB = this.canvasB = b;
+  this.pixelRatio = pixelRatio;
+  this.thinWidth = 1 / pixelRatio;
+}
+
+BoxLayout.prototype.snap = function(x) {
+  return Math.round(x * this.pixelRatio) / this.pixelRatio;
+};
+BoxLayout.prototype.snap5 = function(x) {
+  return (Math.round(x * this.pixelRatio - 0.5) + 0.5) / this.pixelRatio;
+};
+BoxLayout.prototype.child = function(changes) {
+  return _.extend(Object.create(this), changes);
+};
+BoxLayout.prototype.toString = function() {
+  return 'box(' + this.boxL.toFixed(1) + ',' + this.boxT.toFixed(1) + ',' + this.boxR.toFixed(1) + ',' + this.boxB.toFixed(1) + ')';
+};
+
+
+/*
+  Animate a canvas based on a model.
+  
+  Call on a pre-existing canvas dom node.
+
+  This calls drawFunc with (m, ctx, hd, lo, o), where:
+    m is a provided model (with .emit and .on)
+    ctx is a 2d rendering context on the canvas
+    hd is a HitDetector, persisistent between calls
+    lo is a BoxLayout filled in with the canvas dimensions.
+    o is the provided options object
+
+  It captures most mouse events on the canvas:
+    wheel, mousedown, mousemove, mouseup.
+  These can be acted on by adding callbacks to hd inside drawFunc
+
+  Convention is for drawFunc to add properties to lo as it works out the geometry 
+  of what it's drawing, and pass it around to subordinate drawing functions.
+
+  On a Retina or similar screen, this arranges to double the pixel size of the canvas and
+  scale it back down, so you get sharp results. It will scale the drawing context so drawFunc can
+  think in css pixels, including for mouse hit detection.
+
+  lo.canvas[LTRB] are always the (css-pixel) canvas dimensions
+  lo.box[LTRB] start out as the canvas dimensions, but could be 
+
+  If you want to snap to device pixels to get super-crisp 1-pixel lines do this:
+    ctx.lineWidth = lo.thinWidth;
+    ctx.moveTo(lo.snap5(x), y1);
+    ctx.lineTo(lo.snap5(x), y2);
+
+  lo.sna
+
+  ctx gets some extra properties added, like .tooltipLayer which adds its argument to a deferred
+  queue to be rendered after the rest of rendering is done. Usage:
+
+      ctx.tooltipLayer(function() {
+        drawTooltip(ctx, ...);
+      })
+
+  There's also .textLayer, .cursorLayer, .buttonLayer and .curLayer, which calls its argument
+  immediately
+    
+*/
 $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   var top = this;
+  top.maximizeCanvasResolution();
   var canvas = top[0];
 
   var avgTime = null;
@@ -725,7 +828,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     var mdY = oev.offsetY;
     var action = hd.findScroll(mdX, mdY);
     if (action && action.onScroll) {
-      onScroll(oev.deltaX, oev.deltaY);
+      action.onScroll(oev.deltaX, oev.deltaY);
       m.emit('changed');
       return false;
     }
@@ -779,10 +882,10 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   m.on('animate', function() {
     var t0 = Date.now();
     drawCount++;
-    var ctx = canvas.getContext('2d');
-    var pixelRatio = canvas.pixelRatio;
+    var ctx = canvas.getContext(o.contextStyle || '2d');
+    var pixelRatio = canvas.pixelRatio || 1;
     ctx.save();
-    ctx.scale(pixelRatio, pixelRatio); // setTransform(canvas.pixelRatio, 0, 0, 0, canvas.pixelRatio, 0);
+    ctx.scale(pixelRatio, pixelRatio);
     ctx.curLayer = function(f) { return f(); }
     ctx.textLayer = mkDeferQ();
     ctx.buttonLayer = mkDeferQ();
@@ -791,12 +894,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     hd.beginDrawing(ctx);
     var cw = canvas.width / pixelRatio;
     var ch = canvas.height / pixelRatio;
-    var lo = {boxL: 0, boxT: 0, boxR: cw, boxB: ch, 
-              px: 1, 
-              snap: function(x) { return Math.round(x * pixelRatio) / pixelRatio; },
-              snap5: function(x) { return (Math.round(x * pixelRatio - 0.5) + 0.5) / pixelRatio; },
-              thinWidth: 1 / pixelRatio
-             };
+    var lo = new BoxLayout(0, 0, cw, ch, pixelRatio);
 
     ctx.clearRect(0, 0, cw, ch);
     ctx.lineWidth = 1.0;

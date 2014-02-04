@@ -32,7 +32,7 @@ HitDetector.prototype.endDrawing = function(ctx) {
   hd.ctx = null;
 };
 
-HitDetector.prototype.mouseIn = function(l, t, r,b) {
+HitDetector.prototype.mouseIn = function(l, t, r, b) {
   var hd = this;
   return hd.mdX >= l && hd.mdX <= r && hd.mdY >= t && hd.mdY <= b;
 };
@@ -40,9 +40,12 @@ HitDetector.prototype.mouseIn = function(l, t, r,b) {
 
 HitDetector.prototype.add = function(l, t, r, b, actions) {
   var hd = this;
+  if (!(l <= r && t <= b)) {
+    throw new Error('HitDetector region ' + l.toString() + ',' + t.toString() + ',' + r.toString() + ',' + b.toString() + ' invalid');
+  }
   var inside = hd.mouseIn(l, t, r, b);
   if (actions.onClick || actions.onDown || actions.onUp) {
-    hd.hits.push([l, t, r, b, actions]);
+    hd.hits.push({l: l, t: t, r: r, b :b, actions: actions});
   }
   if (actions.draw) {
     hd.ctx.save();
@@ -61,20 +64,29 @@ HitDetector.prototype.add = function(l, t, r, b, actions) {
 
 HitDetector.prototype.addScroll = function(l, t, r, b, actions) {
   var hd = this;
-  hd.scrolls.push([l, t, r, b, actions]);
+  hd.scrolls.push({l: l, t: t, r: r, b: b, actions: actions});
 };
 
+/*
+  Find the smallest area enclosing x,y.
+*/
 HitDetector.prototype.find = function(x, y) {
   var hd = this;
   var hits = hd.hits;
   var hitsLen = hits.length;
+  var bestArea = 1e9;
+  var bestActions = null;
   for (var i=0; i<hitsLen; i++) {
     var hit = hits[i];
-    if (x >= hit[0] && x <= hit[2] &&
-        y >= hit[1] && y <= hit[3]) {
-      return hit[4];
+    if (x >= hit.l && x <= hit.r &&
+        y >= hit.t && y <= hit.b) {
+      var area = (hit.r - hit.l) * (hit.b - hit.t);
+      if (area < bestArea) {
+        bestActions = hit.actions;
+      }
     }
   }
+  return bestActions;
 };
 
 HitDetector.prototype.findScroll = function(x, y) {
@@ -83,9 +95,10 @@ HitDetector.prototype.findScroll = function(x, y) {
   var scrollsLen = scrolls.length;
   for (var i=0; i<scrollsLen; i++) {
     var scroll = scrolls[i];
-    if (x >= scroll[0] && x <= scroll[2] &&
-        y >= scroll[1] && y <= scroll[3]) {
-      return scroll[4];
+    if (x >= scroll.l && x <= scroll.r &&
+        y >= scroll.t && y <= scroll.b) {
+      return scroll.actions;
     }
   }
+  return null;
 };
