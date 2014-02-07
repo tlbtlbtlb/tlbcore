@@ -5,6 +5,7 @@
     'MACOSX_DEPLOYMENT_TARGET': '10.7',
     'OTHER_CFLAGS': ['-stdlib=libc++']
   },
+  'cflags_cc!': ['-fno-rtti', '-fno-exceptions'],
   'sources': [
     '../nodeif/jswrapbase.cc',
     '../nodeif/fastJson.cc',
