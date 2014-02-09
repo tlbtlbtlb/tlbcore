@@ -5,10 +5,13 @@ var WebSocketBrowser    = require('WebSocketBrowser');
 */
 
 $.action = {};
-$.actionPrefix = {};
+$.humanUrl = {};
 $.enhance = {};
 $.allContent = {};
 
+/*
+  Cheap version of safety checks, vaguely compatible with Server.js which is server-side
+*/
 var Safety = {
   isValidServerName: function(serverName) {
     if (!(/^[\w_\.]+$/.test(serverName))) return false;
@@ -30,70 +33,111 @@ var Safety = {
   }
 };
 
-function gotoHash(hash, e) {
-  var action, rc, rest;
+/* ----------------------------------------------------------------------
+   A simple one-page application framework
+*/
 
-  action = $.action[hash];
-  if (!action) {
-    var hl = hash.split('_');
-    rest = hl.slice(1).join('_') || '';
-    action = $.actionPrefix[hl[0]];
-  }
+/*
+  Define a page. If you do
+    $.defPage('foo', function(o) {
+      this.html('This is the foo page');
+    });
+  Then, http://host/file#foo will get the page. 
+*/
+$.defPage = function(pageid, fmtPage) {
+  var pageFuncName = 'page_' + pageid;
 
-  if (action) {
-    try {
-      rc = action.call($(document.body), e, rest);
-    } catch(ex) {
-      errlog('action', {hash: hash}, ex);
-      return;
-    }
-    if (rc === false) {
-      if (e) {
-        e.stopPropagation();
-        e.preventDefault();
-      }
-      gotoHash.activeHash = getLocationHash();
-      return;
-    }
-  }
+  $.action[pageid] = function(o) {
+    $.fn[pageFuncName].call(this, o);
+    return false;
+  };
+  $.fn[pageFuncName] = function(o) {
+    replaceLocationHash(pageid, o);
+    fmtPage.call(this, o);
+    return this;
+  };
+};
 
-  $.fn.setHash(hash);
-  errlog('hashNotFound', {hash: hash});
-  $(document.body).page_notFound();
-}
-
-function historyPoll() {
-  var curHash = getLocationHash();
-  if (!(curHash === gotoHash.activeHash)) {
-    if (console) console.log(gotoHash.activeHash + ' -> ' + curHash);
-    gotoHash(curHash, null);
-  }
-}
-
-function startHistoryPoll() {
-  window.onpopstate = historyPoll;
-  setInterval(historyPoll, 300);
-}
-
-function getLocationHash() {
-  var h = window.location.hash;
-  if (h.length) {
-    return decodeURIComponent(h.substr(1));
-  }
-  return "";
-}
-
-$.fn.setHash = function(h) {
-  // set activeHash first, since setting window.location.hash triggets a callback
-  gotoHash.activeHash = h;
-  window.location.hash = '#' + encodeURIComponent(h);
-  return this;
+$.defHumanUrl = function(pageid, parse, fmt) {
+  $.humanUrl[pageid] = {fmt: fmt, parse: parse};
 };
 
 $.fn.page_notFound = function(o) {
   document.title = 'Not Found';
   this.html('<h3>Not Found</h3>');
 };
+
+
+/*
+  Poll history to notice when the fragment changes and switch pages. Before window.onpopstate worked, this was the only way to make the back button work.
+*/
+
+function startHistoryPoll() {
+  window.onpopstate = gotoCurrentState;
+  window.onhashchange = gotoCurrentHash;
+}
+
+function gotoCurrentState() {
+  var state = history.state;
+  if (state && state.pageid) {
+    var pageid = state.pageid;
+    var options = state.o;
+    var action = $.action[pageid];
+    if (action) {
+      try {
+        rc = action.call($(document.body), options);
+      } catch(ex) {
+        errlog('action', {hash: hash}, ex);
+        return;
+      }
+    }
+  }
+}
+
+function gotoCurrentHash() {
+  var hash = window.location.hash;
+  if (hash.length < 1) hash = '#';
+  var parts = hash.substr(1).split('_');
+  var pageid = parts[0] || '';
+  var frag = decodeURIComponent(parts[1] || '');
+  var options = {};
+  if (frag.length > 0) {
+    try {
+      var spec = $.humanUrl[pageid];
+      options = spec ? spec.parse(frag) : JSON.parse(atob(frag));
+    } catch(ex) {
+      console.log('Error parsing options', frag, ex);
+    }
+  }
+  var action = $.action[pageid];
+  console.log('gotoCurrentHash', pageid, options);
+
+  if (action) {
+    try {
+      rc = action.call($(document.body), options);
+    } catch(ex) {
+      errlog('action', {hash: hash}, ex);
+      return;
+    }
+  }
+}
+
+function fmtHashOptions(pageid, o) {
+  var spec = $.humanUrl[pageid];
+  if (spec) {
+    return '#' + pageid + '_' + spec.fmt(o);
+  } else {
+    return '#' + pageid + '_' + btoa(JSON.stringify(o));
+  }
+}
+
+function pushLocationHash(pageid, o) {
+  history.pushState({pageid: pageid, o: o}, '', fmtHashOptions(pageid, o));
+}
+
+function replaceLocationHash(pageid, o) {
+  history.replaceState({pageid: pageid, o: o}, '', fmtHashOptions(pageid, o));
+}
 
 /* ----------------------------------------------------------------------
    Jquery magic
@@ -167,38 +211,6 @@ $.enhance['div.includeContent'] = function() {
 /* ----------------------------------------------------------------------
   DOM utility functions
 */
-
-$.defPage = function(prefix, fmtPage) {
-  var pageFuncName = 'page_' + prefix;
-
-  $.action[prefix] = function(e, tail) {
-    $.fn[pageFuncName].call(this, {});
-    return false;
-  };
-  $.fn[pageFuncName] = function(o) {
-    this.setHash(prefix);
-    fmtPage.call(this, o);
-    return this;
-  };
-};
-
-$.defPages = function(prefix, parseToken, fmtToken, fmtPage) {
-  var pageFuncName = 'page_' + prefix;
-  console.log('defPages', prefix);
-
-  $.actionPrefix[prefix] = function(e, tail) {
-    var o = parseToken(tail);
-    $.fn[pageFuncName].call(this, o);
-    return false;
-  };
-  $.fn[pageFuncName] = function(o) {
-    if (fmtToken) {
-      this.setHash(prefix + '_' + fmtToken(o));
-    }
-    fmtPage.call(this, o);
-    return this;
-  };
-};
 
 $.fn.exec = function(f, a, b, c, d, e) {
   // I believe this is faster than doing slice(arguments)
@@ -759,10 +771,22 @@ BoxLayout.prototype.snap5 = function(x) {
   return (Math.round(x * this.pixelRatio - 0.5) + 0.5) / this.pixelRatio;
 };
 BoxLayout.prototype.child = function(changes) {
-  return _.extend(Object.create(this), changes);
+  if (changes) {
+    return _.extend(Object.create(this), changes);
+  } else {
+    return Object.create(this);
+  }
 };
 BoxLayout.prototype.toString = function() {
   return 'box(' + this.boxL.toFixed(1) + ',' + this.boxT.toFixed(1) + ',' + this.boxR.toFixed(1) + ',' + this.boxB.toFixed(1) + ')';
+};
+BoxLayout.prototype.childBox = function(t, r, b, l) {
+  var ret = Object.create(this);
+  ret.boxT = t;
+  ret.boxR = r;
+  ret.boxB = b;
+  ret.boxL = l;
+  return ret;
 };
 
 
@@ -1143,7 +1167,7 @@ function mkWebSocket(path, handlers) {
 function pageSetupFromHash(reloadKey) {
   setupConsole(reloadKey);
   setupClicks();
-  gotoHash(getLocationHash(), null);
-  startHistoryPoll();
+  gotoCurrentHash();
+  //startHistoryPoll();
 }
 
