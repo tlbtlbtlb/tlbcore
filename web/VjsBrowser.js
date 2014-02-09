@@ -1,8 +1,10 @@
+/*
+  Basic browser infrastructore for tlbcore.
+  We stick a lot of stuff in jquery's $.XXX namespace
+*/
 var _                   = require('underscore');
 var WebSocketBrowser    = require('WebSocketBrowser');
 
-/*
-*/
 
 $.action = {};
 $.humanUrl = {};
@@ -42,7 +44,11 @@ var Safety = {
     $.defPage('foo', function(o) {
       this.html('This is the foo page');
     });
-  Then, http://host/file#foo will get the page. 
+  Then, http://host/file#foo will get the page.
+
+  If there's an underscore you get
+    http://host/file#foo_sdjfdf
+
 */
 $.defPage = function(pageid, fmtPage) {
   var pageFuncName = 'page_' + pageid;
@@ -74,12 +80,13 @@ $.fn.page_notFound = function(o) {
 
 function startHistoryPoll() {
   window.onpopstate = gotoCurrentState;
-  window.onhashchange = gotoCurrentHash;
+  if (0) window.onhashchange = gotoCurrentHash;
+  if ($.startEditUrl) $.startEditUrl();
 }
 
 function gotoCurrentState() {
   var state = history.state;
-  if (state && state.pageid) {
+  if (state && state.pageid !== undefined) {
     var pageid = state.pageid;
     var options = state.o;
     var action = $.action[pageid];
@@ -99,14 +106,26 @@ function gotoCurrentHash() {
   if (hash.length < 1) hash = '#';
   var parts = hash.substr(1).split('_');
   var pageid = parts[0] || '';
-  var frag = decodeURIComponent(parts[1] || '');
+  var optionsEnc = decodeURIComponent(parts.slice(1).join('_'));
   var options = {};
-  if (frag.length > 0) {
-    try {
-      var spec = $.humanUrl[pageid];
-      options = spec ? spec.parse(frag) : JSON.parse(atob(frag));
-    } catch(ex) {
-      console.log('Error parsing options', frag, ex);
+  if (optionsEnc.length > 0) {
+    var humanUrl = $.humanUrl[pageid];
+    if (humanUrl) {
+      try {
+        options = humanUrl.parse(optionsEnc);
+        var optionsEnc2 = humanUrl.fmt(options);
+        if (optionsEnc !== optionsEnc2) {
+          errlog('gotoCurrentHash', 'Mismatch:', optionsEnc, optionsEnc2);
+        }
+      } catch(ex) {
+        console.log('Error humanUrl-parsing options', optionsEnc, ex);
+      }
+    } else {
+      try {
+        options = JSON.parse(atob(optionsEnc));
+      } catch(ex) {
+        console.log('Error JSON-parsing options', optionsEnc, ex);
+      }
     }
   }
   var action = $.action[pageid];
@@ -123,9 +142,9 @@ function gotoCurrentHash() {
 }
 
 function fmtHashOptions(pageid, o) {
-  var spec = $.humanUrl[pageid];
-  if (spec) {
-    return '#' + pageid + '_' + spec.fmt(o);
+  var humanUrl = $.humanUrl[pageid];
+  if (humanUrl) {
+    return '#' + pageid + '_' + humanUrl.fmt(o);
   } else {
     return '#' + pageid + '_' + btoa(JSON.stringify(o));
   }
@@ -907,7 +926,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     var pixelRatio = canvas.pixelRatio || 1;
     ctx.save();
     ctx.scale(pixelRatio, pixelRatio);
-    ctx.curLayer = function(f) { return f(); }
+    ctx.curLayer = function(f) { return f(); };
     ctx.textLayer = mkDeferQ();
     ctx.buttonLayer = mkDeferQ();
     ctx.cursorLayer = mkDeferQ();
@@ -1168,6 +1187,6 @@ function pageSetupFromHash(reloadKey) {
   setupConsole(reloadKey);
   setupClicks();
   gotoCurrentHash();
-  //startHistoryPoll();
+  startHistoryPoll();
 }
 

@@ -117,3 +117,20 @@ blockquote {
 .clearleft {
     clear: left;
 }
+
+
+#flashErrorMessage {
+}
+
+#popupEditUrl {
+    position: fixed;
+    top: 40px;
+    left: 100px;
+    width: 800px;
+    padding: 10px;
+    opacity: 0.95;
+    z-index: 1100; // high
+    border-radius: 5px;
+    background-color: #ffffff;
+    border: 1px solid #555555;
+}

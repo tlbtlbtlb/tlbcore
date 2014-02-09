@@ -354,3 +354,17 @@ _.mixin({
   }
 });
 
+
+_.mixin({
+  /*
+    Return one of the options if it matches v, otherwise if v anything else return the first option.
+    Intended for extracting enum values from URLs
+  */
+  limitToSelection: function(options, v) {
+    for (var i=0; i<options.length; i++) {
+      if (options[i] === v) return options[i];
+    }
+    return options[0];
+  }
+});
+
