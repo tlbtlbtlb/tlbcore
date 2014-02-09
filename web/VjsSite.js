@@ -193,18 +193,25 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
 
     var remote = req.connection.remoteAddress + '!http';
     
-    var origHost = up.host;
-    if (!up.host) up.host = req.headers.host;
+    function delPort(hn) {
+      if (!hn) return hn;
+      var parts = hn.split(':');
+      return parts[0];
+    }
+    
+    var origHost = delPort(up.host);
+    if (!up.host) up.host = delPort(req.headers.host);
     if (!up.host) up.host = 'localhost';
     if (up.host.match(/[^-\w\.]/)) {
       logio.E('http', 'Invalid host header', up.host);
       return Provider.emit404(res, 'Invalid host header');
     }
 
+    if (0) logio.I('http', req.url, up, req.headers);
+
     var pathc = up.pathname.substr(1).split('/');
     var hostPrefix = webServer.hostPrefixes[up.host];
     if (!hostPrefix) hostPrefix = '/';
-    if (0) logio.I('http', 'origHost=', origHost, 'host=', up.host, 'hostPrefix=', hostPrefix);
 
     var callid = req.method + ' ' + hostPrefix + pathc.join('/');
     webServer.serverAccessCounts[callid] = (webServer.serverAccessCounts[callid] || 0) + 1;
