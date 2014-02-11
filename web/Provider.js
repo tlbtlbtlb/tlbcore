@@ -672,6 +672,7 @@ function ProviderSet() {
   AnyProvider.call(this);
   this.providers = [];
   this.title = 'VJS';
+  this.faviconUrl = 'favicon.ico';
   this.reloadKey = undefined;
 }
 ProviderSet.prototype = Object.create(AnyProvider.prototype);
@@ -757,7 +758,9 @@ ProviderSet.prototype.start = function() {
       }
       
       cat.push('<!DOCTYPE html>\n<head>\n<meta charset="utf-8">\n');
+      // Maybe these could be providers?
       cat.push('<title>' + self.title + '</title>\n');
+      cat.push('<link href="' + self.faviconUrl + '" rel="shortcut icon" type="image/x-icon"/>\n');
       emitAll('asCssHead', '<style type="text/css">\n/* <![CDATA[ */\n', '\n/* ]]> */\n</style>\n');
       emitAll('asHtmlHead', '', '');
       cat.push('</head><body>' +
