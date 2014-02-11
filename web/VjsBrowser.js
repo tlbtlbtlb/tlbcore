@@ -97,6 +97,9 @@ function gotoCurrentState() {
         errlog('action', pageid, ex);
         return;
       }
+    } else {
+      errlog('gotoCurrentState', 'Not found:', pageid);
+      $(document.body).page_notFound({origPageid: pageid});
     }
   }
 }
