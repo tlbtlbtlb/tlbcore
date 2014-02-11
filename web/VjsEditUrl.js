@@ -9,6 +9,10 @@ $.startEditUrl = function() {
       if (eu.length) return undefined; // already doing it, let key event propagate
 
       eu = $('<div id="popupEditUrl">').appendTo(document.body);
+      if (0) eu.on('keydown', function(ev) {
+        console.log('ate', ev);
+        return false;
+      });
 
       var state = history.state;
       var pageid = history.state.pageid;
@@ -24,7 +28,7 @@ $.startEditUrl = function() {
         autofocus: true,
         extraKeys: {
           'Ctrl-S': function() { saveOptions(); }
-        }
+        },
       });
       return false;
 

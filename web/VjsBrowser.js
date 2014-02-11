@@ -103,51 +103,46 @@ function gotoCurrentState() {
 
 function gotoCurrentHash() {
   var hash = window.location.hash;
-  if (hash.length < 1) hash = '#';
-  var parts = hash.substr(1).split('_');
-  var pageid = parts[0] || '';
-  var optionsEnc = decodeURIComponent(parts.slice(1).join('_'));
+  var pageid = '';
   var options = {};
-  if (optionsEnc.length > 0) {
-    var humanUrl = $.humanUrl[pageid];
-    if (humanUrl) {
-      try {
-        options = humanUrl.parse(optionsEnc);
-        var optionsEnc2 = humanUrl.fmt(options);
-        if (optionsEnc !== optionsEnc2) {
-          errlog('gotoCurrentHash', 'Mismatch:', optionsEnc, optionsEnc2);
+  if (hash.length >= 1) {
+    var parts = hash.substr(1).split('_');
+    pageid = parts[0] || '';
+    var optionsEnc = decodeURIComponent(parts.slice(1).join('_'));
+    if (optionsEnc.length > 0) {
+      var humanUrl = $.humanUrl[pageid];
+      if (humanUrl && optionsEnc[0] !== '.') {
+        try {
+          options = humanUrl.parse(optionsEnc);
+          var optionsEnc2 = humanUrl.fmt(options);
+          if (optionsEnc !== optionsEnc2) {
+            errlog('gotoCurrentHash', 'Mismatch:', optionsEnc, optionsEnc2);
+          }
+        } catch(ex) {
+          errlog('gotoCurrentHash', 'Error parsing', optionsEnc, ex);
         }
-      } catch(ex) {
-        console.log('Error humanUrl-parsing options', optionsEnc, ex);
-      }
-    } else {
-      try {
-        options = JSON.parse(atob(optionsEnc));
-      } catch(ex) {
-        console.log('Error JSON-parsing options', optionsEnc, ex);
+      } else {
+        try {
+          options = JSON.parse(atob(optionsEnc.substr(1)));
+        } catch(ex) {
+          console.log('Error JSON-parsing options', optionsEnc.substr(1), ex);
+        }
       }
     }
   }
-  var action = $.action[pageid];
-  console.log('gotoCurrentHash', pageid, options);
-
-  if (action) {
-    try {
-      rc = action.call($(document.body), options);
-    } catch(ex) {
-      errlog('action', {hash: hash}, ex);
-      return;
-    }
-  }
+  replaceLocationHash(pageid, options);
+  gotoCurrentState();
 }
 
 function fmtHashOptions(pageid, o) {
   var humanUrl = $.humanUrl[pageid];
   if (humanUrl) {
-    return '#' + pageid + '_' + humanUrl.fmt(o);
-  } else {
-    return '#' + pageid + '_' + btoa(JSON.stringify(o));
+    var optionsEnc = humanUrl.fmt(o);
+    if (optionsEnc !== null) {
+      return '#' + pageid + '_' + optionsEnc;
+    }
   }
+  return '#' + pageid + '_.' + btoa(JSON.stringify(o));
 }
 
 function pushLocationHash(pageid, o) {
@@ -156,6 +151,11 @@ function pushLocationHash(pageid, o) {
 
 function replaceLocationHash(pageid, o) {
   history.replaceState({pageid: pageid, o: o}, '', fmtHashOptions(pageid, o));
+}
+
+function gotoLocationHash(pageid, o) {
+  pushLocationHash(pageid, o);
+  gotoCurrentState();
 }
 
 /* ----------------------------------------------------------------------
@@ -188,6 +188,21 @@ $.fn.bogartWindowEvents = function(evMap) {
       $(window).off(name, fn);
     });
   });
+  return this;
+};
+
+$.fn.bogartBodyEvents = function(evMap) {
+  var top = this;
+  _.each(evMap, function(fn, name) {
+    $(document.body).on(name, fn);
+  });
+  top.bind('destroyed', function() {
+    if (0) console.log(top, 'destroyed, removing body events');
+    _.each(evMap, function(fn, name) {
+      $(document.body).off(name, fn);
+    });
+  });
+  return this;
 };
 
 /* ----------------------------------------------------------------------

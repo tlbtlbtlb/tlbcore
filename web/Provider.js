@@ -4,19 +4,20 @@
     - automatic reloading when files change
     - handles css, svg, markdown, and it's easy to add others
 */
-var _ = require('underscore');
-var events = require('events');
-var net = require('net');
-var fs = require('fs');
-var util = require('util');
-var path = require('path');
-var assert = require('assert');
-var jsmin = require('jsmin2');
-var base64 = require('base64');
-var xml = require('xmldom');
-var markdown = require('markdown');
+var _                   = require('underscore');
+var assert              = require('assert');
+var events              = require('events');
+var net                 = require('net');
+var fs                  = require('fs');
+var util                = require('util');
+var path                = require('path');
+var assert              = require('assert');
+var jsmin               = require('jsmin2');
+var base64              = require('base64');
+var xml                 = require('xmldom');
+var markdown            = require('markdown');
 
-var logio = require('./logio');
+var logio               = require('./logio');
 
 exports.AnyProvider = AnyProvider;
 exports.RawFileProvider = RawFileProvider;
@@ -288,6 +289,10 @@ AnyProvider.prototype.getType = function() {
   return 'any';
 };
 
+AnyProvider.prototype.equals = function(other) {
+  return (this.constructor === other.constructor && this.fn === other.fn)
+};
+
 // ----------------------------------------------------------------------
 
 
@@ -431,6 +436,10 @@ function ScriptProvider(fn, commonjsModule) {
 }
 ScriptProvider.prototype = Object.create(AnyProvider.prototype);
 
+ScriptProvider.prototype.equals = function(other) {
+  return (this.constructor === other.constructor && this.fn === other.fn && this.commonjsModule === other.commonjsModule);
+};
+
 ScriptProvider.prototype.start = function() {
   var self = this;
   if (self.started) return;
@@ -490,6 +499,10 @@ function JsonProvider(fn, globalVarname) {
   this.globalVarname = globalVarname;
 }
 JsonProvider.prototype = Object.create(AnyProvider.prototype);
+
+JsonProvider.prototype.equals = function(other) {
+  return (this.constructor === other.constructor && this.fn === other.fn && this.globalVarname === other.globalVarname);
+};
 
 JsonProvider.prototype.start = function() {
   var self = this;
@@ -628,6 +641,10 @@ function MarkdownProvider(fn, contentName) {
 }
 MarkdownProvider.prototype = Object.create(AnyProvider.prototype);
 
+MarkdownProvider.prototype.equals = function(other) {
+  return (this.constructor === other.constructor && this.fn === other.fn && this.contentName === other.contentName);
+};
+
 MarkdownProvider.prototype.start = function() {
   var self = this;
   if (self.started) return;
@@ -691,10 +708,11 @@ ProviderSet.prototype.addXmlContent = function(name) {
 ProviderSet.prototype.addXmlContentDir = function(name) {
   this.addProvider(new XmlContentDirProvider(name));
 };
-ProviderSet.prototype.addRelLogo = function(fn) {
-  // WRITEME: see http://relogo.org/
-};
-ProviderSet.prototype.addProvider = function(p) { 
+ProviderSet.prototype.addProvider = function(p) {
+  assert.ok(p.equals(p));
+  for (var i=0; i<this.providers.length; i++) {
+    if (p.equals(this.providers[i])) return;
+  }
   this.providers.push(p); 
 };
 
