@@ -218,11 +218,11 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
 
     var fullPath = hostPrefix + up.pathname.substr(1);
     var callid = req.method + ' ' + fullPath;
-    var desc = req.method + ' http://' + up.host + up.pathname + ' => ' + fullPath;
+    var desc = req.method + ' http://' + up.host + up.pathname;
     webServer.serverAccessCounts[callid] = (webServer.serverAccessCounts[callid] || 0) + 1;
     var p = webServer.urlProviders[callid];
     if (p) {
-      logio.I(remote, desc, p.toString());
+      logio.I(remote, desc, fullPath, p.toString());
       p.handleRequest(req, res, '');
       return;
     }
@@ -233,13 +233,13 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
       p = webServer.dirProviders[prefix];
       if (p) { 
         var suffix = pathc.slice(pathcPrefix, pathc.length).join('/');
-        logio.I(remote, desc, p.toString());
+        logio.I(remote, desc, prefix, suffix, p.toString());
         p.handleRequest(req, res, suffix);
         return;
       }
     }
 
-    logio.E(remote, desc, '404');
+    logio.E(remote, desc, '404', 'referer:', req.headers.referer);
     Provider.emit404(res, callid);
     return;
   }

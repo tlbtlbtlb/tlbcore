@@ -61,4 +61,7 @@ size ::
 logsize ::
 	node hackstats/updateSizeGraph.js nodeif/build/Release/*.o
 
-
+deploy:
+	git commit -am 'deploy';
+	git push deploy master
+	cd tlbcore && make deploy
