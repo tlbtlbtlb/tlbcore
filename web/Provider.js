@@ -293,6 +293,8 @@ AnyProvider.prototype.equals = function(other) {
   return (this.constructor === other.constructor && this.fn === other.fn)
 };
 
+AnyProvider.prototype.isDir = function() { return false; }
+
 // ----------------------------------------------------------------------
 
 
@@ -717,8 +719,11 @@ ProviderSet.prototype.addProvider = function(p) {
 };
 
 ProviderSet.prototype.handleRequest = function(req, res, suffix) {
-  res.writeHead(200, {'Content-Type': 'text/html'});
+  var contentType = 'text/html';
+  var remote = res.connection.remoteAddress + '!http';
+  res.writeHead(200, {'Content-Type': contentType});
   res.write(this.asHtml, 'utf8');
+  logio.O(remote, this.toString() + ' (200 ' + contentType + ' len=' + this.asHtml.length + ')'); // actually the unicode length, not utf8 length
   res.end();
 };
 
@@ -841,6 +846,11 @@ ProviderSet.prototype.getType = function() {
   return 'set';
 };
 
+ProviderSet.prototype.toString = function() {
+  return "ProviderSet(" + JSON.stringify(this.title) + ")"; 
+};
+
+
 
 // ----------------------------------------------------------------------
 
@@ -880,6 +890,11 @@ RawFileProvider.prototype.mirrorTo = function(dst) {
   linkContent(dst, this.fn);
 };
 
+RawFileProvider.prototype.toString = function() {
+  return "RawFileProvider(" + JSON.stringify(this.fn) + ")"; 
+};
+
+
 
 function RawDirProvider(fn) {
   AnyProvider.call(this);
@@ -887,6 +902,8 @@ function RawDirProvider(fn) {
   this.fn = fn;
 }
 RawDirProvider.prototype = Object.create(AnyProvider.prototype);
+
+RawDirProvider.prototype.isDir = function() { return true; }
 
 RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
   var self = this;
@@ -922,4 +939,8 @@ RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
 
 RawDirProvider.prototype.mirrorTo = function(dst) {
   linkContent(dst, this.fn);
+};
+
+RawDirProvider.prototype.toString = function() {
+  return "RawDirProvider(" + JSON.stringify(this.fn) + ")"; 
 };

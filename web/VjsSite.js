@@ -44,20 +44,23 @@ WebServer.prototype.setUrl = function(url, p) {
     if (st.isDirectory()) {
       url = path.join(url, '/'); // ensure trailing slash, but doesn't yield more than one
       p = new Provider.RawDirProvider(p);
-      webServer.dirProviders['GET ' + url] = p; 
-      return;
     } else {
       p = new Provider.RawFileProvider(p);
     }
   }
 
-  p.reloadKey = url;
-  webServer.urlProviders['GET ' + url] = p; 
-  p.on('changed', function() {
-    if (p.reloadKey) {
-      webServer.reloadAllBrowsers(p.reloadKey);
-    }
-  });
+  if (p.isDir()) {
+    webServer.dirProviders['GET ' + url] = p; 
+  } else {
+    webServer.urlProviders['GET ' + url] = p; 
+
+    p.reloadKey = url;
+    p.on('changed', function() {
+      if (p.reloadKey) {
+        webServer.reloadAllBrowsers(p.reloadKey);
+      }
+    });
+  }
 };
 
 WebServer.prototype.setPrefixHosts = function(prefix, hosts) {
@@ -184,16 +187,16 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
 
   function httpHandler(req, res) {
 
+    var remote = req.connection.remoteAddress + '!http';
+    
     var up;
     try {
       up = url.parse(req.url, true);
     } catch (ex) {
-      logio.E('http', 'Error parsing', req.url, ex);
+      logio.E(remote, 'Error parsing', req.url, ex);
       return Provider.emit404(res, 'Invalid url');
     }
 
-    var remote = req.connection.remoteAddress + '!http';
-    
     function delPort(hn) {
       if (!hn) return hn;
       var parts = hn.split(':');
@@ -204,37 +207,39 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
     if (!up.host) up.host = delPort(req.headers.host);
     if (!up.host) up.host = 'localhost';
     if (up.host.match(/[^-\w\.]/)) {
-      logio.E('http', 'Invalid host header', up.host);
+      logio.E(remote, 'Invalid host header', up.host);
       return Provider.emit404(res, 'Invalid host header');
     }
 
-    if (0) logio.I('http', req.url, up, req.headers);
+    if (0) logio.I(remote, req.url, up, req.headers);
 
     var hostPrefix = webServer.hostPrefixes[up.host];
     if (!hostPrefix) hostPrefix = '/';
 
     var fullPath = hostPrefix + up.pathname.substr(1);
-
     var callid = req.method + ' ' + fullPath;
+    var desc = req.method + ' http://' + up.host + up.pathname + ' => ' + fullPath;
     webServer.serverAccessCounts[callid] = (webServer.serverAccessCounts[callid] || 0) + 1;
-    if (webServer.urlProviders[callid]) {
-      logio.I('http', callid);
-      webServer.urlProviders[callid].handleRequest(req, res, '');
+    var p = webServer.urlProviders[callid];
+    if (p) {
+      logio.I(remote, desc, p.toString());
+      p.handleRequest(req, res, '');
       return;
     }
 
     var pathc = fullPath.substr(1).split('/');
     for (var pathcPrefix = pathc.length-1; pathcPrefix >= 1; pathcPrefix--) {
       var prefix = req.method + ' /' + pathc.slice(0, pathcPrefix).join('/') + '/';
-      if (webServer.dirProviders[prefix]) { 
+      p = webServer.dirProviders[prefix];
+      if (p) { 
         var suffix = pathc.slice(pathcPrefix, pathc.length).join('/');
-        logio.I('http', prefix, suffix);
-        webServer.dirProviders[prefix].handleRequest(req, res, suffix);
+        logio.I(remote, desc, p.toString());
+        p.handleRequest(req, res, suffix);
         return;
       }
     }
 
-    logio.E(remote, '404 ' + callid);
+    logio.E(remote, desc, '404');
     Provider.emit404(res, callid);
     return;
   }
