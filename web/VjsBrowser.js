@@ -80,7 +80,7 @@ $.fn.page_notFound = function(o) {
 
 function startHistoryPoll() {
   window.onpopstate = gotoCurrentState;
-  if (0) window.onhashchange = gotoCurrentHash;
+  if (1) window.onhashchange = gotoCurrentHash;
   if ($.startEditUrl) $.startEditUrl();
 }
 
@@ -94,7 +94,7 @@ function gotoCurrentState() {
       try {
         rc = action.call($(document.body), options);
       } catch(ex) {
-        errlog('action', {hash: hash}, ex);
+        errlog('action', pageid, ex);
         return;
       }
     }
@@ -141,6 +141,10 @@ function fmtHashOptions(pageid, o) {
     if (optionsEnc !== null) {
       return '#' + pageid + '_' + optionsEnc;
     }
+  }
+  var oStr = o ? JSON.stringify(o) : '';
+  if (oStr === '{}') { // common special case, make less ugly
+    return '#' + pageid;
   }
   return '#' + pageid + '_.' + btoa(JSON.stringify(o));
 }
@@ -1148,7 +1152,7 @@ function setupClicks() {
       var href = closestA.attr('href');
       if (console) console.log('click a href ' + href);
       if (href && href.substr(0,1) === '#') {
-        gotoHash(href.substr(1), e);
+        gotoLocationHash(href.substr(1), {});
         return false;
       }
       // WRITEME: add special click handlers

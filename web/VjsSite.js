@@ -45,6 +45,7 @@ WebServer.prototype.setUrl = function(url, p) {
       url = path.join(url, '/'); // ensure trailing slash, but doesn't yield more than one
       p = new Provider.RawDirProvider(p);
       webServer.dirProviders['GET ' + url] = p; 
+      return;
     } else {
       p = new Provider.RawFileProvider(p);
     }
@@ -209,11 +210,12 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
 
     if (0) logio.I('http', req.url, up, req.headers);
 
-    var pathc = up.pathname.substr(1).split('/');
     var hostPrefix = webServer.hostPrefixes[up.host];
     if (!hostPrefix) hostPrefix = '/';
 
-    var callid = req.method + ' ' + hostPrefix + pathc.join('/');
+    var fullPath = hostPrefix + up.pathname.substr(1);
+
+    var callid = req.method + ' ' + fullPath;
     webServer.serverAccessCounts[callid] = (webServer.serverAccessCounts[callid] || 0) + 1;
     if (webServer.urlProviders[callid]) {
       logio.I('http', callid);
@@ -221,6 +223,7 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
       return;
     }
 
+    var pathc = fullPath.substr(1).split('/');
     for (var pathcPrefix = pathc.length-1; pathcPrefix >= 1; pathcPrefix--) {
       var prefix = req.method + ' /' + pathc.slice(0, pathcPrefix).join('/') + '/';
       if (webServer.dirProviders[prefix]) { 
