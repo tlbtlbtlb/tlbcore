@@ -102,7 +102,7 @@ WebServer.prototype.setupBaseProvider = function() {
   webServer.baseProvider = p;
 };
 
-WebServer.prototype.setupInternalUrls = function() {
+WebServer.prototype.setupStdContent = function(prefix) {
   var webServer = this;
 
   // WRITEME: ditch this, figure out how to upload over a websocket
@@ -121,19 +121,19 @@ WebServer.prototype.setupInternalUrls = function() {
     };
   */
 
-  webServer.setSocketProtocol('/console', webServer.mkConsoleHandler.bind(webServer));
+  webServer.setSocketProtocol(prefix+'console', webServer.mkConsoleHandler.bind(webServer));
 
   // Files available from root of file server
-  webServer.setUrl('/favicon.ico', require.resolve('./images/umbrella.ico'));
-  webServer.setUrl('/spinner-lib/spinner.gif', require.resolve('./spinner-lib/spinner.gif'));
-  webServer.setUrl('/images/icons.png', require.resolve('./images/ui-icons_888888_256x240.png'));
+  webServer.setUrl(prefix+'favicon.ico', require.resolve('./images/umbrella.ico'));
+  webServer.setUrl(prefix+'spinner-lib/spinner.gif', require.resolve('./spinner-lib/spinner.gif'));
+  webServer.setUrl(prefix+'images/icons.png', require.resolve('./images/ui-icons_888888_256x240.png'));
 };
 
 WebServer.prototype.setupContent = function(dirs) {
   var webServer = this;
   
   webServer.setupBaseProvider();
-  webServer.setupInternalUrls();
+  webServer.setupStdContent('/');
 
   _.each(dirs, function(dir) {
     // Start with process.cwd, since these directory names are specified on the command line
@@ -241,7 +241,7 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
     
     var handlersFunc = webServer.wsHandlers[callid];
     if (!handlersFunc) {
-      logio.E('ws', 'Unknown api', callid);
+      logio.E('ws', 'Unknown api', callid, webServer.wsHandlers);
       wsr.reject();
       return;
     }

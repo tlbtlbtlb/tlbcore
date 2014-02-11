@@ -1185,9 +1185,13 @@ function setupMixpanel() {
 */
 
 function mkWebSocket(path, handlers) {
-  var host = window.location.host;
-  var protocol = window.location.protocol;
-  var wsUrl = ((protocol === 'https') ? 'wss' : 'ws') + '://' + host + '/' + path;
+
+  // One way to turn it into an absolute URL
+  var el = $('<a>');
+  el.prop('href', path);
+  var url = el.prop('href');
+  var wsUrl = url.replace(/http/, 'ws');
+
   // WRITEME: detect vendor-prefixed WebSocket.
   // WRITEME: Give some appropriately dire error message if websocket not found or fails to connect
   var wsc = new WebSocket(wsUrl);
