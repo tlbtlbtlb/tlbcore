@@ -776,7 +776,7 @@ ProviderSet.prototype.start = function() {
                '</script>\n' +
                '</body>\n</html>\n');
 
-      self.asHtml = cat.join('');
+      self.asHtml = new Buffer(cat.join(''), 'utf8');
       self.pending = false;
       self.emit('changed');
     });
