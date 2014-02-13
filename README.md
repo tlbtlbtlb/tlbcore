@@ -32,6 +32,7 @@ It needs a modern browser, and I've only done cursory tests with IE.
 
 In each dir, there should be a file load.js which defines both the server-side and client-side resources for a project. Here's an example for the tlb.org website:
 
+```javascript
     var path                = require('path');
     exports.load = load;
 
@@ -51,6 +52,7 @@ In each dir, there should be a file load.js which defines both the server-side a
       webServer.setUrl('/tlb/favicon.ico', require.resolve('./images/favicon.ico'));
       webServer.setUrl('/tlb/images/', path.dirname(require.resolve('./images')));
     }
+```
  
 Fetching http://tlb.org/ will return a single minified HTML file including all the javascript files added with p.addScript, and all the CSS files added with p.addCss. It also includes a bunch of libraries already included in webServer.baseProvider. 
 
@@ -62,7 +64,13 @@ The third-party libraries include jQuery, underscore, eventemitter, and mixpanel
  * Over the /console connection, they also ask to be notified when a the document changes.
  * When you save a source file that is part of an active browser session (like Tlb.js referenced above), it will use the websocket connection to ask the browser to reload. It's very convenient during development.
 
+To use the application framework, define each page of content like:
+  
+    $.defPage('about', function(o) {
+      this.html('<p class="urAbout">Umbrella Research</p>');
+      return this;
+    });
 
-
+The function is called like a jQuery function, with *this* bound to $(document.body).
 
 
