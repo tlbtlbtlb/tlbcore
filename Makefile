@@ -22,6 +22,9 @@ install.ubuntu ::
 	sudo apt-get install nodejs
 	sudo apt-get install liblapack-dev
 
+install.port ::
+	sudo port install git nodejs
+
 install.npm ::
 	sudo npm install mocha underscore
 install.npm ::
