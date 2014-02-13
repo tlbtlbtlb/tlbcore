@@ -10,7 +10,7 @@ size ::
 node_modules ::
 
 # MAINTAINME
-JS_SRCDIRS = realtime code_gen nodeif geom gyro13 genes web
+JS_SRCDIRS = realtime code_gen nodeif geom genes web lapack 
 
 
 # Manual machine setup
@@ -38,7 +38,7 @@ setup ::
 	mkdir -p build.src
 
 stage1 ::
-	node code_gen/mk_marshall.js geom/decl_geom.js
+	node code_gen/mk_marshall.js geom/decl_geom.js lapack/decl_lapack.js
 
 stage1 ::
 	cd nodeif && node-gyp configure
@@ -54,7 +54,7 @@ build.nodeif ::
 	ln -sf build/Release nodeif/bin
 
 
-test ::
+test :: build
 	env NODE_PATH=$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js))
 
 
