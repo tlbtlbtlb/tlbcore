@@ -2,20 +2,8 @@
 #include <node.h>
 #include <v8.h>
 #include <uv.h>
-#include "realtime/TcpJsonConn.h"
-#include "realtime/LatencyTest.h"
 
 using namespace v8;
-
-void geom_math_init(Handle<Object> target);
-
-Handle<Value> runLatencyTest(const Arguments &args) {
-  HandleScope scope;
-
-  new LatencyTest("lt");
-
-  return scope.Close(Undefined());
-}
 
 
 extern void gene_t1();
@@ -28,11 +16,11 @@ Handle<Value> gene_t1(const Arguments &args) {
 }
 
 
+void geom_math_init(Handle<Object> exports);
 void jsInit_fastJson(Handle<Object> exports);
-void jsBoot(Handle<Object> target);
+void jsBoot(Handle<Object> exports);
 
 static void init(Handle<Object> exports) {
-  NODE_SET_METHOD(exports, "runLatencyTest", runLatencyTest);
   NODE_SET_METHOD(exports, "gene_t1", gene_t1);
   jsInit_fastJson(exports);
   jsBoot(exports);

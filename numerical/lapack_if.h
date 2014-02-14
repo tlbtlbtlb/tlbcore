@@ -11,6 +11,8 @@
     - Read out solution in b(0..n, 0..nrhs)
     - Also: s(0..min(m,n)) has singular values
     - Also: rank
+
+  See ./polyfit.cc for an example usage
 */
 
 struct dgelsd {

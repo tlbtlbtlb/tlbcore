@@ -21,8 +21,6 @@
     '../geom/geom_math.cc',
     '../genes/genes.cc',
     '../genes/test_genes.cc',
-    '../realtime/TcpJsonConn.cc',
-    '../realtime/LatencyTest.cc',
     '../common/LogBase.cc',
     '../common/hacks.cc',
     '../common/refcount.cc',
@@ -31,7 +29,7 @@
     '../common/anythreads.cc',
     '../common/host_debug.cc',
     '../common/jsonio.cc',
-    '../lapack/lapack_if.cc',
-    '../lapack/polyfit.cc'
+    '../numerical/lapack_if.cc',
+    '../numerical/polyfit.cc'
   ]
 }

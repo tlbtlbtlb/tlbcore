@@ -5,7 +5,7 @@ A bunch of C++ and Node.js stuff shared among my projects:
 
   * code_gen: a javascript library for generating C++ data structure code, including JSON IO
   * common: a grab-bag of C++ utilities like stringprintf, wrappers around pthreads, read/write STL into JSON, etc.
-  * lapack : numerical stuff, including C++ and node.js wrappings of LAPACK functions
+  * numerical : numerical stuff, including polynomial fitting and C++ and Node.js wrappings of LAPACK functions
   * genes: a simple genome library, not good for anything yet
   * nodeif: wrap C++ code for Node.js
   * realtime: obsolete
@@ -73,5 +73,6 @@ To use the application framework, define each page of content like:
     });
 ```
 
-The function is called like a jQuery function, with *this* bound to $(document.body).
+The function is called like a jQuery function, with *this* bound to $(document.body). Usually it will create some overall page-level HTML, then call other functions to fill in each section.
+
 

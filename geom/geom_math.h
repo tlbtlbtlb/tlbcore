@@ -8,8 +8,6 @@
 #include "build.src/Mat33_decl.h"
 #include "build.src/Mat44_decl.h"
 #include "build.src/Ea3_decl.h"
-#include "build.src/Polyfit3_decl.h"
-#include "build.src/Polyfit5_decl.h"
 #include "build.src/Quaternion_decl.h"
 
 double sqr(double x);
@@ -162,7 +160,5 @@ Mat33 justRotation(Mat44 const &u);
 Vec3 justTranslation(Mat44 const &u);
 Mat33 twaddle(Mat33 const &u, double rotsigma, int niter);
 
-double getValue(Polyfit3 const &u, double t);
-double getDerivative(Polyfit3 const &u, double t);
 
 #endif

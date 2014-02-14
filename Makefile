@@ -10,7 +10,7 @@ size ::
 node_modules ::
 
 # MAINTAINME
-JS_SRCDIRS = realtime code_gen nodeif geom genes web lapack 
+JS_SRCDIRS = code_gen nodeif geom genes web numerical 
 
 
 # Manual machine setup
@@ -38,7 +38,7 @@ setup ::
 	mkdir -p build.src
 
 stage1 ::
-	node code_gen/mk_marshall.js geom/decl_geom.js lapack/decl_lapack.js
+	node code_gen/mk_marshall.js geom/decl_geom.js numerical/decl_numerical.js
 
 stage1 ::
 	cd nodeif && node-gyp configure
