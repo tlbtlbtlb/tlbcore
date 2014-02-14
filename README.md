@@ -76,3 +76,11 @@ To use the application framework, define each page of content like:
 The function is called like a jQuery function, with *this* bound to $(document.body). Usually it will create some overall page-level HTML, then call other functions to fill in each section.
 
 
+Geometry and Numerical libraries
+--
+ * geom/geom_math.h has basic geometrical types Vec2/3/4, Mat22/33/44, and operations among them
+ * geom/solid_geometry can read STL files (a polyhedron defined by a bunch of triangles) and compute simple geometrical properties like center of mass
+
+
+
+

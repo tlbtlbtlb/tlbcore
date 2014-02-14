@@ -28,6 +28,10 @@ Mat22 operator -(Mat22 const &u, Mat22 const &v);
 Mat33 operator -(Mat33 const &u, Mat33 const &v);
 Mat44 operator -(Mat44 const &u, Mat44 const &v);
 
+Mat22 operator *(Mat22 const &u, double v);
+Mat33 operator *(Mat33 const &u, double v);
+Mat44 operator *(Mat44 const &u, double v);
+
 bool operator ==(Vec2 const &u, Vec2 const &v);
 bool operator ==(Vec3 const &u, Vec3 const &v);
 bool operator ==(Vec4 const &u, Vec4 const &v);

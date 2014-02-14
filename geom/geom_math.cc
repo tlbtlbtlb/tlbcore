@@ -78,6 +78,26 @@ Mat44 operator -(Mat44 const &u, Mat44 const &v)
 }
 
 
+Mat22 operator *(Mat22 const &u, double v)
+{
+  return Mat22(u.xx * v, u.xy * v,
+               u.yx * v, u.yy * v);
+}
+Mat33 operator *(Mat33 const &u, double v)
+{
+  return Mat33(u.xx * v, u.xy * v, u.xz * v,
+               u.yx * v, u.yy * v, u.yz * v,
+               u.zx * v, u.zy * v, u.zz * v);
+}
+Mat44 operator *(Mat44 const &u, double v)
+{
+  return Mat44(u.xx * v, u.xy * v, u.xz * v, u.xa * v,
+               u.yx * v, u.yy * v, u.yz * v, u.ya * v,
+               u.zx * v, u.zy * v, u.zz * v, u.za * v,
+               u.ax * v, u.ay * v, u.az * v, u.aa * v);
+}
+
+
 bool operator ==(Vec2 const &u, Vec2 const &v)
 {
   return (u.x == v.x && u.y == v.y);
