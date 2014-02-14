@@ -13,19 +13,21 @@ Some common infrastructure shared among my projects. Written in C++ and Javascri
 
 Installing
 --
-
-    make install.ubuntu   (or install.port on OSX)
-    make install.npm
-    make
-    make test
-
+```sh
+make install.ubuntu   (or install.port on OSX)
+make install.npm
+make
+make test
+```
 Web framework
 --
 
 The web application framework makes it easy to serve multiple projects from Node.js.
 Start it like so:
 
+```sh
     node tlbcore/web/server.js dir...
+```
 
 It needs a modern browser, and I've only done cursory tests with IE.
 
