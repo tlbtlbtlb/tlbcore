@@ -15,7 +15,7 @@ var assert              = require('assert');
 var jsmin               = require('jsmin2');
 var base64              = require('base64');
 var xml                 = require('xmldom');
-var markdown            = require('markdown');
+var marked              = require('marked');
 
 var logio               = require('./logio');
 
@@ -654,11 +654,27 @@ MarkdownProvider.prototype.start = function() {
   self.pending = true;
 
   persistentReadFile(self.fn, 'utf8', function(data) {
-    var html = markdown.markdown.toHTML(data);
-    // Use JSON.stringify instead? Result may be slightly larger because it uses and escapes double quotes
-    self.asScriptBody = '$.defContent("' + self.contentName + '",' + JSON.stringify(html) + ');\n';
-    self.pending = false;
-    self.emit('changed');
+    var renderer = new marked.Renderer();
+    // WRITEME: override renderer methods to get fancy results
+    marked(data, {
+      renderer: renderer,
+      gfm: true,
+      tables: true,
+      breaks: true,
+      pedantic: false,
+      sanitize: true,
+      smartLists: true,
+      smartypants: false
+    }, function(err, asHtml) {
+      if (err) {
+        logio.E(self.fn, err);
+        self.asScriptBody = '\n';
+      } else {
+        self.asScriptBody = '$.defContent("' + self.contentName + '",' + JSON.stringify(asHtml) + ');\n';
+      }
+      self.pending = false;
+      self.emit('changed');
+    });
   });
 };
 

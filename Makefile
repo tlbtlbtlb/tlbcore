@@ -26,9 +26,8 @@ install.port ::
 	sudo port install git nodejs
 
 install.npm ::
-	sudo npm install mocha underscore
-install.npm ::
-	sudo npm install -g node-gyp
+	sudo npm install -g node-gyp jshint mocha uglify-js
+	cd .. && sudo npm install mocha underscore marked websocket base64 xmldom  eventemitter jquery jsmin2 async codemirror
 
 
 clean ::
@@ -68,3 +67,5 @@ deploy:
 	git commit -am 'deploy' || echo commit failed
 	git push deploy master
 
+run:
+	node web/server.js doc
