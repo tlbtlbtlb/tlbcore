@@ -1,15 +1,14 @@
-tlbcore
-=======
+# tlbcore
 
-A bunch of C++ and Node.js stuff shared among my projects:
+Some common infrastructure shared among my projects. Written in C++ and Javascript / Node.js.
 
-  * code_gen: a javascript library for generating C++ data structure code, including JSON IO
-  * common: a grab-bag of C++ utilities like stringprintf, wrappers around pthreads, read/write STL into JSON, etc.
-  * numerical : numerical stuff, including polynomial fitting and C++ and Node.js wrappings of LAPACK functions
-  * genes: a simple genome library, not good for anything yet
-  * nodeif: wrap C++ code for Node.js
-  * realtime: obsolete
   * web: a Node.JS + browser web application framework
+  * code_gen: a javascript library for generating C++ data structure code, including
+    marshalling and unmarshalling into JSON
+  * nodeif: wrap C++ code for Node.js
+  * common: a grab-bag of C++ utilities like stringprintf, wrappers around pthreads, read/write STL into JSON, etc.
+  * numerical : numerical stuff, including polynomial fitting and C++ wrappers around LAPACK functions
+  * genes: a simple genome library, not good for anything yet
 
 
 Installing
@@ -30,10 +29,10 @@ Start it like so:
 
 It needs a modern browser, and I've only done cursory tests with IE.
 
-In each dir, there should be a file load.js which defines both the server-side and client-side resources for a project. Here's an example for the tlb.org website:
+In each dir, there should be a file __load.js__ which defines both the server-side and client-side resources for a project. Here's an example for the tlb.org website:
 
 ```javascript
-    var path                = require('path');
+    var path = require('path');
     exports.load = load;
 
     function load(webServer) {
@@ -54,26 +53,29 @@ In each dir, there should be a file load.js which defines both the server-side a
     }
 ```
  
-Fetching http://tlb.org/ will return a single minified HTML file including all the javascript files added with p.addScript, and all the CSS files added with p.addCss. It also includes a bunch of libraries already included in webServer.baseProvider. 
+Fetching http://tlb.org/ will return a single minified HTML file including all the javascript files added with **p.addScript**, and all the CSS files added with **p.addCss**. It also includes a bunch of libraries already included in **webServer.baseProvider**.
 
-The third-party libraries include jQuery, underscore, eventemitter, and mixpanel. (They should be installed using npm). Tlbcore/web adds a bunch more goodies:
+The third-party libraries include [jQuery](http://www.jquery.com/), [underscore](http://underscorejs.org), [eventemitter](https://www.npmjs.org/package/eventemitter), and [mixpanel](http://www.mixpanel.com). (They should be installed using npm). Tlbcore/web adds a bunch more goodies:
 
  * A browser history and URL fragment manager, to make single page apps easy
  * A websocket API for browser and server
- * By default, web pages make a connection to ws://host/console. You can send error message over this channel by calling errlog(...)
+ * By default, web pages make a websocket connection to ws://host/console. You can send error message over this channel by calling errlog(...)
  * Over the /console connection, they also ask to be notified when a the document changes.
  * When you save a source file that is part of an active browser session (like Tlb.js referenced above), it will use the websocket connection to ask the browser to reload. It's very convenient during development.
 
 To use the application framework, define each page of content like:
   
 ```javascript
-    $.defPage('about', function(o) {
-      this.html('<p class="urAbout">Umbrella Research</p>');
-      return this;
-    });
+  $.defPage('doc', function(o) {
+    this.html('<div class="tlbcoreDoc"></div>');
+    this.children().first().fmtContent('README');
+    return this;
+  });
 ```
 
-The function is called like a jQuery function, with *this* bound to $(document.body). Usually it will create some overall page-level HTML, then call other functions to fill in each section.
+(That's a real example from tlbcore/doc/doc.js, which you can see when you __make run__ and navigate to http://localhost:8000/doc/#doc.
+
+The function is called like a jQuery function, with __this__ bound to __$(document.body)__. Usually it will create some overall page-level HTML, then call other functions to fill in each section.
 
 
 Geometry and Numerical Libraries

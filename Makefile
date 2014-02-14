@@ -20,7 +20,7 @@ install.ubuntu ::
 	sudo add-apt-repository ppa:chris-lea/node.js
 	sudo apt-get update
 	sudo apt-get install nodejs
-	sudo apt-get install liblapack-dev
+	sudo apt-get install liblapack-dev pkg-config cmake 
 
 install.port ::
 	sudo port install git nodejs
