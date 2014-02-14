@@ -26,7 +26,7 @@ The web application framework makes it easy to serve multiple projects from Node
 Start it like so:
 
 ```sh
-    node tlbcore/web/server.js dir...
+node tlbcore/web/server.js dir...
 ```
 
 It needs a modern browser, and I've only done cursory tests with IE.
@@ -34,25 +34,25 @@ It needs a modern browser, and I've only done cursory tests with IE.
 In each dir, there should be a file __load.js__ which defines both the server-side and client-side resources for a project. Here's an example for the tlb.org website:
 
 ```javascript
-    var path = require('path');
-    exports.load = load;
+var path = require('path');
+exports.load = load;
 
-    function load(webServer) {
-      var p = webServer.baseProvider.copy();
+function load(webServer) {
+  var p = webServer.baseProvider.copy();
 
-      p.addCss(require.resolve('./tlb.css'));
-      p.addScript(require.resolve('./Tlb.js'));
-      p.addScript(require.resolve('./BalancingVehicles.js'));
-      p.addScript(require.resolve('./HackingProjects.js'));
-      p.setTitle('Trevor Blackwell');
+  p.addCss(require.resolve('./tlb.css'));
+  p.addScript(require.resolve('./Tlb.js'));
+  p.addScript(require.resolve('./BalancingVehicles.js'));
+  p.addScript(require.resolve('./HackingProjects.js'));
+  p.setTitle('Trevor Blackwell');
 
-      webServer.setUrl('/tlb/', p);
-      webServer.setPrefixHosts('/tlb/', ['www.tlb.org', 'tlb.org', 
-                                         'www.trevorb.com', 'trevorb.com']);
-      webServer.setupStdContent('/tlb/');
-      webServer.setUrl('/tlb/favicon.ico', require.resolve('./images/favicon.ico'));
-      webServer.setUrl('/tlb/images/', path.dirname(require.resolve('./images')));
-    }
+  webServer.setUrl('/tlb/', p);
+  webServer.setPrefixHosts('/tlb/', ['www.tlb.org', 'tlb.org', 
+                                     'www.trevorb.com', 'trevorb.com']);
+  webServer.setupStdContent('/tlb/');
+  webServer.setUrl('/tlb/favicon.ico', require.resolve('./images/favicon.ico'));
+  webServer.setUrl('/tlb/images/', path.dirname(require.resolve('./images')));
+}
 ```
  
 Fetching http://tlb.org/ will return a single minified HTML file including all the javascript files added with **p.addScript**, and all the CSS files added with **p.addCss**. It also includes a bunch of libraries already included in **webServer.baseProvider**.
@@ -68,11 +68,11 @@ The third-party libraries include [jQuery](http://www.jquery.com/), [underscore]
 To use the application framework, define each page of content like:
   
 ```javascript
-  $.defPage('doc', function(o) {
-    this.html('<div class="tlbcoreDoc"></div>');
-    this.children().first().fmtContent('README');
-    return this;
-  });
+$.defPage('doc', function(o) {
+  this.html('<div class="tlbcoreDoc"></div>');
+  this.children().first().fmtContent('README');
+  return this;
+});
 ```
 
 (That's a real example from tlbcore/doc/doc.js, which you can see when you __make run__ and navigate to http://localhost:8000/doc/#doc.
