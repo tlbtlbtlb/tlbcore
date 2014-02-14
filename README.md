@@ -76,11 +76,17 @@ To use the application framework, define each page of content like:
 The function is called like a jQuery function, with *this* bound to $(document.body). Usually it will create some overall page-level HTML, then call other functions to fill in each section.
 
 
-Geometry and Numerical libraries
+Geometry and Numerical Libraries
 --
- * geom/geom_math.h has basic geometrical types Vec2/3/4, Mat22/33/44, and operations among them
+ * geom/geom_math has basic geometrical types Vec2/3/4, Mat22/33/44, and operations among them
  * geom/solid_geometry can read STL files (a polyhedron defined by a bunch of triangles) and compute simple geometrical properties like center of mass
+ * numerical/polyfit has 3 and 5 degree polynomials and routines for fitting to sampled data
+ * numerical/lapack_if adds a c++ wrapper around a few LAPACK routines
 
+
+Gene Library
+--
+ * Defines a way of modifying constants in source code that will someday be used to evolve control loops
 
 
 
