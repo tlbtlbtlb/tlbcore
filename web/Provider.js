@@ -51,16 +51,15 @@ function removeComments(content) {
 }
 
 /*
-  'website/images/topnavCenter.gif' => 'data:image/gif;base64,R0lGODlhAQBLAIAAAPX29wAAACH5BAAAAAAALAAAAAABAEsAAAIHhI+py+3fCgA7'
+  'images/topnavCenter.gif' => 'data:image/gif;base64,R0lGODlhAQBLAIAAAPX29wAAACH5BAAAAAAALAAAAAABAEsAAAIHhI+py+3fCgA7'
 */
 function mkDataUrl(fn) {
-  var ct = contentTypeFromFn(fn),
-  data, 
-  dataE;
+  var ct = contentTypeFromFn(fn);
+  var data, dataE;
   try {
-    data = fs.readFileSync('website/' + fn, 'binary');
+    data = fs.readFileSync(fn, 'binary');
   } catch(ex) {
-    util.puts('Failed to read ' + fn + ': ' + ex.toString());
+    util.puts('mkDataUrl: Failed to read ' + fn + ': ' + ex.toString());
     return null;
   }
   dataE = base64.Base64.encode(data);
@@ -152,9 +151,11 @@ function emitBinaryDoc(res, fn, callid) {
 
     var ct = contentTypeFromFn(fn);
     logio.O(remote, callid + ': (200 ' + ct + ' len=' + content.length + ') ' + ct);
-    res.writeHead(200, { 'Content-Type': ct, 
-                         'Content-Length': content.length.toString(),
-                         'Cache-Control': 'max-age=900'});
+    res.writeHead(200, {
+      'Content-Type': ct,
+      'Content-Length': content.length.toString(),
+      'Cache-Control': 'max-age=900'
+    });
     res.write(content, 'binary');
     res.end();
   });
@@ -245,7 +246,10 @@ function getBasename(fn) {
   return fn.replace(/^.*\/([-\w]+)\.\w+$/, '$1');
 }
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   AnyProvider() -- Superclass of all Providers
+   
+*/
 
 function AnyProvider() {
   this.basename = '???';
@@ -295,7 +299,10 @@ AnyProvider.prototype.equals = function(other) {
 
 AnyProvider.prototype.isDir = function() { return false; }
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   XmlContentProvider(fn) -- Most users use providerSet.addXmlContent(fn).
+   Read the xml file named fn, and make each <content name="foo"> node available to the browser as $(...).fmtContent('foo')
+*/
 
 
 function XmlContentProvider(fn) {
@@ -352,18 +359,17 @@ XmlContentProvider.prototype.start = function() {
 };
 
 XmlContentProvider.prototype.toString = function() { 
-  return "ContentProvider(" + JSON.stringify(this.fn) + ")"; 
+  return "XmlContentProvider(" + JSON.stringify(this.fn) + ")"; 
 };
 
 XmlContentProvider.prototype.getType = function() {
   return 'content';
 };
 
-XmlContentProvider.prototype.getDesc = function() {
-  return this.basename;
-};
-
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   XmlContentDirProvider(fn) -- Most users use providerSet.addXmlContentDir(fn).
+   Read all the .xml files in a directory and create an XmlContentProvider for each
+*/
 
 function XmlContentDirProvider(fn) {
   AnyProvider.call(this);
@@ -374,7 +380,7 @@ function XmlContentDirProvider(fn) {
 XmlContentDirProvider.prototype = Object.create(AnyProvider.prototype);
 
 XmlContentDirProvider.prototype.toString = function() { 
-  return "ContentDirProvider(" + JSON.stringify(this.fn) + ")"; 
+  return "XmlContentDirProvider(" + JSON.stringify(this.fn) + ")"; 
 };
 
 XmlContentDirProvider.prototype.start = function() {
@@ -391,7 +397,7 @@ XmlContentDirProvider.prototype.start = function() {
       
       var m = basename.match(/^[a-zA-Z0-9](.*)\.xml$/);
       if (m) {
-        var subFn = self.fn + '/' + basename;
+        var subFn = path.join(self.fn, basename);
         
         var cp = self.subs[basename] = new XmlContentProvider(subFn);
         cp.on('changed', function() { 
@@ -420,15 +426,18 @@ XmlContentDirProvider.prototype.getStats = function() {
   return ret;
 };
 
-XmlContentDirProvider.prototype.getDesc = function() {
-  return this.fn;
-};
-
 XmlContentDirProvider.prototype.getType = function() {
   return 'dir';
 };
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   ScriptProvider(fn, commonjsModule) -- Most users use providerSet.addScript(fn, commonjsModule);
+   Read the file named fn and arrange for the browser to get the minified contents as a <script>
+   If commonjsModule is set, it wraps it as a module that can use require & exports. 
+   If it's not set, it goes into the browser's global javascript scope.
+   If (this.minifyLevel >= 1), it runs it through jsmin to save a fair bit of space.
+   Otherwise, it just collapses whitespace
+*/
 
 function ScriptProvider(fn, commonjsModule) {
   AnyProvider.call(this);
@@ -492,7 +501,10 @@ ScriptProvider.prototype.getType = function() {
   return 'script';
 };
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   JsonProvider(fn, globalVarname) -- Most users use providerSet.addJson(fn, globalVarname);
+   Read the file named fn and arrange for the browser to get the value as window[globalVarname];
+*/
 
 function JsonProvider(fn, globalVarname) {
   AnyProvider.call(this);
@@ -528,7 +540,18 @@ JsonProvider.prototype.getType = function() {
   return 'json';
 };
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   CssProvider(fn) -- Most users use providerSet.addCss(fn)
+   Read the file named fn, and re-read if it changes. Arrange for the minified CSS to be included in the head
+   of the HTML file served to the browser.
+
+   It adds some minor conveniences to the CSS, such as adding vendor prefixes. Currently, it handles:
+     border-radius
+     box-shadow
+     opacity
+   So you can just say opacity: 0.8 and it turns that into what's needed for webkit, mozilla, and IE
+   It also replaces small images with data URLs, for efficiency.
+*/
 
 function CssProvider(fn) {
   AnyProvider.call(this);
@@ -561,10 +584,11 @@ CssProvider.prototype.start = function() {
     if (1) {
       /*
         Replace tiny images with data urls for faster loading
-        See http://www.sveinbjorn.org/dataurlsCss
+        See http://www.sveinbjorn.org/dataurlsCss.
+        This only works if the CSS is like url("images/foo.png") and the file is found in tlbcore/web/images
       */
       data = data.replace(/url\(\"images\/(\w+)\.(gif|png|jpg)\"\)/g, function(all, basename, ext) {
-        var du = mkDataUrl('images/' + basename + '.' + ext);
+        var du = mkDataUrl(path.join(require.resolve('./images/'), basename + '.' + ext));
         if (du === null || du.length > 1000) return all;
         return 'url(\"' + du + '\")';
       });
@@ -587,9 +611,13 @@ CssProvider.prototype.getType = function() {
   return 'css';
 };
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   SvgProvider(fn, contentName) -- Most users use providerSet.addSvg(fn, contentName)
+   Read the file named fn, and re-read if it changes. Arrange for the SVG content
+   to be available in the browser with $(...).fmtContent[contentName]
+*/
 
-function SvgProvider(fn) {
+function SvgProvider(fn, contentName) {
   AnyProvider.call(this);
   this.fn = fn;
   this.basename = getBasename(fn);
@@ -633,7 +661,11 @@ SvgProvider.prototype.getType = function() {
   return 'svg';
 };
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   MarkdownProvider(fn, contentName) -- Most users use providerSet.addMarkdown(fn, contentName)
+   Read the file named fn, and re-read if it changes. Convert Markdown to HTML, and arrange for the 
+   HTML to be available in the browser with $(...).fmtContent[contentName];
+*/
 
 function MarkdownProvider(fn, contentName) {
   AnyProvider.call(this);
@@ -689,6 +721,8 @@ function ProviderSet() {
   this.providers = [];
   this.title = 'VJS';
   this.faviconUrl = 'favicon.ico';
+  this.body = '<center><img src="/spinner-lib/spinner.gif" width="24" height="24" class="spinner320x240"/></center>\n';
+
   this.reloadKey = undefined;
 }
 ProviderSet.prototype = Object.create(AnyProvider.prototype);
@@ -703,6 +737,12 @@ ProviderSet.prototype.anyPending = function() {
 ProviderSet.prototype.setTitle = function(t) {
   this.title = t;
 };
+
+/*
+  Use these to build up the document. Duplicates are ignored and all CSS is placed before any scripts.
+  Otherwise, things are emitted within the document in the order added, so the order should respect
+  module dependencies.
+*/
 ProviderSet.prototype.addCss = function(name) {
   this.addProvider(new CssProvider(name));
 };
@@ -773,14 +813,14 @@ ProviderSet.prototype.start = function() {
         }
       }
       
-      cat.push('<!DOCTYPE html>\n<head>\n<meta charset="utf-8">\n');
+      cat.push('<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n');
       // Maybe these could be providers?
       cat.push('<title>' + self.title + '</title>\n');
-      cat.push('<link href="' + self.faviconUrl + '" rel="shortcut icon" type="image/x-icon"/>\n');
+      cat.push('<link rel="shortcut icon" type="image/x-icon" href="' + self.faviconUrl + '" />\n');
       emitAll('asCssHead', '<style type="text/css">\n/* <![CDATA[ */\n', '\n/* ]]> */\n</style>\n');
       emitAll('asHtmlHead', '', '');
-      cat.push('</head><body>' +
-               '<center><img src="/spinner-lib/spinner.gif" width="24" height="24" class="spinner320x240"/></center>\n');
+      cat.push('</head><body>');
+      cat.push(self.body);
 
       emitAll('asHtmlBody', '', '');
       emitAll('asScriptBody', '<script type="text/javascript">\n//<![CDATA[\n', '\n//]]>\n</script>\n');
@@ -789,8 +829,8 @@ ProviderSet.prototype.start = function() {
                'setTimeout(function() {' +
                'pageSetupFromHash(' + JSON.stringify(self.reloadKey) + ');' +
                '});\n' +
-               '</script>\n' +
-               '</body>\n</html>\n');
+               '</script>\n');
+      cat.push('</body>\n</html>\n');
 
       self.asHtml = new Buffer(cat.join(''), 'utf8');
       self.pending = false;
