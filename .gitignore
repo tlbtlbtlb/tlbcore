@@ -4,3 +4,4 @@
 .lock-wscript
 *.log
 *.o
+/t_anythreads

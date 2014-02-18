@@ -1074,7 +1074,6 @@ Vec4 getCol(Mat44 const &u, int ci)
 
 Mat33 justRotation(Mat44 const &u)
 {
-  //assert(ax==0.0 && ay==0.0 && az==0.0 && aa==1.0);
   return Mat33(u.xx, u.xy, u.xz,
                u.yx, u.yy, u.yz,
                u.zx, u.zy, u.zz);
@@ -1082,7 +1081,6 @@ Mat33 justRotation(Mat44 const &u)
 
 Vec3 justTranslation(Mat44 const &u)
 {
-  //assert(ax==0.0 && ay==0.0 && az==0.0 && aa==1.0);
   return Vec3(u.xa, u.ya, u.za);
 }
 

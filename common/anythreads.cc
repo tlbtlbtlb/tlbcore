@@ -1,8 +1,6 @@
 #include "./std_headers.h"
 #include "./anythreads.h"
 
-#define PTW32_STATIC_LIB
-
 bool tlbcore_threading_active;
 int tlbcore_threading_verbose = 0;
 
@@ -22,12 +20,12 @@ anymutexattr::~anymutexattr()
 
 anycondattr::anycondattr()
 {
-  // pthread_condattr_init(&it);
+  pthread_condattr_init(&it);
 }
 
 anycondattr::~anycondattr()
 {
-  // pthread_condattr_destroy(&it);
+  pthread_condattr_destroy(&it);
 }
 
 
@@ -58,9 +56,7 @@ void anymutex::lock()
 {
   pthread_t self_thread = pthread_self();
 
-  // st --- So the thread handle isn't actually a pointer on windows... so this throws
-  //        a compilation error
-  if (tlbcore_threading_verbose>=2) eprintf("Lock %p by %p...", this, THREAD_PTR(self_thread));
+  if (tlbcore_threading_verbose>=2) eprintf("Lock %p by %p...", this, ANYTHREAD_PTR(self_thread));
 
   if (tlbcore_threading_active) {
     if (pthread_mutex_lock(&it) < 0) diee("mutex_lock");
@@ -73,7 +69,7 @@ bool anymutex::trylock()
 {
   pthread_t self_thread = pthread_self();
 
-  if (tlbcore_threading_verbose>=2) eprintf("Trylock %p by %p...", this, THREAD_PTR(self_thread));
+  if (tlbcore_threading_verbose>=2) eprintf("Trylock %p by %p...", this, ANYTHREAD_PTR(self_thread));
 
   if (tlbcore_threading_active) {
     if (pthread_mutex_trylock(&it) < 0) {
@@ -100,9 +96,7 @@ void anymutex::assert_owned()
 {
   pthread_t self_thread = pthread_self();
   if (!pthread_equal(self_thread, owner)) {
-
-    // st --- BTW, these die calls don't play nice on windows. They kill the code without giving a stack trace
-    die("anymutex assert_owned by %p but owned by %p\n", THREAD_PTR(self_thread), THREAD_PTR(owner));
+    die("anymutex assert_owned by %p but owned by %p\n", ANYTHREAD_PTR(self_thread), ANYTHREAD_PTR(owner));
   }
 }
 
@@ -224,7 +218,7 @@ void anythread::start_thread()
 #endif
 
   pthread_create(&thread, &attr, anythread__thread_main, this);
-  if (tlbcore_threading_verbose>=1) eprintf("done. thread=%p\n", THREAD_PTR(thread));
+  if (tlbcore_threading_verbose>=1) eprintf("done. thread=%p\n", ANYTHREAD_PTR(thread));
 }
 
 void anythread::cancel_thread()

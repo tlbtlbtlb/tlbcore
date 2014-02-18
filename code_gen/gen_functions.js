@@ -1,8 +1,8 @@
-var _ = require('underscore');
-var util = require('util');
-var cgen = require('./cgen');
-var assert = require('assert');
-var fs = require('fs');
+var _                   = require('underscore');
+var util                = require('util');
+var cgen                = require('./cgen');
+var assert              = require('assert');
+var fs                  = require('fs');
 
 exports.RtFunction = RtFunction;
 
@@ -224,8 +224,8 @@ function emitNode(l, node) {
         break;
     case 'erf':
         // WRITEME: erf http://en.wikipedia.org/wiki/Error_function
-        assert.fail();
-        break;
+      throw new Error('erf unimplemented');
+      break;
 
     }
 }

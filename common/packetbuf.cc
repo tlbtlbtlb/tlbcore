@@ -578,7 +578,10 @@ string packet::get_nl_string()
 void packet::add_typetag(char const *tag)
 {
   size_t size = strlen(tag);
-  assert (size < 255);
+  if (!(size < 255)) {
+    die("add_typetag: tag too long (len=%d)\n", (int)size);
+    return;
+  }
   add((u_char)size);
   add_bytes(tag, size);
 }  

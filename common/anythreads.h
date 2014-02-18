@@ -12,16 +12,16 @@
 #include <Windows.h>
 #endif
 
-// st --- WOOOOOOO Macros!
-
 #ifndef WIN32
-#define THREAD_PTR(t) (void *)(t)
+#define ANYTHREAD_PTR(t) (void *)(t)
 #else
-#define THREAD_PTR(t) (t.p)
+#define ANYTHREAD_PTR(t) (t.p)
 #endif
 
 /*
-  Simple wrappers around pthreads (or windows threads if we go there)
+  Simple wrappers around pthreads (or windows threads if we go there).
+
+  I'd love to replace this with a 3rd party library that does this.
 
   These correspond as directly as possible to the pthread API, except
   that mutexes are recursive by default (so you can lock them multiple
@@ -56,6 +56,7 @@
      plutonium: 90 nS  (FreeBSD 7, 4 core, Xeon 5150 3.2 GHz)
      cesium: 36 nS     (OSX 10.4, 2 core, Core 2 Duo 2.16GHz)
      bismuth: 28 nS    (OSX 10.5, 8 core, Xeon E5462 2.80 GHz)
+     zagreb: 40 nS     (OSX 10.9, 8 core, Core i7, 2.6 GHz)
 
   Obviously the Apple implementation is better
 
