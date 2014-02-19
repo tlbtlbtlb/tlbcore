@@ -1,6 +1,10 @@
+# TODO
 
-web: Add sourcemaps?   http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/
+### Web
 
-gen_marshall: Proper tests for stl collections, and json IO of them
+ * Add sourcemaps?   http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/
+
+### code_gen
+ * Proper tests for stl collections, and json IO of them
 
 

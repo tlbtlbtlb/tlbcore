@@ -41,8 +41,8 @@ void GeneSet::load()
       char *valtok = strsep(&p, " ");
       lookup<double>(nametok) = atof(valtok);
     }
-    else if (!strcmp(typetok, "doublevector")) {
-      doublevector &val = lookup<doublevector>(nametok);
+    else if (!strcmp(typetok, "vector<double>")) {
+      vector<double> &val = lookup<vector<double> >(nametok);
       val.clear();
       while (1) {
         char *valtok = strsep(&p, " ");
@@ -77,8 +77,8 @@ void GeneSet::save()
   for (map<string, double>::iterator it = mapDouble.begin(); it != mapDouble.end(); it++) {
     fprintf(f, "double %s %g\n", it->first.c_str(), (double)it->second);
   }
-  for (map<string, vector<double> >::iterator it = mapDoublevector.begin(); it != mapDoublevector.end(); it++) {
-    fprintf(f, "doublevector %s", it->first.c_str());
+  for (map<string, vector<double> >::iterator it = mapVectorDouble.begin(); it != mapVectorDouble.end(); it++) {
+    fprintf(f, "vector<double> %s", it->first.c_str());
     for (vector<double>::iterator it2 = it->second.begin(); it2 != it->second.end(); it2++) {
       fprintf(f, " %g", *it2);
     }
@@ -108,9 +108,9 @@ double &GeneSet::lookup<double>(const char *name)
 }
 
 template<>
-doublevector &GeneSet::lookup<doublevector>(const char *name)
+vector<double> &GeneSet::lookup<vector<double> >(const char *name)
 {
-  return mapDoublevector[name];
+  return mapVectorDouble[name];
 }
 
 

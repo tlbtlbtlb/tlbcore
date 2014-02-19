@@ -13,14 +13,14 @@ struct GeneSet {
   bool valid;
   map<string, int> mapInt;
   map<string, double> mapDouble;
-  map<string, doublevector> mapDoublevector;
+  map<string, vector<double> > mapVectorDouble;
   
 };
 
 
 template<> int &GeneSet::lookup<int>(const char *name);
 template<> double &GeneSet::lookup<double>(const char *name);
-template<> doublevector &GeneSet::lookup<doublevector>(const char *name);
+template<> vector<double> &GeneSet::lookup<vector<double> >(const char *name);
 
 #define DEFGENESET  static GeneSet geneSet0(__FILE__ ".genes");
 #define GENE(T, NAME) geneSet0.lookup<T>(NAME);
