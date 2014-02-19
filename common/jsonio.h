@@ -41,6 +41,9 @@ bool rdJson(const char *&s, double &value);
 bool rdJson(const char *&s, string &value);
 bool rdJson(const char *&s, jsonstr &value);
 
+bool skipJsonValue(const char *&s);
+bool skipJsonMember(const char *&s);
+
 /*
   Because isspace does funky locale-dependent stuff that I don't want
 */

@@ -1650,11 +1650,14 @@ StructCType.prototype.emitRdJson = function(f) {
   f('if (c == \'{\') {');
   f('while(1) {');
   f('jsonSkipSpace(s);');
+  f('char const *memberStart = s;');
   f('c = *s++;');
   emitPrefix('');
-  f('s--;');
-  if (debugJson) f('eprintf("rdJson fail at %s\\n", s);');
-  f('return false;');
+  f('s = memberStart;');
+  f('if (!skipJsonMember(s)) return false;');
+  f('c = *s++;');
+  f('if (c == \',\') continue;');
+  f('if (c == \'}\') return typeOk;');
   f('}');
   f('}');
   f('s--;');
@@ -1665,6 +1668,7 @@ StructCType.prototype.emitRdJson = function(f) {
   
   function emitPrefix(prefix) {
     
+    // O(n^2), not a problem with current structures but could be with 1000s of members
     var nextChars = [];
     _.each(actions, function(action, name) {
       if (name.length > prefix.length &&

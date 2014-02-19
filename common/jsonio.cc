@@ -340,7 +340,7 @@ void wrJson(char *&s, jsonstr const &value) {
 }
 
 
-bool skipJson(char const *&s) {  
+bool skipJsonValue(char const *&s) {
   jsonSkipSpace(s);
   if (*s == '\"') {
     string tmp;
@@ -358,7 +358,7 @@ bool skipJson(char const *&s) {
         break;
       }
       else {
-        if (!skipJson(s)) return false;
+        if (!skipJsonValue(s)) return false;
       }
     }
   }
@@ -377,7 +377,7 @@ bool skipJson(char const *&s) {
         break;
       }
       else {
-        if (!skipJson(s)) return false;
+        if (!skipJsonValue(s)) return false;
       }
     }
   }
@@ -388,11 +388,27 @@ bool skipJson(char const *&s) {
   return true;
 }
 
+bool skipJsonMember(char const *&s) {
+  jsonSkipSpace(s);
+  if (*s == '\"') {
+    string tmp;
+    rdJson(s, tmp);
+    jsonSkipSpace(s);
+    if (*s == ':') {
+      s++;
+      jsonSkipSpace(s);
+      if (!skipJsonValue(s)) return false;
+      return true;
+    }
+  }
+  return false;
+}
+
 
 bool rdJson(char const *&s, jsonstr &value) {
   jsonSkipSpace(s);
   char const *begin = s;
-  if (!skipJson(s)) {
+  if (!skipJsonValue(s)) {
     if (0) eprintf("rdJson/jsonstr: failed at %s\n", begin);
     return false;
   }
