@@ -1080,7 +1080,9 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
     f('string key = convJsToString(name);');
     f('TYPENAME::iterator iter = thisObj->it->find(key);');
-    f('if (iter == thisObj->it->end()) return scope.Close(Handle<Value>());'); // return undefined if not found, will be looked up on prototype chain
+    // return an empty handle if not found, will be looked up on prototype chain
+    // It doesn't work if you return scope.Close(Undefined());
+    f('if (iter == thisObj->it->end()) return scope.Close(Handle<Value>());');
     f('return scope.Close(' + type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisObj->memory') + ');');
     f('}');
 
@@ -1095,6 +1097,22 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
   }
 
   if (type.templateName === 'vector') {
+
+    f('static Handle<Value> jsGetIndexed_JSTYPE(unsigned int index, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('if (index > thisObj->it->size()) scope.Close(Undefined());');
+    f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('(*thisObj->it)[index]', 'thisObj->memory') + ');');
+    f('}');
+
+    f('static Handle<Value> jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f(type.templateArgs[0] + ' cvalue(' + type.reg.types[type.templateArgs[0]].getJsToCppExpr('value') + ');');
+    f('(*thisObj->it)[index] = cvalue;');
+    f('return scope.Close(value);');
+    f('}');
+
     emitJsWrap(f, 'JSTYPE_pushBack', function() {
       emitArgSwitch(f, type.reg, type, [{
         args: [type.templateArgTypes[0]], code: function() {
@@ -1170,6 +1188,9 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('tpl->InstanceTemplate()->SetInternalFieldCount(1);');
     if (type.templateName === 'map' && type.templateArgs[0] === 'string') {
       f('tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE, jsSetNamed_JSTYPE);');
+    }
+    if (type.templateName === 'vector') {
+      f('tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_JSTYPE, jsSetIndexed_JSTYPE);');
     }
 
     _.each(methods, function(name) {

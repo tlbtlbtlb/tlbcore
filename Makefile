@@ -9,6 +9,8 @@ setup ::
 size ::
 node_modules ::
 
+include common/MakeSystem.inc
+
 # MAINTAINME
 JS_SRCDIRS = code_gen nodeif geom genes web numerical 
 

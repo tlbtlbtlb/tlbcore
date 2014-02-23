@@ -6,9 +6,17 @@
     'OTHER_CFLAGS': ['-stdlib=libc++']
   },
   'conditions': [
+    ['OS=="mac"', {
+      'include_dirs': [
+        '/opt/local/include',
+      ],
+      'libraries+': [
+        '-L/opt/local/lib', '-larmadillo',
+      ],
+    }],
     ['OS=="linux"', {
       'libraries+': [
-        '-llapack',
+        '-larmadillo',
       ],
       'cflags_cc!': [
         '-fno-rtti', '-fno-exceptions'
@@ -30,7 +38,6 @@
     '../common/anythreads.cc',
     '../common/host_debug.cc',
     '../common/jsonio.cc',
-    '../numerical/lapack_if.cc',
     '../numerical/polyfit.cc'
   ]
 }
