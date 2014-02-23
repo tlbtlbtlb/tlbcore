@@ -1173,8 +1173,8 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
           f('packet rd(a0);');
           f('try {');
           f('rd.get_checked(ret);');
-          f('} catch(tlbcore_err const &ex) {');
-          f('return ThrowTypeError(ex.str().c_str());');
+          f('} catch(exception &ex) {');
+          f('return ThrowTypeError(ex.what());');
           f('};');
         }}]);
     });
@@ -1860,8 +1860,8 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
           f('packet rd(a0);');
           f('try {');
           f('rd.get_checked(ret);');
-          f('} catch(tlbcore_err const &ex) {');
-          f('return ThrowTypeError(ex.str().c_str());');
+          f('} catch(exception &ex) {');
+          f('return ThrowTypeError(ex.what());');
           f('};');
         }}]);
     });

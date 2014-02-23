@@ -192,10 +192,8 @@ static void *anythread__thread_main(void *arg)
   if (tlbcore_threading_verbose>=1) eprintf("anythread thread %p running\n", (void *)it);
   try {
     it->thread_main();
-  } catch (tlbcore_err const &err) {
-    eprintf("anythread died: %s\n", err.str().c_str());
-  } catch (...) {
-    eprintf("anythread died\n");
+  } catch (exception &ex) {
+    eprintf("anythread died: %s\n", ex.what());
   }
   if (tlbcore_threading_verbose>=1) eprintf("anythread thread exiting\n");
   return NULL;

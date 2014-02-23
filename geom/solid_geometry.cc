@@ -1,5 +1,4 @@
 #include "../common/std_headers.h"
-#include "../common/exceptions.h"
 #include "./solid_geometry.h"
 
 
@@ -241,17 +240,17 @@ void
 stl_solid::read_binary_file(FILE *fp, double scale)
 {
   char dummyline[80];
-  if (fread(dummyline, 1, 80, fp)!=80) throw tlbcore_type_err("reading header");
+  if (fread(dummyline, 1, 80, fp)!=80) throw runtime_error("reading header");
 
   int n_triangles=0;
-  if (fread(&n_triangles, sizeof(int), 1, fp)!=1) throw tlbcore_type_err("reading n_triangles");
+  if (fread(&n_triangles, sizeof(int), 1, fp)!=1) throw runtime_error("reading n_triangles");
 
   faces.reserve(n_triangles);
   
   for (int ti=0; ti<n_triangles; ti++) {
 
     float data[12];
-    if (fread(&data, sizeof(float), 12, fp) != 12) throw tlbcore_type_err("reading 12 floats");
+    if (fread(&data, sizeof(float), 12, fp) != 12) throw runtime_error("reading 12 floats");
     
     stl_face face(Vec3(data[3] * scale, data[4] * scale, data[5] * scale),
                   Vec3(data[6] * scale, data[7] * scale, data[8] * scale),
@@ -259,9 +258,9 @@ stl_solid::read_binary_file(FILE *fp, double scale)
                   Vec3(data[0], data[1], data[2]));
     
     short attr_byte_count=0;
-    if (fread(&attr_byte_count, sizeof(short), 1, fp)!=1) throw tlbcore_type_err("reading attr_byte_count");
+    if (fread(&attr_byte_count, sizeof(short), 1, fp)!=1) throw runtime_error("reading attr_byte_count");
 
-    if (attr_byte_count!=0) throw tlbcore_type_err("bad attr_byte_count");
+    if (attr_byte_count!=0) throw runtime_error("bad attr_byte_count");
 
     faces.push_back(face);
 

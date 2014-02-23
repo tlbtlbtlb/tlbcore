@@ -42,8 +42,6 @@
   
 */
 
-#include "./exceptions.h"
-
 struct packet_contents;
 struct packet_annotations;
 struct jsonstr;
@@ -66,27 +64,23 @@ struct packet_annotations {
 
 // ----------------------------------------------------------------------
 
-struct packet_wr_overrun_err : tlbcore_err {
-  packet_wr_overrun_err(int _howmuch);
-  virtual ~packet_wr_overrun_err();
-  string str() const;
+struct packet_wr_overrun_err : runtime_error {
+  explicit packet_wr_overrun_err(int _howmuch);
+  virtual ~packet_wr_overrun_err() throw();
   int howmuch;
 };
 
-struct packet_rd_overrun_err : tlbcore_err {
-  packet_rd_overrun_err(int _howmuch);
-  virtual ~packet_rd_overrun_err();
-  string str() const;
+struct packet_rd_overrun_err : runtime_error {
+  explicit packet_rd_overrun_err(int _howmuch);
+  virtual ~packet_rd_overrun_err() throw();
   int howmuch;
 };
 
-struct packet_rd_type_err : tlbcore_err {
-  packet_rd_type_err(char const *_expected, char const *_got);
-  packet_rd_type_err(string const &_expected, string const &_got); // Leaks
-  virtual ~packet_rd_type_err();
-  string str() const;
-  char const *expected;
-  char const *got;
+struct packet_rd_type_err : runtime_error {
+  explicit packet_rd_type_err(string const &_expected, string const &_got);
+  virtual ~packet_rd_type_err() throw();
+  string expected;
+  string got;
 };
 
 struct packet_stats {

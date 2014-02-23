@@ -1,6 +1,5 @@
 #include "../common/std_headers.h"
 #include "./polyfit.h"
-#include "./lapack_if.h"
 #include <armadillo>
 
 /* ----------------------------------------------------------------------
@@ -34,8 +33,8 @@ double getDerivative(Polyfit5 const &u, double t)
 
 Polyfit3 mkPolyfit3(vector<double> xs, vector<double> ys)
 {
-  if (xs.size() != ys.size()) throw new tlbcore_type_err("incompatible arrays");
-  if (xs.size() < 4) throw new tlbcore_type_err("not enough data");
+  if (xs.size() != ys.size()) throw runtime_error("incompatible arrays");
+  if (xs.size() < 4) throw runtime_error ("not enough data");
 
   arma::mat xsm = arma::mat(xs.size(), 4);
   arma::mat ysm = arma::mat(ys.size(), 1);
@@ -50,17 +49,15 @@ Polyfit3 mkPolyfit3(vector<double> xs, vector<double> ys)
     ysm(ri, 0) = y;
   }
   
-  arma::mat coeffs;
-  if (arma::solve(coeffs, xsm, ysm)) {
-    return Polyfit3(coeffs(0,0), coeffs(1,0), coeffs(2,0), coeffs(3,0));
-  }
-  throw new tlbcore_type_err("no solution found");
+  // Throws runtime_error if no solution
+  arma::mat coeffs = arma::solve(xsm, ysm);
+  return Polyfit3(coeffs(0,0), coeffs(1,0), coeffs(2,0), coeffs(3,0));
 }
 
 Polyfit5 mkPolyfit5(vector<double> xs, vector<double> ys)
 {
-  if (xs.size() != ys.size()) throw new tlbcore_type_err("incompatible arrays");
-  if (xs.size() < 6) throw new tlbcore_type_err("not enough data");
+  if (xs.size() != ys.size()) throw runtime_error("incompatible arrays");
+  if (xs.size() < 6) throw runtime_error("not enough data");
 
   arma::mat xsm = arma::mat(xs.size(), 6);
   arma::mat ysm = arma::mat(ys.size(), 1);
@@ -77,9 +74,7 @@ Polyfit5 mkPolyfit5(vector<double> xs, vector<double> ys)
     ysm(ri, 0) = y;
   }
   
-  arma::mat coeffs;
-  if (arma::solve(coeffs, xsm, ysm)) {
-    return Polyfit5(coeffs(0,0), coeffs(1,0), coeffs(2,0), coeffs(3,0), coeffs(4,0), coeffs(5,0));
-  }
-  throw new tlbcore_type_err("no solution found");
+  // Throws runtime_error if no solution
+  arma::mat coeffs = arma::solve(xsm, ysm);
+  return Polyfit5(coeffs(0,0), coeffs(1,0), coeffs(2,0), coeffs(3,0), coeffs(4,0), coeffs(5,0));
 }

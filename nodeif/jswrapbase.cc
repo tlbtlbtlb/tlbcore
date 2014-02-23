@@ -54,7 +54,7 @@ string convJsToString(Handle<Value> it) {
     return string(data, data+len);
   }
   else {
-    throw tlbcore_type_err("Can't convert to string");
+    throw runtime_error("Can't convert to string");
   }
 }
 Handle<Value> convStringToJs(string const &it) {
@@ -110,7 +110,7 @@ vector<double> convJsToVectorDouble(Handle<Value> itv) {
       return ret;
     }
   }
-  throw new tlbcore_type_err("convJsToVectorDouble: not an array");
+  throw runtime_error("convJsToVectorDouble: not an array");
 }
 
 Handle<Object> convVectorDoubleToJs(vector<double> const &it) {
@@ -209,6 +209,6 @@ map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
     }
     return ret;
   }
-  throw new tlbcore_type_err("convJsToMapStringJsonstr: not an object");
+  throw runtime_error("convJsToMapStringJsonstr: not an object");
 }
 

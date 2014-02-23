@@ -694,43 +694,31 @@ void packet::clear_stats()
 // ----------------------------------------------------------------------
 
 packet_wr_overrun_err::packet_wr_overrun_err(int _howmuch)
-  :howmuch(_howmuch)
+  :runtime_error(stringprintf("Packet wr overrun by %d", _howmuch)),
+   howmuch(_howmuch)
 {
 }
-packet_wr_overrun_err::~packet_wr_overrun_err()
+packet_wr_overrun_err::~packet_wr_overrun_err() throw()
 {
-}
-string packet_wr_overrun_err::str() const
-{
-  return stringprintf("packet_wr_overrun_err(%d)", howmuch);
 }
 
 packet_rd_overrun_err::packet_rd_overrun_err(int _howmuch)
-  :howmuch(_howmuch)
+  :runtime_error(stringprintf("Packet wr overrun by %d", _howmuch)),
+   howmuch(_howmuch)
 {
 }
-packet_rd_overrun_err::~packet_rd_overrun_err()
+packet_rd_overrun_err::~packet_rd_overrun_err() throw()
 {
-}
-string packet_rd_overrun_err::str() const
-{
-  return stringprintf("packet_rd_overrun_err(%d)", howmuch);
 }
 
-packet_rd_type_err::packet_rd_type_err(char const *_expected, char const *_got)
-  :expected(strdup(_expected)), got(strdup(_got)) // leaks
-{
-}
 packet_rd_type_err::packet_rd_type_err(string const &_expected, string const &_got)
-  :expected(strdup(_expected.c_str())), got(strdup(_got.c_str())) // leaks
+  :runtime_error(stringprintf("packet_rd_type_err(expected %s, got %s)", expected.c_str(), got.c_str())),
+   expected(_expected), 
+   got(_got)
 {
 }
-packet_rd_type_err::~packet_rd_type_err()
+packet_rd_type_err::~packet_rd_type_err() throw()
 {
-}
-string packet_rd_type_err::str() const
-{
-  return stringprintf("packet_rd_type_err(expected %s, got %s)", expected, got);
 }
 
 // ----------------------------------------------------------------------
@@ -853,7 +841,7 @@ string packet::run_test(int testid)
     return packet::stats_str();
   }
   else {
-    throw tlbcore_index_err();
+    throw runtime_error("No such test");
   }
 }
 
