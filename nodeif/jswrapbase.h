@@ -63,6 +63,7 @@ struct JsWrapOwnershipGeneric : JsWrapOwnership {
 Handle<Value> ThrowInvalidArgs();
 Handle<Value> ThrowInvalidThis();
 Handle<Value> ThrowTypeError(char const *s);
+Handle<Value> ThrowRuntimeError(char const *s);
 
 bool canConvJsToString(Handle<Value> it);
 string convJsToString(Handle<Value> it);

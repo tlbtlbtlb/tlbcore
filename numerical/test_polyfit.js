@@ -1,4 +1,5 @@
 var _                   = require('underscore');
+var assert              = require('assert');
 var ur                  = require('ur');
 
 function check(pf, xs, ys, tol) {
@@ -32,6 +33,16 @@ describe('mkPolyfit3', function() {
 
     var pf = ur.mkPolyfit3(new ur.vector_double(xs), new ur.vector_double(ys));
     check(pf, xs, ys, 0.001);
+  });
+
+  it('should throw with not enough data', function() {
+    try {
+      ur.mkPolyfit3(new ur.vector_double([1,2,3]), new ur.vector_double([1,2,3]));
+    } catch(ex) {
+      assert.ok(ex.toString().match(/not enough data/));
+      return;
+    }
+    assert.fail();
   });
 
 });

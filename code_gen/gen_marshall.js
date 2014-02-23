@@ -244,6 +244,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         callargs.push('a' + argi);
       });
 
+      f('try {');
       switch (funcInfo.returnTypename) {
       case 'void':
         f(funcInfo.funcname + '(' + callargs.join(', ') + ');');
@@ -257,7 +258,9 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         f(funcInfo.returnTypename + ' ret = ' + funcInfo.funcname + '(' + callargs.join(', ') + ');');
         f('return scope.Close(' + typereg.types[funcInfo.returnTypename].getCppToJsExpr('ret') + ');');
       }
-
+      f('} catch (exception &ex) {');
+      f('return ThrowTypeError(ex.what());');
+      f('}');
       f('}');
     });
     f('return ThrowInvalidArgs();');
@@ -1174,7 +1177,7 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
           f('try {');
           f('rd.get_checked(ret);');
           f('} catch(exception &ex) {');
-          f('return ThrowTypeError(ex.what());');
+          f('return ThrowRuntimeError(ex.what());');
           f('};');
         }}]);
     });

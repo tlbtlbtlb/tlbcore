@@ -38,6 +38,10 @@ Handle<Value> ThrowTypeError(char const *s) {
   return ThrowException(Exception::TypeError(String::New(s)));
 }
 
+Handle<Value> ThrowRuntimeError(char const *s) {
+  return ThrowException(Exception::TypeError(String::New(s))); // WRITEME
+}
+
 
 
 bool canConvJsToString(Handle<Value> it) {
