@@ -18,14 +18,15 @@ JS_SRCDIRS = code_gen nodeif geom genes web numerical
 # Manual machine setup
 # See https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager
 install.ubuntu ::
-	sudo apt-get install git make python-software-properties python g++ make software-properties-common
+	sudo apt-get update
+	sudo apt-get install -y git make python-software-properties python g++ make software-properties-common
 	sudo add-apt-repository ppa:chris-lea/node.js
 	sudo apt-get update
-	sudo apt-get install nodejs
-	sudo apt-get install liblapack-dev pkg-config cmake 
+	sudo apt-get install -y nodejs
+	sudo apt-get install -y liblapack-dev pkg-config cmake libarmadillo-dev
 
 install.port ::
-	sudo port install git nodejs
+	sudo port install git nodejs armadillo
 
 install.npm ::
 	sudo npm install -g node-gyp jshint mocha uglify-js
