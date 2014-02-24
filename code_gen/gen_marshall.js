@@ -1164,7 +1164,7 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
           f('packet wr;');
           f('wr.add_checked(*thisObj->it);');
           f('node::Buffer *buf = node::Buffer::New((const char *)wr.rd_ptr(), wr.size());');
-          f('return scope.Close(Handle<Object>(buf->handle_));');
+          f('return scope.Close(Handle<Object>(buf->handle_));'); // XXX Should I delete buf?
         }}
       ]);
     });

@@ -39,7 +39,7 @@ Handle<Value> ThrowTypeError(char const *s) {
 }
 
 Handle<Value> ThrowRuntimeError(char const *s) {
-  return ThrowException(Exception::TypeError(String::New(s))); // WRITEME
+  return ThrowException(Exception::Error(String::New(s)));
 }
 
 
