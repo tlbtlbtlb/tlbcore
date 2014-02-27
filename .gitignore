@@ -1,6 +1,8 @@
 /build.src
 /nodeif/build
 /nodeif/bin
+/arma/build
+/arma/bin
 .lock-wscript
 *.log
 *.o

@@ -70,6 +70,11 @@ WebServer.prototype.setPrefixHosts = function(prefix, hosts) {
   _.each(hosts, function(host) {
     webServer.hostPrefixes[host] = prefix;
     console.log('Set hostPrefix['+host+']='+prefix);
+    
+    var alphaHost = host.replace(/^(\w+)\./, '$1-alpha.');
+    if (alphaHost !== host) {
+      webServer.hostPrefixes[alphaHost] = prefix;
+    }
   });
 };
 

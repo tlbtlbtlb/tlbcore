@@ -16,7 +16,6 @@ Handle<Value> gene_t1(const Arguments &args) {
 }
 
 
-void geom_math_init(Handle<Object> exports);
 void jsInit_fastJson(Handle<Object> exports);
 void jsBoot(Handle<Object> exports);
 

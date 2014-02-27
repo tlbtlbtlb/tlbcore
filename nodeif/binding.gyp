@@ -5,7 +5,8 @@
       'target_name': 'ur',
       'include_dirs+': ['..','../..'],
       'includes': [
-        './sources.gypi', 
+        './setup.gypi',
+        './sources.gypi',
         '../build.src/sources_root.gypi',
       ],
       'sources': [
