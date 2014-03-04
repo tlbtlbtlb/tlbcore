@@ -24,6 +24,7 @@
 
 #include <node.h>
 #include <node_buffer.h>
+#include <armadillo>
 using namespace node;
 using namespace v8;
 
@@ -65,21 +66,112 @@ Handle<Value> ThrowInvalidThis();
 Handle<Value> ThrowTypeError(char const *s);
 Handle<Value> ThrowRuntimeError(char const *s);
 
+// stl::string conversion
 bool canConvJsToString(Handle<Value> it);
 string convJsToString(Handle<Value> it);
 Handle<Value> convStringToJs(string const &it);
 Handle<Value> convStringToJsBuffer(string const &it);
 
-bool canConvJsToVectorDouble(Handle<Value> it);
-vector<double> convJsToVectorDouble(Handle<Value> it);
-Handle<Object> convVectorDoubleToJs(vector<double> const &it);
+// Armadillo mat/vec conversion
+template<typename T>
+bool canConvJsToArmaMat(Handle<Value> it);
+template<typename T>
+arma::Mat<T> convJsToArmaMat(Handle<Value> it);
+template<typename T>
+Handle<Object> convArmaMatToJs(arma::Mat<T> const &it);
 
+template<typename T>
+bool canConvJsToArmaVec(Handle<Value> itv) {
+  if (itv->IsObject()) {
+    Handle<Object> it = itv->ToObject();
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) return true;
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) return true;
+    if (it->IsArray()) return true;
+  }
+  return false;
+}
+
+template<typename T>
+arma::Col<T> convJsToArmaVec(Handle<Value> itv) {
+  if (itv->IsObject()) {
+    Handle<Object> it = itv->ToObject();
+
+    // Sort of wrong for T = cx_double. I believe it only sets the real part.
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) {
+      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
+      double* itData = static_cast<double*>(it->GetIndexedPropertiesExternalArrayData());
+
+      arma::Col<T> ret(itLen);
+      for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
+      return ret;
+    }
+
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) {
+      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
+      float* itData = static_cast<float*>(it->GetIndexedPropertiesExternalArrayData());
+
+      arma::Col<T> ret(itLen);
+      for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
+      return ret;
+    }
+
+    // Also handle regular JS arrays
+    if (it->IsArray()) {
+      Handle<Array> itArr = Handle<Array>::Cast(it);
+      size_t itArrLen = itArr->Length();
+      arma::Col<T> ret(itArrLen);
+      for (size_t i=0; i<itArrLen; i++) {
+        ret(i) = itArr->Get(i)->NumberValue();
+      }
+      return ret;
+    }
+  }
+  throw runtime_error("convJsToArmaVec: not an array");
+}
+
+template<typename T>
+Handle<Object> convArmaVecToJs(arma::Col<T> const &it) {
+  static Persistent<Function> float64_array_constructor;
+
+  if (float64_array_constructor.IsEmpty()) {
+    Local<Object> global = Context::GetCurrent()->Global();
+    Local<Value> val = global->Get(String::New("Float64Array"));
+    assert(!val.IsEmpty() && "type not found: Float64Array");
+    assert(val->IsFunction() && "not a constructor: Float64Array");
+    float64_array_constructor = Persistent<Function>::New(val.As<Function>());
+  }
+
+  Local<Value> itSize = Integer::NewFromUnsigned((u_int)it.n_elem);
+  Local<Object> ret = float64_array_constructor->NewInstance(1, &itSize);
+  assert(ret->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray);
+  assert((size_t)ret->GetIndexedPropertiesExternalArrayDataLength() == it.n_elem);
+
+  double* retData = static_cast<double*>(ret->GetIndexedPropertiesExternalArrayData());
+  for (size_t i=0; i<it.n_elem; i++) {
+    retData[i] = it(i);
+  }
+  
+  return ret;
+}
+
+// arma::cx_double conversion
+bool canConvJsToCxDouble(Handle<Value> it);
+arma::cx_double convJsToCxDouble(Handle<Value> it);
+Handle<Object> convCxDoubleToJs(arma::cx_double const &it);
+
+// map<string, jsonstr> conversion
 bool canConvJsToMapStringJsonstr(Handle<Value> itv);
 map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv);
+Handle<Value> convJsonstrToJs(map<string, jsonstr> const &it);
 
+// jsonstr conversion
+bool canConvJsToJsonstr(Handle<Value> value);
 jsonstr convJsToJsonstr(Handle<Value> value);
 Handle<Value> convJsonstrToJs(jsonstr const &it);
 
+/*
+  A template for wrapping any kind of object
+*/
 template <typename CONTENTS>
 struct JsWrapGeneric : node::ObjectWrap {
   JsWrapGeneric()
@@ -108,6 +200,14 @@ struct JsWrapGeneric : node::ObjectWrap {
     memory = _memory;
     memory->ref();
     it = _it;
+  }
+  
+  void assign(JsWrapOwnership *_memory, CONTENTS const &_it)
+  {
+    if (memory) memory->unref();
+    memory = _memory;
+    memory->ref();
+    it = new CONTENTS(_it);
   }
   
   void assign(CONTENTS const &_contents)
@@ -154,6 +254,13 @@ struct JsWrapGeneric : node::ObjectWrap {
     w->assign(_memory, _it);
     return scope.Close(instance);
   }
+  static Handle<Value> ChildInstance(JsWrapOwnership *_memory, CONTENTS const &_it) {
+    HandleScope scope;
+    Local<Object> instance = constructor->NewInstance(0, NULL);
+    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    w->assign(_memory, _it);
+    return scope.Close(instance);
+  }
 
   static CONTENTS *Extract(Handle<Value> value) {
     if (value->IsObject()) {
@@ -187,7 +294,5 @@ CONTENTS convJsWrapToC(JsWrapGeneric<CONTENTS> *valobj) {
     return CONTENTS();
   }
 }
-
-
 
 #endif

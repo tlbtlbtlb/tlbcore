@@ -40,34 +40,24 @@ setup ::
 	mkdir -p build.src
 
 stage1 ::
-	node code_gen/mk_marshall.js geom/decl_geom.js numerical/decl_numerical.js
+	node code_gen/mk_marshall.js geom/decl_geom.js arma/decl_arma.js numerical/decl_numerical.js
 
 stage1 ::
 	cd nodeif && node-gyp configure
-stage1 ::
-	cd arma && node-gyp configure
 
 
 clean ::
 	cd nodeif && node-gyp clean
 	rm -rf nodeif/bin
-clean ::
-	cd arma && node-gyp clean
-	rm -rf arma/bin
 
 build :: build.nodeif
 build.nodeif :: 
 	cd nodeif && node-gyp build --jobs 8
 	ln -sf build/Release nodeif/bin
 
-build :: build.arma
-build.arma :: 
-	cd arma && node-gyp build --jobs 8
-	ln -sf build/Release arma/bin
-
 
 test :: build
-	env NODE_PATH=$(CURDIR)/nodeif/bin:$(CURDIR)/arma/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js))
+	env NODE_PATH=$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js))
 
 
 size ::

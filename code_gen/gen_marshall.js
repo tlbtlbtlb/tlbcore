@@ -70,13 +70,13 @@ TypeRegistry.prototype.setPrimitives = function() {
   typereg.types['bool'] = new PrimitiveCType(typereg, 'bool');
   typereg.types['float'] = new PrimitiveCType(typereg, 'float');
   typereg.types['double'] = new PrimitiveCType(typereg, 'double');
+  typereg.types['arma::cx_double'] = new PrimitiveCType(typereg, 'arma::cx_double');
   typereg.types['int'] = new PrimitiveCType(typereg, 'int');
   typereg.types['string'] = new PrimitiveCType(typereg, 'string');
   typereg.types['jsonstr'] = new PrimitiveCType(typereg, 'jsonstr');
   if (1) {
-    typereg.types['vector<double>'] = new StlCollectionCType(typereg, 'vector<double>');
-    typereg.types['vector<jsonstr>'] = new StlCollectionCType(typereg, 'vector<jsonstr>');
-    typereg.types['map<string,jsonstr>'] = new StlCollectionCType(typereg, 'map<string,jsonstr>');
+    typereg.types['vector<jsonstr>'] = new CollectionCType(typereg, 'vector<jsonstr>');
+    typereg.types['map<string,jsonstr>'] = new CollectionCType(typereg, 'map<string,jsonstr>');
   }
 };
 
@@ -96,7 +96,14 @@ TypeRegistry.prototype.struct = function(typename /* varargs */) {
 TypeRegistry.prototype.template = function(typename) {
   var typereg = this;
   if (typename in typereg.types) return;
-  typereg.types[typename] = new StlCollectionCType(typereg, typename);
+  typereg.types[typename] = new CollectionCType(typereg, typename);
+};
+
+TypeRegistry.prototype.getType = function(typename) {
+  var typereg = this;
+  if (typename === null || typename === undefined) return null;
+  if (typename.typename) return typename; // already a type object
+  return typereg.types[typename];
 };
 
 TypeRegistry.prototype.loadDeclarations = function(modulename) {
@@ -165,6 +172,7 @@ TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
     }
   });
   f('');
+  f('using namespace arma;');
 
   typereg.emitFunctionWrappers(f);
   f.end();
@@ -207,7 +215,9 @@ TypeRegistry.prototype.emitMochaFile = function(files) {
   });
 };
 
-
+/*
+  Take a C function name, return JS. Only different in the case of operators
+*/
 function funcnameCToJs(name) {
   switch (name) {
   case 'operator+': return 'add';
@@ -221,55 +231,100 @@ function funcnameCToJs(name) {
   }
 }
 
+/*
+  Return the expression to call a function with given arguments. 
+*/
+function getFunctionCallExpr(funcexpr, args) {
+  /*
+    It works fine to say foo = operator+(bar, buz) when bar and buz are structures and the operator + function is overloaded.
+    But for native types, c++ only accepts infix notation.
+  */
+  var m = /^operator (\s+)/.exec(funcexpr);
+  if (m && args.length === 2) {
+    return args[0] + ' ' + m[1] + ' ' + args[1];
+  }
+  return funcexpr + '(' + args.join(', ') + ')';
+}
+
+
 TypeRegistry.prototype.emitFunctionWrappers = function(f) {
   var typereg = this;
+
+  var initFuncs = [];
+
   _.each(typereg.wrapFunctions, function(funcInfos, jsFuncname) {
-    f('Handle<Value> jsWrap_' + jsFuncname + '(Arguments const &args) {');
-    f('HandleScope scope;');
+
+    var funcInfosByTemplate = {};
     _.each(funcInfos, function(funcInfo) {
-      f('// ' + funcInfo.desc);
-
-      f('if (args.Length() == ' + funcInfo.args.length +
-        _.map(funcInfo.args, function(argInfo, argi) {
-          var argType = typereg.types[argInfo.typename];
-          return ' && ' + argType.getJsToCppTest('args[' + argi + ']');
-        }).join('') +
-        ') {');
-
-      var callargs = [];
-
-      _.each(funcInfo.args, function(argInfo, argi) {
-        var argType = typereg.types[argInfo.typename];
-        f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']') + ';');
-        callargs.push('a' + argi);
-      });
-
-      f('try {');
-      switch (funcInfo.returnTypename) {
-      case 'void':
-        f(funcInfo.funcname + '(' + callargs.join(', ') + ');');
-        f('return scope.Close(Undefined());');
-        break;
-      case 'buffer':
-        f('string ret = ' + funcInfo.funcname + '(' + callargs.join(', ') + ');');
-        f('return scope.Close(convStringToJsBuffer(ret));');
-        break;
-      default:
-        f(funcInfo.returnTypename + ' ret = ' + funcInfo.funcname + '(' + callargs.join(', ') + ');');
-        f('return scope.Close(' + typereg.types[funcInfo.returnTypename].getCppToJsExpr('ret') + ');');
-      }
-      f('} catch (exception &ex) {');
-      f('return ThrowTypeError(ex.what());');
-      f('}');
-      f('}');
+      if (!funcInfosByTemplate[funcInfo.funcTemplate]) funcInfosByTemplate[funcInfo.funcTemplate] = [];
+      funcInfosByTemplate[funcInfo.funcTemplate].push(funcInfo);
     });
-    f('return ThrowInvalidArgs();');
-    f('}');
+    f('/* funcInfosByTemplate: ' + jsFuncname + '\n' + util.inspect(funcInfosByTemplate) + '\n*/');
+    
+    _.each(funcInfosByTemplate, function(funcInfosThisTemplate, funcTemplate) {
+      var funcTemplateType = (funcTemplate !== '') ? typereg.getType(funcTemplate) : null;
+      var jsScopedFuncname = jsFuncname + (funcTemplateType ? '_' + funcTemplateType.jsTypename : '');
+
+      f('Handle<Value> jsWrap_' + jsScopedFuncname + '(Arguments const &args) {');
+      f('HandleScope scope;');
+      _.each(funcInfosThisTemplate, function(funcInfo) {
+        f('// ' + funcInfo.desc);
+
+        f('if (args.Length() == ' + funcInfo.args.length +
+          _.map(funcInfo.args, function(argInfo, argi) {
+            var argType = typereg.types[argInfo.typename];
+            return ' && ' + argType.getJsToCppTest('args[' + argi + ']');
+          }).join('') +
+          ') {');
+
+        var callargs = [];
+
+        _.each(funcInfo.args, function(argInfo, argi) {
+          var argType = typereg.types[argInfo.typename];
+          f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']') + ';');
+          callargs.push('a' + argi);
+        });
+
+        f('try {');
+        if (funcInfo.returnType === 'void') {
+          f(funcInfo.funcInvocation + '(' + callargs.join(', ') + ');');
+          f('return scope.Close(Undefined());');
+        }
+        else if (funcInfo.returnType === 'buffer') {
+          f('string ret = ' + funcInfo.funcInvocation + '(' + callargs.join(', ') + ');');
+          f('return scope.Close(convStringToJsBuffer(ret));');
+        }
+        else if (funcInfo.returnType === undefined) {
+          f('// No return type');
+        }
+        else {
+          var returnType = typereg.getType(funcInfo.returnType);
+          if (!returnType) {
+            throw new Error('No such type ' + funcInfo.returnType + ' for ' + jsFuncname);
+          }
+          
+          f(returnType.typename + ' ret = ' + getFunctionCallExpr(funcInfo.funcInvocation, callargs) + ';');
+          f('return scope.Close(' + typereg.types[returnType.typename].getCppToJsExpr('ret') + ');');
+        }
+        f('} catch (exception &ex) {');
+        f('return ThrowTypeError(ex.what());');
+        f('}');
+        f('}');
+      });
+      f('return ThrowInvalidArgs();');
+      f('}');
+
+      if (funcTemplateType) { // make it a factory function
+        initFuncs.push('node::SetMethod(exports->Get(String::NewSymbol("' + funcTemplateType.jsTypename + '"))->ToObject(), "' + jsFuncname + '", jsWrap_' + jsScopedFuncname + ');');
+      } else {
+        initFuncs.push('node::SetMethod(exports, "' + jsFuncname + '", jsWrap_' + jsScopedFuncname + ');');
+      }
+    });
   });
 
   f('void jsInit_functions(Handle<Object> exports) {');
-  _.each(typereg.wrapFunctions, function(funcInfos, jsFuncname) {
-    f('node::SetMethod(exports, "' + jsFuncname + '", jsWrap_' + jsFuncname + ');');
+  _.each(initFuncs, function(s) {
+    f(s);
   });
   
   f('}');
@@ -298,7 +353,7 @@ TypeRegistry.prototype.getNamedType = function(typename) {
   if (!type) {
     if (/</.test(typename)) {
       if (0) console.log('Creating template', typename);
-      type = new StlCollectionCType(typereg, typename);
+      type = new CollectionCType(typereg, typename);
     }
     if (!type) throw new Error('No pattern for type ' + typename);
     typereg.types[typename] = type;
@@ -320,12 +375,14 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
   // try to eliminate class-scoped functions.
   // text = text.replace(/struct.*{[.\n]*\n}/, '');
 
-  for (var arity=0; arity < 8; arity++) {
+  for (var arity=0; arity < 5; arity++) {
 
     var argsExpr = _.range(0, arity).map(function() { return argExpr; }).join('\\s*,\\s*');
     
     var funcExpr = ('(' + typenameExpr + ')\\s+' + 
+                    '(' + typenameExpr + '::)?' +
                     '(' + funcnameExpr + ')\\s*' +
+                    '(<\\s*(' + typenameExpr + ')\\s*>)?' +
                     '\\(' + argsExpr + '\\)\\s*;');
 
     var re = new RegExp(funcExpr, 'g');
@@ -333,15 +390,17 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
     var m;
     while ((m = re.exec(text))) {
       var desc = m[0];
-      var returnTypename = m[1];
-      var funcname = m[2].replace(/\s+/g, '');
+      var returnType = m[1];
+      var funcScope = m[2] || '';
+      var funcname = m[3].replace(/\s+/g, '');
+      var funcTemplate = m[5] || '';
       var args = _.range(0, arity).map(function(i) {
-        return {typename: m[3+i*3],
-                passing: m[4+i*3].replace(/\s+/g, ''),
-                argname: m[5+i*3]};
+        return {typename: m[6+i*3],
+                passing: m[7+i*3].replace(/\s+/g, ''),
+                argname: m[8+i*3]};
       });
 
-      typereg.addWrapFunction(desc, funcname, returnTypename, args);
+      typereg.addWrapFunction(desc, funcScope, funcname, funcTemplate, returnType, args);
 
     }
   }
@@ -381,16 +440,19 @@ TypeRegistry.prototype.emitRtFunctions = function(files) {
 };
 
 
-TypeRegistry.prototype.addWrapFunction = function(desc, funcname, returnTypename, args) {
+TypeRegistry.prototype.addWrapFunction = function(desc, funcScope, funcname, funcTemplate, returnType, args) {
   var typereg = this;
   var jsFuncname = funcnameCToJs(funcname);
   if (!(jsFuncname in typereg.wrapFunctions)) {
     typereg.wrapFunctions[jsFuncname] = [];
   }
   typereg.wrapFunctions[jsFuncname].push({desc: desc,
-                                       funcname: funcname,
-                                       returnTypename: returnTypename,
-                                       args: args});
+                                          funcScope: funcScope,
+                                          funcname: funcname,
+                                          funcTemplate: funcTemplate,
+                                          funcInvocation: funcScope + funcname + (funcTemplate.length ? '< ' + funcTemplate + ' >' : ''),
+                                          returnType: returnType,
+                                          args: args});
 };
 
 TypeRegistry.prototype.addRtFunction = function(name, inargs, outargs) {
@@ -411,25 +473,23 @@ function emitArgSwitch(f, typereg, thisType, argSets) {
     
     f(ifSep + 'if (args.Length() ' + (argSet.ignoreExtra ? '>=' : '==') + ' ' + argSet.args.length +
       _.map(argSet.args, function(argInfo, argi) {
-        var argType = typereg.types[argInfo.typename];
+        var argType = typereg.getType(argInfo);
         return ' && ' + argType.getJsToCppTest('args[' + argi + ']');
       }).join('') +
       ') {');
     
     _.each(argSet.args, function(argInfo, argi) {
-      var argType = typereg.types[argInfo.typename];
+      var argType = typereg.getType(argInfo);
       f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']') + ';');
     });
 
-    if (argSet.returnTypename) {
-      switch (argSet.returnTypename) {
-      case 'buffer':
+    if (argSet.returnType) {
+      if (argSet.returnType === 'buffer') {
         f('string ret;');
         argSet.code();
         f('return scope.Close(convStringToJsBuffer(ret));');
-        break;
-      default:
-        var returnType = typereg.types[argSet.returnTypename];
+      } else {
+        var returnType = typereg.getType(argSet.returnType);
         f(returnType.getVarDecl('ret') + ';');
         argSet.code();
         f('return scope.Close(' + returnType.getCppToJsExpr('ret') + ');');
@@ -477,7 +537,7 @@ function CType(reg, typename) {
   var type = this;
   type.reg = reg;
   type.typename = typename;
-  this.jsTypename = typename.replace(/>+$/, '').replace('<', '_').replace('>', '_').replace(',','_');
+  type.jsTypename = typename.replace(/>+$/g, '').replace(/</g, '_').replace(/>/g, '_').replace(/,/g,'_').replace(/::/g,'_');
   
   type.extraFunctionDecls = [];
   type.extraMemberDecls = [];
@@ -832,6 +892,8 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr) {
     return '((' + valueExpr + ')->IsBoolean())';
   case 'string':
     return 'canConvJsToString(' + valueExpr + ')';
+  case 'arma::cx_double':
+    return 'canConvJsToCxDouble(' + valueExpr + ')';
   case 'jsonstr':
     return 'true';
   default:
@@ -852,6 +914,8 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr) {
     return 'convJsToString(' + valueExpr + ')';
   case 'jsonstr':
     return 'convJsToJsonstr(' + valueExpr + ')';
+  case 'arma::cx_double':
+    return 'convJsToCxDouble(' + valueExpr + ')';
   default:
     throw new Error('Unknown primitive type');
   }
@@ -868,6 +932,8 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, memoryExpr) {
     return 'convStringToJs(' + valueExpr + ')';
   case 'jsonstr':
     return 'convJsonstrToJs(' + valueExpr + ')';
+  case 'arma::cx_double':
+    return 'convCxDoubleToJs(' + valueExpr + ')';
   case 'void':
     return 'Undefined()';
   default:
@@ -880,7 +946,7 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, memoryExpr) {
    WRITEME: support vector<TYPENAME> and such things
 */
 
-function StlCollectionCType(reg, typename) {
+function CollectionCType(reg, typename) {
   var type = this;
   CType.call(type, reg, typename);
 
@@ -913,94 +979,104 @@ function StlCollectionCType(reg, typename) {
   type.templateArgTypes = _.map(type.templateArgs, function(name) { return type.reg.types[name]; });
   if (0) console.log('template', typename, type.templateName, type.templateArgs);
 }
-StlCollectionCType.prototype = Object.create(CType.prototype);
-StlCollectionCType.prototype.isStlCollection = true;
+CollectionCType.prototype = Object.create(CType.prototype);
+CollectionCType.prototype.isStlCollection = true;
 
-StlCollectionCType.prototype.hasJsWrapper = function() {
+CollectionCType.prototype.hasJsWrapper = function() {
   return true;
 };
 
-StlCollectionCType.prototype.getSynopsis = function() {
+CollectionCType.prototype.getSynopsis = function() {
   return '(' + this.typename + ')';
 };
 
-StlCollectionCType.prototype.getAllOneExpr = function() {
+CollectionCType.prototype.getAllOneExpr = function() {
   return this.typename + '()';
 };
 
-StlCollectionCType.prototype.getAllZeroExpr = function() {
+CollectionCType.prototype.getAllZeroExpr = function() {
   return this.typename + '()';
 };
 
-StlCollectionCType.prototype.getAllNanExpr = function() {
+CollectionCType.prototype.getAllNanExpr = function() {
   return this.typename + '()';
 };
 
-StlCollectionCType.prototype.getExampleValueJs = function() {
+CollectionCType.prototype.getExampleValueJs = function() {
   return 'new ur.' + this.jsTypename + '()';
 };
 
-StlCollectionCType.prototype.isPod = function() {
+CollectionCType.prototype.isPod = function() {
   return false;
 };
 
-StlCollectionCType.prototype.getFormalParameter = function(varname) {
+CollectionCType.prototype.getFormalParameter = function(varname) {
   var type = this;
   return type.typename + ' const &' + varname;
 };
 
-StlCollectionCType.prototype.getArgTempDecl = function(varname) {
+CollectionCType.prototype.getArgTempDecl = function(varname) {
   var type = this;
   return type.typename + ' &' + varname;
 };
 
-StlCollectionCType.prototype.getVarDecl = function(varname) {
+CollectionCType.prototype.getVarDecl = function(varname) {
   var type = this;
   return type.typename + ' ' + varname;
 };
 
-StlCollectionCType.prototype.getJsToCppTest = function(valueExpr) {
+CollectionCType.prototype.getJsToCppTest = function(valueExpr) {
   var type = this;
   return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != NULL)';
 };
 
-StlCollectionCType.prototype.getJsToCppExpr = function(valueExpr) {
+CollectionCType.prototype.getJsToCppExpr = function(valueExpr) {
   var type = this;
   return '(*JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + '))';
 };
 
-StlCollectionCType.prototype.getCppToJsExpr = function(valueExpr, memoryExpr) {
+CollectionCType.prototype.getCppToJsExpr = function(valueExpr, memoryExpr) {
   var type = this;
   
   if (memoryExpr) {
-    return 'JsWrap_' + type.jsTypename + '::ChildInstance(' + memoryExpr + ', &(' + valueExpr + '))';
+    if (type.isRef) {
+      return 'JsWrap_' + type.jsTypename + '::ChildInstance(' + memoryExpr + ', ' + valueExpr + ')';
+    } else {
+      return 'JsWrap_' + type.jsTypename + '::ChildInstance(' + memoryExpr + ', &(' + valueExpr + '))';
+    }
   } else {
     return 'JsWrap_' + type.jsTypename + '::NewInstance(' + valueExpr + ')';
   }
 };
 
 
-StlCollectionCType.prototype.getMemberTypes = function() {
+CollectionCType.prototype.getMemberTypes = function() {
   var type = this;
   var subtypes = sortTypes(_.filter(_.map(type.typename.split(/\s*[<,>]\s*/), function(typename1) {
     return typename1.length > 0 ? type.reg.types[typename1] : null;
   }), function(type) { return type; }));
-  if (0) console.log('StlCollectionCType.getMemberTypes', type.typename, _.map(subtypes, function(type) { return type.typename; }));
+  if (0) console.log('CollectionCType.getMemberTypes', type.typename, _.map(subtypes, function(type) { return type.typename; }));
   return subtypes;
 };
 
 
-StlCollectionCType.prototype.emitJsWrapDecl = function(f) {
+CollectionCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
-  f('typedef JsWrapGeneric< TYPENAME > JsWrap_JSTYPE;');
+  if (0 && type.isRef) {
+    f('typedef JsWrapGenericRef< TYPENAME > JsWrap_JSTYPE;');
+  } else {
+    f('typedef JsWrapGeneric< TYPENAME > JsWrap_JSTYPE;');
+  }
   f('Handle<Value> jsConstructor_JSTYPE(JsWrap_JSTYPE *it, const Arguments &args);');
   f('Handle<Value> jsToJSON_JSTYPE(TYPENAME const &it);');
 };
 
-StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
+CollectionCType.prototype.emitJsWrapImpl = function(f) {
   var type = this;
   var methods = [];
   var factories = [];
+  var accessors = [];
+  var accessorsRo = [];
 
   if (1) {
     f('static Handle<Value> jsNew_JSTYPE(const Arguments& args) {');
@@ -1015,7 +1091,7 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
   if (1) {
     f('Handle<Value> jsConstructor_JSTYPE(JsWrap_JSTYPE *it, const Arguments& args) {');
     f('HandleScope scope;');
-    f('it->assign();');
+    if (!type.isRef) f('it->assign();');
 
     // When creating a vector<double>, allow passing in various native JS arrays
     if (type.templateName === 'vector' && type.templateArgs[0] === 'double') {
@@ -1024,8 +1100,26 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
       f('}');
     }
 
+    else if (type.templateName === 'arma::Col') {
+      f('if (args.Length() == 1 && args[0]->IsNumber()) {');
+      f('it->assign(arma::Col<' + type.templateArgs[0] + '>((size_t)args[0]->NumberValue(), arma::fill::zeros));');
+      f('}');
+      f('if (args.Length() == 1 && canConvJsToArmaVec<' + type.templateArgs[0] + '>(args[0])) {');
+      f('it->assign(convJsToArmaVec<' + type.templateArgs[0] + '>(args[0]));');
+      f('}');
+    }
+
+    else if (type.templateName === 'arma::Mat') {
+      f('if (args.Length() == 2 && args[0]->IsNumber() && args[1]->IsNumber()) {');
+      f('it->assign(arma::Mat<' + type.templateArgs[0] + '>((size_t)args[0]->NumberValue(), (size_t)args[1]->NumberValue(), arma::fill::zeros));');
+      f('}');
+      f('if (args.Length() == 1 && canConvJsToArmaMat<' + type.templateArgs[0] + '>(args[0])) {');
+      f('it->assign(convJsToArmaMat<' + type.templateArgs[0] + '>(args[0]));');
+      f('}');
+    }
+
     // When creating a map<string, jsonstr>, allow passing in an object
-    if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
+    else if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
       f('if (args.Length() == 1 && canConvJsToMapStringJsonstr(args[0])) {');
       f('it->assign(convJsToMapStringJsonstr(args[0]));');
       f('}');
@@ -1036,7 +1130,7 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('}');
   }
 
-  if (1) {
+  if (!type.noSerialize) {
     f('Handle<Value> jsToJSON_JSTYPE(const TYPENAME &it) {');
     f('if (fastJsonFlag) {');
     f('string fjbItem = asJson(it).it;');
@@ -1055,6 +1149,20 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
       f('}');
       f('return ret;');
     }
+    else if (type.templateName === 'arma::Col') {
+      f('Local<Array> ret = Array::New(it.n_elem);');
+      f('for (size_t i=0; i<it.n_elem; i++) {');
+      f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
+      f('}');
+      f('return ret;');
+    }
+    else if (type.templateName === 'arma::Mat') {
+      f('Local<Array> ret = Array::New(it.n_elem);');
+      f('for (size_t i=0; i<it.n_elem; i++) {');
+      f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
+      f('}');
+      f('return ret;');
+    }
     else if (type.templateName === 'map' && type.templateArgs[0] === 'string') {
       f('Local<Object> ret = Object::New();');
       f('for (TYPENAME::const_iterator i=it.begin(); i!=it.end(); i++) {');
@@ -1066,7 +1174,7 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
       f('return Undefined();');
     }
     f('}');
-  
+
     emitJsWrap(f, 'JSTYPE_toJSON', function() {
       emitArgSwitch(f, type.reg, type, [{
         args: [], ignoreExtra: true, code: function() {
@@ -1097,7 +1205,83 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('(*thisObj->it)[key] = cvalue;');
     f('return scope.Close(value);');
     f('}');
+    accessors.push({isNamed: true, get: true, set: true});
   }
+
+  if (type.templateName === 'arma::Col' || type.templateName === 'arma::subview_row') {
+    f('static Handle<Value> jsGet_JSTYPE_n_rows(Local<String> name, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('return scope.Close(Number::New(thisObj->it->n_rows));');
+    f('}');
+    accessors.push({name: 'n_rows', get: true});
+    f('static Handle<Value> jsGet_JSTYPE_n_elem(Local<String> name, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('return scope.Close(Number::New(thisObj->it->n_elem));');
+    f('}');
+    accessors.push({name: 'n_elem', get: true});
+
+    f('static Handle<Value> jsGetIndexed_JSTYPE(unsigned int index, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('if (index >= thisObj->it->n_elem) return scope.Close(Undefined());');
+    f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->memory') + ');');
+    f('}');
+
+    f('static Handle<Value> jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
+    f(type.templateArgs[0] + ' cvalue(' + type.reg.types[type.templateArgs[0]].getJsToCppExpr('value') + ');');
+    f('(*thisObj->it)(index) = cvalue;');
+    f('return scope.Close(value);');
+    f('}');
+    accessors.push({isIndexed: true, get: true, set: true});
+  }
+
+  if (type.templateName === 'arma::Mat') {
+    f('static Handle<Value> jsGet_JSTYPE_n_rows(Local<String> name, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('return scope.Close(Number::New(thisObj->it->n_rows));');
+    f('}');
+    accessors.push({name: 'n_rows', get: true});
+    f('static Handle<Value> jsGet_JSTYPE_n_cols(Local<String> name, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('return scope.Close(Number::New(thisObj->it->n_cols));');
+    f('}');
+    accessors.push({name: 'n_cols', get: true});
+    f('static Handle<Value> jsGet_JSTYPE_n_elem(Local<String> name, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('return scope.Close(Number::New(thisObj->it->n_elem));');
+    f('}');
+    accessors.push({name: 'n_elem', get: true});
+
+
+    f('static Handle<Value> jsGetIndexed_JSTYPE(unsigned int index, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('if (index >= thisObj->it->n_rows) return scope.Close(Undefined());');
+    f('return scope.Close(' + type.reg.getType('arma::subview_row<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->row(index)', 'thisObj->memory') + ');');
+    f('}');
+
+    if (0) {
+      f('static Handle<Value> jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, AccessorInfo const &ai) {');
+      f('HandleScope scope;');
+      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+      f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
+      f(type.templateArgs[0] + ' cvalue(' + type.reg.types[type.templateArgs[0]].getJsToCppExpr('value') + ');');
+      f('(*thisObj->it)(index) = cvalue;');
+      f('return scope.Close(value);');
+      f('}');
+    }
+    accessors.push({isIndexed: true, get: true, set: false});
+
+  }
+
 
   if (type.templateName === 'vector') {
 
@@ -1115,6 +1299,7 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('(*thisObj->it)[index] = cvalue;');
     f('return scope.Close(value);');
     f('}');
+    accessors.push({isIndexed: true, get: true, set: true});
 
     emitJsWrap(f, 'JSTYPE_pushBack', function() {
       emitArgSwitch(f, type.reg, type, [{
@@ -1138,10 +1323,10 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
   }
 
 
-  if (1) {
+  if (!type.noSerialize) {
     emitJsWrap(f, 'JSTYPE_toJsonString', function() {
       emitArgSwitch(f, type.reg, type, [{
-        args: [], returnTypename: 'string', code: function() {
+        args: [], returnType: 'string', code: function() {
           f('ret = asJson(*thisObj->it).it;');
         }
       }]);
@@ -1150,7 +1335,7 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
 
     emitJsWrap(f, 'JSTYPE_fromString', function() {
       emitArgSwitch(f, type.reg, null, [
-        {args: [type.reg.types.string], returnTypename: type.typename, code: function() {
+        {args: ['string'], returnType: type, code: function() {
           f('bool ok = rdJson(a0, ret);');
           f('if (!ok) return ThrowInvalidArgs();');
         }}
@@ -1172,7 +1357,7 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
 
     emitJsWrap(f, 'JSTYPE_fromPacket', function() {
       emitArgSwitch(f, type.reg, null, [{
-        args: [type.reg.types.string], returnTypename: type.typename, code: function() {
+        args: ['string'], returnType: type, code: function() {
           f('packet rd(a0);');
           f('try {');
           f('rd.get_checked(ret);');
@@ -1184,24 +1369,51 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
     factories.push('fromPacket');
   }
 
+
   if (1) { // Setup template and prototype
     f('void jsInit_JSTYPE(Handle<Object> exports) {');
     f('Local<FunctionTemplate> tpl = FunctionTemplate::New(jsNew_JSTYPE);');
     f('tpl->SetClassName(String::NewSymbol("JSTYPE"));');
     f('tpl->InstanceTemplate()->SetInternalFieldCount(1);');
-    if (type.templateName === 'map' && type.templateArgs[0] === 'string') {
-      f('tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE, jsSetNamed_JSTYPE);');
-    }
-    if (type.templateName === 'vector') {
-      f('tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_JSTYPE, jsSetIndexed_JSTYPE);');
-    }
 
     _.each(methods, function(name) {
       f('tpl->PrototypeTemplate()->Set(String::NewSymbol("' + name + '"), FunctionTemplate::New(jsWrap_JSTYPE_' + name + ')->GetFunction());');
     });
-    f('tpl->PrototypeTemplate()->Set(String::NewSymbol("toString"), FunctionTemplate::New(jsWrap_JSTYPE_toJsonString)->GetFunction());');
+    if (!type.noSerialize) {
+      f('tpl->PrototypeTemplate()->Set(String::NewSymbol("toString"), FunctionTemplate::New(jsWrap_JSTYPE_toJsonString)->GetFunction());');
+    }
 
     f('');
+
+    _.each(accessors, function(aInfo) {
+      if (aInfo.isNamed) {
+        if (aInfo.get && aInfo.set) {
+          f('tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE, jsSetNamed_JSTYPE);');
+        }
+        else if (aInfo.get) {
+          f('tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE);');
+        }
+      }
+      else if (aInfo.isIndexed) {
+        if (aInfo.get && aInfo.set) {
+          f('tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_JSTYPE, jsSetIndexed_JSTYPE);');
+        }
+        else if (aInfo.get) {
+          f('tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_JSTYPE);');
+        }
+      }
+      else {
+        if (aInfo.get && aInfo.set) {
+          f('tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("' + aInfo.name + '"), ' +
+            '&jsGet_JSTYPE_' + aInfo.name + ', ' +
+            '&jsSet_JSTYPE_' + aInfo.name + ');');
+        }
+        else if (aInfo.get) {
+          f('tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("' + aInfo.name + '"), ' +
+            '&jsGet_JSTYPE_' + aInfo.name + ');');
+        }
+      }
+    });
     
     f('JsWrap_JSTYPE::constructor = Persistent<Function>::New(tpl->GetFunction());');
     f('exports->Set(String::NewSymbol("JSTYPE"), JsWrap_JSTYPE::constructor);');
@@ -1215,7 +1427,7 @@ StlCollectionCType.prototype.emitJsWrapImpl = function(f) {
 };
 
 
-StlCollectionCType.prototype.emitJsTestImpl = function(f) {
+CollectionCType.prototype.emitJsTestImpl = function(f) {
   var type = this;
   f('describe("JSTYPE C++ impl", function() {');
 
@@ -1818,7 +2030,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   if (1) {
     emitJsWrap(f, 'JSTYPE_toJsonString', function() {
       emitArgSwitch(f, type.reg, type, [{
-        args: [], returnTypename: 'string', code: function() {
+        args: [], returnType: 'string', code: function() {
           f('ret = asJson(*thisObj->it).it;');
         }
       }]);
@@ -1827,7 +2039,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
     emitJsWrap(f, 'JSTYPE_toJsonBuffer', function() {
       emitArgSwitch(f, type.reg, type, [{
-        args: [], returnTypename: 'buffer', code: function() {
+        args: [], returnType: 'buffer', code: function() {
           f('ret = asJson(*thisObj->it).it;');
         }
       }]);
@@ -1836,7 +2048,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
     emitJsWrap(f, 'JSTYPE_fromString', function() {
       emitArgSwitch(f, type.reg, null, [
-        {args: [type.reg.types.string], returnTypename: type.typename, code: function() {
+        {args: ['string'], returnType: type, code: function() {
           f('bool ok = rdJson(a0, ret);');
           f('if (!ok) return ThrowInvalidArgs();');
         }}
@@ -1859,7 +2071,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
     emitJsWrap(f, 'JSTYPE_fromPacket', function() {
       emitArgSwitch(f, type.reg, null, [{
-        args: [type.reg.types.string], returnTypename: type.typename, code: function() {
+        args: ['string'], returnType: type, code: function() {
           f('packet rd(a0);');
           f('try {');
           f('rd.get_checked(ret);');

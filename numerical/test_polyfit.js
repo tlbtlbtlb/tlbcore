@@ -19,7 +19,8 @@ describe('mkPolyfit3', function() {
     var xs = _.range(-1, 1, 1/64);
     var ys = _.map(xs, function(x) { return Math.sin(x); });
 
-    var pf = ur.mkPolyfit3(new ur.vector_double(xs), new ur.vector_double(ys));
+    var xsc = new ur.vec(xs);
+    var pf = ur.mkPolyfit3(xsc, new ur.vec(ys));
     check(pf, xs, ys, 0.001);
   });
 
@@ -31,13 +32,13 @@ describe('mkPolyfit3', function() {
       ys[i] = Math.sin(xs[i]);
     }
 
-    var pf = ur.mkPolyfit3(new ur.vector_double(xs), new ur.vector_double(ys));
+    var pf = ur.mkPolyfit3(new ur.vec(xs), new ur.vec(ys));
     check(pf, xs, ys, 0.001);
   });
 
   it('should throw with not enough data', function() {
     try {
-      ur.mkPolyfit3(new ur.vector_double([1,2,3]), new ur.vector_double([1,2,3]));
+      ur.mkPolyfit3(new ur.vec([1,2,3]), new ur.vec([1,2,3]));
     } catch(ex) {
       assert.ok(ex.toString().match(/not enough data/));
       return;
@@ -54,7 +55,7 @@ describe('mkPolyfit5', function() {
     var xs = _.range(-2, 2, 1/64);
     var ys = _.map(xs, function(x) { return Math.sin(x); });
 
-    var pf = ur.mkPolyfit5(new ur.vector_double(xs), new ur.vector_double(ys));
+    var pf = ur.mkPolyfit5(new ur.vec(xs), new ur.vec(ys));
     check(pf, xs, ys, 0.001);
   });
 });

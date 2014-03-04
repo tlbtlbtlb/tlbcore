@@ -826,6 +826,11 @@ void packet_wr_value(packet &p, jsonstr const &x) { packet_wr_value(p, x.it); }
 void packet_rd_typetag(packet &p, jsonstr const &x) { p.check_typetag("json"); }
 void packet_rd_value(packet &p, jsonstr &x) { packet_rd_value(p, x.it); }
 
+void packet_wr_typetag(packet &p, arma::cx_double const &x) { p.add_typetag("cx_double"); }
+void packet_wr_value(packet &p, arma::cx_double const &x) { packet_wr_value(p, x.real()); packet_wr_value(p, x.imag()); }
+void packet_rd_typetag(packet &p, arma::cx_double const &x) { p.check_typetag("cx_double"); }
+void packet_rd_value(packet &p, arma::cx_double &x) { double real, imag; packet_rd_value(p, real); packet_rd_value(p, imag); x = arma::cx_double(real, imag); }
+
 
 // ----------------------------------------------------------------------
 

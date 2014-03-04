@@ -2,6 +2,8 @@
 #ifndef _TLBCORE_PACKETBUF_H
 #define _TLBCORE_PACKETBUF_H
 
+#include <armadillo>
+
 /*
   The packetbuf system is a convenient and high-performance way of
   sending typed data around between processes.
@@ -298,6 +300,7 @@ void packet_wr_value(packet &p, const timeval &x);
 #endif
 void packet_wr_value(packet &p, const string &s);
 void packet_wr_value(packet &p, const jsonstr &s);
+void packet_wr_value(packet &p, const arma::cx_double &s);
 
 void packet_wr_typetag(packet &p, const bool &x);
 void packet_wr_typetag(packet &p, const char &x);
@@ -316,6 +319,7 @@ void packet_wr_typetag(packet &p, const timeval &x);
 #endif
 void packet_wr_typetag(packet &p, const string &s);
 void packet_wr_typetag(packet &p, const jsonstr &s);
+void packet_wr_typetag(packet &p, const arma::cx_double &s);
 
 void packet_rd_value(packet &p, bool &x);
 void packet_rd_value(packet &p, char &x);
@@ -334,6 +338,7 @@ void packet_rd_value(packet &p, timeval &x);
 #endif
 void packet_rd_value(packet &p, string &s);
 void packet_rd_value(packet &p, jsonstr &s);
+void packet_rd_value(packet &p, arma::cx_double &s);
 
 void packet_rd_typetag(packet &p, signed char const &x);
 void packet_rd_typetag(packet &p, char const &x);
@@ -352,6 +357,7 @@ void packet_rd_typetag(packet &p, timeval const &x);
 void packet_rd_typetag(packet &p, bool const &x);
 void packet_rd_typetag(packet &p, string const &s);
 void packet_rd_typetag(packet &p, jsonstr const &s);
+void packet_rd_typetag(packet &p, arma::cx_double const &s);
 
 /*
   Any vector is handled by writing a size followed by the items. Watch
@@ -395,6 +401,83 @@ void packet_rd_value(packet &p, vector<T> &x) {
     p.get(x[i]);
   }
 }
+
+// Armadillo math types
+
+template<typename T>
+void packet_wr_typetag(packet &p, arma::Col<T> const &x) {
+  p.add_typetag("arma::Col:1");
+  T dummy;
+  packet_wr_typetag(p, dummy);
+}
+
+template<typename T>
+void packet_wr_value(packet &p, arma::Col<T> const &x) {
+  assert(x.n_elem < 0x3fffffff);
+  p.add((uint32_t)x.n_elem);
+  for (size_t i=0; i<x.n_elem; i++) {
+    p.add(x[i]);
+  }
+}
+
+template<typename T>
+void packet_rd_typetag(packet &p, arma::Col<T> &x) {
+  p.check_typetag("arma::Col:1");
+  T dummy; // or use x[0]?
+  packet_rd_typetag(p, dummy);
+}
+
+template<typename T>
+void packet_rd_value(packet &p, arma::Col<T> &x) {
+  uint32_t size;
+  p.get(size);
+  assert(size < 0x3fffffff);
+  if (size > p.remaining() / sizeof(T)) throw packet_rd_overrun_err(size*sizeof(T) - p.remaining());
+  x.set_size(size);
+  for (size_t i=0; i<x.n_elem; i++) {
+    p.get(x(i));
+  }
+}
+
+template<typename T>
+void packet_wr_typetag(packet &p, arma::Mat<T> const &x) {
+  p.add_typetag("arma::Mat:1");
+  T dummy;
+  packet_wr_typetag(p, dummy);
+}
+
+template<typename T>
+void packet_wr_value(packet &p, arma::Mat<T> const &x) {
+  assert(x.n_elem < 0x3fffffff);
+  p.add((uint32_t)x.n_rows);
+  p.add((uint32_t)x.n_cols);
+  for (size_t i=0; i<x.n_elem; i++) {
+    p.add(x[i]);
+  }
+}
+
+template<typename T>
+void packet_rd_typetag(packet &p, arma::Mat<T> &x) {
+  p.check_typetag("arma::Mat:1");
+  T dummy; // or use x[0]?
+  packet_rd_typetag(p, dummy);
+}
+
+template<typename T>
+void packet_rd_value(packet &p, arma::Mat<T> &x) {
+  uint32_t n_rows, n_cols;
+  p.get(n_rows);
+  p.get(n_cols);
+  assert(n_rows < 0x3fffffff);
+  assert(n_cols < 0x3fffffff);
+  if (n_rows * n_cols > p.remaining() / sizeof(T)) throw packet_rd_overrun_err(n_rows * n_cols * sizeof(T) - p.remaining());
+  x.set_size(n_rows, n_cols);
+  for (size_t i=0; i<x.n_elem; i++) {
+    p.get(x(i));
+  }
+}
+
+// ----------------------------------------------------------------------
 
 template<typename T1, typename T2>
 void packet_wr_typetag(packet &p, pair<T1, T2> const &x)

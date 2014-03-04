@@ -419,6 +419,39 @@ bool rdJson(char const *&s, jsonstr &value) {
 
 
 
+size_t wrJsonSize(arma::cx_double const &value)
+{
+  return 8 + wrJsonSize(value.real()) + 8 + wrJsonSize(value.imag()) + 1;
+}
+void wrJson(char *&s, arma::cx_double const &value)
+{
+  *s++ = '{';
+  *s++ = '"';
+  *s++ = 'r';
+  *s++ = 'e';
+  *s++ = 'a';
+  *s++ = 'l';
+  *s++ = '"';
+  *s++ = ':';
+  wrJson(s, value.real());
+  *s++ = ',';
+  *s++ = '"';
+  *s++ = 'i';
+  *s++ = 'm';
+  *s++ = 'a';
+  *s++ = 'g';
+  *s++ = '"';
+  *s++ = ':';
+  wrJson(s, value.imag());
+  *s++ = '}';
+}
+bool rdJson(const char *&s, arma::cx_double &value)
+{
+  // WRITEME
+  return false;
+}
+
+
 ostream & operator<<(ostream &s, const jsonstr &obj)
 {
   return s << obj.it;

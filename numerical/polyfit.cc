@@ -31,17 +31,17 @@ double getDerivative(Polyfit5 const &u, double t)
   Fit a 3rd-degree polynomial to some X and Y data. That is, return a Polyfit3 p so that getValue(p, X) approximates Y.
  */
 
-Polyfit3 mkPolyfit3(vector<double> xs, vector<double> ys)
+Polyfit3 mkPolyfit3(arma::Col<double> xs, arma::Col<double> ys)
 {
-  if (xs.size() != ys.size()) throw runtime_error("incompatible arrays");
-  if (xs.size() < 4) throw runtime_error ("not enough data");
+  if (xs.n_elem != ys.n_elem) throw runtime_error("incompatible arrays");
+  if (xs.n_elem < 4) throw runtime_error ("not enough data");
 
-  arma::mat xsm = arma::mat(xs.size(), 4);
-  arma::mat ysm = arma::mat(ys.size(), 1);
+  arma::mat xsm = arma::mat(xs.n_elem, 4);
+  arma::mat ysm = arma::mat(ys.n_elem, 1);
 
-  for (size_t ri=0; ri<xs.size(); ri++) {
-    double x = xs[ri];
-    double y = ys[ri];
+  for (size_t ri=0; ri<xs.n_elem; ri++) {
+    double x = xs(ri);
+    double y = ys(ri);
     xsm(ri, 0) = 1;
     xsm(ri, 1) = x;
     xsm(ri, 2) = x*x;
@@ -54,17 +54,17 @@ Polyfit3 mkPolyfit3(vector<double> xs, vector<double> ys)
   return Polyfit3(coeffs(0,0), coeffs(1,0), coeffs(2,0), coeffs(3,0));
 }
 
-Polyfit5 mkPolyfit5(vector<double> xs, vector<double> ys)
+Polyfit5 mkPolyfit5(arma::Col<double> xs, arma::Col<double> ys)
 {
-  if (xs.size() != ys.size()) throw runtime_error("incompatible arrays");
-  if (xs.size() < 6) throw runtime_error("not enough data");
+  if (xs.n_elem != ys.n_elem) throw runtime_error("incompatible arrays");
+  if (xs.n_elem < 6) throw runtime_error("not enough data");
 
-  arma::mat xsm = arma::mat(xs.size(), 6);
-  arma::mat ysm = arma::mat(ys.size(), 1);
+  arma::mat xsm = arma::mat(xs.n_elem, 6);
+  arma::mat ysm = arma::mat(ys.n_elem, 1);
 
-  for (size_t ri=0; ri<xs.size(); ri++) {
-    double x = xs[ri];
-    double y = ys[ri];
+  for (size_t ri=0; ri<xs.n_elem; ri++) {
+    double x = xs(ri);
+    double y = ys(ri);
     xsm(ri, 0) = 1;
     xsm(ri, 1) = x;
     xsm(ri, 2) = x*x;

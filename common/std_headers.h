@@ -85,7 +85,7 @@
 #    include <memory>
 #    include <typeinfo>
 #    include <limits>
-#    include <exception>
+#    include <stdexcept>
 using namespace std;
 #  endif
 
