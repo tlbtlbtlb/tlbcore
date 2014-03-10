@@ -1108,6 +1108,25 @@ function setupConsole(reloadKey) {
   });
 }
 
+function disableConsole() {
+  try {
+    var _console = window.console;
+    Object.defineProperty(window, 'console', {
+      get: function() {
+        if (_console._commandLineAPI) {
+          throw "Sorry, for security reasons, the script console is deactivated";
+        } else {
+          return _console;
+        }
+      },
+      set: function(_val) {
+        _console = _val;
+      }
+    });
+  } catch (ex) {
+  }
+}
+
 /*
   Log an error or warning to the browser developer console and the web server, through the websocket connection to /console
 */
@@ -1162,7 +1181,6 @@ function setupClicks() {
     }
   });
 }
-
 
 /* ----------------------------------------------------------------------
   Interface to Mixpanel.
