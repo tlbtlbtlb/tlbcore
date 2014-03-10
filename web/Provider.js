@@ -31,7 +31,7 @@ exports.SvgProvider = SvgProvider;
 exports.MarkdownProvider = MarkdownProvider;
 exports.ProviderSet = ProviderSet;
 exports.emitBinaryDoc = emitBinaryDoc;
-exports.emitXhtml = emitXhtml;
+exports.emitHtmlDoc = emitHtmlDoc;
 exports.emit404 = emit404;
 exports.emit301 = emit301;
 exports.emit302 = emit302;
@@ -51,10 +51,15 @@ function removeComments(content) {
 }
 
 /*
-  'images/topnavCenter.gif' => 'data:image/gif;base64,R0lGODlhAQBLAIAAAPX29wAAACH5BAAAAAAALAAAAAABAEsAAAIHhI+py+3fCgA7'
+  Given a file name, return a base64-encoded URL with the image contents.
+  Example: mkDataUrl('images/topnavCenter.gif') => 'data:image/gif;base64,R0lGODlhAQBLAIAAAPX29wAAACH5BAAAAAAALAAAAAABAEsAAAIHhI+py+3fCgA7'
+  Returns null if the file can't be loaded, or isn't an image, or exceeds maxLen
 */
-function mkDataUrl(fn) {
+function mkDataUrl(fn, maxLen) {
   var ct = contentTypeFromFn(fn);
+  if (!ct || ct === 'application/octet-stream') {
+    return null;
+  }
   var data, dataE;
   try {
     data = fs.readFileSync(fn, 'binary');
@@ -62,33 +67,37 @@ function mkDataUrl(fn) {
     util.puts('mkDataUrl: Failed to read ' + fn + ': ' + ex.toString());
     return null;
   }
-  dataE = base64.Base64.encode(data);
-  return 'data:' + ct + ';base64,' + dataE;
+  if (!data || !data.length) {
+    if (0) util.puts('mkDataUrl: Failed to read ' + fn + ': empty');
+    return null;
+  }
+  if (maxLen && data.length > maxLen) {
+    if (1) util.puts('mkDataUrl: ' + fn + ' too large');
+    return null;
+  }
+  dataE = base64.encode(data);
+  var ret = 'data:' + ct + ';base64,' + dataE;
+  if (0) util.puts('Encoded: ' + fn + ' as ' + ret);
+  return ret;
 }
 
-function emitXhtml(res, emitHead, emitBody) {
-  if (1) {
-    res.write('<!DOCTYPE html>\n<head><meta charset="utf-8">\n');
-  } else {
-    res.write('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n' +
-              '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">\n' +
-              '<head>\n');
-  }
+function emitHtmlDoc(res, emitHead, emitBody) {
+  res.write('<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n');
   emitHead(res);
   res.write('</head><body>\n');
   emitBody(res);
-  res.write('</body>\n');
+  res.write('</body>\n</html>\n');
 }
 
 function emit404(res, comment) {
   res.writeHead(404, {'Content-Type': 'text/html'});
-  emitXhtml(res, 
-            function(dst) { 
-              dst.write('<title>Not Found</title>'); 
-            },
-            function(dst) { 
-              dst.write('<h1>404 Not Found</h1><p>\n' + comment + '\n</p>');
-            });
+  emitHtmlDoc(res, 
+              function(dst) { 
+                dst.write('<title>Not Found</title>'); 
+              },
+              function(dst) { 
+                dst.write('<h1>404 Not Found</h1><p>\n' + comment + '\n</p>');
+              });
   res.end();
 }
 
@@ -137,14 +146,14 @@ function emitBinaryDoc(res, fn, callid) {
       logio.O(remote, callid + ': failed to read ' + fn + ': ' + err);
 
       res.writeHead(404, {'Content-Type': 'text/html'});
-      emitXhtml(res, 
-                function(res) { 
-                  res.write('<title>Not Found</title>'); 
-                },
-                function(res) { 
-                  res.write('<h1>Not Found</h1><p>Resource ' + callid + ' not found</p>');
-                });
-
+      emitHtmlDoc(res, 
+                  function(res) { 
+                    res.write('<title>Not Found</title>'); 
+                  },
+                  function(res) { 
+                    res.write('<h1>Not Found</h1><p>Resource ' + callid + ' not found</p>');
+                  });
+      
       res.end();
       return;
     }
@@ -585,11 +594,11 @@ CssProvider.prototype.start = function() {
       /*
         Replace tiny images with data urls for faster loading
         See http://www.sveinbjorn.org/dataurlsCss.
-        This only works if the CSS is like url("images/foo.png") and the file is found in tlbcore/web/images
+        This only works if the CSS is like url("images/foo.png") and the file is found in <css file dir>/images
       */
-      data = data.replace(/url\(\"images\/(\w+)\.(gif|png|jpg)\"\)/g, function(all, basename, ext) {
-        var du = mkDataUrl(path.join(require.resolve('./images/'), basename + '.' + ext));
-        if (du === null || du.length > 1000) return all;
+      data = data.replace(/url\(\"(images\/\w+)\.(gif|png|jpg)\"\)/g, function(all, pathname, ext) {
+        var du = mkDataUrl(path.join(path.dirname(self.fn), pathname + '.' + ext), 1000);
+        if (du === null) return all;
         return 'url(\"' + du + '\")';
       });
     }
