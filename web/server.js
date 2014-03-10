@@ -52,7 +52,7 @@ function main() {
   
   VjsRepl.setupReplServer();
   VjsRepl.addToContext('webServer0', webServer0);
-  VjsRepl.addToContext('redis0', require('./VjsDbs')('redis0'));
+  if (0) VjsRepl.addToContext('redis0', require('./VjsDbs')('redis0'));
   VjsRepl.addToContext('VjsApi', VjsApi);
   VjsRepl.addToContext('apis', VjsApi.apis);
   VjsRepl.addToContext('VjsSite', VjsSite);
