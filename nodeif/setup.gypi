@@ -1,12 +1,15 @@
 {
-  'xcode_settings': {
-    'GCC_ENABLE_CPP_EXCEPTIONS': 'YES', 
-    'GCC_ENABLE_CPP_RTTI': 'YES', 
-    'MACOSX_DEPLOYMENT_TARGET': '10.7',
-    'OTHER_CFLAGS': ['-stdlib=libc++']
-  },
   'conditions': [
     ['OS=="mac"', {
+      'xcode_settings': {
+        'GCC_ENABLE_CPP_EXCEPTIONS': 'YES', 
+        'GCC_ENABLE_CPP_RTTI': 'YES', 
+        'MACOSX_DEPLOYMENT_TARGET': '10.7',
+        'OTHER_CFLAGS': ['-stdlib=libc++', 
+                         '-Wall', '-Wextra', 
+                         '-Wno-format-nonliteral', '-Wno-missing-prototypes', '-Wno-unused-parameter', 
+                         '-Winit-self', '-Wshadow', '-Wpointer-arith', '-Wcast-qual']
+      },
       'include_dirs': [
         '/opt/local/include',
       ],

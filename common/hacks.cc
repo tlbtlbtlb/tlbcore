@@ -502,7 +502,7 @@ struct memfile {
   int alloc_data;
 };
 
-int memfile_read(void *cookie, char *buf, int n)
+static int memfile_read(void *cookie, char *buf, int n)
 {
   memfile *mf=(memfile *)cookie;
 
@@ -512,7 +512,7 @@ int memfile_read(void *cookie, char *buf, int n)
   return nr;
 }
 
-int memfile_write(void *cookie, const char *buf, int n)
+static int memfile_write(void *cookie, const char *buf, int n)
 {
   memfile *mf=(memfile *)cookie;
 
@@ -529,7 +529,7 @@ int memfile_write(void *cookie, const char *buf, int n)
   return n;
 }
 
-off_t memfile_seek(void *cookie, off_t offset, int whence)
+static off_t memfile_seek(void *cookie, off_t offset, int whence)
 {
   memfile *mf=(memfile *)cookie;
   if (whence == SEEK_SET) {
@@ -544,7 +544,7 @@ off_t memfile_seek(void *cookie, off_t offset, int whence)
   return mf->ofs;
 }
 
-int memfile_close(void *cookie)
+static int memfile_close(void *cookie)
 {
   memfile *mf=(memfile *)cookie;
   free(mf->data);
