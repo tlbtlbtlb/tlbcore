@@ -188,9 +188,9 @@ bool StlFace::isDegenerate() const
           norm(v0 - v2, 2) < eps);
 }
 
-vec3 StlFace::centroid() const
+vec3 StlFace::getCentroid() const
 {
-  return (v0 + v1 + v2) * (1.0/3.0);
+  return (v0 + v1 + v2) / 3.0;
 }
 
 bool operator == (StlFace const &a, StlFace const &b)

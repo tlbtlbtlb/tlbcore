@@ -31,7 +31,7 @@ struct StlFace {
   arma::vec3 getE1() const;
   arma::vec3 getE2() const;
   bool isDegenerate() const;
-  arma::vec3 centroid() const;
+  arma::vec3 getCentroid() const;
 
   arma::vec3 v0, v1, v2;
   arma::vec3 normal;
