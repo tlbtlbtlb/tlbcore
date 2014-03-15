@@ -1,30 +1,34 @@
 #include "../common/std_headers.h"
+#include "./geom_math.h"
 #include "./solid_geometry.h"
 
+using namespace arma;
 
-octree_node::octree_node(Vec3 const &_center, float _scale)
+OctreeNode::OctreeNode(vec3 const &_center, double _scale)
   :center(_center), scale(_scale)
 {
   for (int i=0; i<8; i++) children[i] = NULL;
 }
 
-octree_node::~octree_node()
+OctreeNode::~OctreeNode()
 {
   for (int i=0; i<8; i++) delete children[i];
 }
 
-octree_node *octree_node::lookup(Vec3 const &pt, float max_scale)
+OctreeNode *OctreeNode::lookup(vec3 const &pt, double maxScale)
 {
-  if (scale < max_scale) return this;
-  int index = (((pt.x >= center.x) ? 4:0) |
-               ((pt.y >= center.y) ? 2:0) |
-               ((pt.z >= center.z) ? 1:0));
+  if (scale < maxScale) return this;
+  int index = (((pt[0] >= center[0]) ? 4:0) |
+               ((pt[1] >= center[1]) ? 2:0) |
+               ((pt[2] >= center[2]) ? 1:0));
   if (!children[index]) {
-    children[index] = new octree_node(Vec3(center.x + scale * ((index&4) ? +0.5 : -0.5),
-                                           center.y + scale * ((index&2) ? +0.5 : -0.5),
-                                           center.z + scale * ((index&1) ? +0.5 : -0.5)), scale*0.5);
+    vec3 newCenter = mkVec3(center[0] + scale * ((index&4) ? +0.5 : -0.5),
+                            center[1] + scale * ((index&2) ? +0.5 : -0.5),
+                            center[2] + scale * ((index&1) ? +0.5 : -0.5));
+  
+    children[index] = new OctreeNode(newCenter, scale*0.5);
   }
-  return children[index]->lookup(pt, max_scale);
+  return children[index]->lookup(pt, maxScale);
 }
 
 
@@ -32,76 +36,70 @@ octree_node *octree_node::lookup(Vec3 const &pt, float max_scale)
    See http://en.wikipedia.org/wiki/STL_(file_format)
 */
 
-stl_face::stl_face()
+StlFace::StlFace()
 {
 }
 
-stl_face::stl_face(Vec3 _v0, Vec3 _v1, Vec3 _v2)
+StlFace::StlFace(vec3 _v0, vec3 _v1, vec3 _v2)
   :v0(_v0),
    v1(_v1),
    v2(_v2)
 {
-  calc_normal();
+  calcNormal();
 }
 
 
-stl_face::stl_face(Vec3 _v0, Vec3 _v1, Vec3 _v2, Vec3 _normal)
+StlFace::StlFace(vec3 _v0, vec3 _v1, vec3 _v2, vec3 _normal)
   :v0(_v0),
    v1(_v1),
    v2(_v2),
    normal(normalize(_normal))
 {
-  if (0) {
-    Vec3 cpnorm = normalize(cross(v1-v0, v2-v0));
-    float dp = dot(normal, cpnorm);
-    if (dp<0.95 || dp>1.05) {
-      cout << "Bad normal dp=" << dp << " area=" << get_area() << "\n";
-      cout << "  v0=" << v0 << "\n";
-      cout << "  v1=" << v1 << "\n";
-      cout << "  v2=" << v2 << "\n";
-      cout << "  e1=" << (v1-v0) << "\n";
-      cout << "  e2=" << (v2-v0) << "\n";
-      cout << "  normal=" << normal << "\n";
-      cout << "  cpnorm=" << cpnorm << "\n";
-    }
+#if 0
+  vec3 cpnorm = normalize(cross(v1-v0, v2-v0));
+  double dp = dot(normal, cpnorm);
+  if (dp<0.95 || dp>1.05) {
+    cout << "Bad normal dp=" << dp << " area=" << get_area() << "\n";
+    cout << "  v0=" << v0 << "\n";
+    cout << "  v1=" << v1 << "\n";
+    cout << "  v2=" << v2 << "\n";
+    cout << "  e1=" << (v1-v0) << "\n";
+    cout << "  e2=" << (v2-v0) << "\n";
+    cout << "  normal=" << normal << "\n";
+    cout << "  cpnorm=" << cpnorm << "\n";
   }
+#endif
 }
 
-stl_face::~stl_face()
+StlFace::~StlFace()
 {
 }
 
-void stl_face::calc_normal()
+void StlFace::calcNormal()
 {
-  Vec3 cp = cross(v1-v0, v2-v0);
-
-  if (norm(cp) == 0.0) {
-    normal = Vec3(0.0, 0.0, 0.0);
-  } else {
-    normal = normalize(cp);
-  }
+  normal = normalize(cross(v1-v0, v2-v0));
 }
 
 // Test whether the vector starting at p and of length/direction d intersects me
 #if 0
 bool
-stl_face::ray_intersects(Vec3 const &p, Vec3 const &d, float &t) const
+StlFace::rayIntersects(vec3 const &p, vec3 const &d, double &t) const
 {
-  Vec3 e1 = v1-v0;
-  Vec3 e2 = v2-v0;
+  vec3 e1 = v1-v0;
+  vec3 e2 = v2-v0;
 
-  Vec3 h = cross(d, e2);
-  float a = dot(e1, h);
+  vec3 h = cross(d, e2);
+  double a = dot(e1, h);
   if (fabs(a)<1e-10) return false;
 
-  float f=1.0/a;
+  double f=1.0/a;
   
-  Vec3 s=p-v0;
-  float u = f * dot(s, h);
+  vec3 s=p-v0;
+  double u = f * dot(s, h);
   if (u<0.0 || u>1.0) return false;
   
-  Vec3 q = cross(s, e1);
-  float v = f * dot(d, q);
+  vec3 q = cross(s, e1);
+  double v = f * dot(d, q);
   if (v<0.0 || u+v>1.0) return false;
   
   t = f * dot(e2, q);
@@ -112,36 +110,36 @@ stl_face::ray_intersects(Vec3 const &p, Vec3 const &d, float &t) const
 #else
 // Special fast version since we do a lot of this
 bool
-stl_face::ray_intersects(Vec3 const &p, Vec3 const &d, float &t) const
+StlFace::rayIntersects(vec3 const &p, vec3 const &d, double &t) const
 {
-  float e1_x = v1.x-v0.x; 
-  float e1_y = v1.y-v0.y;
-  float e1_z = v1.z-v0.z;
-  float e2_x = v2.x-v0.x; 
-  float e2_y = v2.y-v0.y;
-  float e2_z = v2.z-v0.z;
+  double e1_x = v1[0]-v0[0]; 
+  double e1_y = v1[1]-v0[1];
+  double e1_z = v1[2]-v0[2];
+  double e2_x = v2[0]-v0[0]; 
+  double e2_y = v2[1]-v0[1];
+  double e2_z = v2[2]-v0[2];
 
-  float h_x = d.y*e2_z - d.z*e2_y;
-  float h_y = d.z*e2_x - d.x*e2_z;
-  float h_z = d.x*e2_y - d.y*e2_x;
+  double h_x = d[1]*e2_z - d[2]*e2_y;
+  double h_y = d[2]*e2_x - d[0]*e2_z;
+  double h_z = d[0]*e2_y - d[1]*e2_x;
 
-  float a = e1_x*h_x + e1_y*h_y + e1_z*h_z;
+  double a = e1_x*h_x + e1_y*h_y + e1_z*h_z;
   if (a<1e-10 && a>-1e-10) return false;
 
-  float f=1.0/a;
+  double f=1.0/a;
 
-  float s_x = p.x - v0.x;
-  float s_y = p.y - v0.y;
-  float s_z = p.z - v0.z;
+  double s_x = p[0] - v0[0];
+  double s_y = p[1] - v0[1];
+  double s_z = p[2] - v0[2];
 
-  float u = f*s_x*h_x + f*s_y*h_y + f*s_z*h_z;
+  double u = f*s_x*h_x + f*s_y*h_y + f*s_z*h_z;
   if (u<0.0 || u>1.0) return false;
 
-  float q_x = s_y*e1_z - s_z*e1_y;
-  float q_y = s_z*e1_x - s_x*e1_z;
-  float q_z = s_x*e1_y - s_y*e1_x;
+  double q_x = s_y*e1_z - s_z*e1_y;
+  double q_y = s_z*e1_x - s_x*e1_z;
+  double q_z = s_x*e1_y - s_y*e1_x;
 
-  float v = f*d.x*q_x + f*d.y*q_y + f*d.z*q_z;
+  double v = f*d[0]*q_x + f*d[1]*q_y + f*d[2]*q_z;
   if (v<0.0 || u+v>1.0) return false;
   
   t = f*e2_x*q_x + f*e2_y*q_y + f*e2_z*q_z;
@@ -152,7 +150,7 @@ stl_face::ray_intersects(Vec3 const &p, Vec3 const &d, float &t) const
 #endif
 
 void
-stl_face::transform(Mat44 const &m)
+StlFace::transform(mat44 const &m)
 {
   v0 = m * v0;
   v1 = m * v1;
@@ -161,200 +159,210 @@ stl_face::transform(Mat44 const &m)
   normal = justRotation(m) * normal;
 }
 
-float
-stl_face::get_area() const
+double
+StlFace::getArea() const
 {
-  Vec3 e1 = v1-v0;
-  Vec3 e2 = v2-v0;
+  vec3 e1 = v1-v0;
+  vec3 e2 = v2-v0;
 
-  return norm(cross(e1, e2))*0.5;
+  return norm(cross(e1, e2), 2)*0.5;
 }
 
-Vec3
-stl_face::get_e1() const
+vec3
+StlFace::getE1() const
 {
   return v1-v0;
 }
 
-Vec3
-stl_face::get_e2() const
+vec3
+StlFace::getE2() const
 {
   return v2-v0;
 }
 
-bool stl_face::is_degenerate() const
+bool StlFace::isDegenerate() const
 {
-  return (v0 == v1 || v2 == v1 || v0 == v2);
+  const double eps = 1e-9;
+  return (norm(v0 - v1, 2) < eps || 
+          norm(v2 - v1, 2) < eps || 
+          norm(v0 - v2, 2) < eps);
 }
 
-Vec3 stl_face::centroid() const
+vec3 StlFace::centroid() const
 {
   return (v0 + v1 + v2) * (1.0/3.0);
 }
 
-bool operator == (stl_face const &a, stl_face const &b)
+bool operator == (StlFace const &a, StlFace const &b)
 {
-  return (a.normal==b.normal && 
-          a.v0 == b.v0 &&
-          a.v1 == b.v1 &&
-          a.v2 == b.v2);
+  return (all(a.normal==b.normal) && 
+          all(a.v0 == b.v0) &&
+          all(a.v1 == b.v1) &&
+          all(a.v2 == b.v2));
 }
 
 /* ----------------------------------------------------------------------
    Packet IO
 */
 
-void packet_rd_value(packet &p, stl_face &it)
+#if 0
+void packet_rd_value(packet &p, StlFace &it)
 {
   packet_rd_value(p, it.v0);
   packet_rd_value(p, it.v1);
   packet_rd_value(p, it.v2);
 }
-void packet_wr_value(packet &p, stl_face const &it)
+void packet_wr_value(packet &p, StlFace const &it)
 {
   packet_wr_value(p, it.v0);
   packet_wr_value(p, it.v1);
   packet_wr_value(p, it.v2);
 }
-void packet_rd_typetag(packet &p, stl_face &it)
+void packet_rd_typetag(packet &p, StlFace &it)
 {
-  p.check_typetag("stl_face:1");
+  p.check_typetag("StlFace:1");
 }
-void packet_wr_typetag(packet &p, stl_face const &it)
+void packet_wr_typetag(packet &p, StlFace const &it)
 {
-  p.add_typetag("stl_face:1");
+  p.add_typetag("StlFace:1");
 }
+#endif
 
 
 // ----------------------------------------------------------------------
 
-stl_solid::stl_solid()
+StlSolid::StlSolid()
 {
 }
 
-stl_solid::~stl_solid()
+StlSolid::~StlSolid()
 {
 }
 
 void
-stl_solid::read_binary_file(FILE *fp, double scale)
+StlSolid::readBinaryFile(FILE *fp, double scale)
 {
   char dummyline[80];
   if (fread(dummyline, 1, 80, fp)!=80) throw runtime_error("reading header");
 
-  int n_triangles=0;
-  if (fread(&n_triangles, sizeof(int), 1, fp)!=1) throw runtime_error("reading n_triangles");
+  int nTriangles=0;
+  if (fread(&nTriangles, sizeof(int), 1, fp)!=1) throw runtime_error("reading n_triangles");
 
-  faces.reserve(n_triangles);
+  faces.reserve(nTriangles);
   
-  for (int ti=0; ti<n_triangles; ti++) {
+  for (int ti=0; ti<nTriangles; ti++) {
 
     float data[12];
-    if (fread(&data, sizeof(float), 12, fp) != 12) throw runtime_error("reading 12 floats");
-    
-    stl_face face(Vec3(data[3] * scale, data[4] * scale, data[5] * scale),
-                  Vec3(data[6] * scale, data[7] * scale, data[8] * scale),
-                  Vec3(data[9] * scale, data[10]* scale, data[11] * scale),
-                  Vec3(data[0], data[1], data[2]));
-    
-    short attr_byte_count=0;
-    if (fread(&attr_byte_count, sizeof(short), 1, fp)!=1) throw runtime_error("reading attr_byte_count");
+    if (fread(&data, sizeof(float), 12, fp) != 12) throw runtime_error("reading 12 doubles");
 
-    if (attr_byte_count!=0) throw runtime_error("bad attr_byte_count");
+    vec3 n = mkVec3(data[0], data[1], data[2]);
+    vec3 v0 = mkVec3(data[3] * scale, data[4] * scale, data[5] * scale);
+    vec3 v1 = mkVec3(data[6] * scale, data[7] * scale, data[8] * scale);
+    vec3 v2 = mkVec3(data[9] * scale, data[10] * scale, data[11] * scale);
+
+    StlFace face(v0, v1, v2, n);
+    
+    short attrByteCount=0;
+    if (fread(&attrByteCount, sizeof(short), 1, fp)!=1) throw runtime_error("reading attrByteCount");
+
+    if (attrByteCount!=0) throw runtime_error(stringprintf("bad attrByteCount=%d", (int)attrByteCount).c_str());
 
     faces.push_back(face);
 
   }
-  calc_bbox();
+  calcBbox();
 
-  if (0) eprintf("Read %d faces\n", n_triangles);
+  if (0) eprintf("Read %d faces\n", nTriangles);
 }
 
-void packet_rd_value(packet &p, stl_solid &it)
+#if 0
+void packet_rd_value(packet &p, StlSolid &it)
 {
-  packet_rd_value(p, it.bbox_lo);
-  packet_rd_value(p, it.bbox_hi);
+  packet_rd_value(p, it.bboxLo);
+  packet_rd_value(p, it.bboxHi);
   packet_rd_value(p, it.faces);
 }
-void packet_wr_value(packet &p, stl_solid const &it)
+void packet_wr_value(packet &p, StlSolid const &it)
 {
-  packet_wr_value(p, it.bbox_lo);
-  packet_wr_value(p, it.bbox_hi);
+  packet_wr_value(p, it.bboxLo);
+  packet_wr_value(p, it.bboxHi);
   packet_wr_value(p, it.faces);
 }
-void packet_rd_typetag(packet &p, stl_solid &it)
+void packet_rd_typetag(packet &p, StlSolid &it)
 {
-  p.check_typetag("stl_solid:1");
-  packet_rd_typetag(p, it.bbox_lo);
-  packet_rd_typetag(p, it.bbox_hi);
+  p.check_typetag("StlSolid:1");
+  packet_rd_typetag(p, it.bboxLo);
+  packet_rd_typetag(p, it.bboxHi);
   packet_rd_typetag(p, it.faces);
 }
-void packet_wr_typetag(packet &p, stl_solid const &it)
+void packet_wr_typetag(packet &p, StlSolid const &it)
 {
-  p.add_typetag("stl_solid:1");
-  packet_wr_typetag(p, it.bbox_lo);
-  packet_wr_typetag(p, it.bbox_hi);
+  p.add_typetag("StlSolid:1");
+  packet_wr_typetag(p, it.bboxLo);
+  packet_wr_typetag(p, it.bboxHi);
   packet_wr_typetag(p, it.faces);
 }
+#endif
 
 
 void
-stl_solid::transform(Mat44 const &m)
+StlSolid::transform(mat44 const &m)
 {
-  for (vector<stl_face>::iterator it = faces.begin(); it != faces.end(); ++it) {
-    stl_face &face = *it;
+  for (vector<StlFace>::iterator it = faces.begin(); it != faces.end(); ++it) {
+    StlFace &face = *it;
     face.transform(m);
   }
-  calc_bbox();
+  calcBbox();
 }
 
 
 void
-stl_solid::calc_bbox()
+StlSolid::calcBbox()
 {
   if (faces.size()==0) {
-    bbox_lo = bbox_hi = Vec3::allZero();
+    bboxLo.zeros();
+    bboxHi.zeros();
     return;
   }
 
-  Vec3 lo = faces[0].v0;
-  Vec3 hi = faces[0].v0;
+  vec3 lo = faces[0].v0;
+  vec3 hi = faces[0].v0;
 
-  for (vector<stl_face>::iterator it = faces.begin(); it != faces.end(); ++it) {
-    stl_face &face = *it;
+  for (vector<StlFace>::iterator it = faces.begin(); it != faces.end(); ++it) {
+    StlFace &face = *it;
     
-    lo.x = min(lo.x, face.v0.x);
-    lo.y = min(lo.y, face.v0.y);
-    lo.z = min(lo.z, face.v0.z);
-    lo.x = min(lo.x, face.v1.x);
-    lo.y = min(lo.y, face.v1.y);
-    lo.z = min(lo.z, face.v1.z);
-    lo.x = min(lo.x, face.v2.x);
-    lo.y = min(lo.y, face.v2.y);
-    lo.z = min(lo.z, face.v2.z);
+    lo[0] = min(lo[0], face.v0[0]);
+    lo[1] = min(lo[1], face.v0[1]);
+    lo[2] = min(lo[2], face.v0[2]);
+    lo[0] = min(lo[0], face.v1[0]);
+    lo[1] = min(lo[1], face.v1[1]);
+    lo[2] = min(lo[2], face.v1[2]);
+    lo[0] = min(lo[0], face.v2[0]);
+    lo[1] = min(lo[1], face.v2[1]);
+    lo[2] = min(lo[2], face.v2[2]);
     
-    hi.x = max(hi.x, face.v0.x);
-    hi.y = max(hi.y, face.v0.y);
-    hi.z = max(hi.z, face.v0.z);
-    hi.x = max(hi.x, face.v1.x);
-    hi.y = max(hi.y, face.v1.y);
-    hi.z = max(hi.z, face.v1.z);
-    hi.x = max(hi.x, face.v2.x);
-    hi.y = max(hi.y, face.v2.y);
-    hi.z = max(hi.z, face.v2.z);
+    hi[0] = max(hi[0], face.v0[0]);
+    hi[1] = max(hi[1], face.v0[1]);
+    hi[2] = max(hi[2], face.v0[2]);
+    hi[0] = max(hi[0], face.v1[0]);
+    hi[1] = max(hi[1], face.v1[1]);
+    hi[2] = max(hi[2], face.v1[2]);
+    hi[0] = max(hi[0], face.v2[0]);
+    hi[1] = max(hi[1], face.v2[1]);
+    hi[2] = max(hi[2], face.v2[2]);
     
   }
-  bbox_lo = lo;
-  bbox_hi = hi;
+  bboxLo = lo;
+  bboxHi = hi;
 }
 
 bool
-stl_solid::ray_intersects(Vec3 const &p, Vec3 const &d) const
+StlSolid::rayIntersects(vec3 const &p, vec3 const &d) const
 {
-  for (vector<stl_face>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
-    stl_face const &face = *it;
-    float t;
-    if (face.ray_intersects(p, d, t)) {
+  for (vector<StlFace>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
+    StlFace const &face = *it;
+    double t;
+    if (face.rayIntersects(p, d, t)) {
       return true;
     }
   }
@@ -367,36 +375,39 @@ stl_solid::ray_intersects(Vec3 const &p, Vec3 const &d) const
   That might be a good test to add, in fact.
  */
 bool
-stl_solid::is_interior(Vec3 const &pt) const
+StlSolid::isInterior(vec3 const &pt) const
 {
   bool ret = false;
-  Vec3 dir(1, 0, 0);
+  vec3 dir;
+  dir[0] = 1;
+  dir[1] = 0;
+  dir[2] = 0;
 
-  for (vector<stl_face>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
-    stl_face const &face = *it;
-    float t;
-    if (face.ray_intersects(pt, dir, t)) {
+  for (vector<StlFace>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
+    StlFace const &face = *it;
+    double t;
+    if (face.rayIntersects(pt, dir, t)) {
       ret = !ret;
     }
   }
   return ret;
 }
 
-bool operator < (stl_intersection const &a, stl_intersection const &b)
+bool operator < (StlIntersection const &a, StlIntersection const &b)
 {
   return a.t < b.t;
 }
 
-vector<stl_intersection>
-stl_solid::intersection_list(Vec3 const &p, Vec3 const &d) const
+vector<StlIntersection>
+StlSolid::intersectionList(vec3 const &p, vec3 const &d) const
 {
-  vector<stl_intersection> ret;
+  vector<StlIntersection> ret;
   
-  for (vector<stl_face>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
-    stl_face const &face = *it;
-    float t;
-    if (face.ray_intersects(p, d, t)) {
-      stl_intersection si;
+  for (vector<StlFace>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
+    StlFace const &face = *it;
+    double t;
+    if (face.rayIntersects(p, d, t)) {
+      StlIntersection si;
       si.face = face;
       si.t = t;
       ret.push_back(si);
@@ -405,9 +416,11 @@ stl_solid::intersection_list(Vec3 const &p, Vec3 const &d) const
 
   if (ret.size() % 2) {
     // If an odd number, we must have started inside so add fake face
-    stl_intersection si;
+    StlIntersection si;
     si.face.normal = normalize(d * -1.0); // points opposite to d
-    si.face.v0=si.face.v1=si.face.v2=Vec3(0,0,0);
+    si.face.v0.zeros();
+    si.face.v1.zeros();
+    si.face.v2.zeros();
     si.t = 0.0;
     ret.push_back(si);
   }
@@ -417,8 +430,8 @@ stl_solid::intersection_list(Vec3 const &p, Vec3 const &d) const
   return ret;
 }
 
-mass_properties
-stl_solid::get_mass_properties(double density)
+StlMassProperties
+StlSolid::getStlMassProperties(double density)
 {
   double sum_area = 0.0;
   double sum_1  = 0.0;
@@ -432,48 +445,53 @@ stl_solid::get_mass_properties(double density)
   double sum_yz = 0.0;
   double sum_zx = 0.0;
     
-  for (vector<stl_face>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
-    stl_face const &f = *it;
+  for (vector<StlFace>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
+    StlFace const &f = *it;
         
-    Vec3 v0 = f.v0;
-    Vec3 v1 = f.v1;
-    Vec3 v2 = f.v2;
-    Vec3 e1 = v1-v0;
-    Vec3 e2 = v2-v0;
+    vec3 v0 = f.v0;
+    vec3 v1 = f.v1;
+    vec3 v2 = f.v2;
+    vec3 e1 = v1-v0;
+    vec3 e2 = v2-v0;
 
-    Vec3 d = cross(e1, e2);   // l^2
+    vec3 d = cross(e1, e2);   // l^2
 
-    Vec3 f1 = v0 + v1 + v2;   // l^1
+    vec3 f1 = v0 + v1 + v2;   // l^1
 
-    Vec3 f2(sqr(v0.x) + v0.x*v1.x + sqr(v1.x) + v2.x*f1.x,
-            sqr(v0.y) + v0.y*v1.y + sqr(v1.y) + v2.y*f1.y,
-            sqr(v0.z) + v0.z*v1.z + sqr(v1.z) + v2.z*f1.z); // l^2
+    vec3 f2;
+    f2[0] = sqr(v0[0]) + v0[0]*v1[0] + sqr(v1[0]) + v2[0]*f1[0];
+    f2[1] = sqr(v0[1]) + v0[1]*v1[1] + sqr(v1[1]) + v2[1]*f1[1];
+    f2[2] = sqr(v0[2]) + v0[2]*v1[2] + sqr(v1[2]) + v2[2]*f1[2]; // l^2
                   
-    Vec3 f3(pow(v0.x, 3) + sqr(v0.x)*v1.x + v0.x*sqr(v1.x) + pow(v1.x, 3) + v2.x*f2.x,
-            pow(v0.y, 3) + sqr(v0.y)*v1.y + v0.y*sqr(v1.y) + pow(v1.y, 3) + v2.y*f2.y,
-            pow(v0.z, 3) + sqr(v0.z)*v1.z + v0.z*sqr(v1.z) + pow(v1.z, 3) + v2.z*f2.z); // l^3
+    vec3 f3;
+    f3[0] = pow(v0[0], 3) + sqr(v0[0])*v1[0] + v0[0]*sqr(v1[0]) + pow(v1[0], 3) + v2[0]*f2[0];
+    f3[1] = pow(v0[1], 3) + sqr(v0[1])*v1[1] + v0[1]*sqr(v1[1]) + pow(v1[1], 3) + v2[1]*f2[1];
+    f3[2] = pow(v0[2], 3) + sqr(v0[2])*v1[2] + v0[2]*sqr(v1[2]) + pow(v1[2], 3) + v2[2]*f2[2]; // l^3
 
-    Vec3 g0(f2.x + v0.x*(f1.x + v0.x),
-            f2.y + v0.y*(f1.y + v0.y),
-            f2.z + v0.z*(f1.z + v0.z)); // l^2
-    Vec3 g1(f2.x + v1.x*(f1.x + v1.x),
-            f2.y + v1.y*(f1.y + v1.y),
-            f2.z + v1.z*(f1.z + v1.z)); // l^2
-    Vec3 g2(f2.x + v2.x*(f1.x + v2.x),
-            f2.y + v2.y*(f1.y + v2.y),
-            f2.z + v2.z*(f1.z + v2.z)); // l^2
+    vec3 g0;
+    g0[0] = f2[0] + v0[0]*(f1[0] + v0[0]);
+    g0[1] = f2[1] + v0[1]*(f1[1] + v0[1]);
+    g0[2] = f2[2] + v0[2]*(f1[2] + v0[2]); // l^2
+    vec3 g1;
+    g1[0] = f2[0] + v1[0]*(f1[0] + v1[0]);
+    g1[1] = f2[1] + v1[1]*(f1[1] + v1[1]);
+    g1[2] = f2[2] + v1[2]*(f1[2] + v1[2]); // l^2
+    vec3 g2;
+    g2[0] = f2[0] + v2[0]*(f1[0] + v2[0]);
+    g2[1] = f2[1] + v2[1]*(f1[1] + v2[1]);
+    g2[2] = f2[2] + v2[2]*(f1[2] + v2[2]); // l^2
     
-    sum_area += norm(d)*0.5;            // l^2
-    sum_1  += (d.x * f1.x) * (1 / 6.0);  // l^3
-    sum_x  += (d.x * f2.x) * (1 / 24.0); // l^4
-    sum_y  += (d.y * f2.y) * (1 / 24.0);
-    sum_z  += (d.z * f2.z) * (1 / 24.0);
-    sum_xx += (d.x * f3.x) * (1 / 60.0); // l^5
-    sum_yy += (d.y * f3.y) * (1 / 60.0);
-    sum_zz += (d.z * f3.z) * (1 / 60.0);
-    sum_xy += (d.x * (v0.y*g0.x + v1.y*g1.x + v2.y*g2.x)) * (1 / 120.0); // l^5
-    sum_yz += (d.y * (v0.z*g0.y + v1.z*g1.y + v2.z*g2.y)) * (1 / 120.0);
-    sum_zx += (d.z * (v0.x*g0.z + v1.x*g1.z + v2.x*g2.z)) * (1 / 120.0);
+    sum_area += norm(d, 2)*0.5;            // l^2
+    sum_1  += (d[0] * f1[0]) * (1 / 6.0);  // l^3
+    sum_x  += (d[0] * f2[0]) * (1 / 24.0); // l^4
+    sum_y  += (d[1] * f2[1]) * (1 / 24.0);
+    sum_z  += (d[2] * f2[2]) * (1 / 24.0);
+    sum_xx += (d[0] * f3[0]) * (1 / 60.0); // l^5
+    sum_yy += (d[1] * f3[1]) * (1 / 60.0);
+    sum_zz += (d[2] * f3[2]) * (1 / 60.0);
+    sum_xy += (d[0] * (v0[1]*g0[0] + v1[1]*g1[0] + v2[1]*g2[0])) * (1 / 120.0); // l^5
+    sum_yz += (d[1] * (v0[2]*g0[1] + v1[2]*g1[1] + v2[2]*g2[1])) * (1 / 120.0);
+    sum_zx += (d[2] * (v0[0]*g0[2] + v1[0]*g1[2] + v2[0]*g2[2])) * (1 / 120.0);
   }
 
   if (0) printf("area=%g 1=%g x=%g y=%g z=%g xx=%g yy=%g zz=%g xy=%g yz=%g zx=%g\n",
@@ -482,71 +500,71 @@ stl_solid::get_mass_properties(double density)
 
   double volume = sum_1;
   double mass = volume * density;
-  return mass_properties(sum_1, mass, sum_area,
-                         Vec3(sum_x/volume, sum_y/volume, sum_z/volume),
-                         Mat33(+sum_yy + sum_zz,   -sum_xy,            -sum_zx,
-                               -sum_xy,            +sum_xx + sum_zz,   -sum_yz,
-                               -sum_zx,            -sum_yz,            +sum_xx + sum_yy) * density);
+  return StlMassProperties(sum_1, mass, sum_area,
+                           mkVec3(sum_x/volume, sum_y/volume, sum_z/volume),
+                           mkMat33(+sum_yy + sum_zz,   -sum_xy,            -sum_zx,
+                                   -sum_xy,            +sum_xx + sum_zz,   -sum_yz,
+                                   -sum_zx,            -sum_yz,            +sum_xx + sum_yy) * density);
 }
 
 
 /*
   Used by remove_tiny faces, this is an auxilliary index to find & replace vertices.
 */
-struct Vec3_spatial_map {
+struct Vec3SpatialMap {
 
-  Vec3_spatial_map() 
+  Vec3SpatialMap() 
   {
     eps = 0.000001;
     epssq = eps*eps;
-    root = new octree_node(Vec3(0.0, 0.0, 0.0), 4.0);
+    root = new OctreeNode(mkVec3(0.0, 0.0, 0.0), 4.0);
   }
   
-  ~Vec3_spatial_map()
+  ~Vec3SpatialMap()
   {
-    for (map<octree_node *, vector<Vec3*>*>::iterator it = spatial.begin(); it != spatial.end(); ++it) {
+    for (map<OctreeNode *, vector<vec3*>*>::iterator it = spatial.begin(); it != spatial.end(); ++it) {
       delete it->second;
     }
     spatial.clear();
     delete root;
   }
 
-  vector<Vec3 *> *find_list(Vec3 const &pt)
+  vector<vec3 *> *findList(vec3 const &pt)
   {
-    octree_node *node = root->lookup(pt, eps);
-    vector<Vec3 *> * &ent = spatial[node];
+    OctreeNode *node = root->lookup(pt, eps);
+    vector<vec3 *> * &ent = spatial[node];
     if (!ent) {
-      ent = new vector<Vec3 *>;
+      ent = new vector<vec3 *>;
     }
     return ent;
   }
 
-  void add_pt(Vec3 *pt)
+  void addPt(vec3 *pt)
   {
-    find_list(*pt)->push_back(pt);
+    findList(*pt)->push_back(pt);
   }
 
-  void replace_pt(Vec3 &search, Vec3 &replace)
+  void replacePt(vec3 &search, vec3 &replace)
   {
-    if (replace == search) return;
+    if (all(replace == search)) return;
 
-    vector<Vec3 *> *ptlist = find_list(search);
+    vector<vec3 *> *ptlist = findList(search);
     for (size_t iti=0; iti < ptlist->size(); iti++) {
-      Vec3 *it = (*ptlist)[iti];
+      vec3 *it = (*ptlist)[iti];
       if (!it) continue;
-      if (*it == replace) continue;
-      if (normsq(*it - search) < epssq) {
+      if (all(*it == replace)) continue;
+      if (norm(*it - search, 2) < eps) {
         *it = replace;
         (*ptlist)[iti] = NULL;
-        add_pt(it);
+        addPt(it);
       }
     }
   }
   
-  float eps;
-  float epssq;
-  octree_node *root;
-  map<octree_node *, vector<Vec3 *> *> spatial;
+  double eps;
+  double epssq;
+  OctreeNode *root;
+  map<OctreeNode *, vector<vec3 *> *> spatial;
 };
 
 /*
@@ -556,90 +574,103 @@ struct Vec3_spatial_map {
   The algorithm collapses edges shorter than min_size by merging one of the points onto the other.
   A lot of faces in a row can cause pathological results, so we process the mesh in random order
 */
-void stl_solid::remove_tiny_faces(float min_size)
+void StlSolid::removeTinyFaces(double minSize)
 {
-  Vec3_spatial_map spatial;
+  Vec3SpatialMap spatial;
 
   for (size_t fi=0; fi<faces.size(); fi++) {
-    stl_face &f = faces[fi];
-    spatial.add_pt(&f.v0);
-    spatial.add_pt(&f.v1);
-    spatial.add_pt(&f.v2);
+    StlFace &f = faces[fi];
+    spatial.addPt(&f.v0);
+    spatial.addPt(&f.v1);
+    spatial.addPt(&f.v2);
   }
 
   // Generate a random but deterministic order to process faces in
-  vector<int> face_ordering(faces.size());
+  vector<int> faceOrdering(faces.size());
   for (size_t fi=0; fi<faces.size(); fi++) {
-    face_ordering[fi] = fi;
+    faceOrdering[fi] = fi;
   }
   size_t seed = faces.size() * 99 + 55;
   for (size_t fi=0; fi<faces.size(); fi++) {
     size_t fi2 = seed % (faces.size() - fi) + fi;
-    swap(face_ordering[fi], face_ordering[fi2]);
+    swap(faceOrdering[fi], faceOrdering[fi2]);
     seed = (1103515245 * seed + 12345);
   }
   
   for (int passi=0; passi<3; passi++) {
     
     vector<int>::iterator fiit;
-    for (fiit = face_ordering.begin(); fiit != face_ordering.end(); ++fiit) {
-      stl_face &f = faces[*fiit];
-      if (f.is_degenerate()) continue;
+    for (fiit = faceOrdering.begin(); fiit != faceOrdering.end(); ++fiit) {
+      StlFace &f = faces[*fiit];
+      if (f.isDegenerate()) continue;
 
-      if (norm(f.v1 - f.v0) < min_size) {
-        Vec3 old_pt = f.v1;
-        Vec3 new_pt = f.v0;
-        spatial.replace_pt(old_pt, new_pt);
+      if (norm(f.v1 - f.v0, 2) < minSize) {
+        vec3 oldPt = f.v1;
+        vec3 newPt = f.v0;
+        spatial.replacePt(oldPt, newPt);
       }
-      else if (norm(f.v2 - f.v0) < min_size) {
-        Vec3 old_pt = f.v2;
-        Vec3 new_pt = f.v0;
-        spatial.replace_pt(old_pt, new_pt);
+      else if (norm(f.v2 - f.v0, 2) < minSize) {
+        vec3 oldPt = f.v2;
+        vec3 newPt = f.v0;
+        spatial.replacePt(oldPt, newPt);
       }
-      else if (norm(f.v2 - f.v1) < min_size) {
-        Vec3 old_pt = f.v2;
-        Vec3 new_pt = f.v1;
-        spatial.replace_pt(old_pt, new_pt);
+      else if (norm(f.v2 - f.v1, 2) < minSize) {
+        vec3 oldPt = f.v2;
+        vec3 newPt = f.v1;
+        spatial.replacePt(oldPt, newPt);
       }
     }
   }
 
-  size_t orig_faces = faces.size();
+  size_t origFaces = faces.size();
 
-  vector<stl_face>::iterator fout = faces.begin();
-  vector<stl_face>::iterator fin = faces.begin();
-  vector<stl_face>::iterator fend = faces.end();
+  vector<StlFace>::iterator fout = faces.begin();
+  vector<StlFace>::iterator fin = faces.begin();
+  vector<StlFace>::iterator fend = faces.end();
 
   while (fin != fend) {
-    stl_face &f = *fin++;
-    if (!f.is_degenerate()) {
+    StlFace &f = *fin++;
+    if (!f.isDegenerate()) {
       *fout++ = f;
     }
   }
   faces.erase(fout, fend);
 
-  if (0) eprintf("remove_tiny_faces: %d => %d\n", (int)orig_faces, (int)faces.size());
+  if (0) eprintf("remove_tiny_faces: %d => %d\n", (int)origFaces, (int)faces.size());
 }
 
 
 // ----------------------------------------------------------------------
 
-mass_properties::mass_properties(double _volume, double _mass, double _area, Vec3 _cm, Mat33 _inertia_origin)
+StlMassProperties::StlMassProperties()
+  :density(0.0),
+   volume(0.0),
+   mass(0.0),
+   area(0.0),
+   cm(fill::zeros),
+   inertiaOrigin(fill::zeros),
+   inertiaCm(fill::zeros),
+   rogOrigin(fill::zeros),
+   rogCm(fill::zeros)
+{
+  calcDerived();
+}
+
+StlMassProperties::StlMassProperties(double _volume, double _mass, double _area, vec3 _cm, mat33 _inertiaOrigin)
   :volume(_volume),
    mass(_mass),
    area(_area),
    cm(_cm),
-   inertia_origin(_inertia_origin)
+   inertiaOrigin(_inertiaOrigin),
+   inertiaCm(fill::zeros),
+   rogOrigin(fill::zeros),
+   rogCm(fill::zeros)
 {
-  calc_derived();
+  calcDerived();
 }
 
-mass_properties mass_properties::allZero()
-{
-  return mass_properties(0.0, 0.0, 0.0, Vec3::allZero(), Mat33::allZero());
-}
-
-void packet_rd_value(packet &p, mass_properties &it)
+#if 0
+void packet_rd_value(packet &p, StlMassProperties &it)
 {
   p.get(it.density);
   p.get(it.volume);
@@ -651,7 +682,7 @@ void packet_rd_value(packet &p, mass_properties &it)
   p.get(it.rog_origin);
   p.get(it.rog_cm);
 }
-void packet_wr_value(packet &p, mass_properties const &it)
+void packet_wr_value(packet &p, StlMassProperties const &it)
 {
   p.add(it.density);
   p.add(it.volume);
@@ -664,9 +695,9 @@ void packet_wr_value(packet &p, mass_properties const &it)
   p.add(it.rog_cm);
 }
 
-void packet_rd_typetag(packet &p, mass_properties &it)
+void packet_rd_typetag(packet &p, StlMassProperties &it)
 {
-  p.check_typetag("mass_properties:1");
+  p.check_typetag("StlMassProperties:1");
   packet_rd_typetag(p, it.density);
   packet_rd_typetag(p, it.volume);
   packet_rd_typetag(p, it.mass);
@@ -678,9 +709,9 @@ void packet_rd_typetag(packet &p, mass_properties &it)
   packet_rd_typetag(p, it.rog_cm);
 }
 
-void packet_wr_typetag(packet &p, mass_properties const &it) 
+void packet_wr_typetag(packet &p, StlMassProperties const &it) 
 {
-  p.add_typetag("mass_properties:1");
+  p.add_typetag("StlMassProperties:1");
   packet_wr_typetag(p, it.density);
   packet_wr_typetag(p, it.volume);
   packet_wr_typetag(p, it.mass);
@@ -691,52 +722,48 @@ void packet_wr_typetag(packet &p, mass_properties const &it)
   packet_wr_typetag(p, it.rog_origin);
   packet_wr_typetag(p, it.rog_cm);
 }
+#endif
 
 void
-mass_properties::calc_derived()
+StlMassProperties::calcDerived()
 {
   if (volume==0.0 || mass==0.0) {
     density = 1.0;
-    inertia_cm = Mat33::allZero();
-    rog_origin = Vec3::allZero();
-    rog_cm = Vec3::allZero();
+    inertiaCm = mat33(fill::zeros);
+    rogOrigin = vec3(fill::zeros);
+    rogCm = vec3(fill::zeros);
   } else {
     density = mass / volume;
-    inertia_cm = inertia_origin + Mat33(-(sqr(cm.y) + sqr(cm.z)),  +cm.x * cm.y,              +cm.z * cm.x,
-                                        +cm.x * cm.y,              -(sqr(cm.z) + sqr(cm.x)),  +cm.y * cm.z,
-                                        +cm.z * cm.x,              +cm.y * cm.z,              -(sqr(cm.x) + sqr(cm.y))) * mass;
+    inertiaCm = inertiaOrigin + mkMat33(-(sqr(cm[1]) + sqr(cm[2])),  +cm[0] * cm[1],              +cm[2] * cm[0],
+                                        +cm[0] * cm[1],              -(sqr(cm[2]) + sqr(cm[0])),  +cm[1] * cm[2],
+                                        +cm[2] * cm[0],              +cm[1] * cm[2],              -(sqr(cm[0]) + sqr(cm[1]))) * mass;
 
-    rog_origin = Vec3(sqrt(inertia_origin.xx / mass),
-                      sqrt(inertia_origin.yy / mass),
-                      sqrt(inertia_origin.zz / mass));
-  
-    rog_cm = Vec3(sqrt(inertia_cm.xx / mass),
-                  sqrt(inertia_cm.yy / mass),
-                  sqrt(inertia_cm.zz / mass));
+    rogOrigin = inertiaOrigin.diag() / mass;
+    rogCm = inertiaCm.diag() / mass;
   }
 }
 
-mass_properties operator +(mass_properties const &a, mass_properties const &b)
+StlMassProperties operator +(StlMassProperties const &a, StlMassProperties const &b)
 {
-  return mass_properties(a.volume + b.volume, 
-                         a.mass + b.mass,
-                         a.area,
-                         (a.cm*a.mass + b.cm*b.mass) * (1.0/(a.mass+b.mass)),
-                         a.inertia_origin + b.inertia_origin);
+  return StlMassProperties(a.volume + b.volume, 
+                           a.mass + b.mass,
+                           a.area,
+                           (a.cm*a.mass + b.cm*b.mass) /(a.mass + b.mass),
+                           a.inertiaOrigin + b.inertiaOrigin);
 }
 
-mass_properties mass_properties::multiply_density(double factor)
+StlMassProperties StlMassProperties::multiplyDensity(double factor)
 {
-  return mass_properties(volume,
-                         mass * factor,
-                         area,
-                         cm,
-                         inertia_origin * factor);
+  return StlMassProperties(volume,
+                           mass * factor,
+                           area,
+                           cm,
+                           inertiaOrigin * factor);
 }
 
 
-ostream & operator << (ostream &s, mass_properties const &it)
+ostream & operator << (ostream &s, StlMassProperties const &it)
 {
-  s << "mass_properties(volume=" << it.volume << ", mass=" << it.mass << ", area=" << it.area << ", cm=" << it.cm << ", inertia_origin=" << it.inertia_origin << ")";
+  s << "StlMassProperties(volume=" << it.volume << ", mass=" << it.mass << ", area=" << it.area << ", cm=" << it.cm << ", inertiaOrigin=" << it.inertiaOrigin << ")";
   return s;
 }

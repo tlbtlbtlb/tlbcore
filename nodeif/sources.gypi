@@ -2,8 +2,6 @@
   'sources': [
     '../nodeif/jswrapbase.cc',
     '../nodeif/fastJson.cc',
-    '../geom/geom_math.cc',
-    '../geom/solid_geometry.cc',
     '../genes/genes.cc',
     '../genes/test_genes.cc',
     '../common/LogBase.cc',

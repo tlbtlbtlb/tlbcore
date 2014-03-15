@@ -131,6 +131,27 @@ bool rdJson(const char *&s, int &value) {
   return true;
 }
 
+// json - u_int
+
+size_t wrJsonSize(u_int const &value) { 
+  return 12; 
+}
+void wrJson(char *&s, u_int const &value) {
+  if (value == 0) {
+    *s++ = '0';
+  }
+  else {
+    s += snprintf(s, 12, "%u", value);
+  }
+}
+bool rdJson(const char *&s, u_int &value) {
+  char *end = 0;
+  jsonSkipSpace(s);
+  value = strtoul(s, &end, 10);
+  s = end;
+  return true;
+}
+
 
 // json - float 
 

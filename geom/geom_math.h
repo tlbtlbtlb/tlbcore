@@ -1,168 +1,86 @@
 #ifndef INCLUDE_ur_geom_math_h
 #define INCLUDE_ur_geom_math_h
 
-#include "build.src/Vec2_decl.h"
-#include "build.src/Vec3_decl.h"
-#include "build.src/Vec4_decl.h"
-#include "build.src/Mat22_decl.h"
-#include "build.src/Mat33_decl.h"
-#include "build.src/Mat44_decl.h"
-#include "build.src/Ea3_decl.h"
-#include "build.src/Quaternion_decl.h"
+/*
+  Needs to be parseable by code_gen, to generate wrapper stubs
+ */
+
+typedef arma::vec4 Quaternion;
+typedef arma::vec3 EulerAngles;
 
 double sqr(double x);
-
 double limit(double v, double lo, double hi);
 
-Vec2 operator +(Vec2 const &u, Vec2 const &v);
-Vec3 operator +(Vec3 const &u, Vec3 const &v);
-Vec4 operator +(Vec4 const &u, Vec4 const &v);
-Vec2 operator -(Vec2 const &u, Vec2 const &v);
-Vec3 operator -(Vec3 const &u, Vec3 const &v);
-Vec4 operator -(Vec4 const &u, Vec4 const &v);
+arma::vec vecFromHomo(arma::vec const &u);
+arma::vec vecToHomo(arma::vec const &u);
+arma::mat matToHomo(arma::mat const &u);
+arma::mat matFromHomo(arma::mat const &u);
 
-Mat22 operator +(Mat22 const &u, Mat22 const &v);
-Mat33 operator +(Mat33 const &u, Mat33 const &v);
-Mat44 operator +(Mat44 const &u, Mat44 const &v);
-Mat22 operator -(Mat22 const &u, Mat22 const &v);
-Mat33 operator -(Mat33 const &u, Mat33 const &v);
-Mat44 operator -(Mat44 const &u, Mat44 const &v);
+arma::vec normalize(arma::vec const &u);
+arma::mat33 orthonormalize(arma::mat33 const &u);
 
-Mat22 operator *(Mat22 const &u, double v);
-Mat33 operator *(Mat33 const &u, double v);
-Mat44 operator *(Mat44 const &u, double v);
+arma::mat22 mat22Rotation(double theta);
+arma::mat22 mat22RotationXYPlane(double theta);
+arma::mat33 mat33Rotation(arma::vec3 const &axis, double theta);
+arma::mat22 mat22RotationVector(arma::vec2 const &src);
+arma::mat33 mat33RotationVectorToVector(arma::vec3 const &src, arma::vec3 const &dst);
+arma::mat33 mat33RotationXAxis(double theta);
+arma::mat33 mat33RotationYZPlane(double theta);
+arma::mat33 mat33RotationYAxis(double theta);
+arma::mat33 mat33RotationXZPlane(double theta);
+arma::mat33 mat33RotationZAxis(double theta);
+arma::mat33 mat33RotationXYPlane(double theta);
+arma::mat44 mat44RotationXAxis(double theta);
+arma::mat44 mat44RotationYZPlane(double theta);
+arma::mat44 mat44RotationYAxis(double theta);
+arma::mat44 mat44RotationXZPlane(double theta);
+arma::mat44 mat44RotationZAxis(double theta);
+arma::mat44 mat44RotationXYPlane(double theta);
+arma::mat44 mat44RotationXAPlane(double theta);
+arma::mat44 mat44RotationYAPlane(double theta);
+arma::mat44 mat44RotationZAPlane(double theta);
 
-bool operator ==(Vec2 const &u, Vec2 const &v);
-bool operator ==(Vec3 const &u, Vec3 const &v);
-bool operator ==(Vec4 const &u, Vec4 const &v);
-bool operator ==(Mat22 const &u, Mat22 const &v);
-bool operator ==(Mat33 const &u, Mat33 const &v);
-bool operator ==(Mat44 const &u, Mat44 const &v);
+arma::mat44 mat44Translation(double x, double y, double z);
+arma::mat44 mat44PerspectiveFov(double fovy, double aspect, double znear, double zfar);
+arma::mat44 mat44GeneralProjection(double xmon, double ymon, arma::vec3 const &dvec, double znear, double zfar);
+arma::mat44 mat44LookAt(arma::vec3 const &eyepos, arma::vec3 const &lookat, arma::vec3 const &up);
 
-Vec2 operator *(Vec2 const &u, double v);
-Vec3 operator *(Vec3 const &u, double v);
-Vec4 operator *(Vec4 const &u, double v);
 
-Mat22 operator *(Mat22 const &l, Mat22 const &r);
-Mat33 operator *(Mat33 const &l, Mat33 const &r);
-Mat44 operator *(Mat44 const &l, Mat44 const &r);
+arma::mat33 alignWithZ(arma::mat33 const &u, arma::vec3 const &z_targ, double weight);
+arma::mat33 alignWithY(arma::mat33 const &u, arma::vec3 const &y_targ, double weight);
+arma::mat33 alignWithX(arma::mat33 const &u, arma::vec3 const &y_targ, double weight);
 
-Vec2 operator *(Mat22 const &l, Vec2 const &r);
-Vec3 operator *(Mat33 const &l, Vec3 const &r);
-Vec4 operator *(Mat44 const &l, Vec4 const &r);
-Vec3 operator *(Mat44 const &l, Vec3 const &r);
-
+EulerAngles matToEuler(arma::mat33 const &u);
+arma::mat33 eulerToMat(EulerAngles const &u);
+arma::mat33 quatToMat(Quaternion const &u);
+Quaternion eulerToQuat(EulerAngles const &u);
 Quaternion grassmanProduct(const Quaternion &u, const Quaternion &v);
 
-double dot(Vec2 const &u, Vec2 const &v);
-double dot(Vec3 const &u, Vec3 const &v);
-double dot(Vec4 const &u, Vec4 const &v);
-                                     
-Vec2 cross(Vec2 const &u, Vec2 const &v);
-Vec3 cross(Vec3 const &u, Vec3 const &v);
-Vec4 cross(Vec4 const &u, Vec4 const &v);
+arma::mat33 justRotation(arma::mat44 const &u);
+arma::vec3 justTranslation(arma::mat44 const &u);
 
-Vec3 fromHomo(Vec4 const &u);
-Vec4 toHomo(Vec3 const &u);
-Mat44 toHomo(Mat33 const &u);
-Mat33 fromHomo(Mat44 const &u);
+arma::mat33 twaddle(arma::mat33 const &u, double rotsigma, int niter);
 
-double determinant(Mat22 const &u);
-double determinant(Mat33 const &u);
-double determinant(Mat44 const &u);
+inline arma::vec3 mkVec3(double _0, double _1, double _2) {
+  arma::vec3 ret;
+  ret[0] = _0;
+  ret[1] = _1;
+  ret[2] = _2;
+  return ret;
+}
 
-Mat22 transpose(Mat22 const &u);
-Mat33 transpose(Mat33 const &u);
-Mat44 transpose(Mat44 const &u);
-Mat44 homoTranspose(Mat44 const &u);
-
-Mat22 inverse(Mat22 const &u);
-Mat33 inverse(Mat33 const &u);
-Mat44 inverse(Mat44 const &u);
-
-Mat22 Mat22Rotation(double theta);
-Mat22 Mat22RotationXYPlane(double theta);
-Mat33 Mat33Rotation(Vec3 const &axis, double theta);
-Mat22 Mat22RotationVector(Vec2 const &src);
-Mat33 Mat33RotationVectorToVector(Vec3 const &src, Vec3 const &dst);
-Mat33 Mat33RotationXAxis(double theta);
-Mat33 Mat33RotationYZPlane(double theta);
-Mat33 Mat33RotationYAxis(double theta);
-Mat33 Mat33RotationXZPlane(double theta);
-Mat33 Mat33RotationZAxis(double theta);
-Mat33 Mat33RotationXYPlane(double theta);
-Mat44 Mat44RotationXAxis(double theta);
-Mat44 Mat44RotationYZPlane(double theta);
-Mat44 Mat44RotationYAxis(double theta);
-Mat44 Mat44RotationXZPlane(double theta);
-Mat44 Mat44RotationZAxis(double theta);
-Mat44 Mat44RotationXYPlane(double theta);
-Mat44 Mat44RotationXAPlane(double theta);
-Mat44 Mat44RotationYAPlane(double theta);
-Mat44 Mat44RotationZAPlane(double theta);
-
-Mat44 Mat44Translation(double x, double y, double z);
-Mat44 Mat44PerspectiveFov(double fovy, double aspect, double znear, double zfar);
-Mat44 Mat44GeneralProjection(double xmon, double ymon, Vec3 const &dvec, double znear, double zfar);
-Mat44 Mat44LookAt(Vec3 const &eyepos, Vec3 const &lookat, Vec3 const &up);
-
-Mat33 orthonormalize(Mat33 const &u);
-
-Mat33 alignWithZ(Mat33 const &u, Vec3 const &z_targ, double weight);
-Mat33 alignWithY(Mat33 const &u, Vec3 const &y_targ, double weight);
-Mat33 alignWithX(Mat33 const &u, Vec3 const &y_targ, double weight) ;
-
-Ea3 toEa(Mat33 const &u);
-Mat33 toMat(Ea3 const &u);
-Mat33 toMat(Quaternion const &u);
-Quaternion toQuat(Ea3 const &u);
-
-
-Mat22 Mat22Identity();
-Mat33 Mat33Identity();
-Mat44 Mat44Identity();
-
-Vec2 normalize(Vec2 const &u);
-Vec3 normalize(Vec3 const &u);
-Vec4 normalize(Vec4 const &u);
-Mat22 normalize(Mat22 const &u);
-Mat33 normalize(Mat33 const &u);
-Mat44 normalize(Mat44 const &u);
-
-double normsq(Vec2 const &u);
-double normsq(Vec3 const &u);
-double normsq(Vec4 const &u);
-double normsq(Mat22 const &u);
-double normsq(Mat33 const &u);
-double normsq(Mat44 const &u);
-double normsq(Ea3 const &u);
-double normsq(Quaternion const &u);
-
-double norm(Vec2 const &u);
-double norm(Vec3 const &u);
-double norm(Vec4 const &u);
-double norm(Mat22 const &u);
-double norm(Mat33 const &u);
-double norm(Mat44 const &u);
-double norm(Ea3 const &u);
-double norm(Quaternion const &u);
-
-void setRow(Mat22 &u, int ri, Vec2 const &v);
-void setCol(Mat22 &u, int ci, Vec2 const &v);
-Vec2 getRow(Mat22 const &u, int ri);
-Vec2 getCol(Mat22 const &u, int ci);
-void setRow(Mat33 &u, int ri, Vec3 const &v);
-void setCol(Mat33 &u, int ci, Vec3 const &v);
-Vec3 getRow(Mat33 const &u, int ri) ;
-Vec3 getCol(Mat33 const &u, int ci);
-void setRow(Mat44 &u, int ri, Vec4 const &v);
-void setCol(Mat44 &u, int ci, Vec4 const &v);
-Vec4 getRow(Mat44 const &u, int ri);
-Vec4 getCol(Mat44 const &u, int ci);
-
-Mat33 justRotation(Mat44 const &u);
-Vec3 justTranslation(Mat44 const &u);
-Mat33 twaddle(Mat33 const &u, double rotsigma, int niter);
-
+inline arma::mat33 mkMat33(double _00, double _01, double _02, double _10, double _11, double _12, double _20, double _21, double _22) {
+  arma::mat33 ret;
+  ret(0,0) = _00;
+  ret(0,1) = _01;
+  ret(0,2) = _02;
+  ret(1,0) = _10;
+  ret(1,1) = _11;
+  ret(1,2) = _12;
+  ret(2,0) = _20;
+  ret(2,1) = _21;
+  ret(2,2) = _22;
+  return ret;
+}
 
 #endif

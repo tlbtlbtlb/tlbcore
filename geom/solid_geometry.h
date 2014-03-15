@@ -2,105 +2,103 @@
 #ifndef _TLBCORE_SOLID_GEOMETRY_H
 #define _TLBCORE_SOLID_GEOMETRY_H
 
-#include "./geom_math.h"
+struct StlMassProperties;
 
-struct mass_properties;
+struct OctreeNode {
+  OctreeNode(arma::vec3 const &_center, double _scale);
+  ~OctreeNode();
 
-struct octree_node {
-  octree_node(Vec3 const &_center, float _scale);
-  ~octree_node();
+  OctreeNode *lookup(arma::vec3 const &pt, double maxScale);
 
-  octree_node *lookup(Vec3 const &pt, float max_scale);
+  arma::vec3 center;
+  double scale;
 
-  Vec3 center;
-  float scale;
-
-  octree_node *children[8];
+  OctreeNode *children[8];
 };
 
 
-struct stl_face {
-  stl_face();
-  stl_face(Vec3 _v0, Vec3 _v1, Vec3 _v2);
-  stl_face(Vec3 _v0, Vec3 _v1, Vec3 _v2, Vec3 _normal);
-  ~stl_face();
+struct StlFace {
+  StlFace();
+  StlFace(arma::vec3 _v0, arma::vec3 _v1, arma::vec3 _v2);
+  StlFace(arma::vec3 _v0, arma::vec3 _v1, arma::vec3 _v2, arma::vec3 _normal);
+  ~StlFace();
 
-  void calc_normal();
+  void calcNormal();
 
-  bool ray_intersects(Vec3 const &p, Vec3 const &d, float &t) const;
-  void transform(Mat44 const &m);
-  float get_area() const;
-  Vec3 get_e1() const;
-  Vec3 get_e2() const;
-  bool is_degenerate() const;
-  Vec3 centroid() const;
+  bool rayIntersects(arma::vec3 const &p, arma::vec3 const &d, double &t) const;
+  void transform(arma::mat44 const &m);
+  double getArea() const;
+  arma::vec3 getE1() const;
+  arma::vec3 getE2() const;
+  bool isDegenerate() const;
+  arma::vec3 centroid() const;
 
-  Vec3 v0, v1, v2;
-  Vec3 normal;
+  arma::vec3 v0, v1, v2;
+  arma::vec3 normal;
 
 };
-void packet_rd_value(packet &p, stl_face &it);
-void packet_wr_value(packet &p, stl_face const &it);
-void packet_rd_typetag(packet &p, stl_face &it);
-void packet_wr_typetag(packet &p, stl_face const &it);
+void packet_rd_value(packet &p, StlFace &it);
+void packet_wr_value(packet &p, StlFace const &it);
+void packet_rd_typetag(packet &p, StlFace &it);
+void packet_wr_typetag(packet &p, StlFace const &it);
 
-bool operator == (stl_face const &a, stl_face const &b);
+bool operator == (StlFace const &a, StlFace const &b);
 
-struct stl_intersection {
-  float t;
-  struct stl_face face;
+struct StlIntersection {
+  double t;
+  struct StlFace face;
 };
 
-struct stl_solid {
+struct StlSolid {
   
-  stl_solid();
-  ~stl_solid();
+  StlSolid();
+  ~StlSolid();
 
-  void read_binary_file(FILE *fp, double scale);
-  void calc_bbox();
-  bool ray_intersects(Vec3 const &p, Vec3 const &d) const;
-  void transform(Mat44 const &m);
-  bool is_interior(Vec3 const &pt) const;
-  vector<stl_intersection> intersection_list(Vec3 const &pt, Vec3 const &dir) const;
-  mass_properties get_mass_properties(double density);
-  void remove_tiny_faces(float min_size);
+  void readBinaryFile(FILE *fp, double scale);
+  void calcBbox();
+  bool rayIntersects(arma::vec3 const &p, arma::vec3 const &d) const;
+  void transform(arma::mat44 const &m);
+  bool isInterior(arma::vec3 const &pt) const;
+  vector<StlIntersection> intersectionList(arma::vec3 const &pt, arma::vec3 const &dir) const;
+  StlMassProperties getStlMassProperties(double density);
+  void removeTinyFaces(double minSize);
 
-  Vec3 bbox_lo, bbox_hi;
-  vector<stl_face> faces;
+  arma::vec3 bboxLo, bboxHi;
+  vector<StlFace> faces;
   
 };
 
-void packet_rd_value(packet &p, stl_solid &it);
-void packet_wr_value(packet &p, stl_solid const &it);
-void packet_rd_typetag(packet &p, stl_solid &it);
-void packet_wr_typetag(packet &p, stl_solid const &it);
+void packet_rd_value(packet &p, StlSolid &it);
+void packet_wr_value(packet &p, StlSolid const &it);
+void packet_rd_typetag(packet &p, StlSolid &it);
+void packet_wr_typetag(packet &p, StlSolid const &it);
 
-struct mass_properties {
-  mass_properties(double _volume, double _mass, double _area, Vec3 _cm, Mat33 _inertia_origin);
-  
-  mass_properties multiply_density(double factor);
+struct StlMassProperties {
+  StlMassProperties();
+  StlMassProperties(double _volume, double _mass, double _area, arma::vec3 _cm, arma::mat33 _inertiaOrigin);
 
-  void calc_derived();
-  static mass_properties allZero();
+  StlMassProperties multiplyDensity(double factor);
+
+  void calcDerived();
 
   double density;
   double volume;
   double mass;
   double area;
-  Vec3 cm;
-  Mat33 inertia_origin;
-  Mat33 inertia_cm;
-  Vec3 rog_origin;
-  Vec3 rog_cm;
+  arma::vec3 cm;
+  arma::mat33 inertiaOrigin;
+  arma::mat33 inertiaCm;
+  arma::vec3 rogOrigin;
+  arma::vec3 rogCm;
 };
 
-void packet_rd_value(packet &p, mass_properties &it);
-void packet_wr_value(packet &p, mass_properties const &it);
-void packet_rd_typetag(packet &p, mass_properties &it);
-void packet_wr_typetag(packet &p, mass_properties const &it);
+void packet_rd_value(packet &p, StlMassProperties &it);
+void packet_wr_value(packet &p, StlMassProperties const &it);
+void packet_rd_typetag(packet &p, StlMassProperties &it);
+void packet_wr_typetag(packet &p, StlMassProperties const &it);
 
-mass_properties operator +(mass_properties const &a, mass_properties const &b);
+StlMassProperties operator +(StlMassProperties const &a, StlMassProperties const &b);
 
-ostream & operator << (ostream &s, mass_properties const &it);
+ostream & operator << (ostream &s, StlMassProperties const &it);
 
 #endif

@@ -7,6 +7,7 @@
       'includes': [
         './setup.gypi',
         './sources.gypi',
+        '../geom/sources.gypi',
         '../build.src/sources_root.gypi',
       ],
       'sources': [

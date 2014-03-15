@@ -73,3 +73,98 @@ describe('ur.arma', function() {
 });
 
 
+describe('matrix math', function() {
+
+  it('mat22 * vec2 should work', function() {
+    var t1 = new ur.mat([[1,2], [3,4]]);
+    var t2 = new ur.vec([2,3]);
+    var t3 = ur.mul(t1, t2);
+    var t4 = new ur.vec([8, 18]);
+    assert.ok(ur.equals(t3, t4));
+  });
+
+  it('mat33 * mat33 should work', function() {
+    var t1 = new ur.mat([[1,2,3], [4,5,6], [7,8,9]]);
+    var t2 = new ur.mat([[2,3,4], [5,6,7], [8,9,10]]);
+    var t3 = ur.mul(t1, t2);
+    var t4 = new ur.mat([[36, 42, 48], [81, 96, 111], [126, 150, 174]]);
+    assert.ok(ur.equals(t3, t4));
+  });
+
+  it('mat33 * vec3 should work', function() {
+    var t1 = new ur.mat([[1,2,3], [4,5,6], [7,8,9]]);
+    var t2 = new ur.vec([2,3,4]);
+    var t3 = ur.mul(t1, t2);
+    var t4 = new ur.vec([20, 47, 74]);
+    assert.ok(ur.equals(t3, t4));
+  });
+
+  it('vec2 * mat33 should fail', function() {
+    var t1 = new ur.vec(2);
+    var t2 = new ur.mat(3,3);
+    assert.throws(function() {
+      ur.mul(t1, t2);
+    }, TypeError);
+  });
+
+});
+
+describe('vec3', function() {
+  it('should work', function() {
+    var t = new ur.vec([1,2,3]);
+    assert.equal(t[0], 1);
+    assert.equal(t[1], 2);
+    assert.equal(t[2], 3);
+    assert(t.toString());
+  });
+
+  it('should reject bad args', function() {
+    assert.throws(function() {
+      var t = new ur.vec(1, 2);
+    }, TypeError);
+  });
+
+  it('math should work', function() {
+    var t1 = new ur.vec([1, 2, 3]);
+    var t2 = new ur.vec([9, 7, 5]);
+    var t3 = ur.add(t1, t2);
+    assert.equal(t3[0], 10);
+    assert.equal(t3[1], 9);
+    assert.equal(t3[2], 8);
+  });
+
+  it('equality tests work', function() {
+    var t1 = new ur.vec([1, 2, 3]);
+    var t2 = new ur.vec([9, 7, 5]);
+    var t3 = new ur.vec([1, 2, 3]);
+
+    assert.equal(ur.all(ur.equals(t1, t2)), 0);
+    assert.equal(ur.all(ur.equals(t1, t3)), 1);
+  });
+});
+
+describe('mat33', function() {
+  it('equality tests work', function() {
+    var t1 = new ur.mat([[1,2,3], [4,5,6], [7,8,9]]);
+    var t2 = new ur.mat([[2,3,4], [5,6,7], [8,9,10]]);
+    var t3 = new ur.mat([[1,2,3], [4,5,6], [7,8,9]]);
+
+    assert.equal(ur.all(ur.all(ur.equals(t1, t2))), 0)
+    assert.equal(ur.all(ur.all(ur.equals(t1, t3))), 1)
+  });
+
+  it('toString should be fast (5000x)', function() {
+    var t = new ur.mat([[1.25, 2.5, 3.75], [4, 5.125, 6], [7, 8, 9]]);
+    for (var i=0; i<5000; i++) {
+      var ts = t.toString();
+    }
+  });
+
+  if (0) it('fromString should be fast (5000x)', function() {
+    for (var i=0; i<5000; i++) {
+      var t2 = ur.mat.fromString('[[1.25,2.5,3.75],[4,5.125,6],[7,8,9]]');
+      assert.equal(t2[1][1], 5.125);
+    }
+  });
+});
+

@@ -703,7 +703,7 @@ packet_wr_overrun_err::~packet_wr_overrun_err() throw()
 }
 
 packet_rd_overrun_err::packet_rd_overrun_err(int _howmuch)
-  :runtime_error(stringprintf("Packet wr overrun by %d", _howmuch)),
+  :runtime_error(stringprintf("Packet rd overrun by %d", _howmuch)),
    howmuch(_howmuch)
 {
 }
@@ -712,7 +712,7 @@ packet_rd_overrun_err::~packet_rd_overrun_err() throw()
 }
 
 packet_rd_type_err::packet_rd_type_err(string const &_expected, string const &_got)
-  :runtime_error(stringprintf("packet_rd_type_err(expected %s, got %s)", expected.c_str(), got.c_str())),
+  :runtime_error(stringprintf("Packet rd type error(expected %s, got %s)", _expected.c_str(), _got.c_str())),
    expected(_expected), 
    got(_got)
 {

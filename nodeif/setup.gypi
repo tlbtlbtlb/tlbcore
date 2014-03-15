@@ -8,7 +8,8 @@
         'OTHER_CFLAGS': ['-stdlib=libc++', 
                          '-Wall', '-Wextra', 
                          '-Wno-format-nonliteral', '-Wno-missing-prototypes', '-Wno-unused-parameter', 
-                         '-Winit-self', '-Wshadow', '-Wpointer-arith', '-Wcast-qual']
+                         '-Winit-self', '-Wshadow', '-Wpointer-arith', '-Wcast-qual',
+                         '-Weffc++']
       },
       'include_dirs+': [
         '/opt/local/include',

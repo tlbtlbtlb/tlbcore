@@ -1,5 +1,8 @@
 #ifndef _TLBCORE_NUMERICAL_POLYFIT_H
 #define _TLBCORE_NUMERICAL_POLYFIT_H
+/*
+  Needs to be parseable by code_gen, to generate wrapper stubs
+ */
 
 #include <armadillo>
 #include "build.src/Polyfit3_decl.h"

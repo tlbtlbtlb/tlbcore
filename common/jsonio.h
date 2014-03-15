@@ -10,10 +10,10 @@
 */
 
 struct jsonstr {
-  jsonstr();
-  jsonstr(string const &_it);
-  jsonstr(const char *str);
-  jsonstr(const char *begin, const char *end);
+  explicit jsonstr();
+  explicit jsonstr(string const &_it);
+  explicit jsonstr(const char *str);
+  explicit jsonstr(const char *begin, const char *end);
   ~jsonstr();
   bool isNull();
   string it;
@@ -23,6 +23,7 @@ ostream & operator<<(ostream &s, jsonstr const &obj);
 
 size_t wrJsonSize(bool const &value);
 size_t wrJsonSize(int const &value);
+size_t wrJsonSize(u_int const &value);
 size_t wrJsonSize(float const &value);
 size_t wrJsonSize(double const &value);
 size_t wrJsonSize(string const &value);
@@ -31,6 +32,7 @@ size_t wrJsonSize(arma::cx_double const &value);
 
 void wrJson(char *&s, bool const &value);
 void wrJson(char *&s, int const &value);
+void wrJson(char *&s, u_int const &value);
 void wrJson(char *&s, float const &value);
 void wrJson(char *&s, double const &value);
 void wrJson(char *&s, string const &value);
@@ -39,6 +41,7 @@ void wrJson(char *&s, arma::cx_double const &value);
 
 bool rdJson(const char *&s, bool &value);
 bool rdJson(const char *&s, int &value);
+bool rdJson(const char *&s, u_int &value);
 bool rdJson(const char *&s, float &value);
 bool rdJson(const char *&s, double &value);
 bool rdJson(const char *&s, string &value);
@@ -321,11 +324,19 @@ jsonstr asJson(const T &value) {
   return ret;
 }
 
+#if 0
 template <typename T>
 bool rdJson(jsonstr const &sj, T &value) {
   const char *s = sj.it.c_str();
   return rdJson(s, value);
 }
+
+template <typename T>
+bool rdJson(string const &ss, T &value) {
+  const char *s = ss.c_str();
+  return rdJson(s, value);
+}
+#endif
 
 
 #endif

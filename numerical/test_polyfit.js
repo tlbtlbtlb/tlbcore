@@ -13,6 +13,15 @@ function check(pf, xs, ys, tol) {
   }
 }
 
+describe('Polyfit3', function() {
+  it('should work', function() {
+    var pf = new ur.Polyfit3(1, 0.5, 0.3, 0.2);
+    assert.equal(ur.getValue(pf, 0.0), 1.0);
+    assert.equal(ur.getValue(pf, 1.0), 2.0);
+    assert.equal(ur.getValue(pf, 2.0), 4.8);
+  });
+});
+
 describe('mkPolyfit3', function() {
 
   it('should accurately model sin(x) in [-1 .. +1]', function() {
@@ -47,8 +56,6 @@ describe('mkPolyfit3', function() {
   });
 
 });
-
-
 
 describe('mkPolyfit5', function() {
   it('should accurately model sin(x) in [-2 .. +2]', function() {

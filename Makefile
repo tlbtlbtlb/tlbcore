@@ -40,7 +40,7 @@ setup ::
 	mkdir -p build.src
 
 stage1 ::
-	node code_gen/mk_marshall.js geom/decl_geom.js arma/decl_arma.js numerical/decl_numerical.js
+	node code_gen/mk_marshall.js arma/decl_arma.js geom/decl_geom.js numerical/decl_numerical.js
 
 stage1 ::
 	cd nodeif && node-gyp configure

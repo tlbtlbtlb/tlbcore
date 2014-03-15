@@ -1,24 +1,54 @@
 var _                   = require('underscore');
+var util                = require('util');
+var assert              = require('assert');
 
 module.exports = function(typereg) {
   /* 
      These are not correct prototypes: for example, they neglect that the functions are all in the arma namespace.
+     The real prototypes are most template functions.
      But they're good enough for gen_marshall to construct a wrapper to call them this way.
      It seems too complicated to extract these from the armadillo header files
   */
-  _.each(['double', 'arma::cx_double', 'int'], function(et) {
-    typereg.template('arma::Col<' + et + '>');
-    typereg.template('arma::Mat<' + et + '>');
+  _.each(['u_int', 'double', 'arma::cx_double', 'int'], function(et) {
+    var rTypename, cTypename, mTypename, srTypename;
+    var rType, cType, mType, srType;
+    rTypename = 'arma::Row<' + et + '>';
+    cTypename = 'arma::Col<' + et + '>';
+    mTypename = 'arma::Mat<' + et + '>';
+    srTypename = 'arma::subview_row<' + et + '>';
+    rType = typereg.template(rTypename);
+    cType = typereg.template(cTypename);
+    mType = typereg.template(mTypename);
+    srType = typereg.template(srTypename);
 
-    typereg.template('arma::subview_row<' + et + '>');
-    typereg.getType('arma::subview_row<' + et + '>').noSerialize = true;
-    typereg.getType('arma::subview_row<' + et + '>').isRef = true;
+    if (et === 'double') {
+      typereg.aliasType(rType, 'arma::rowvec');
+      typereg.aliasType(cType, 'arma::vec');
+      typereg.aliasType(cType, 'arma::vec3');
+      typereg.aliasType(mType, 'arma::mat');
+      typereg.aliasType(mType, 'arma::mat33');
+      typereg.aliasType(mType, 'arma::mat44');
+    }
+    else if (et === 'int') {
+      typereg.aliasType(rType, 'arma::irowvec');
+      typereg.aliasType(cType, 'arma::ivec');
+      typereg.aliasType(mType, 'arma::imat');
+    }
+    else if (et === 'cx_double') {
+      typereg.aliasType(rType, 'arma::cx_rowvec');
+      typereg.aliasType(cType, 'arma::cx_vec');
+      typereg.aliasType(mType, 'arma::cx_mat');
+    }
 
-    // Mat type depends on Col type when indexing
-    typereg.getType('arma::Mat<' + et + '>').extraDeclDependencies.push(typereg.getType('arma::Col<' + et + '>'));
-    typereg.getType('arma::Mat<' + et + '>').extraDeclDependencies.push(typereg.getType('arma::subview_row<' + et + '>'));
+    srType.noSerialize = true;
+    srType.isRef = true;
 
-    var isInteger = (et === 'int');
+    // Mat type depends on Col and subview_row types when indexing
+    mType.addDeclDependency(rType);
+    mType.addDeclDependency(cType);
+    mType.addDeclDependency(srType);
+
+    var isInteger = (et === 'int' || et === 'u_int');
     var isComplex = (et === 'arma::cx_double');
     typereg.scanCFunctions(['ET accu(arma::Col<ET> a);',
                             'ET accu(arma::Mat<ET> a);',
@@ -83,29 +113,44 @@ module.exports = function(typereg) {
                             'arma::Mat<ET> randn< arma::Mat<ET> >(int nr, int nc);',
 
                             'arma::Mat<ET> operator * (arma::Mat<ET> a, arma::Mat<ET> b);',
-                            'arma::Vec<ET> operator * (arma::Mat<ET> a, arma::Vec<ET> b);',
+                            'arma::Col<ET> operator * (arma::Mat<ET> a, arma::Col<ET> b);',
                             'arma::Mat<ET> operator * (arma::Mat<ET> a, ET b);',
-                            'arma::Vec<ET> operator * (arma::Vec<ET> a, ET b);',
+                            'arma::Col<ET> operator * (arma::Col<ET> a, ET b);',
                             'arma::Mat<ET> operator * (ET a, arma::Mat<ET> b);',
-                            'arma::Vec<ET> operator * (ET a, arma::Vec<ET> b);',
+                            'arma::Col<ET> operator * (ET a, arma::Col<ET> b);',
                             //'ET operator * (ET a, ET b);',
 
                             'arma::Mat<ET> operator + (arma::Mat<ET> a, arma::Mat<ET> b);',
-                            'arma::Vec<ET> operator + (arma::Vec<ET> a, arma::Vec<ET> b);',
+                            'arma::Col<ET> operator + (arma::Col<ET> a, arma::Col<ET> b);',
                             //'ET operator + (ET a, ET b);',
 
                             'arma::Mat<ET> operator - (arma::Mat<ET> a, arma::Mat<ET> b);',
-                            'arma::Vec<ET> operator - (arma::Vec<ET> a, arma::Vec<ET> b);',
+                            'arma::Col<ET> operator - (arma::Col<ET> a, arma::Col<ET> b);',
                             //'ET operator - (ET a, ET b);',
+
+                            'arma::Mat<u_int> operator == (arma::Mat<ET> a, arma::Mat<ET> b);',
+                            'arma::Col<u_int> operator == (arma::Col<ET> a, arma::Col<ET> b);',
+                            //'bool operator == (ET a, ET b);',
+
+                            'arma::Row<u_int> any(arma::Mat<u_int> a);',
+                            'u_int any(arma::Row<u_int> a);',
+                            'u_int any(arma::Col<u_int> a);',
+
+                            'arma::Row<u_int> all(arma::Mat<u_int> a);',
+                            'u_int all(arma::Row<u_int> a);',
+                            'u_int all(arma::Col<u_int> a);',
 
                            ].join('\n').replace(/ET/g,et));
   });
 
-
   typereg.getType('arma::Col<double>').jsTypename = 'vec';
+  typereg.getType('arma::Row<double>').jsTypename = 'rowvec';
   typereg.getType('arma::Mat<double>').jsTypename = 'mat';
   typereg.getType('arma::Col<int>').jsTypename = 'ivec';
+  typereg.getType('arma::Row<int>').jsTypename = 'irowvec';
   typereg.getType('arma::Mat<int>').jsTypename = 'imat';
   typereg.getType('arma::Col<arma::cx_double>').jsTypename = 'cx_vec';
+  typereg.getType('arma::Row<arma::cx_double>').jsTypename = 'cx_rowvec';
   typereg.getType('arma::Mat<arma::cx_double>').jsTypename = 'cx_mat';
+
 };

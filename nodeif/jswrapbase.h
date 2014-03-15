@@ -72,13 +72,7 @@ string convJsToString(Handle<Value> it);
 Handle<Value> convStringToJs(string const &it);
 Handle<Value> convStringToJsBuffer(string const &it);
 
-// Armadillo mat/vec conversion
-template<typename T>
-bool canConvJsToArmaMat(Handle<Value> it);
-template<typename T>
-arma::Mat<T> convJsToArmaMat(Handle<Value> it);
-template<typename T>
-Handle<Object> convArmaMatToJs(arma::Mat<T> const &it);
+// arma::Col conversion
 
 template<typename T>
 bool canConvJsToArmaVec(Handle<Value> itv) {
@@ -153,6 +147,53 @@ Handle<Object> convArmaVecToJs(arma::Col<T> const &it) {
   
   return ret;
 }
+
+// arma::Mat conversion
+
+template<typename T>
+bool canConvJsToArmaMat(Handle<Value> it) {
+  if (it->IsArray()) return true;
+  return false;
+}
+
+template<typename T>
+arma::Mat<T> convJsToArmaMat(Handle<Value> it) {
+  if (it->IsArray()) {
+    Handle<Array> itRows = Handle<Array>::Cast(it);
+    size_t itRowsLen = itRows->Length();
+    if (itRowsLen > 0 && itRows->Get(0)->IsArray()) {
+      Handle<Array> itRow0 = Handle<Array>::Cast(itRows->Get(0));
+      size_t itRow0Len = itRow0->Length();
+      if (itRow0Len > 0) {
+        arma::Mat<T> ret(itRowsLen, itRow0Len);
+        for (size_t ri=0; ri<itRowsLen; ri++) {
+          Handle<Array> itRowRi = Handle<Array>::Cast(itRows->Get(ri));
+          for (size_t ci=0; ci<itRow0Len; ci++) {
+            ret(ri, ci) = itRowRi->Get(ci)->NumberValue();
+          }
+        }
+        return ret;
+      }
+    }
+  }
+  throw runtime_error("convJsToArmaMat: not an array");
+}
+
+template<typename T>
+Handle<Object> convArmaMatToJs(arma::Mat<T> const &it) {
+
+  
+  Local<Array> ret = Array::New(it.n_rows);
+  for (size_t ri = 0; ri < it.n_rows; ri++) {
+    Local<Array> row = Array::New(it.n_cols);
+    for (size_t ci = 0; ci < it.n_cols; ci++) {
+      row->Set(ci, Number::New(it(ri, ci)));
+    }
+    ret->Set(ri, row);
+  }
+  return ret;
+}
+
 
 // arma::cx_double conversion
 bool canConvJsToCxDouble(Handle<Value> it);

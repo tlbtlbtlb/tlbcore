@@ -1,6 +1,8 @@
 #include "../common/std_headers.h"
 #include "./geom_math.h"
 
+using namespace arma;
+
 #define nan (numeric_limits<double>::quiet_NaN())
 
 double sqr(double x) {
@@ -13,630 +15,398 @@ double limit(double v, double lo, double hi) {
   return v;
 }
 
-Vec2 operator +(Vec2 const &u, Vec2 const &v)
+vec normalize(vec const &u)
 {
-  return Vec2(u.x + v.x, u.y + v.y);
+  double n = norm(u, 2);
+  if (n == 0.0) return u;
+  return u / n;
 }
-Vec3 operator +(Vec3 const &u, Vec3 const &v)
-{
-  return Vec3(u.x + v.x, u.y + v.y, u.z + v.z);
-}
-Vec4 operator +(Vec4 const &u, Vec4 const &v)
-{
-  return Vec4(u.x + v.x, u.y + v.y, u.z + v.z, u.a + v.a);
-}
-
-Vec2 operator -(Vec2 const &u, Vec2 const &v)
-{
-  return Vec2(u.x - v.x, u.y - v.y);
-}
-Vec3 operator -(Vec3 const &u, Vec3 const &v)
-{
-  return Vec3(u.x - v.x, u.y - v.y, u.z - v.z);
-}
-Vec4 operator -(Vec4 const &u, Vec4 const &v)
-{
-  return Vec4(u.x - v.x, u.y - v.y, u.z - v.z, u.a - v.a);
-}
-
-Mat22 operator +(Mat22 const &u, Mat22 const &v)
-{
-  return Mat22(u.xx + v.xx, u.xy + v.xy,
-               u.yx + v.yx, u.yy + v.yy);
-}
-Mat33 operator +(Mat33 const &u, Mat33 const &v)
-{
-  return Mat33(u.xx + v.xx, u.xy + v.xy, u.xz + v.xz,
-               u.yx + v.yx, u.yy + v.yy, u.yz + v.yz,
-               u.zx + v.zx, u.zy + v.zy, u.zz + v.zz);
-}
-Mat44 operator +(Mat44 const &u, Mat44 const &v)
-{
-  return Mat44(u.xx + v.xx, u.xy + v.xy, u.xz + v.xz, u.xa + v.xa,
-               u.yx + v.yx, u.yy + v.yy, u.yz + v.yz, u.ya + v.ya,
-               u.zx + v.zx, u.zy + v.zy, u.zz + v.zz, u.za + v.za,
-               u.ax + v.ax, u.ay + v.ay, u.az + v.az, u.aa + v.aa);
-}
-
-Mat22 operator -(Mat22 const &u, Mat22 const &v)
-{
-  return Mat22(u.xx - v.xx, u.xy - v.xy,
-               u.yx - v.yx, u.yy - v.yy);
-}
-Mat33 operator -(Mat33 const &u, Mat33 const &v)
-{
-  return Mat33(u.xx - v.xx, u.xy - v.xy, u.xz - v.xz,
-               u.yx - v.yx, u.yy - v.yy, u.yz - v.yz,
-               u.zx - v.zx, u.zy - v.zy, u.zz - v.zz);
-}
-Mat44 operator -(Mat44 const &u, Mat44 const &v)
-{
-  return Mat44(u.xx - v.xx, u.xy - v.xy, u.xz - v.xz, u.xa - v.xa,
-               u.yx - v.yx, u.yy - v.yy, u.yz - v.yz, u.ya - v.ya,
-               u.zx - v.zx, u.zy - v.zy, u.zz - v.zz, u.za - v.za,
-               u.ax - v.ax, u.ay - v.ay, u.az - v.az, u.aa - v.aa);
-}
-
-
-Mat22 operator *(Mat22 const &u, double v)
-{
-  return Mat22(u.xx * v, u.xy * v,
-               u.yx * v, u.yy * v);
-}
-Mat33 operator *(Mat33 const &u, double v)
-{
-  return Mat33(u.xx * v, u.xy * v, u.xz * v,
-               u.yx * v, u.yy * v, u.yz * v,
-               u.zx * v, u.zy * v, u.zz * v);
-}
-Mat44 operator *(Mat44 const &u, double v)
-{
-  return Mat44(u.xx * v, u.xy * v, u.xz * v, u.xa * v,
-               u.yx * v, u.yy * v, u.yz * v, u.ya * v,
-               u.zx * v, u.zy * v, u.zz * v, u.za * v,
-               u.ax * v, u.ay * v, u.az * v, u.aa * v);
-}
-
-
-bool operator ==(Vec2 const &u, Vec2 const &v)
-{
-  return (u.x == v.x && u.y == v.y);
-}
-bool operator ==(Vec3 const &u, Vec3 const &v)
-{
-  return (u.x == v.x && u.y == v.y && u.z == v.z);
-}
-bool operator ==(Vec4 const &u, Vec4 const &v)
-{
-  return (u.x == v.x && u.y == v.y && u.z == v.z && u.a == v.a);
-}
-bool operator ==(Mat22 const &u, Mat22 const &v)
-{
-  return (u.xx == v.xx && u.xy == v.xy &&
-          u.yx == v.yx && u.yy == v.yy);
-}
-bool operator ==(Mat33 const &u, Mat33 const &v)
-{
-  return (u.xx == v.xx && u.xy == v.xy && u.xz == v.xz &&
-          u.yx == v.yx && u.yy == v.yy && u.yz == v.yz &&
-          u.zx == v.zx && u.zy == v.zy && u.zz == v.zz);
-}
-bool operator ==(Mat44 const &u, Mat44 const &v)
-{
-  return (u.xx == v.xx && u.xy == v.xy && u.xz == v.xz && u.xa == v.xa &&
-          u.yx == v.yx && u.yy == v.yy && u.yz == v.yz && u.ya == v.ya &&
-          u.zx == v.zx && u.zy == v.zy && u.zz == v.zz && u.za == v.za &&
-          u.ax == v.ax && u.ay == v.ay && u.az == v.az && u.aa == v.aa);
-}
-
-#if 0
-double operator *(double u, double v)
-{
-  return u * v;
-}
-#endif
-
-Vec2 operator *(Vec2 const &u, double v)
-{
-  return Vec2(u.x * v, u.y * v);
-}
-
-Vec3 operator *(Vec3 const &u, double v)
-{
-  return Vec3(u.x * v, u.y * v, u.z * v);
-}
-
-Vec4 operator *(Vec4 const &u, double v)
-{
-  return Vec4(u.x * v, u.y * v, u.z * v, u.a * v);
-}
-
-
-Mat22 operator *(Mat22 const &u, Mat22 const &v)
-{
-  return Mat22(u.xx*v.xx + u.xy*v.yx, u.xx*v.xy + u.xy*v.yy,
-               u.yx*v.xx + u.yy*v.yx, u.yx*v.xy + u.yy*v.yy);
-}
-
-Mat33 operator *(Mat33 const &u, Mat33 const &v)
-{
-  return Mat33(u.xx*v.xx + u.xy*v.yx + u.xz*v.zx, u.xx*v.xy + u.xy*v.yy + u.xz*v.zy, u.xx*v.xz + u.xy*v.yz + u.xz*v.zz,
-               u.yx*v.xx + u.yy*v.yx + u.yz*v.zx, u.yx*v.xy + u.yy*v.yy + u.yz*v.zy, u.yx*v.xz + u.yy*v.yz + u.yz*v.zz,
-               u.zx*v.xx + u.zy*v.yx + u.zz*v.zx, u.zx*v.xy + u.zy*v.yy + u.zz*v.zy, u.zx*v.xz + u.zy*v.yz + u.zz*v.zz);
-}
-
-Mat44 operator *(Mat44 const &u, Mat44 const &v)
-{
-  return Mat44(u.xx*v.xx + u.xy*v.yx + u.xz*v.zx + u.xa*v.ax, 
-               u.xx*v.xy + u.xy*v.yy + u.xz*v.zy + u.xa*v.ay, 
-               u.xx*v.xz + u.xy*v.yz + u.xz*v.zz + u.xa*v.az,
-               u.xx*v.xa + u.xy*v.ya + u.xz*v.za + u.xa*v.aa,
-               
-               u.yx*v.xx + u.yy*v.yx + u.yz*v.zx + u.ya*v.ax, 
-               u.yx*v.xy + u.yy*v.yy + u.yz*v.zy + u.ya*v.ay, 
-               u.yx*v.xz + u.yy*v.yz + u.yz*v.zz + u.ya*v.az,
-               u.yx*v.xa + u.yy*v.ya + u.yz*v.za + u.ya*v.aa,
-               
-               u.zx*v.xx + u.zy*v.yx + u.zz*v.zx + u.za*v.ax, 
-               u.zx*v.xy + u.zy*v.yy + u.zz*v.zy + u.za*v.ay, 
-               u.zx*v.xz + u.zy*v.yz + u.zz*v.zz + u.za*v.az,
-               u.zx*v.xa + u.zy*v.ya + u.zz*v.za + u.za*v.aa,
-               
-               u.ax*v.xx + u.ay*v.yx + u.az*v.zx + u.aa*v.ax, 
-               u.ax*v.xy + u.ay*v.yy + u.az*v.zy + u.aa*v.ay, 
-               u.ax*v.xz + u.ay*v.yz + u.az*v.zz + u.aa*v.az,
-               u.ax*v.xa + u.ay*v.ya + u.az*v.za + u.aa*v.aa);
-}
-
-
-Vec2 operator *(Mat22 const &m, const Vec2 &v)
-{
-  return Vec2(m.xx*v.x + m.xy*v.y,
-                 m.yx*v.x + m.yy*v.y);
-}
-
-Vec3 operator *(Mat33 const &m, Vec3 const &v)
-{
-  return Vec3(m.xx*v.x + m.xy*v.y + m.xz*v.z,
-              m.yx*v.x + m.yy*v.y + m.yz*v.z,
-              m.zx*v.x + m.zy*v.y + m.zz*v.z);
-}
-
-Vec3 operator *(Mat44 const &m, Vec3 const &v)
-{
-  return fromHomo(operator *(m, Vec4(v.x, v.y, v.z, 1.0)));
-}
-
-Vec4 operator *(Mat44 const &m, Vec4 const &v)
-{
-  return Vec4(m.xx*v.x + m.xy*v.y + m.xz*v.z + m.xa*v.a,
-              m.yx*v.x + m.yy*v.y + m.yz*v.z + m.ya*v.a,
-              m.zx*v.x + m.zy*v.y + m.zz*v.z + m.za*v.a,
-              m.ax*v.x + m.ay*v.y + m.az*v.z + m.aa*v.a);
-}
-
-Quaternion grassmanProduct(const Quaternion &u, const Quaternion &v)
-{
-  return Quaternion(u.a*v.a - u.b*v.b - u.c*v.c - u.d*v.d,
-                    u.a*v.b + u.b*v.a + u.c*v.d - u.d*v.c,
-                    u.a*v.c - u.b*v.d + u.c*v.a + u.d*v.b,
-                    u.a*v.d + u.b*v.c - u.c*v.b + u.d*v.a);
-}
-
-// ----------------------------------------------------------------------
-
-double dot(const Vec2 &u, const Vec2 &v)
-{
-  return u.x*v.x + u.y*v.y;
-}
-
-double dot(Vec3 const &u, Vec3 const &v)
-{
-  return u.x*v.x + u.y*v.y + u.z*v.z;
-}
-
-double dot(Vec4 const &u, Vec4 const &v)
-{
-  return u.x*v.x + u.y*v.y + u.z*v.z + u.a*v.a;
-}
-
-// ----------------------------------------------------------------------
-
-Vec3 fromHomo(Vec4 const &u)
-{
-  return Vec3(u.x/u.a, u.y/u.a, u.z/u.a);
-}
-
-Vec4 toHomo(Vec3 const &u)
-{
-  return Vec4(u.x, u.y, u.z, 1.0);
-}
-
-Mat44 toHomo(Mat33 const &u)
-{
-  return Mat44(u.xx,  u.xy,  u.xz,  0.0,
-               u.yx,  u.yy,  u.yz,  0.0,
-               u.zx,  u.zy,  u.zz,  0.0,
-               0.0, 0.0, 0.0, 1.0);
-}
-
-Mat33 toHomo(Mat22 const &u)
-{
-  return Mat33(u.xx,  u.xy,  0.0,
-               u.yx,  u.yy,  0.0,
-               0.0, 0.0, 1.0);
-}
-
-Mat33 fromHomo(Mat44 const &u)
-{
-  if (u.xa!=0.0 || u.ya!=0.0 || u.za!=0.0 || u.ax!=0.0 || u.ay!=0.0 || u.az!=0.0 || u.aa!=1.0) {
-    die("fromHomo(Mat4): not in standard homogenous form.");
-  }
-  return Mat33(u.xx,  u.xy,  u.xz,
-               u.yx,  u.yy,  u.yz,
-               u.zx,  u.zy,  u.zz);
-}
-
-// ----------------------------------------------------------------------
-
-double determinant(Mat22 const &u)
-{
-  return(u.xx * u.yy - u.xy * u.yx);
-}
-
-double determinant(Mat33 const &u)
-{
-  return(u.xx * (u.yy * u.zz - u.yz * u.zy) +
-         u.xy * (u.yz * u.zx - u.yx * u.zz) +
-         u.xz * (u.yx * u.zy - u.yy * u.zx));
-}
-
-double determinant(Mat44 const &u)
-{
-  return (+u.xa*u.yz*u.zy*u.ax  -  u.xz*u.ya*u.zy*u.ax  -  u.xa*u.yy*u.zz*u.ax  +  u.xy*u.ya*u.zz*u.ax
-          +u.xz*u.yy*u.za*u.ax  -  u.xy*u.yz*u.za*u.ax  -  u.xa*u.yz*u.zx*u.ay  +  u.xz*u.ya*u.zx*u.ay
-          +u.xa*u.yx*u.zz*u.ay  -  u.xx*u.ya*u.zz*u.ay  -  u.xz*u.yx*u.za*u.ay  +  u.xx*u.yz*u.za*u.ay
-          +u.xa*u.yy*u.zx*u.az  -  u.xy*u.ya*u.zx*u.az  -  u.xa*u.yx*u.zy*u.az  +  u.xx*u.ya*u.zy*u.az
-          +u.xy*u.yx*u.za*u.az  -  u.xx*u.yy*u.za*u.az  -  u.xz*u.yy*u.zx*u.aa  +  u.xy*u.yz*u.zx*u.aa
-          +u.xz*u.yx*u.zy*u.aa  -  u.xx*u.yz*u.zy*u.aa  -  u.xy*u.yx*u.zz*u.aa  +  u.xx*u.yy*u.zz*u.aa);
-}
-
-// ----------------------------------------------------------------------
-
-
-Mat22 transpose(Mat22 const &u)
-{
-  return Mat22(u.xx, u.yx,
-               u.xy, u.yy);
-}
-
-Mat33 transpose(Mat33 const &u)
-{
-  return Mat33(u.xx, u.yx, u.zx,
-               u.xy, u.yy, u.zy,
-               u.xz, u.yz, u.zz);
-}
-
-Mat44 transpose(Mat44 const &u)
-{
-  return Mat44(u.xx, u.yx, u.zx, u.ax,
-               u.xy, u.yy, u.zy, u.ay,
-               u.xz, u.yz, u.zz, u.az,
-               u.xa, u.ya, u.za, u.aa);
-}
-
-Mat44 homoTranspose(Mat44 const &u)
-{
-  assert(u.ax==0.0 && u.ay==0.0 && u.az==0.0 && u.aa==1.0);
-  return Mat44(u.xx, u.yx, u.zx, -u.xa,
-               u.xy, u.yy, u.zy, -u.ya,
-               u.xz, u.yz, u.zz, -u.za,
-               0.0, 0.0, 0.0, 1.0);
-}
-
-// ----------------------------------------------------------------------
-
-Mat22 inverse(Mat22 const &u)
-{
-  double invdet = 1.0 / determinant(u);
-
-  return Mat22(+u.yy * invdet, -u.xy * invdet,
-               -u.yx * invdet, +u.xx * invdet);
-}
-
-Mat33 inverse(Mat33 const &u)
-{
-  double invdet = 1.0 / determinant(u);
-  
-  return Mat33((- u.yz*u.zy + u.yy*u.zz) * invdet,  (+ u.xz*u.zy - u.xy*u.zz) * invdet,  (- u.xz*u.yy + u.xy*u.yz) * invdet,
-               (+ u.yz*u.zx - u.yx*u.zz) * invdet,  (- u.xz*u.zx + u.xx*u.zz) * invdet,  (+ u.xz*u.yx - u.xx*u.yz) * invdet,
-               (- u.yy*u.zx + u.yx*u.zy) * invdet,  (+ u.xy*u.zx - u.xx*u.zy) * invdet,  (- u.xy*u.yx + u.xx*u.yy) * invdet);
-}
-
-Mat44 inverse(Mat44 const &u)
-{
-  double invdet=1.0 / determinant(u);
-
-  return Mat44((u.yz*u.za*u.ay - u.ya*u.zz*u.ay + u.ya*u.zy*u.az - u.yy*u.za*u.az - u.yz*u.zy*u.aa + u.yy*u.zz*u.aa)*invdet,
-               (u.xa*u.zz*u.ay - u.xz*u.za*u.ay - u.xa*u.zy*u.az + u.xy*u.za*u.az + u.xz*u.zy*u.aa - u.xy*u.zz*u.aa)*invdet,
-               (u.xz*u.ya*u.ay - u.xa*u.yz*u.ay + u.xa*u.yy*u.az - u.xy*u.ya*u.az - u.xz*u.yy*u.aa + u.xy*u.yz*u.aa)*invdet,
-               (u.xa*u.yz*u.zy - u.xz*u.ya*u.zy - u.xa*u.yy*u.zz + u.xy*u.ya*u.zz + u.xz*u.yy*u.za - u.xy*u.yz*u.za)*invdet,
-               (u.ya*u.zz*u.ax - u.yz*u.za*u.ax - u.ya*u.zx*u.az + u.yx*u.za*u.az + u.yz*u.zx*u.aa - u.yx*u.zz*u.aa)*invdet,
-               (u.xz*u.za*u.ax - u.xa*u.zz*u.ax + u.xa*u.zx*u.az - u.xx*u.za*u.az - u.xz*u.zx*u.aa + u.xx*u.zz*u.aa)*invdet,
-               (u.xa*u.yz*u.ax - u.xz*u.ya*u.ax - u.xa*u.yx*u.az + u.xx*u.ya*u.az + u.xz*u.yx*u.aa - u.xx*u.yz*u.aa)*invdet,
-               (u.xz*u.ya*u.zx - u.xa*u.yz*u.zx + u.xa*u.yx*u.zz - u.xx*u.ya*u.zz - u.xz*u.yx*u.za + u.xx*u.yz*u.za)*invdet,
-               (u.yy*u.za*u.ax - u.ya*u.zy*u.ax + u.ya*u.zx*u.ay - u.yx*u.za*u.ay - u.yy*u.zx*u.aa + u.yx*u.zy*u.aa)*invdet,
-               (u.xa*u.zy*u.ax - u.xy*u.za*u.ax - u.xa*u.zx*u.ay + u.xx*u.za*u.ay + u.xy*u.zx*u.aa - u.xx*u.zy*u.aa)*invdet,
-               (u.xy*u.ya*u.ax - u.xa*u.yy*u.ax + u.xa*u.yx*u.ay - u.xx*u.ya*u.ay - u.xy*u.yx*u.aa + u.xx*u.yy*u.aa)*invdet,
-               (u.xa*u.yy*u.zx - u.xy*u.ya*u.zx - u.xa*u.yx*u.zy + u.xx*u.ya*u.zy + u.xy*u.yx*u.za - u.xx*u.yy*u.za)*invdet,
-               (u.yz*u.zy*u.ax - u.yy*u.zz*u.ax - u.yz*u.zx*u.ay + u.yx*u.zz*u.ay + u.yy*u.zx*u.az - u.yx*u.zy*u.az)*invdet,
-               (u.xy*u.zz*u.ax - u.xz*u.zy*u.ax + u.xz*u.zx*u.ay - u.xx*u.zz*u.ay - u.xy*u.zx*u.az + u.xx*u.zy*u.az)*invdet,
-               (u.xz*u.yy*u.ax - u.xy*u.yz*u.ax - u.xz*u.yx*u.ay + u.xx*u.yz*u.ay + u.xy*u.yx*u.az - u.xx*u.yy*u.az)*invdet,
-               (u.xy*u.yz*u.zx - u.xz*u.yy*u.zx + u.xz*u.yx*u.zy - u.xx*u.yz*u.zy - u.xy*u.yx*u.zz + u.xx*u.yy*u.zz)*invdet);
-}
-
-
-// ----------------------------------------------------------------------
-
-Mat22 Mat22Rotation(double theta) { return Mat22RotationXYPlane(theta); }
-Mat22 Mat22RotationXYPlane(double theta)
-{
-  return Mat22(cos(theta), -sin(theta),
-               sin(theta), cos(theta));
-}
-
-Mat33 Mat33Rotation(Vec3 const &axis, double theta)
-{
-  double s = sin(theta / 2.0);
-  double c = cos(theta / 2.0);
-  double n = norm(axis);
-  
-  return toMat(Quaternion(c, axis.x * s / n, axis.y * s / n, axis.z * s / n));
-}
-
-Mat22 Mat22RotationVector(Vec2 const &src)
-{
-  Mat22 ret;
-  ret.xx = +src.x;
-  ret.xy = -src.y;
-  ret.yx = +src.y;
-  ret.yy = +src.x;
-  return ret;
-}
-
-Mat33 Mat33RotationVectorToVector(Vec3 const &src, Vec3 const &dst)
-{
-  Vec3 cp = cross(src, dst);
-  if (norm(cp) < 1e-8) {
-    return Mat33();
-  }
-  double dp = dot(src, dst);
-  double angle = atan2(norm(cp), dp);
-  
-  return Mat33Rotation(normalize(cp), angle);
-}
-
-Mat33 Mat33RotationXAxis(double theta) { return Mat33RotationYZPlane(theta); }
-Mat33 Mat33RotationYZPlane(double theta)
-{
-  double ca = cos(theta);
-  double sa = sin(theta);
-
-  return Mat33(1.0, 0.0, 0.0,
-               0.0, +ca, -sa,
-               0.0, +sa, +ca);
-}
-
-Mat33 Mat33RotationYAxis(double theta) { return Mat33RotationXZPlane(theta); }
-Mat33 Mat33RotationXZPlane(double theta)
-{
-  double ca = cos(theta);
-  double sa = sin(theta);
-
-  return Mat33(+ca, 0.0, +sa,
-               0.0, 1.0, 0.0,
-               -sa, 0.0, +ca);
-}
-
-Mat33 Mat33RotationZAxis(double theta) { return Mat33RotationXYPlane(theta); }
-Mat33 Mat33RotationXYPlane(double theta)
-{
-  double ca = cos(theta);
-  double sa = sin(theta);
-
-  return Mat33(+ca, -sa, 0.0,
-               +sa, +ca, 0.0,
-               0.0, 0.0, 1.0);
-}
-
-
-Mat44 Mat44RotationXAxis(double theta) { return Mat44RotationYZPlane(theta); }
-Mat44 Mat44RotationYZPlane(double theta)
-{
-  double ca = cos(theta);
-  double sa = sin(theta);
-
-  return Mat44(1.0, 0.0, 0.0, 0.0,
-               0.0, +ca, -sa, 0.0,
-               0.0, +sa, +ca, 0.0,
-               0.0, 0.0, 0.0, 1.0);
-}
-
-
-Mat44 Mat44RotationYAxis(double theta) { return Mat44RotationXZPlane(theta); }
-Mat44 Mat44RotationXZPlane(double theta)
-{
-  double ca = cos(theta);
-  double sa = sin(theta);
-
-  return Mat44(+ca, 0.0, +sa, 0.0,
-               0.0, 1.0, 0.0, 0.0,
-               -sa, 0.0, +ca, 0.0,
-               0.0, 0.0, 0.0, 1.0);
-}
-
-Mat44 Mat44RotationZAxis(double theta) { return Mat44RotationXYPlane(theta); }
-Mat44 Mat44RotationXYPlane(double theta)
-{
-  double ca = cos(theta);
-  double sa = sin(theta);
-
-  return Mat44(+ca, -sa, 0.0, 0.0,
-               +sa, +ca, 0.0, 0.0,
-               0.0, 0.0, 1.0, 0.0,
-               0.0, 0.0, 0.0, 1.0);
-}
-
-Mat44 Mat44RotationXAPlane(double theta)
-{ 
-  die("not implemented");
-  return Mat44Identity();
-}
-Mat44 Mat44RotationYAPlane(double theta)
-{ 
-  die("not implemented"); 
-  return Mat44Identity();
-}
-Mat44 Mat44RotationZAPlane(double theta)
-{ 
-  die("not implemented"); 
-  return Mat44Identity();
-}
-
-Mat44 Mat44Translation(double x, double y, double z)
-{
-  return Mat44(1.0, 0.0, 0.0, x,
-               0.0, 1.0, 0.0, y,
-               0.0, 0.0, 1.0, z,
-               0.0, 0.0, 0.0, 1.0);
-}
-
-// ----------------------------------------------------------------------
-
-Mat44 Mat44PerspectiveFov(double fovy, double aspect, double znear, double zfar)
-{
-  double height = 1.0 / tan(fovy / 2.0);
-  double width = height / aspect;
-  
-  return Mat44(width,     0,       0,                  0,
-               0,         height,  0,                  0,
-               0,         0,       -zfar/(zfar-znear), -znear*zfar/(zfar-znear),
-               0,         0,       -1,                 0);
-}
-
-Mat44 Mat44GeneralProjection(double xmon, double ymon, Vec3 const &dvec, double znear, double zfar)
-{
-  Vec3 dvecnorm = normalize(dvec);
-  double zp = dvec.z;
-  double q = norm(dvec);
-
-  double dx = -dvecnorm.x;
-  double dy = -dvecnorm.y;
-  double dz = -dvecnorm.z;
-
-  return Mat44(-q*dz*xmon,  0,           +q*xmon*dx,            +q*xmon*zp*dx,
-               0,           -q*dz*ymon,  +q*ymon*dy,            +q*ymon*zp*dy,
-               0,            0,          -zfar/(zfar-znear),    -znear*zfar/(zfar-znear),
-               0,            0,          -1,                    -zp-q*dz);
-}
-
-Mat44 Mat44LookAt(Vec3 const &eyepos, Vec3 const &lookat, Vec3 const &up)
-{
-  Vec3 zaxis = normalize(eyepos-lookat);
-  Vec3 xaxis = normalize(cross(up, zaxis));
-  Vec3 yaxis = cross(zaxis, xaxis);
-  
-  return Mat44(xaxis.x,   xaxis.y,   xaxis.z,    -dot(xaxis, eyepos),
-               yaxis.x,   yaxis.y,   yaxis.z,    -dot(yaxis, eyepos),
-               zaxis.x,   zaxis.y,   zaxis.z,    -dot(zaxis, eyepos),
-               0.0,       0.0,       0.0,        1.0);
-}
-
-// ----------------------------------------------------------------------
 
-Mat33 orthonormalize(Mat33 const &u)
+mat33 orthonormalize(mat33 const &u)
 {
   // We use column vectors, ie the ones that the standard unit vectors are mapped onto by left-multiplication
-  Vec3 vx(u.xx, u.yx, u.zx);
-  Vec3 vy(u.xy, u.yy, u.zy);
-  Vec3 vz(u.xz, u.yz, u.zz);
+  vec3 vx = u.col(0);
+  vec3 vy = u.col(1);
+  vec3 vz = u.col(2);
 
-  Vec3 vxfix = normalize(cross(vy, vz));
-  Vec3 vyfix = normalize(cross(vz, vxfix));
-  Vec3 vzfix = normalize(cross(vxfix, vyfix));
+  vec3 vxfix = normalize(cross(vy, vz));
+  vec3 vyfix = normalize(cross(vz, vxfix));
+  vec3 vzfix = normalize(cross(vxfix, vyfix));
 
   /*
     In the case of a rotation matrix the dot{x,y,z} terms are all ==1, but they
     could be -1 if the matrix contains a flip.
   */
-  if (!(dot(vx,vxfix)>0.0)) die("!(dot(vx, vxfix)>0)");
-  if (!(dot(vy,vyfix)>0.0)) die("!(dot(vy, vyfix)>0)");
-  if (!(dot(vz,vzfix)>0.0)) die("!(dot(vz, vzfix)>0)");
+  if (!(dot(vx, vxfix)>0.0)) throw runtime_error("!(dot(vx, vxfix)>0)");
+  if (!(dot(vy, vyfix)>0.0)) throw runtime_error("!(dot(vy, vyfix)>0)");
+  if (!(dot(vz, vzfix)>0.0)) throw runtime_error("!(dot(vz, vzfix)>0)");
 
-  return Mat33(vxfix.x, vyfix.x, vzfix.x,
-               vxfix.y, vyfix.y, vzfix.y,
-               vxfix.z, vyfix.z, vzfix.z);
+  mat33 ret;
+  ret.col(0) = vxfix;
+  ret.col(1) = vyfix;
+  ret.col(2) = vzfix;
+  return ret;
 }
+
+// ----------------------------------------------------------------------
+
+vec vecFromHomo(vec const &u)
+{
+  if (u.n_elem == 4) {
+    vec ret(3);
+    ret[0] = u[0] / u[3];
+    ret[1] = u[1] / u[3];
+    ret[2] = u[2] / u[3];
+    return ret;
+  }
+  else {
+    throw runtime_error(stringprintf("fromHomo(vec(%d)) not implemented", (int)u.n_elem));
+  }
+}
+
+vec vecToHomo(vec const &u)
+{
+  if (u.n_elem == 3) {
+    vec ret(4);
+    ret[0] = u[0];
+    ret[1] = u[1];
+    ret[2] = u[2];
+    ret[3] = 1.0;
+    return ret;
+  }
+  else {
+    throw runtime_error(stringprintf("toHomo(vec(%d)) not implemented", (int)u.n_elem));
+  }
+}
+
+mat matToHomo(mat const &u)
+{
+  if (u.n_rows == 2 && u.n_cols == 2) {
+    mat ret(3,3);
+    ret(0,0) = u(0,0);
+    ret(0,1) = u(0,1);
+    ret(0,2) = 0.0;
+    ret(1,0) = u(1,0);
+    ret(1,1) = u(1,1);
+    ret(1,2) = 0.0;
+    ret(2,0) = 0.0;
+    ret(2,1) = 0.0;
+    ret(2,2) = 1.0;
+    return ret;
+  }
+  else if (u.n_rows == 3 && u.n_cols == 3) {
+    mat ret(4,4);
+    ret(0,0) = u(0,0);
+    ret(0,1) = u(0,1);
+    ret(0,2) = u(0,2);
+    ret(0,3) = 0.0;
+    ret(1,0) = u(1,0);
+    ret(1,1) = u(1,1);
+    ret(1,2) = u(1,2);
+    ret(1,3) = 0.0;
+    ret(2,0) = u(2,0);
+    ret(2,1) = u(2,1);
+    ret(2,2) = u(2,2);
+    ret(2,3) = 0.0;
+    ret(3,0) = 0.0;
+    ret(3,1) = 0.0;
+    ret(3,2) = 0.0;
+    ret(3,3) = 1.0;
+    return ret;
+  }
+  else {
+    throw runtime_error(stringprintf("toHomo(mat(%d, %d)) not implemented", (int)u.n_rows, (int)u.n_cols));
+  }
+}
+
+mat matFromHomo(mat const &u)
+{
+  throw runtime_error(stringprintf("fromHomo(mat(%d, %d)) not implemented", (int)u.n_rows, (int)u.n_cols));
+}
+
+// ----------------------------------------------------------------------
+
+mat22 mat22Rotation(double theta) { return mat22RotationXYPlane(theta); }
+mat22 mat22RotationXYPlane(double theta)
+{
+  mat22 ret;
+  ret(0,0) = cos(theta);
+  ret(0,1) = -sin(theta);
+  ret(1,0) = sin(theta);
+  ret(1,1) = cos(theta);
+  return ret;
+}
+
+
+mat33 mat33Rotation(vec3 const &axis, double theta)
+{
+  double s = sin(theta / 2.0);
+  double c = cos(theta / 2.0);
+  double n = norm(axis, 2);
+  Quaternion q;
+  q[0] = c;
+  q[1] = axis(0) * s / n;
+  q[2] = axis(1) * s / n;
+  q[3] = axis(2) * s / n;
+  
+  return quatToMat(q);
+}
+
+mat22 mat22RotationVector(vec2 const &src)
+{
+  mat22 ret;
+  ret(0,0) = +src(0);
+  ret(0,1) = -src(1);
+  ret(1,0) = +src(1);
+  ret(1,1) = +src(0);
+  return ret;
+}
+
+mat33 mat33RotationVectorToVector(vec3 const &src, vec3 const &dst)
+{
+  vec3 cp = cross(src, dst);
+  if (norm(cp, 2) < 1e-8) {
+    return mat33(fill::eye);
+  }
+  double dp = dot(src, dst);
+  double angle = atan2(norm(cp, 2), dp);
+  
+  return mat33Rotation(normalize(cp), angle);
+}
+
+mat33 mat33RotationXAxis(double theta) { return mat33RotationYZPlane(theta); }
+mat33 mat33RotationYZPlane(double theta)
+{
+  double ca = cos(theta);
+  double sa = sin(theta);
+
+  mat33 ret(fill::eye);
+  ret(0,0) = 1.0;
+  ret(0,1) = 0.0;
+  ret(0,2) = 0.0;
+  ret(1,0) = 0.0;
+  ret(1,1) = +ca;
+  ret(1,2) = -sa;
+  ret(2,0) = 0.0;
+  ret(2,1) = +sa;
+  ret(2,2) = +ca;
+  return ret;
+}
+
+mat33 mat33RotationYAxis(double theta) { return mat33RotationXZPlane(theta); }
+mat33 mat33RotationXZPlane(double theta)
+{
+  double ca = cos(theta);
+  double sa = sin(theta);
+
+  mat33 ret(fill::eye);
+  ret(0,0) = +ca;
+  ret(0,2) = +sa;
+  ret(2,0) = -sa;
+  ret(2,2) = +ca;
+  return ret;
+}
+
+mat33 mat33RotationZAxis(double theta) { return mat33RotationXYPlane(theta); }
+mat33 mat33RotationXYPlane(double theta)
+{
+  double ca = cos(theta);
+  double sa = sin(theta);
+
+  mat33 ret(fill::eye);
+  ret(0,0) = +ca;
+  ret(0,1) = -sa;
+  ret(1,0) = +sa;
+  ret(1,1) = +ca;
+  return ret;
+}
+
+
+mat44 mat44RotationXAxis(double theta) { return mat44RotationYZPlane(theta); }
+mat44 mat44RotationYZPlane(double theta)
+{
+  double ca = cos(theta);
+  double sa = sin(theta);
+
+  mat44 ret(fill::eye);
+  ret(1,1) = +ca;
+  ret(1,2) = -sa;
+  ret(2,1) = +sa;
+  ret(2,2) = +ca;
+  return ret;
+}
+
+
+mat44 mat44RotationYAxis(double theta) { return mat44RotationXZPlane(theta); }
+mat44 mat44RotationXZPlane(double theta)
+{
+  double ca = cos(theta);
+  double sa = sin(theta);
+
+  mat44 ret(fill::eye);
+  ret(0,0) = +ca;
+  ret(0,2) = +sa;
+  ret(2,0) = -sa;
+  ret(2,2) = +ca;
+  return ret;
+}
+
+mat44 mat44RotationZAxis(double theta) { return mat44RotationXYPlane(theta); }
+mat44 mat44RotationXYPlane(double theta)
+{
+  double ca = cos(theta);
+  double sa = sin(theta);
+
+  mat44 ret(fill::eye);
+  ret(0,0) = +ca;
+  ret(0,1) = -sa;
+  ret(1,0) = +sa;
+  ret(1,1) = +ca;
+  return ret;
+}
+
+mat44 mat44RotationXAPlane(double theta)
+{ 
+  throw runtime_error("not implemented");
+}
+mat44 mat44RotationYAPlane(double theta)
+{ 
+  throw runtime_error("not implemented");
+}
+mat44 mat44RotationZAPlane(double theta)
+{ 
+  throw runtime_error("not implemented");
+}
+
+mat44 mat44Translation(double x, double y, double z)
+{
+  mat44 ret(fill::eye);
+  ret(0,3) = x;
+  ret(1,3) = y;
+  ret(2,3) = z;
+  return ret;
+}
+
+// ----------------------------------------------------------------------
+
+mat44 mat44PerspectiveFov(double fovy, double aspect, double znear, double zfar)
+{
+  double height = 1.0 / tan(fovy / 2.0);
+  double width = height / aspect;
+
+  mat44 ret(fill::zeros);
+  ret(0,0) = width;
+  ret(1,1) = height;
+  ret(2,2) = -zfar/(zfar-znear);
+  ret(2,3) = -znear*zfar/(zfar-znear);
+  ret(3,2) = -1;
+  return ret;
+}
+
+mat44 mat44GeneralProjection(double xmon, double ymon, vec3 const &dvec, double znear, double zfar)
+{
+  vec3 dvecnorm = normalize(dvec);
+  double zp = dvec(2);
+  double q = norm(dvec, 2);
+
+  double dx = -dvecnorm(0);
+  double dy = -dvecnorm(1);
+  double dz = -dvecnorm(2);
+
+  mat44 ret(fill::zeros);
+  ret(0,0) = -q*dz*xmon;
+  ret(0,2) = +q*xmon*dx;
+  ret(0,3) = +q*xmon*dx*zp;
+  ret(1,1) = -q*dz*ymon;
+  ret(1,2) = +q*ymon*dy;
+  ret(1,3) = +q*ymon*dy*zp;
+  ret(2,2) = -zfar/(zfar-znear);
+  ret(2,3) = -znear*zfar/(zfar-znear);
+  ret(3,2) = -1;
+  ret(3,3) = -zp-q*dz;
+  return ret;
+}
+
+mat44 mat44LookAt(vec3 const &eyepos, vec3 const &lookat, vec3 const &up)
+{
+  vec3 zaxis = normalize(eyepos-lookat);
+  vec3 xaxis = normalize(cross(up, zaxis));
+  vec3 yaxis = cross(zaxis, xaxis);
+  
+  mat44 ret(fill::zeros);
+  ret(0,0) = xaxis(0);
+  ret(0,1) = xaxis(1);
+  ret(0,2) = xaxis(2);
+  ret(0,3) = -dot(xaxis, eyepos);
+  ret(1,0) = yaxis(0);
+  ret(1,1) = yaxis(1);
+  ret(1,2) = yaxis(2);
+  ret(1,3) = dot(yaxis, eyepos);
+  ret(2,0) = zaxis(0);
+  ret(2,1) = zaxis(1);
+  ret(2,2) = zaxis(2);
+  ret(2,3) = -dot(zaxis, eyepos);
+  ret(3,3) = 1.0;
+  return ret;
+}
+
+// ----------------------------------------------------------------------
+
 
 /*
   Somewhat specific to gyrotracker
  */
 
-Mat33 alignWithZ(Mat33 const &u, Vec3 const &z_targ, double weight)
+mat33 alignWithZ(mat33 const &u, vec3 const &z_targ, double weight)
 {
-  Vec3 vx(u.xx, u.yx, u.zx);
-  Vec3 vy(u.xy, u.yy, u.zy);
-  Vec3 vzraw(u.xz * (1.0-weight) + z_targ.x*weight,
-             u.yz * (1.0-weight) + z_targ.y*weight,
-             u.zz * (1.0-weight) + z_targ.z*weight);
-  Vec3 vz=normalize(vzraw);
+  vec3 vx = u.col(0);
+  vec3 vy = u.col(1);
+  vec3 vz = normalize(u.col(2) * (1.0-weight) + z_targ*weight);
 
-  Vec3 vxfix = normalize(cross(vy, vz));
-  Vec3 vyfix = normalize(cross(vz, vxfix));
-  Vec3 vzfix = normalize(cross(vxfix, vyfix));
+  vec3 vxfix = normalize(cross(vy, vz));
+  vec3 vyfix = normalize(cross(vz, vxfix));
+  vec3 vzfix = normalize(cross(vxfix, vyfix));
 
-  if (!(dot(vx, vxfix)>0.0)) die("!(dot(vx, vxfix)>0)");
-  if (!(dot(vy, vyfix)>0.0)) die("!(dot(vy, vyfix)>0)");
-  if (!(dot(vz, vzfix)>0.0)) die("!(dot(vz, vzfix)>0)");
+  if (!(dot(vx, vxfix)>0.0)) throw runtime_error("!(dot(vx, vxfix)>0)");
+  if (!(dot(vy, vyfix)>0.0)) throw runtime_error("!(dot(vy, vyfix)>0)");
+  if (!(dot(vz, vzfix)>0.0)) throw runtime_error("!(dot(vz, vzfix)>0)");
 
-  return Mat33(vxfix.x, vyfix.x, vzfix.x,
-               vxfix.y, vyfix.y, vzfix.y,
-               vxfix.z, vyfix.z, vzfix.z);
+  mat33 ret;
+  ret.col(0) = vxfix;
+  ret.col(1) = vyfix;
+  ret.col(2) = vzfix;
+  return ret;
 }
 
-Mat33 alignWithY(Mat33 const &u, Vec3 const &y_targ, double weight)
+mat33 alignWithY(mat33 const &u, vec3 const &y_targ, double weight)
 {
-  Mat33 ret;
+  vec3 vx = u.col(0);
+  vec3 vy = normalize(u.col(1) * (1.0-weight) + y_targ * weight);
+  vec3 vz = u.col(2);
 
-  Vec3 vx(u.xx, u.yx, u.zx);
-  Vec3 vyraw(u.xy * (1.0-weight) + y_targ.x*weight,
-             u.yy * (1.0-weight) + y_targ.y*weight,
-             u.zy * (1.0-weight) + y_targ.z*weight);
-  Vec3 vy = normalize(vyraw);
-  Vec3 vz(u.xz, u.yz, u.zz);
+  vec3 vxfix = normalize(cross(vy, vz));
+  vec3 vzfix = normalize(cross(vxfix, vy));
+  vec3 vyfix = normalize(cross(vzfix, vxfix));
 
-  Vec3 vxfix = normalize(cross(vy, vz));
-  Vec3 vzfix = normalize(cross(vxfix, vy));
-  Vec3 vyfix = normalize(cross(vzfix, vxfix));
+  if (!(dot(vx, vxfix)>0.0)) throw runtime_error("!(dot(vx, vxfix)>0)");
+  if (!(dot(vy, vyfix)>0.0)) throw runtime_error("!(dot(vy, vyfix)>0)");
+  if (!(dot(vz, vzfix)>0.0)) throw runtime_error("!(dot(vz, vzfix)>0)");
 
-  assert(dot(vx, vxfix) > 0.0);
-  assert(dot(vy, vyfix) > 0.0);
-  assert(dot(vz, vzfix) > 0.0);
-
-  return Mat33(vxfix.x, vyfix.x, vzfix.x,
-               vxfix.y, vyfix.y, vzfix.y,
-               vxfix.z, vyfix.z, vzfix.z);
+  mat33 ret(fill::zeros);
+  ret.col(0) = vxfix;
+  ret.col(1) = vyfix;
+  ret.col(2) = vzfix;
+  return ret;
 }
 
-Mat33 alignWithX(Mat33 const &u, Vec3 const &y_targ, double weight)
+mat33 alignWithX(mat33 const &u, vec3 const &y_targ, double weight)
 { 
-  die("not implemented"); 
-  return Mat33Identity();
+  throw runtime_error("not implemented");
 }
 
-Ea3 toEa(Mat33 const &u)
+EulerAngles matToEuler(mat33 const &u)
 {
-  Ea3 ret;
+  EulerAngles ret(fill::zeros);
 
   /*
     This gets then in yaw-pitch-roll order with moving coordinates.
@@ -649,453 +419,112 @@ Ea3 toEa(Mat33 const &u)
     have full range of pitch and yaw with limited roll.
   */
 
-  double cy = sqrt(u.yy*u.yy + u.xy*u.xy);
+  double cy = sqrt(u(1,1)*u(1,1) + u(0,1)*u(0,1));
   if (cy > 16*DBL_EPSILON) {
-    ret.roll = -atan2(u.zx, u.zz);
-    ret.pitch = -atan2(-u.zy, cy);
-    ret.yaw = -atan2(u.xy, u.yy);
+    ret(1) = -atan2(+u(2,0), +u(2,2));
+    ret(0) = -atan2(-u(2,1), +cy);
+    ret(2) = -atan2(+u(0,1), +u(1,1));
   } else {
-    ret.roll = -atan2(-u.xz, u.xx);
-    ret.pitch = -atan2(-u.zy, cy);
-    ret.yaw = 0;
+    ret(1) = -atan2(-u(0,2), +u(0,0));
+    ret(0) = -atan2(-u(2,1), +cy);
+    ret(2) = 0;
   }
 
   return ret;
 }
 
-Mat33 toMat(Ea3 const &u)
+mat33 eulerToMat(EulerAngles const &u)
 {
-  return operator *(Mat33RotationZAxis(u.yaw), operator *(Mat33RotationXAxis(u.pitch), Mat33RotationYAxis(u.roll)));
+  return mat33RotationZAxis(u(2)) * (mat33RotationXAxis(u(0)) * mat33RotationYAxis(u(1)));
 }
 
 /*
   http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
 */
-Mat33 toMat(Quaternion const &u)
+mat33 quatToMat(Quaternion const &u)
 {
-  Mat33 ret;
+  mat33 ret(fill::zeros);
 
-  ret.xx = 1 - 2.0 * (u.c*u.c + u.d*u.d);
-  ret.xy =     2.0 * (u.b*u.c - u.a*u.d);
-  ret.xz =     2.0 * (u.a*u.c + u.b*u.d);
+  ret(0,0) = 1 - 2.0 * (u(2)*u(2) + u(3)*u(3));
+  ret(0,1) =     2.0 * (u(1)*u(2) - u(0)*u(3));
+  ret(0,2) =     2.0 * (u(0)*u(2) + u(1)*u(3));
                                       
-  ret.yx =     2.0 * (u.b*u.c + u.a*u.d);
-  ret.yy = 1 - 2.0 * (u.b*u.b + u.d*u.d);
-  ret.yz =     2.0 * (u.c*u.d - u.a*u.b);
+  ret(1,0) =     2.0 * (u(1)*u(2) + u(0)*u(3));
+  ret(1,1) = 1 - 2.0 * (u(1)*u(1) + u(3)*u(3));
+  ret(1,2) =     2.0 * (u(2)*u(3) - u(0)*u(1));
                                       
-  ret.zx =     2.0 * (u.b*u.d - u.a*u.c);
-  ret.zy =     2.0 * (u.a*u.b + u.c*u.d);
-  ret.zz = 1 - 2.0 * (u.b*u.b + u.c*u.c);
+  ret(2,0) =     2.0 * (u(1)*u(3) - u(0)*u(2));
+  ret(2,1) =     2.0 * (u(0)*u(1) + u(2)*u(3));
+  ret(2,2) = 1 - 2.0 * (u(1)*u(1) + u(2)*u(2));
 
   return ret;
 }
 
-Quaternion toQuat(Ea3 const &u)
+Quaternion eulerToQuat(EulerAngles const &u)
 {
-  double ti = +0.5 * u.roll;
-  double tj = -0.5 * u.pitch;
-  double th = +0.5 * u.yaw;
+  double ti = +0.5 * u(1); // roll
+  double tj = -0.5 * u(0); // pitch
+  double th = +0.5 * u(2); // yaw
   double ci = cos(ti);  double cj = cos(tj);  double ch = cos(th);
   double si = sin(ti);  double sj = sin(tj);  double sh = sin(th);
 
-  Quaternion ret(+ cj*ci*ch + sj*si*sh,
-                 - cj*si*sh - sj*ci*ch,
-                 + cj*si*ch - sj*ci*sh,
-                 + cj*ci*sh - sj*si*ch);
-
-  if (ret.a < 0.0) {
-    return Quaternion(-ret.a, -ret.b, -ret.c, -ret.d);
+  Quaternion ret;
+  ret(0) = + cj*ci*ch + sj*si*sh;
+  ret(1) = - cj*si*sh - sj*ci*ch;
+  ret(2) = + cj*si*ch - sj*ci*sh;
+  ret(3) = + cj*ci*sh - sj*si*ch;
+  
+  if (ret[0] < 0.0) {
+    return -ret;
   } else {
     return ret;
   }
 }
 
-
-// ----------------------------------------------------------------------
-
-Vec2 cross(Vec2 const &u, Vec2 const &v)
+Quaternion grassmanProduct(const Quaternion &u, const Quaternion &v)
 {
-  die("not implemented"); 
-  return Vec2(0.0, 0.0);
-}
-
-Vec3 cross(Vec3 const &u, Vec3 const &v)
-{
-  return Vec3(u.y*v.z - u.z*v.y,
-              u.z*v.x - u.x*v.z,
-              u.x*v.y - u.y*v.x);
-}
-
-Vec4 cross(Vec4 const &u, Vec4 const &v)
-{
-  die("not implemented");
-  return Vec4(0.0, 0.0, 0.0, 0.0);
-}
-
-
-// ----------------------------------------------------------------------
-
-Mat22 Mat22Identity()
-{
-  return Mat22(1.0, 0.0, 
-               0.0, 1.0);
-}
-
-Mat33 Mat33Identity()
-{
-  return Mat33(1.0, 0.0, 0.0, 
-               0.0, 1.0, 0.0, 
-               0.0, 0.0, 1.0);
-}
-
-Mat44 Mat44Identity()
-{
-  return Mat44(1.0, 0.0, 0.0, 0.0, 
-               0.0, 1.0, 0.0, 0.0, 
-               0.0, 0.0, 1.0, 0.0, 
-               0.0, 0.0, 0.0, 1.0);
+  Quaternion ret;
+  ret[0] = u[0]*v[0] - u[1]*v[1] - u[2]*v[2] - u[3]*v[3];
+  ret[1] = u[0]*v[1] + u[1]*v[0] + u[2]*v[3] - u[3]*v[2];
+  ret[2] = u[0]*v[2] - u[1]*v[3] + u[2]*v[0] + u[3]*v[1];
+  ret[3] = u[0]*v[3] + u[1]*v[2] - u[2]*v[1] + u[3]*v[0];
+  return ret;
 }
 
 // ----------------------------------------------------------------------
 
-Vec2 normalize(Vec2 const &u)
+mat33 justRotation(mat44 const &u)
 {
-  double n = norm(u);
-  if (n == 0.0) return u;
-  return operator *(u, 1.0/n);
-}
-
-Vec3 normalize(Vec3 const &u)
-{
-  double n = norm(u);
-  if (n == 0.0) return u;
-  return operator *(u, 1.0/n);
-}
-
-Vec4 normalize(Vec4 const &u)
-{
-  double n = norm(u);
-  if (n==0.0) return u;
-  return operator *(u, 1.0/n);
-}
-
-Mat22 normalize(Mat22 const &u)
-{
-  die("not implemented"); 
-  return u;
-}
-
-Mat33 normalize(Mat33 const &u)
-{
-  die("not implemented"); 
-  return u;
-}
-
-Mat44 normalize(Mat44 const &u)
-{
-  die("not implemented"); 
-  return u;
-}
-
-// ----------------------------------------------------------------------
-
-// ----------------------------------------------------------------------
-
-double normsq(Vec2 const &u)
-{
-  return sqr(u.x) + sqr(u.y);
-}
-
-double normsq(Vec3 const &u)
-{
-  return sqr(u.x) + sqr(u.y) + sqr(u.z);
-}
-
-double normsq(Vec4 const &u)
-{
-  return sqr(u.x) + sqr(u.y) + sqr(u.z) + sqr(u.a);
-}
-
-double normsq(Mat22 const &u)
-{
-  return (sqr(u.xx) + sqr(u.xy) + 
-          sqr(u.yx) + sqr(u.yy));
-}
-
-double normsq(Mat33 const &u)
-{
-  return (sqr(u.xx) + sqr(u.xy) + sqr(u.xz) +
-          sqr(u.yx) + sqr(u.yy) + sqr(u.yz) +
-          sqr(u.zx) + sqr(u.zy) + sqr(u.zz));
-}
-
-double normsq(Mat44 const &u)
-{
-  return (sqr(u.xx) + sqr(u.xy) + sqr(u.xz) + sqr(u.xa) +
-          sqr(u.yx) + sqr(u.yy) + sqr(u.yz) + sqr(u.ya) +
-          sqr(u.zx) + sqr(u.zy) + sqr(u.zz) + sqr(u.za) +
-          sqr(u.ax) + sqr(u.ay) + sqr(u.az) + sqr(u.aa));
-}
-
-double normsq(Ea3 const &u)
-{
-  return sqr(u.pitch) + sqr(u.roll) + sqr(u.yaw);
-}
-
-double normsq(Quaternion const &u)
-{
-  return sqr(u.a) + sqr(u.b) + sqr(u.c) + sqr(u.d);
-}
-
-double norm(Vec2 const &u)
-{
-  return sqrt(normsq(u));
-}
-double norm(Vec3 const &u)
-{
-  return sqrt(normsq(u));
-}
-double norm(Vec4 const &u)
-{
-  return sqrt(normsq(u));
-}
-double norm(Mat22 const &u)
-{
-  return sqrt(normsq(u));
-}
-double norm(Mat33 const &u)
-{
-  return sqrt(normsq(u));
-}
-double norm(Mat44 const &u)
-{
-  return sqrt(normsq(u));
-}
-double norm(Ea3 const &u)
-{
-  return sqrt(normsq(u));
-}
-double norm(Quaternion const &u)
-{
-  return sqrt(normsq(u));
-}
-
-// ----------------------------------------------------------------------
-
-void setRow(Mat22 &u, int ri, Vec2 const &v)
-{
-  switch(ri) {
-  case 0: 
-    u.xx=v.x; u.xy=v.y;
-    break;
-  case 1: 
-    u.yx=v.x; u.yy=v.y;
-    break;
-  default:
-    abort();
+  mat33 ret(fill::zeros);
+  for (int ri=0; ri<3; ri++) {
+    for (int ci=0; ci<3; ci++) {
+      ret(ri, ci) = u(ri, ci);
+    }
   }
+  return ret;
 }
 
-void setCol(Mat22 &u, int ci, Vec2 const &v)
+vec3 justTranslation(mat44 const &u)
 {
-  switch(ci) {
-  case 0: 
-    u.xx=v.x; u.yx=v.y;
-    break;
-  case 1: 
-    u.xy=v.x; u.yy=v.y;
-    break;
-  default:
-    abort();
-  }
-}
-
-Vec2 getRow(Mat22 const &u, int ri)
-{
-  switch(ri) {
-  case 0: 
-    return Vec2(u.xx, u.xy);
-  case 1: 
-    return Vec2(u.yx, u.yy);
-  default:
-    abort();
-  }
-}
-
-Vec2 getCol(Mat22 const &u, int ci)
-{
-  switch(ci) {
-  case 0: 
-    return Vec2(u.xx, u.yx);
-  case 1: 
-    return Vec2(u.xy, u.yy);
-  default:
-    abort();
-  }
-}
-
-
-void setRow(Mat33 &u, int ri, Vec3 const &v)
-{
-  switch(ri) {
-  case 0: 
-    u.xx=v.x; u.xy=v.y; u.xz=v.z;
-    break;
-  case 1: 
-    u.yx=v.x; u.yy=v.y; u.yz=v.z;
-    break;
-  case 2: 
-    u.zx=v.x; u.zy=v.y; u.zz=v.z;
-    break;
-  default:
-    abort();
-  }
-}
-
-void setCol(Mat33 &u, int ci, Vec3 const &v)
-{
-  switch(ci) {
-  case 0: 
-    u.xx=v.x; u.yx=v.y; u.zx=v.z;
-    break;
-  case 1: 
-    u.xy=v.x; u.yy=v.y; u.zy=v.z;
-    break;
-  case 2: 
-    u.xz=v.x; u.yz=v.y; u.zz=v.z;
-    break;
-  default:
-    abort();
-  }
-}
-
-Vec3 getRow(Mat33 const &u, int ri) 
-{
-  switch(ri) {
-  case 0: 
-    return Vec3(u.xx, u.xy, u.xz);
-  case 1: 
-    return Vec3(u.yx, u.yy, u.yz);
-  case 2: 
-    return Vec3(u.zx, u.zy, u.zz);
-  default:
-    abort();
-  }
-}
-
-Vec3 getCol(Mat33 const &u, int ci)
-{
-  switch(ci) {
-  case 0: 
-    return Vec3(u.xx, u.yx, u.zx);
-  case 1: 
-    return Vec3(u.xy, u.yy, u.zy);
-  case 2: 
-    return Vec3(u.xz, u.yz, u.zz);
-  default:
-    abort();
-  }
-}
-
-
-void setRow(Mat44 &u, int ri, Vec4 const &v)
-{
-  switch(ri) {
-  case 0: 
-    u.xx=v.x; u.xy=v.y; u.xz=v.z; u.xa=v.a;
-    break;
-  case 1: 
-    u.yx=v.x; u.yy=v.y; u.yz=v.z; u.ya=v.a;
-    break;
-  case 2: 
-    u.zx=v.x; u.zy=v.y; u.zz=v.z; u.za=v.a;
-    break;
-  case 3: 
-    u.ax=v.x; u.ay=v.y; u.az=v.z; u.aa=v.a;
-    break;
-  default:
-    abort();
-  }
-}
-
-void setCol(Mat44 &u, int ci, Vec4 const &v)
-{
-  switch(ci) {
-  case 0:
-    u.xx=v.x; u.yx=v.y; u.zx=v.z; u.ax=v.a;
-    break;
-  case 1: 
-    u.xy=v.x; u.yy=v.y; u.zy=v.z; u.ay=v.a;
-    break;
-  case 2: 
-    u.xz=v.x; u.yz=v.y; u.zz=v.z; u.az=v.a;
-    break;
-  case 3: 
-    u.xa=v.x; u.ya=v.y; u.za=v.z; u.aa=v.a;
-    break;
-  default:
-    abort();
-  }
-}
-
-Vec4 getRow(Mat44 const &u, int ri)
-{
-  switch(ri) {
-  case 0: 
-    return Vec4(u.xx, u.xy, u.xz, u.xa);
-  case 1: 
-    return Vec4(u.yx, u.yy, u.yz, u.ya);
-  case 2: 
-    return Vec4(u.zx, u.zy, u.zz, u.za);
-  case 3: 
-    return Vec4(u.ax, u.ay, u.az, u.aa);
-  default:
-    abort();
-  }
-}
-
-Vec4 getCol(Mat44 const &u, int ci)
-{
-  switch(ci) {
-  case 0: 
-    return Vec4(u.xx, u.yx, u.zx, u.ax);
-  case 1: 
-    return Vec4(u.xy, u.yy, u.zy, u.ay);
-  case 2: 
-    return Vec4(u.xz, u.yz, u.zz, u.az);
-  case 3: 
-    return Vec4(u.xa, u.ya, u.za, u.aa);
-  default:
-    abort();
-  }
-}
-
-// ----------------------------------------------------------------------
-
-Mat33 justRotation(Mat44 const &u)
-{
-  return Mat33(u.xx, u.xy, u.xz,
-               u.yx, u.yy, u.yz,
-               u.zx, u.zy, u.zz);
-}
-
-Vec3 justTranslation(Mat44 const &u)
-{
-  return Vec3(u.xa, u.ya, u.za);
+  vec3 ret(fill::zeros);
+  ret(0) = u(0,3);
+  ret(1) = u(1,3);
+  ret(2) = u(2,3);
+  return ret;
 }
 
 // ----------------------------------------------------------------------
 
 // for testing numerical stability of rotation
-Mat33 twaddle(Mat33 const &u, double rotsigma, int niter)
+mat33 twaddle(mat33 const &u, double rotsigma, int niter)
 {
-  Mat33 tmp = u;
+  mat33 tmp = u;
   for (int iter = 0; iter < niter; iter++) {
     double rx = frandom_normal() * rotsigma;
     double ry = frandom_normal() * rotsigma;
     double rz = frandom_normal() * rotsigma;
-
-    tmp = operator *(Mat33RotationZAxis(rz), operator *(Mat33RotationYAxis(ry), operator *(Mat33RotationXAxis(rx), tmp)));
+    
+    tmp = mat33RotationZAxis(rz) * (mat33RotationYAxis(ry) * (mat33RotationXAxis(rx) * tmp));
   }
   return tmp;
 }

@@ -19,6 +19,7 @@
        
 */
 var _                   = require('underscore');
+var assert              = require('assert');
 var fs                  = require('fs');
 var util                = require('util');
 var crypto              = require('crypto');
@@ -72,6 +73,7 @@ TypeRegistry.prototype.setPrimitives = function() {
   typereg.types['double'] = new PrimitiveCType(typereg, 'double');
   typereg.types['arma::cx_double'] = new PrimitiveCType(typereg, 'arma::cx_double');
   typereg.types['int'] = new PrimitiveCType(typereg, 'int');
+  typereg.types['u_int'] = new PrimitiveCType(typereg, 'u_int');
   typereg.types['string'] = new PrimitiveCType(typereg, 'string');
   typereg.types['jsonstr'] = new PrimitiveCType(typereg, 'jsonstr');
   if (1) {
@@ -95,8 +97,10 @@ TypeRegistry.prototype.struct = function(typename /* varargs */) {
 
 TypeRegistry.prototype.template = function(typename) {
   var typereg = this;
-  if (typename in typereg.types) return;
-  typereg.types[typename] = new CollectionCType(typereg, typename);
+  if (typename in typereg.types) return typereg.types[typename];
+  var t = new CollectionCType(typereg, typename);
+  typereg.types[typename] = t;
+  return t;
 };
 
 TypeRegistry.prototype.getType = function(typename) {
@@ -106,6 +110,13 @@ TypeRegistry.prototype.getType = function(typename) {
   return typereg.types[typename];
 };
 
+TypeRegistry.prototype.aliasType = function(existingName, newName) {
+  var typereg = this;
+  var type = typereg.getType(existingName);
+  if (!type) throw 'No such type ' + existingName;
+  typereg.types[newName] = type;
+};
+
 TypeRegistry.prototype.loadDeclarations = function(modulename) {
   // WRITEME
 };
@@ -113,8 +124,9 @@ TypeRegistry.prototype.loadDeclarations = function(modulename) {
 TypeRegistry.prototype.emitAll = function(files) {
   var typereg = this;
 
-  _.each(typereg.types, function(typeobj, typename) {
-    typeobj.emitAll(files);
+  _.each(typereg.types, function(type, typename) {
+    if (type.typename !== typename) return;
+    type.emitAll(files);
   });
 
   typereg.emitJsWrapFuncs(files);
@@ -130,9 +142,10 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
   var f = files.getFile('jsboot_' + typereg.groupname + '.cc');
   f('#include "tlbcore/common/std_headers.h"');
   f('#include "tlbcore/nodeif/jswrapbase.h"');
-  _.each(typereg.types, function(typeobj) {
-    if (typeobj.hasJsWrapper()) {
-      f('void jsInit_' + typeobj.jsTypename + '(Handle<Object> exports);');
+  _.each(typereg.types, function(type, typename) {
+    if (type.typename !== typename) return;
+    if (type.hasJsWrapper()) {
+      f('void jsInit_' + type.jsTypename + '(Handle<Object> exports);');
     }
   });
   f('void jsInit_functions(Handle<Object> exports);');
@@ -147,9 +160,10 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
   f('');
 
   f('void jsBoot(Handle<Object> exports) {');
-  _.each(typereg.types, function(typeobj) {
-    if (typeobj.hasJsWrapper()) {
-      f('jsInit_' + typeobj.jsTypename + '(exports);');
+  _.each(typereg.types, function(type, typename) {
+    if (type.typename !== typename) return;
+    if (type.hasJsWrapper()) {
+      f('jsInit_' + type.jsTypename + '(exports);');
     }
   });
   f('jsInit_functions(exports);');
@@ -165,8 +179,9 @@ TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
   f('#include "tlbcore/nodeif/jswrapbase.h"');
   f('#include "./rtfns_' + typereg.groupname + '.h"');
   _.each(typereg.extraJsWrapFuncsHeaders, f);
-  _.each(typereg.types, function(typeobj, typename) {
-    var fns = typeobj.getFns();
+  _.each(typereg.types, function(type, typename) {
+    if (type.typename !== typename) return;
+    var fns = type.getFns();
     if (fns.jsWrapHeader) {
       f('#include "' + fns.jsWrapHeader + '"');
     }
@@ -183,8 +198,9 @@ TypeRegistry.prototype.emitGypFile = function(files) {
   var f = files.getFile('sources_' + typereg.groupname + '.gypi');
   f('{');
   f('"sources": [');
-  _.each(typereg.types, function(typeobj, typename) {
-    var fns = typeobj.getFns();
+  _.each(typereg.types, function(type, typename) {
+    if (type.typename !== typename) return;
+    var fns = type.getFns();
     if (fns.hostCode) {
       f('\"' + fns.hostCode + '\",');
     }
@@ -210,6 +226,7 @@ TypeRegistry.prototype.emitMochaFile = function(files) {
   f('var assert = require("assert");');
   
   _.each(typereg.types, function(type, typename) {
+    if (type.typename !== typename) return;
     type.emitJsTestImpl(f.child({TYPENAME: type.typename, JSTYPE: type.jsTypename}));
     f('');
   });
@@ -334,8 +351,9 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
 TypeRegistry.prototype.getSchemas = function() {
   var typereg = this;
   var schemas = {};
-  _.each(typereg.types, function(typeobj) {
-    schemas[typeobj.jsTypename] = typeobj.getSchema();
+  _.each(typereg.types, function(type, typename) {
+    if (type.typename !== typename) return;
+    schemas[type.jsTypename] = type.getSchema();
   });
   return schemas;
 };
@@ -535,6 +553,7 @@ function emitJsAccessors(f, getContents, setContents) {
 
 function CType(reg, typename) {
   var type = this;
+  assert.ok(typename);
   type.reg = reg;
   type.typename = typename;
   type.jsTypename = typename.replace(/>+$/g, '').replace(/</g, '_').replace(/>/g, '_').replace(/,/g,'_').replace(/::/g,'_');
@@ -544,6 +563,7 @@ function CType(reg, typename) {
   type.extraHostCode = [];
   type.extraDeclDependencies = [];
   type.extraDefnDependencies = [];
+  type.extraJsWrapHeaderIncludes = [];
   type.extraHeaderIncludes = [];
   type.extraConstructorCode = [];
   type.arrayConversions = [];
@@ -579,9 +599,9 @@ CType.prototype.getFns = function() {
   var type = this;
   var base = type.getFnBase();
   return {
-    hostCode: base + '_host.cc',
+    hostCode: type.noHostCode ? undefined : base + '_host.cc',
     jsTestCode: 'test_' + base + '.js',
-    typeHeader: base + '_decl.h',
+    typeHeader: type.noHostCode ? undefined : base + '_decl.h',
     jsWrapHeader: base + '_jsWrap.h',
     jsWrapCode: base + '_jsWrap.cc',
   };
@@ -667,6 +687,12 @@ CType.prototype.getDeclDependencies = function() {
   return subtypes;
 };
 
+CType.prototype.addDeclDependency = function(t) {
+  var type = this;
+  assert.ok(t);
+  type.extraDeclDependencies.push(t);
+};
+
 CType.prototype.getMemberTypes = function() {
   return [];
 };
@@ -707,6 +733,9 @@ CType.prototype.emitJsWrapHeader = function(f) {
       f('#include "' + fns.typeHeader + '"');
     }
   });
+  _.each(type.extraJsWrapHeaderIncludes, function(include) {
+    f('#include "' + include + '"');
+  });
 
   type.emitJsWrapDecl(f);
 };
@@ -722,6 +751,7 @@ CType.prototype.emitJsWrapCode = function(f) {
   if (fns.jsWrapHeader) {
     f('#include "' + fns.jsWrapHeader + '"');
   }
+  f('/* declDependencies = ' + _.map(type.getDeclDependencies(), function(ot) { return ot.jsTypename; }) + ' */');
   _.each(type.getDeclDependencies(), function(othertype) {
     var fns = othertype.getFns();
     if (fns && fns.jsWrapHeader) {
@@ -793,6 +823,7 @@ PrimitiveCType.prototype.getAllOneExpr = function() {
   case 'float': return '1.0f';
   case 'double': return '1.0';
   case 'int': return '1';
+  case 'u_int': return '1u';
   case 'bool': return 'true';
   case 'string': return 'string("1")';
   case 'jsonstr': return 'jsonstr("1")';
@@ -805,6 +836,7 @@ PrimitiveCType.prototype.getAllZeroExpr = function() {
   case 'float': return '0.0f';
   case 'double': return '0.0';
   case 'int': return '0';
+  case 'u_int': return '0';
   case 'bool': return 'false';
   case 'string': return 'string()';
   case 'jsonstr': return 'jsonstr()';
@@ -817,6 +849,7 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
   case 'float': return 'numeric_limits<float>::quiet_NaN()';
   case 'double': return 'numeric_limits<double>::quiet_NaN()';
   case 'int': return '0x80000000';
+  case 'u_int': return '0x80000000';
   case 'bool': return 'false';
   case 'string': return 'string(\"nan\")';
   case 'jsonstr': return 'jsonstr(\"undefined\")';
@@ -828,6 +861,8 @@ PrimitiveCType.prototype.getExampleValueJs = function() {
   switch (this.typename) {
   case 'int':
     return '7';
+  case 'u_int':
+    return '8';
   case 'float':
     return '5.5';
   case 'double':
@@ -868,8 +903,8 @@ PrimitiveCType.prototype.getFormalParameter = function(varname) {
 PrimitiveCType.prototype.getArgTempDecl = function(varname) {
   var type = this;
   switch (type.typename) {
-  case 'string':
-  case 'jsonstr':
+  case 'X_string':
+  case 'X_jsonstr':
     return type.typename + ' const &' + varname;
   default:
     return type.typename + ' ' + varname;
@@ -885,6 +920,7 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr) {
   var type = this;
   switch (type.typename) {
   case 'int':
+  case 'u_int':
   case 'float':
   case 'double':
     return '((' + valueExpr + ')->IsNumber())';
@@ -905,6 +941,7 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr) {
   var type = this;
   switch (type.typename) {
   case 'int':
+  case 'u_int':
   case 'float':
   case 'double':
     return '((' + valueExpr + ')->NumberValue())';
@@ -924,7 +961,10 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr) {
 PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, memoryExpr) {
   var type = this;
   switch (type.typename) {
-  case 'int': case 'float': case 'double':
+  case 'int': 
+  case 'u_int': 
+  case 'float': 
+  case 'double':
     return 'Number::New(' + valueExpr + ')';
   case 'bool':
     return 'Boolean::New(' + valueExpr + ')';
@@ -961,9 +1001,10 @@ function CollectionCType(reg, typename) {
     }
     else if (c === '>') {
       depth --;
+      argi++;
     }
     else if (c === ',') {
-      if (depth === 1) argi++;
+      argi++;
     }
     else {
       if (depth === 0) {
@@ -1091,39 +1132,58 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
   if (1) {
     f('Handle<Value> jsConstructor_JSTYPE(JsWrap_JSTYPE *it, const Arguments& args) {');
     f('HandleScope scope;');
-    if (!type.isRef) f('it->assign();');
-
+    
+    f('if (0) {');
+    f('}');
     // When creating a vector<double>, allow passing in various native JS arrays
     if (type.templateName === 'vector' && type.templateArgs[0] === 'double') {
-      f('if (args.Length() == 1 && canConvJsToVectorDouble(args[0])) {');
+      f('else if (args.Length() == 1 && canConvJsToVectorDouble(args[0])) {');
       f('it->assign(convJsToVectorDouble(args[0]));');
       f('}');
     }
 
-    else if (type.templateName === 'arma::Col') {
-      f('if (args.Length() == 1 && args[0]->IsNumber()) {');
-      f('it->assign(arma::Col<' + type.templateArgs[0] + '>((size_t)args[0]->NumberValue(), arma::fill::zeros));');
+    else if (type.templateName === 'arma::Col' || type.templateName === 'arma::Row') {
+      f('else if (args.Length() == 0) {');
+      f('it->assign();');
       f('}');
-      f('if (args.Length() == 1 && canConvJsToArmaVec<' + type.templateArgs[0] + '>(args[0])) {');
+      f('else if (args.Length() == 1 && args[0]->IsNumber()) {');
+      f('it->assign(' + type.typename + '((size_t)args[0]->NumberValue(), arma::fill::zeros));');
+      f('}');
+      f('else if (args.Length() == 1 && canConvJsToArmaVec<' + type.templateArgs[0] + '>(args[0])) {');
       f('it->assign(convJsToArmaVec<' + type.templateArgs[0] + '>(args[0]));');
       f('}');
     }
 
     else if (type.templateName === 'arma::Mat') {
-      f('if (args.Length() == 2 && args[0]->IsNumber() && args[1]->IsNumber()) {');
+      f('else if (args.Length() == 0) {');
+      f('it->assign();');
+      f('}');
+      f('else if (args.Length() == 2 && args[0]->IsNumber() && args[1]->IsNumber()) {');
       f('it->assign(arma::Mat<' + type.templateArgs[0] + '>((size_t)args[0]->NumberValue(), (size_t)args[1]->NumberValue(), arma::fill::zeros));');
       f('}');
-      f('if (args.Length() == 1 && canConvJsToArmaMat<' + type.templateArgs[0] + '>(args[0])) {');
+      f('else if (args.Length() == 1 && canConvJsToArmaMat<' + type.templateArgs[0] + '>(args[0])) {');
       f('it->assign(convJsToArmaMat<' + type.templateArgs[0] + '>(args[0]));');
       f('}');
     }
 
     // When creating a map<string, jsonstr>, allow passing in an object
     else if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
-      f('if (args.Length() == 1 && canConvJsToMapStringJsonstr(args[0])) {');
+      f('else if (args.Length() == 0) {');
+      f('it->assign();');
+      f('}');
+      f('else if (args.Length() == 1 && canConvJsToMapStringJsonstr(args[0])) {');
       f('it->assign(convJsToMapStringJsonstr(args[0]));');
       f('}');
     }
+    else if (type.templateName === 'arma::subview_row') {
+      f('else if (args.Length() == 0) {');
+      f('}');
+    }
+
+    f('else {');
+    f('eprintf("JSTYPE: Invalid args, len=%d\\n", (int)args.Length());');
+    f('return ThrowInvalidArgs();');
+    f('}');
 
     f('it->Wrap2(args.This());');
     f('return args.This();');
@@ -1149,7 +1209,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f('}');
       f('return ret;');
     }
-    else if (type.templateName === 'arma::Col') {
+    else if (type.templateName === 'arma::Col' || type.templateName === 'arma::Col::fixed') {
       f('Local<Array> ret = Array::New(it.n_elem);');
       f('for (size_t i=0; i<it.n_elem; i++) {');
       f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
@@ -1208,7 +1268,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     accessors.push({isNamed: true, get: true, set: true});
   }
 
-  if (type.templateName === 'arma::Col' || type.templateName === 'arma::subview_row') {
+  if (type.templateName === 'arma::Col' || type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::subview_row') {
     f('static Handle<Value> jsGet_JSTYPE_n_rows(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
@@ -1240,7 +1300,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     accessors.push({isIndexed: true, get: true, set: true});
   }
 
-  if (type.templateName === 'arma::Mat') {
+  if (type.templateName === 'arma::Mat' || type.templateName === 'arma::Mat::fixed' ) {
     f('static Handle<Value> jsGet_JSTYPE_n_rows(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
@@ -1268,7 +1328,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('return scope.Close(' + type.reg.getType('arma::subview_row<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->row(index)', 'thisObj->memory') + ');');
     f('}');
 
-    if (0) {
+    if (0) { // WRITEME
       f('static Handle<Value> jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, AccessorInfo const &ai) {');
       f('HandleScope scope;');
       f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
@@ -1336,37 +1396,40 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     emitJsWrap(f, 'JSTYPE_fromString', function() {
       emitArgSwitch(f, type.reg, null, [
         {args: ['string'], returnType: type, code: function() {
-          f('bool ok = rdJson(a0, ret);');
+          f('const char *a0s = a0.c_str();');
+          f('bool ok = rdJson(a0s, ret);');
           f('if (!ok) return ThrowInvalidArgs();');
         }}
       ]);
     });
     factories.push('fromString');
 
-    emitJsWrap(f, 'JSTYPE_toPacket', function() {
-      emitArgSwitch(f, type.reg, type, [
-        {args: [], code: function() {
-          f('packet wr;');
-          f('wr.add_checked(*thisObj->it);');
-          f('node::Buffer *buf = node::Buffer::New((const char *)wr.rd_ptr(), wr.size());');
-          f('return scope.Close(Handle<Object>(buf->handle_));'); // XXX Should I delete buf?
-        }}
-      ]);
-    });
-    methods.push('toPacket');
+    if (!type.noPacket) {
+      emitJsWrap(f, 'JSTYPE_toPacket', function() {
+        emitArgSwitch(f, type.reg, type, [
+          {args: [], code: function() {
+            f('packet wr;');
+            f('wr.add_checked(*thisObj->it);');
+            f('node::Buffer *buf = node::Buffer::New((const char *)wr.rd_ptr(), wr.size());');
+            f('return scope.Close(Handle<Object>(buf->handle_));'); // XXX Should I delete buf?
+          }}
+        ]);
+      });
+      methods.push('toPacket');
 
-    emitJsWrap(f, 'JSTYPE_fromPacket', function() {
-      emitArgSwitch(f, type.reg, null, [{
-        args: ['string'], returnType: type, code: function() {
-          f('packet rd(a0);');
-          f('try {');
-          f('rd.get_checked(ret);');
-          f('} catch(exception &ex) {');
-          f('return ThrowRuntimeError(ex.what());');
-          f('};');
-        }}]);
-    });
-    factories.push('fromPacket');
+      emitJsWrap(f, 'JSTYPE_fromPacket', function() {
+        emitArgSwitch(f, type.reg, null, [{
+          args: ['string'], returnType: type, code: function() {
+            f('packet rd(a0);');
+            f('try {');
+            f('rd.get_checked(ret);');
+            f('} catch(exception &ex) {');
+            f('return ThrowRuntimeError(ex.what());');
+            f('};');
+          }}]);
+      });
+      factories.push('fromPacket');
+    }
   }
 
 
@@ -1438,9 +1501,11 @@ CollectionCType.prototype.emitJsTestImpl = function(f) {
     f('var t2 = ur.JSTYPE.fromString(t1s);');
     f('assert.strictEqual(t1.toString(), t2.toString());');
     
-    f('var t1b = t1.toPacket();');
-    f('var t3 = ur.JSTYPE.fromPacket(t1b);');
-    f('assert.strictEqual(t1.toString(), t3.toString());');
+    if (!type.noPacket) {
+      f('var t1b = t1.toPacket();');
+      f('var t3 = ur.JSTYPE.fromPacket(t1b);');
+      f('assert.strictEqual(t1.toString(), t3.toString());');
+    }
   }
   f('});');
 
@@ -1779,12 +1844,14 @@ StructCType.prototype.emitJsTestImpl = function(f) {
   f('var t2 = ur.JSTYPE.fromString(t1s);');
   f('assert.strictEqual(t1.toString(), t2.toString());');
 
-  f('var t1b = t1.toPacket();');
-  f('var t3 = ur.JSTYPE.fromPacket(t1b);');
-  f('assert.strictEqual(t1.toString(), t3.toString());');
+  if (!type.noPacket) {
+    f('var t1b = t1.toPacket();');
+    f('var t3 = ur.JSTYPE.fromPacket(t1b);');
+    f('assert.strictEqual(t1.toString(), t3.toString());');
+  }
   f('});');
 
-  if (0) {
+  if (0 && !type.noPacket) {
     f('it("fromPacket should be fuzz-resistant", function() {');
     f('var t1 = ' + type.getExampleValueJs() + ';');
     f('var bufLen = t1.toPacket().length;');
@@ -1981,9 +2048,9 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f('}');
   }
 
-  if (1) {
+  if (!type.noSerialize) {
+    
     f('Handle<Value> jsToJSON_JSTYPE(const TYPENAME &it) {');
-
     f('if (fastJsonFlag) {');
     f('string fjbItem = asJson(it).it;');
     f('if (fjbItem.size() > 20) {');
@@ -2000,7 +2067,10 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     _.each(type.orderedNames, function(name) {
       var memberType = type.nameToType[name];
       switch (memberType.typename) {
-      case 'int': case 'float': case 'double':
+      case 'int': 
+      case 'u_int': 
+      case 'float': 
+      case 'double':
         f('ret->Set(String::NewSymbol("' + name + '"), Number::New(it.' + name + '));');
         break;
       case 'bool':
@@ -2029,7 +2099,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     methods.push('toJSON');
   }
 
-  if (1) {
+  if (!type.noSerialize) {
     emitJsWrap(f, 'JSTYPE_toJsonString', function() {
       emitArgSwitch(f, type.reg, type, [{
         args: [], returnType: 'string', code: function() {
@@ -2051,14 +2121,16 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     emitJsWrap(f, 'JSTYPE_fromString', function() {
       emitArgSwitch(f, type.reg, null, [
         {args: ['string'], returnType: type, code: function() {
-          f('bool ok = rdJson(a0, ret);');
+          f('const char *a0s = a0.c_str();');
+          f('bool ok = rdJson(a0s, ret);');
           f('if (!ok) return ThrowInvalidArgs();');
         }}
       ]);
     });
     factories.push('fromString');
+  }
 
-
+  if (!type.noPacket) {
     emitJsWrap(f, 'JSTYPE_toPacket', function() {
       emitArgSwitch(f, type.reg, type, [
         {args: [], code: function() {
@@ -2085,7 +2157,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     factories.push('fromPacket');
   }
 
-  if (1) {
+  if (!type.noStdValues) {
     _.each(['allZero', 'allNan'], function(name) {
       f('static Handle<Value> jsWrap_JSTYPE_' + name + '(const Arguments& args) {');
       f('HandleScope scope;');
@@ -2121,7 +2193,9 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     _.each(methods, function(name) {
       f('tpl->PrototypeTemplate()->Set(String::NewSymbol("' + name + '"), FunctionTemplate::New(jsWrap_JSTYPE_' + name + ')->GetFunction());');
     });
-    f('tpl->PrototypeTemplate()->Set(String::NewSymbol("toString"), FunctionTemplate::New(jsWrap_JSTYPE_toJsonString)->GetFunction());');
+    if (!type.noSerialize) {
+      f('tpl->PrototypeTemplate()->Set(String::NewSymbol("toString"), FunctionTemplate::New(jsWrap_JSTYPE_toJsonString)->GetFunction());');
+    }
 
     _.each(accessors, function(name) {
       var memberType = type.nameToType[name];
