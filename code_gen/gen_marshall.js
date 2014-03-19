@@ -1181,7 +1181,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     }
 
     f('else {');
-    f('eprintf("JSTYPE: Invalid args, len=%d\\n", (int)args.Length());');
+    if (0) f('eprintf("JSTYPE: Invalid args, len=%d\\n", (int)args.Length());');
     f('return ThrowInvalidArgs();');
     f('}');
 
@@ -1392,6 +1392,16 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       }]);
     });
     methods.push('toJsonString');
+
+    emitJsWrap(f, 'JSTYPE_inspect', function() {
+      // It's given an argument, recurseTimes, which we should decrement when recursing but we don't.
+      emitArgSwitch(f, type.reg, type, [{
+        args: ['double'], returnType: 'string', code: function() {
+          f('if (a0 >= 0) ret = asJson(*thisObj->it).it;');
+        }
+      }]);
+    });
+    methods.push('inspect');
 
     emitJsWrap(f, 'JSTYPE_fromString', function() {
       emitArgSwitch(f, type.reg, null, [
@@ -2108,6 +2118,16 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       }]);
     });
     methods.push('toJsonString');
+
+    emitJsWrap(f, 'JSTYPE_inspect', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        // It's given an argument, recurseTimes, which we should decrement when recursing but we don't.
+        args: ['double'], returnType: 'string', code: function() {
+          f('if (a0 >= 0) ret = asJson(*thisObj->it).it;');
+        }
+      }]);
+    });
+    methods.push('inspect');
 
     emitJsWrap(f, 'JSTYPE_toJsonBuffer', function() {
       emitArgSwitch(f, type.reg, type, [{

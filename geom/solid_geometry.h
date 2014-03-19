@@ -49,6 +49,13 @@ struct StlIntersection {
   struct StlFace face;
 };
 
+struct StlWebglMesh {
+  StlWebglMesh() {}
+
+  arma::vec coords;
+  arma::ivec indexes;
+};
+
 struct StlSolid {
   
   StlSolid();
@@ -56,17 +63,21 @@ struct StlSolid {
 
   void readBinaryFile(FILE *fp, double scale);
   void calcBbox();
+  double getMaxScale() const;
   bool rayIntersects(arma::vec3 const &p, arma::vec3 const &d) const;
   void transform(arma::mat44 const &m);
   bool isInterior(arma::vec3 const &pt) const;
-  vector<StlIntersection> intersectionList(arma::vec3 const &pt, arma::vec3 const &dir) const;
-  StlMassProperties getStlMassProperties(double density);
+  vector<StlIntersection> getIntersections(arma::vec3 const &pt, arma::vec3 const &dir) const;
+  StlMassProperties getStlMassProperties(double density) const;
+  StlWebglMesh exportWebglMesh() const;
   void removeTinyFaces(double minSize);
 
   arma::vec3 bboxLo, bboxHi;
   vector<StlFace> faces;
   
 };
+
+ostream & operator << (ostream &s, StlSolid const &it);
 
 void packet_rd_value(packet &p, StlSolid &it);
 void packet_wr_value(packet &p, StlSolid const &it);

@@ -239,6 +239,13 @@ StlSolid::~StlSolid()
 {
 }
 
+ostream & operator << (ostream &s, StlSolid const &it)
+{
+  s << "StlSolid(nFaces=" << it.faces.size() << " maxScale=" << it.getMaxScale() << ")";
+  return s;
+}
+
+
 void
 StlSolid::readBinaryFile(FILE *fp, double scale)
 {
@@ -399,7 +406,7 @@ bool operator < (StlIntersection const &a, StlIntersection const &b)
 }
 
 vector<StlIntersection>
-StlSolid::intersectionList(vec3 const &p, vec3 const &d) const
+StlSolid::getIntersections(vec3 const &p, vec3 const &d) const
 {
   vector<StlIntersection> ret;
   
@@ -431,7 +438,7 @@ StlSolid::intersectionList(vec3 const &p, vec3 const &d) const
 }
 
 StlMassProperties
-StlSolid::getStlMassProperties(double density)
+StlSolid::getStlMassProperties(double density) const
 {
   double sum_area = 0.0;
   double sum_1  = 0.0;
@@ -513,11 +520,11 @@ StlSolid::getStlMassProperties(double density)
 */
 struct Vec3SpatialMap {
 
-  Vec3SpatialMap() 
+  Vec3SpatialMap(double maxScale) 
   {
     eps = 0.000001;
     epssq = eps*eps;
-    root = new OctreeNode(mkVec3(0.0, 0.0, 0.0), 4.0);
+    root = new OctreeNode(mkVec3(0.0, 0.0, 0.0), maxScale);
   }
   
   ~Vec3SpatialMap()
@@ -567,6 +574,12 @@ struct Vec3SpatialMap {
   map<OctreeNode *, vector<vec3 *> *> spatial;
 };
 
+double StlSolid::getMaxScale() const
+{
+  return max(max(abs(bboxLo(0)),max(abs(bboxLo(1)),abs(bboxLo(2)))),
+             max(abs(bboxHi(0)),max(abs(bboxHi(1)),abs(bboxHi(2)))));
+}
+             
 /*
   This is a fairly primitive algorithm. Much better are known, but it's hard to find a convenient
   tool to do it.
@@ -576,8 +589,8 @@ struct Vec3SpatialMap {
 */
 void StlSolid::removeTinyFaces(double minSize)
 {
-  Vec3SpatialMap spatial;
-
+  Vec3SpatialMap spatial(getMaxScale());
+  
   for (size_t fi=0; fi<faces.size(); fi++) {
     StlFace &f = faces[fi];
     spatial.addPt(&f.v0);
@@ -590,10 +603,12 @@ void StlSolid::removeTinyFaces(double minSize)
   for (size_t fi=0; fi<faces.size(); fi++) {
     faceOrdering[fi] = fi;
   }
-  size_t seed = faces.size() * 99 + 55;
-  for (size_t fi=0; fi<faces.size(); fi++) {
+  uint32_t seed = faces.size() * 99 + 55;
+  for (size_t fi=0; fi+1 < faces.size(); fi++) {
     size_t fi2 = seed % (faces.size() - fi) + fi;
-    swap(faceOrdering[fi], faceOrdering[fi2]);
+    if (fi != fi2) {
+      swap(faceOrdering[fi], faceOrdering[fi2]);
+    }
     seed = (1103515245 * seed + 12345);
   }
   
@@ -635,9 +650,74 @@ void StlSolid::removeTinyFaces(double minSize)
     }
   }
   faces.erase(fout, fend);
+  calcBbox();
 
   if (0) eprintf("remove_tiny_faces: %d => %d\n", (int)origFaces, (int)faces.size());
 }
+
+
+StlWebglMesh StlSolid::exportWebglMesh() const
+{
+  OctreeNode *root = new OctreeNode(mkVec3(0.0, 0.0, 0.0), getMaxScale());
+  double eps = 0.000001;
+  map<OctreeNode *, int> ptIndex;
+
+  StlWebglMesh ret;
+  ret.coords.resize(faces.size() * 12);
+  ret.indexes.resize(faces.size() * 4);
+  size_t coordi = 0;
+  size_t indexi = 0;
+
+  for (size_t fi=0; fi<faces.size(); fi++) {
+    StlFace const &f = faces[fi];
+    int &indexV0 = ptIndex[root->lookup(f.v0, eps)];
+    if (!indexV0) {
+      indexV0 = coordi/3 + 1;
+      ret.coords[coordi++] = f.v0(0);
+      ret.coords[coordi++] = f.v0(1);
+      ret.coords[coordi++] = f.v0(2);
+    }
+
+    int &indexV1 = ptIndex[root->lookup(f.v1, eps)];
+    if (!indexV1) {
+      indexV1 = coordi/3 + 1;
+      ret.coords[coordi++] = f.v1(0);
+      ret.coords[coordi++] = f.v1(1);
+      ret.coords[coordi++] = f.v1(2);
+    }
+
+    int &indexV2 = ptIndex[root->lookup(f.v2, eps)];
+    if (!indexV2) {
+      indexV2 = coordi/3 + 1;
+      ret.coords[coordi++] = f.v2(0);
+      ret.coords[coordi++] = f.v2(1);
+      ret.coords[coordi++] = f.v2(2);
+    }
+
+    int &indexNormal = ptIndex[root->lookup(f.normal, eps)];
+    if (!indexNormal) {
+      indexNormal = coordi/3 + 1;
+      ret.coords[coordi++] = f.normal(0);
+      ret.coords[coordi++] = f.normal(1);
+      ret.coords[coordi++] = f.normal(2);
+    }
+
+    ret.indexes[indexi++] = indexV0 - 1;
+    ret.indexes[indexi++] = indexV1 - 1;
+    ret.indexes[indexi++] = indexV2 - 1;
+    ret.indexes[indexi++] = indexNormal - 1;
+  }
+
+  assert(coordi <= ret.coords.n_elem);
+  assert(indexi <= ret.indexes.n_elem);
+
+  ret.coords.resize(coordi);
+  ret.indexes.resize(indexi);
+
+  delete root;
+  return ret;
+}
+
 
 
 // ----------------------------------------------------------------------

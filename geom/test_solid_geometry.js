@@ -1,3 +1,4 @@
+var _                   = require('underscore');
 var ur                  = require('ur'); // argh
 var util                = require('util');
 var assert              = require('assert');
@@ -7,17 +8,39 @@ describe('solid_geometry', function() {
     var s = new ur.StlSolid();
     s.readBinaryFile(require.resolve('./test_object.stl'), 1.0);
     console.log('bbox=', s.bboxLo.toString(), s.bboxHi.toString());
+
+    var nf1 = s.numFaces;
+    s.removeTinyFaces(0.05);
+    var nf2 = s.numFaces;
+    console.log('numFaces=', nf1, '=>', nf2);
+
     var mp = s.getStlMassProperties(1.0);
     console.log('mp=', mp.toString());
-    console.log('mp.cm=', mp.cm.toString());
-    console.log('inertia=', mp.inertiaOrigin.toString());
+    console.log('mp.cm=', mp.cm);
+    console.log('inertia=', mp.inertiaOrigin);
 
-    var il0 = s.intersectionList(mp.cm, new ur.vec([1,0,0]));
-    console.log('il[1,0,0]=', il0);
+    function checkIntersection(dir, expectPts) {
+      var il = s.getIntersections(mp.cm, dir);
+      var intersectionPts = _.map(il, function(intersection) {
+        return ur.add(mp.cm, ur.mul(dir, intersection.t));
+      });
 
-    var il1 = s.intersectionList(mp.cm, new ur.vec([0,1,0]));
-    console.log('il[0,1,0]=', il1);
-    var il2 = s.intersectionList(mp.cm, new ur.vec([0,0,1]));
-    console.log('il[0,0,1]=', il2);
+      assert.equal(expectPts.length, intersectionPts.length);
+      var bad = false;
+      for (var i=0; i<expectPts.length; i++) {
+        var err = ur.sub(expectPts[i], intersectionPts[i]);
+        if (ur.norm(err, 2) > 0.001) bad = true;
+      }
+
+      if (bad) throw new Error('Expected ' + _.map(expectPts, function(e) { return e.toString()}) + ' got ' + _.map(intersectionPts, function(e) { return e.toString()}));
+    }
+
+    checkIntersection(new ur.vec([1,0,0]), [new ur.vec([5.23085,-13.0847,-8.64565]), new ur.vec([5.54745,-13.0847,-8.64565])]);
+    checkIntersection(new ur.vec([0,1,0]), [new ur.vec([5.23085,-13.0847,-8.64565]), new ur.vec([5.23085,-12.5246,-8.64565])]);
+    checkIntersection(new ur.vec([0,0,1]), [new ur.vec([5.23085,-13.0847,-8.64565]), new ur.vec([5.23085,-13.0847,-8.27919])]);
+
+    var mesh = s.exportWebglMesh();
+    console.log('coords:', mesh.coords.n_elem, 'indexes:', mesh.indexes.n_elem);
+    
   });
 });

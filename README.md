@@ -7,7 +7,7 @@ Some common infrastructure shared among my projects. Written in C++ and Javascri
     marshalling and unmarshalling into JSON
   * nodeif: wrap C++ code for Node.js
   * common: a grab-bag of C++ utilities like stringprintf, wrappers around pthreads, read/write STL into JSON, etc.
-  * numerical : numerical stuff, including polynomial fitting and C++ wrappers around LAPACK functions
+  * numerical : numerical stuff, built on top of Armadillo
   * genes: a simple genome library, not good for anything yet
 
 
@@ -82,10 +82,9 @@ The function is called like a jQuery function, with `this` bound to `$(document.
 
 Geometry and Numerical Libraries
 --
- * geom/geom_math has basic geometrical types Vec2/3/4, Mat22/33/44, and operations among them
+ * geom/geom_math adds basic geometrical operations on Armadillo's vector & matrix types.
  * geom/solid_geometry can read STL files (a polyhedron defined by a bunch of triangles) and compute simple geometrical properties like center of mass
  * numerical/polyfit has 3 and 5 degree polynomials and routines for fitting to sampled data
- * numerical/lapack_if adds a c++ wrapper around a few LAPACK routines
 
 
 Gene Library

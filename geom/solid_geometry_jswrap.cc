@@ -1,6 +1,7 @@
 #include "tlbcore/common/std_headers.h"
 #include "tlbcore/nodeif/jswrapbase.h"
 #include "../build.src/vec_jsWrap.h"
+#include "../build.src/ivec_jsWrap.h"
 #include "../build.src/mat_jsWrap.h"
 #include "./solid_geometry_jswrap.h"
 
@@ -42,6 +43,31 @@ static Handle<Value> jsGet_StlSolid_bboxHi(Local<String> name, AccessorInfo cons
   return scope.Close(JsWrap_vec::ChildInstance(thisObj->memory, &(thisObj->it->bboxHi)));
 }
 
+static Handle<Value> jsGet_StlSolid_numFaces(Local<String> name, AccessorInfo const &ai) {
+  HandleScope scope;
+  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(ai.This());
+  return scope.Close(Number::New(thisObj->it->faces.size()));
+}
+
+static Handle<Value> jsWrap_StlSolid_toString(const Arguments& args)
+{
+  HandleScope scope;
+  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
+  ostringstream oss;
+  oss << *thisObj->it;
+  return scope.Close(convStringToJs(oss.str()));
+}
+
+static Handle<Value> jsWrap_StlSolid_inspect(const Arguments& args)
+{
+  HandleScope scope;
+  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
+  ostringstream oss;
+  oss << *thisObj->it;
+  return scope.Close(convStringToJs(oss.str()));
+}
+
+
 static Handle<Value> jsWrap_StlSolid_readBinaryFile(const Arguments& args)
 {
   HandleScope scope;
@@ -76,7 +102,7 @@ static Handle<Value> jsWrap_StlSolid_getStlMassProperties(const Arguments& args)
   }
 }
 
-static Handle<Value> jsWrap_StlSolid_intersectionList(const Arguments& args)
+static Handle<Value> jsWrap_StlSolid_getIntersections(const Arguments& args)
 {
   HandleScope scope;
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
@@ -85,7 +111,7 @@ static Handle<Value> jsWrap_StlSolid_intersectionList(const Arguments& args)
       JsWrap_vec::Extract(args[1]) != NULL) {
     vec a0 = *JsWrap_vec::Extract(args[0]);
     vec a1 = *JsWrap_vec::Extract(args[1]);
-    vector<StlIntersection> ret = thisObj->it->intersectionList(a0, a1);
+    vector<StlIntersection> ret = thisObj->it->getIntersections(a0, a1);
 
     Local<Array> retJs = Array::New(ret.size());
     for (size_t ri = 0; ri < ret.size(); ri++) {
@@ -101,6 +127,41 @@ static Handle<Value> jsWrap_StlSolid_intersectionList(const Arguments& args)
   }
 }
 
+static Handle<Value> jsWrap_StlSolid_removeTinyFaces(const Arguments& args)
+{
+  HandleScope scope;
+  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
+  if (args.Length() == 1 && args[0]->IsNumber()) {
+    double a0 = args[0]->NumberValue();
+    thisObj->it->removeTinyFaces(a0);
+    return scope.Close(Undefined());
+  }
+  else {
+    return ThrowInvalidArgs();
+  }
+}
+
+struct vecsortwrap {
+  
+};
+
+static Handle<Value> jsWrap_StlSolid_exportWebglMesh(const Arguments& args)
+{
+  HandleScope scope;
+  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
+  if (args.Length() == 0) {
+    StlWebglMesh ret = thisObj->it->exportWebglMesh();
+    Local<Object> retJs = Object::New();
+    retJs->Set(String::NewSymbol("coords"), JsWrap_vec::NewInstance(ret.coords));
+    retJs->Set(String::NewSymbol("indexes"), JsWrap_ivec::NewInstance(ret.indexes));
+    return scope.Close(retJs);
+  }
+  else {
+    return ThrowInvalidArgs();
+  }
+}
+
+
 
 void jsInit_StlSolid(Handle<Object> exports) {
   Local<FunctionTemplate> tpl = FunctionTemplate::New(jsNew_StlSolid);
@@ -109,10 +170,16 @@ void jsInit_StlSolid(Handle<Object> exports) {
 
   tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("bboxLo"), &jsGet_StlSolid_bboxLo);
   tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("bboxHi"), &jsGet_StlSolid_bboxHi);
+  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("numFaces"), &jsGet_StlSolid_numFaces);
+
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("toString"), FunctionTemplate::New(jsWrap_StlSolid_toString)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("inspect"), FunctionTemplate::New(jsWrap_StlSolid_inspect)->GetFunction());
 
   tpl->PrototypeTemplate()->Set(String::NewSymbol("readBinaryFile"), FunctionTemplate::New(jsWrap_StlSolid_readBinaryFile)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getStlMassProperties"), FunctionTemplate::New(jsWrap_StlSolid_getStlMassProperties)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("intersectionList"), FunctionTemplate::New(jsWrap_StlSolid_intersectionList)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("getIntersections"), FunctionTemplate::New(jsWrap_StlSolid_getIntersections)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("removeTinyFaces"), FunctionTemplate::New(jsWrap_StlSolid_removeTinyFaces)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("exportWebglMesh"), FunctionTemplate::New(jsWrap_StlSolid_exportWebglMesh)->GetFunction());
   
   JsWrap_StlSolid::constructor = Persistent<Function>::New(tpl->GetFunction());
   exports->Set(String::NewSymbol("StlSolid"), JsWrap_StlSolid::constructor);
@@ -255,6 +322,25 @@ Handle<Value> jsConstructor_StlMassProperties(JsWrap_StlMassProperties *thisObj,
   return args.This();
 }
 
+static Handle<Value> jsWrap_StlMassProperties_toString(const Arguments& args)
+{
+  HandleScope scope;
+  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
+  ostringstream oss;
+  oss << *thisObj->it;
+  return scope.Close(convStringToJs(oss.str()));
+}
+
+static Handle<Value> jsWrap_StlMassProperties_inspect(const Arguments& args)
+{
+  HandleScope scope;
+  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
+  ostringstream oss;
+  oss << *thisObj->it;
+  return scope.Close(convStringToJs(oss.str()));
+}
+
+
 static Handle<Value> jsGet_StlMassProperties_density(Local<String> name, AccessorInfo const &ai) {
   HandleScope scope;
   JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
@@ -313,6 +399,9 @@ void jsInit_StlMassProperties(Handle<Object> exports) {
   Local<FunctionTemplate> tpl = FunctionTemplate::New(jsNew_StlMassProperties);
   tpl->SetClassName(String::NewSymbol("StlMassProperties"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("toString"), FunctionTemplate::New(jsWrap_StlMassProperties_toString)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("inspect"), FunctionTemplate::New(jsWrap_StlMassProperties_inspect)->GetFunction());
 
   tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("density"), &jsGet_StlMassProperties_density);
   tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("volume"), &jsGet_StlMassProperties_volume);
