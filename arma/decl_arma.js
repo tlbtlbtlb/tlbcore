@@ -24,8 +24,12 @@ module.exports = function(typereg) {
     if (et === 'double') {
       typereg.aliasType(rType, 'arma::rowvec');
       typereg.aliasType(cType, 'arma::vec');
+      typereg.aliasType(cType, 'arma::vec2');
       typereg.aliasType(cType, 'arma::vec3');
+      typereg.aliasType(cType, 'arma::vec4');
+      typereg.aliasType(cType, 'EulerAngles');
       typereg.aliasType(mType, 'arma::mat');
+      typereg.aliasType(mType, 'arma::mat22');
       typereg.aliasType(mType, 'arma::mat33');
       typereg.aliasType(mType, 'arma::mat44');
     }
