@@ -12,8 +12,20 @@ node_modules ::
 include common/MakeSystem.inc
 
 # MAINTAINME
-JS_SRCDIRS = code_gen nodeif geom genes web numerical arma
+JS_SRCDIRS := \
+	common \
+	code_gen \
+	arma \
+	numerical \
+	geom \
+	nodeif \
+	genes \
+	web
 
+DECL_TYPES := \
+	arma/decl_arma.js \
+	geom/decl_geom.js \
+	numerical/decl_numerical.js
 
 # Manual machine setup
 # See https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager
@@ -40,7 +52,7 @@ setup ::
 	mkdir -p build.src
 
 stage1 ::
-	node code_gen/mk_marshall.js arma/decl_arma.js geom/decl_geom.js numerical/decl_numerical.js
+	node code_gen/mk_marshall.js $(DECL_TYPES)
 
 stage1 ::
 	cd nodeif && node-gyp configure
@@ -57,7 +69,7 @@ build.nodeif ::
 
 
 test :: build
-	env NODE_PATH=$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js))
+	env NODE_PATH=$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js)) build.src/test_*.js
 
 
 size ::

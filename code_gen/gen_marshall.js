@@ -1136,9 +1136,13 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('if (0) {');
     f('}');
     // When creating a vector<double>, allow passing in various native JS arrays
-    if (type.templateName === 'vector' && type.templateArgs[0] === 'double') {
-      f('else if (args.Length() == 1 && canConvJsToVectorDouble(args[0])) {');
-      f('it->assign(convJsToVectorDouble(args[0]));');
+    if (type.templateName === 'vector') {
+      f('else if (args.Length() == 1 && args[0]->IsNumber()) {');
+      f('size_t a0 = args[0]->NumberValue();');
+      f('it->assign(TYPENAME(a0));');
+      f('}');
+      f('else if (args.Length() == 0) {');
+      f('it->assign();');
       f('}');
     }
 
@@ -1209,7 +1213,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f('}');
       f('return ret;');
     }
-    else if (type.templateName === 'arma::Col' || type.templateName === 'arma::Col::fixed') {
+    else if (type.templateName === 'arma::Col' || type.templateName === 'arma::Row') {
       f('Local<Array> ret = Array::New(it.n_elem);');
       f('for (size_t i=0; i<it.n_elem; i++) {');
       f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
@@ -1505,7 +1509,7 @@ CollectionCType.prototype.emitJsTestImpl = function(f) {
   f('describe("JSTYPE C++ impl", function() {');
 
   f('it("should work", function() {');
-  if (type.templateName !== 'arma::subview_row' && type.templateName !== 'arma::Mat') { // WRITEME: implement fromString for mat
+  if (type.templateName !== 'arma::subview_row' && type.templateName !== 'arma::Mat' && type.templateName !== 'arma::Row') { // WRITEME: implement fromString for Mat and Row
     f('var t1 = ' + type.getExampleValueJs() + ';');
     f('var t1s = t1.toString();');
     f('var t2 = ur.JSTYPE.fromString(t1s);');
