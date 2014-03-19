@@ -1103,7 +1103,7 @@ function setupConsole(reloadKey) {
       window.location.reload(true);
     },
     cmd_flashError: function(msg) {
-      $(document.body).flashErrorMessage(msg.err);
+      $.flashErrorMessage(msg.err);
     }
   });
 }

@@ -978,27 +978,55 @@ RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
 
   var fullfn = path.join(self.fn, suffix);
 
-  // WRITEME
-  fs.readFile(fullfn, self.encoding, function(err, content) {
+  var contentType = contentTypeFromFn(suffix);
+  var encoding;
+  if (contentType === 'text/html' || contentType === 'text/xml') {
+    encoding = 'utf8';
+  } else {
+    encoding = 'binary';
+  }
+  
+  // WRITEME: when given a range request, don't read the entire file only to use a small slice
+  // Which means re-implementing most of fs.readFile
+  fs.readFile(fullfn, encoding, function(err, content) {
     if (err) {
       logio.E(fullfn, 'Error: ' + err);
       emit404(res, err);
       return;
     }
 
-    var contentType = contentTypeFromFn(suffix);
-    var encoding;
-    if (contentType === 'text/html' || contentType === 'text/xml') {
-      encoding = 'utf8';
-    } else {
-      encoding = 'binary';
+    var remote = res.connection.remoteAddress + '!http';
+
+    if (encoding === 'binary' && req.headers.range) {
+      // We have to support range queries for video files on iPhone, at least
+      var range = req.headers.range;
+      var rangem = /^(bytes=)?(\d+)-(\d*)/.exec(range);
+      if (rangem) {
+        var start = parseInt(rangem[2]);
+        // byte ranges are inclusive, so "bytes=0-1" means 2 bytes.
+        var end = rangem[3] ? parseInt(rangem[3]) : content.length -1;
+        
+        logio.O(remote, fullfn + ': (206 ' + contentType + ' range=' + start.toString() + '-' + end.toString() + '/' + content.length.toString() + ')');
+        res.writeHead(206, {
+          'Content-Type': contentType,
+          'Content-Length': (end - start + 1).toString(),
+          // 'bytes ', not 'bytes=' like the request for some reason
+          'Content-Range': 'bytes ' + start.toString() + '-' + end.toString() + '/' + content.length.toString(),
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'max-age=900'
+        });
+        res.write(content.slice(start, end + 1), encoding);
+        res.end();
+        return;
+      }
     }
 
-    var remote = res.connection.remoteAddress + '!http';
     logio.O(remote, fullfn + ': (200 ' + contentType + ' len=' + content.length.toString() + ')');
-    res.writeHead(200, {'Content-Type': contentType,
-                        'Content-Length': (encoding === 'binary' ? content.length.toString() : undefined),
-                        'Cache-Control': 'max-age=900'});
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Content-Length': (encoding === 'binary' ? content.length.toString() : undefined),
+      'Cache-Control': 'max-age=900'
+    });
     res.write(content, encoding);
     res.end();
   });
