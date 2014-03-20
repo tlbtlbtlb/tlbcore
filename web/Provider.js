@@ -304,10 +304,10 @@ AnyProvider.prototype.getType = function() {
 };
 
 AnyProvider.prototype.equals = function(other) {
-  return (this.constructor === other.constructor && this.fn === other.fn)
+  return (this.constructor === other.constructor && this.fn === other.fn);
 };
 
-AnyProvider.prototype.isDir = function() { return false; }
+AnyProvider.prototype.isDir = function() { return false; };
 
 /* ----------------------------------------------------------------------
    XmlContentProvider(fn) -- Most users use providerSet.addXmlContent(fn).
@@ -972,7 +972,7 @@ function RawDirProvider(fn) {
 }
 RawDirProvider.prototype = Object.create(AnyProvider.prototype);
 
-RawDirProvider.prototype.isDir = function() { return true; }
+RawDirProvider.prototype.isDir = function() { return true; };
 
 RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
   var self = this;

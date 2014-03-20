@@ -226,7 +226,6 @@ function emitNode(l, node) {
     case 'erf':
         // WRITEME: erf http://en.wikipedia.org/wiki/Error_function
       throw new Error('erf unimplemented');
-      break;
 
     }
 }

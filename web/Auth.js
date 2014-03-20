@@ -66,7 +66,6 @@ function parseToken(token) {
 
 
 function mkRandomStream() {
-  var self = this;
   var randChunk = '';
   var readPos = 0;
   var counter = 0;

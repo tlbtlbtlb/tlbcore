@@ -92,7 +92,7 @@ function gotoCurrentState() {
     var action = $.action[pageid];
     if (action) {
       try {
-        rc = action.call($(document.body), options);
+        action.call($(document.body), options);
       } catch(ex) {
         errlog('action', pageid, ex);
         return;

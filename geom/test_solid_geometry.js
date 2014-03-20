@@ -32,7 +32,7 @@ describe('solid_geometry', function() {
         if (ur.norm(err, 2) > 0.001) bad = true;
       }
 
-      if (bad) throw new Error('Expected ' + _.map(expectPts, function(e) { return e.toString()}) + ' got ' + _.map(intersectionPts, function(e) { return e.toString()}));
+      if (bad) throw new Error('Expected ' + _.map(expectPts, function(e) { return e.toString(); }) + ' got ' + _.map(intersectionPts, function(e) { return e.toString(); }));
     }
 
     checkIntersection(new ur.vec([1,0,0]), [new ur.vec([5.23085,-13.0847,-8.64565]), new ur.vec([5.54745,-13.0847,-8.64565])]);

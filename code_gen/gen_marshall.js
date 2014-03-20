@@ -521,20 +521,7 @@ function emitArgSwitch(f, typereg, thisType, argSets) {
   });
 
   f(ifSep + ' {');
-  if (0) {
-    f('string err = stringprintf("Expected 0 or ' + type.orderedNames.length + ' args, got %d (' +  
-      _.map(type.orderedNames, function(argName, argi) {
-        var argType = type.nameToType[argName];
-        return argName + ' %s ' + argType.jsTypename + '';
-      }).join(', ') + ')", args.Length()' +
-      _.map(type.orderedNames, function(argName, argi) {
-        var argType = type.nameToType[argName];
-        return '\n    , (' + argType.getJsToCppTest('args[' + argi + ']') + ') ? "isa" : "NOTA"';
-      }).join('') + ');');
-    f('return ThrowTypeError(err.c_str());');
-  } else {
-    f('return ThrowInvalidArgs();');
-  }
+  f('return ThrowInvalidArgs();');
   f('}');
 }
 

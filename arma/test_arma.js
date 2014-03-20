@@ -149,8 +149,8 @@ describe('mat33', function() {
     var t2 = new ur.mat([[2,3,4], [5,6,7], [8,9,10]]);
     var t3 = new ur.mat([[1,2,3], [4,5,6], [7,8,9]]);
 
-    assert.equal(ur.all(ur.all(ur.equals(t1, t2))), 0)
-    assert.equal(ur.all(ur.all(ur.equals(t1, t3))), 1)
+    assert.equal(ur.all(ur.all(ur.equals(t1, t2))), 0);
+    assert.equal(ur.all(ur.all(ur.equals(t1, t3))), 1);
   });
 
   it('toString should be fast (5000x)', function() {
