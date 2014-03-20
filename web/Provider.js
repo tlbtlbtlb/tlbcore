@@ -1,3 +1,4 @@
+'use strict';
 /*
   Maybe replace with node-browserify?
   This has a couple nice features I don't want to lose, though:

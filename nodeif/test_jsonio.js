@@ -1,6 +1,6 @@
-var ur = require('ur');
-var util = require('util');
-var assert = require('assert');
+var util                = require('util');
+var assert              = require('assert');
+var ur                  = require('ur');
 
 describe('jsonio of ur.TestStruct', function() {
   function checkStdVals(a) {

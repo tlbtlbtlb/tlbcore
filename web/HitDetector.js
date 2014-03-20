@@ -1,3 +1,4 @@
+'use strict';
 
 function HitDetector() {
   var hd = this;

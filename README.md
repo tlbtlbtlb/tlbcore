@@ -19,6 +19,9 @@ make install.npm
 make
 make test
 ```
+
+See below under "Build problems" if it doesn't work
+
 Web framework
 --
 
@@ -93,3 +96,12 @@ Gene Library
 
 
 
+Build Problems
+--
+
+If you get compile errors about missing definitions for `fill::zeros` and `all()`, you probably have
+an old version of Armadillo. We need version 4.1. (On Ubuntu 13.10 LTS, the latest from apt is 3.6.)
+Download version 4.1 or later and build from source:
+```sh
+	cd armadillo && cmake . -DCMAKE_INSTALL_PREFIX=/usr && make && sudo make install
+```

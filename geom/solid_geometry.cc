@@ -195,7 +195,7 @@ vec3 StlFace::getCentroid() const
 
 bool operator == (StlFace const &a, StlFace const &b)
 {
-  return (all(a.normal==b.normal) && 
+  return (all(a.normal == b.normal) && 
           all(a.v0 == b.v0) &&
           all(a.v1 == b.v1) &&
           all(a.v2 == b.v2));

@@ -1,9 +1,9 @@
 'use strict';
-var os = require('os');
-var fs = require('fs');
-var util = require('util');
-var assert = require('assert');
-var _ = require('underscore');
+var os                  = require('os');
+var fs                  = require('fs');
+var util                = require('util');
+var assert              = require('assert');
+var _                   = require('underscore');
 require('../common/MoreUnderscore');
 
 exports.FileGen = FileGen;

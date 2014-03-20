@@ -1,10 +1,10 @@
 'use strict';
-var fs = require('fs');
-var util = require('util');
-var _ = require('underscore');
-var cgen = require('./cgen');
-var gen_marshall = require('./gen_marshall');
-var gen_functions = require('./gen_functions');
+var fs                  = require('fs');
+var util                = require('util');
+var _                   = require('underscore');
+var cgen                = require('./cgen');
+var gen_marshall        = require('./gen_marshall');
+var gen_functions       = require('./gen_functions');
 
 
 function main() {

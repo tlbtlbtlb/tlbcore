@@ -1,3 +1,4 @@
+'use strict';
 /*
   It's reasonable to use this behind nginx. See http://nginx.org/en/docs/
 */

@@ -1,10 +1,10 @@
-var _ = require('underscore');
-var util = require('util');
-var fs = require('fs');
+'use strict';
+var _                   = require('underscore');
+var util                = require('util');
+var fs                  = require('fs');
+var parsejs             = require('./UglifyJS/lib/parse-js.js');
 
 exports.loadAndParse = loadAndParse;
-
-var parsejs = require('./UglifyJS/lib/parse-js.js');
 
 
 function loadAndParse(modname, cb) {
