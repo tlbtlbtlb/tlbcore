@@ -44,6 +44,8 @@ install.npm ::
 	sudo npm install -g underscore node-gyp jshint mocha uglify-js
 	cd .. && sudo npm install mocha underscore marked websocket base64 xmldom  eventemitter jquery jsmin2 async codemirror
 
+install.armadillo ::
+	cd ../armadillo && cmake . -DCMAKE_INSTALL_PREFIX=/usr && make && sudo make install
 
 clean ::
 	rm -rf build.src
