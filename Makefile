@@ -31,17 +31,17 @@ DECL_TYPES := \
 # See https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager
 install.ubuntu ::
 	sudo apt-get update
-	sudo apt-get install -y git make python-software-properties python g++ make software-properties-common
+	sudo apt-get -y install git make python-software-properties python g++ make software-properties-common
 	sudo add-apt-repository ppa:chris-lea/node.js
 	sudo apt-get update
-	sudo apt-get install -y nodejs
-	sudo apt-get install -y liblapack-dev pkg-config cmake libarmadillo-dev
+	sudo apt-get -y install nodejs
+	sudo apt-get -y install liblapack-dev pkg-config cmake libarmadillo-dev
 
 install.port ::
 	sudo port install git nodejs armadillo
 
 install.npm ::
-	sudo npm install -g node-gyp jshint mocha uglify-js
+	sudo npm install -g underscore node-gyp jshint mocha uglify-js
 	cd .. && sudo npm install mocha underscore marked websocket base64 xmldom  eventemitter jquery jsmin2 async codemirror
 
 
@@ -69,7 +69,7 @@ build.nodeif ::
 
 
 test :: build
-	env NODE_PATH=$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js)) build.src/test_*.js
+	env NODE_PATH=$(NODE_PATH):$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js)) build.src/test_*.js
 
 
 size ::
