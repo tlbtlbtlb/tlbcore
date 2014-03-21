@@ -32,7 +32,7 @@ DECL_TYPES := \
 install.ubuntu ::
 	sudo apt-get update
 	sudo apt-get -y install git make python-software-properties python g++ make software-properties-common
-	sudo add-apt-repository ppa:chris-lea/node.js
+	sudo add-apt-repository -y ppa:chris-lea/node.js
 	sudo apt-get update
 	sudo apt-get -y install nodejs
 	sudo apt-get -y install liblapack-dev pkg-config cmake libarmadillo-dev
@@ -43,9 +43,6 @@ install.port ::
 install.npm ::
 	sudo npm install -g underscore node-gyp jshint mocha uglify-js
 	cd .. && sudo npm install mocha underscore marked websocket base64 xmldom  eventemitter jquery jsmin2 async codemirror
-
-install.armadillo ::
-	cd ../armadillo && cmake . -DCMAKE_INSTALL_PREFIX=/usr && make && sudo make install
 
 clean ::
 	rm -rf build.src
