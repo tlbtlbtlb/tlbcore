@@ -19,12 +19,19 @@
       ],
     }],
     ['OS=="linux"', {
+      'make_global_settings': [
+        ['CXX','/usr/bin/clang++'],
+        ['LINK','/usr/bin/clang++'],
+      ],
       'libraries+': [
         '-larmadillo',
       ],
       'cflags_cc!': [
         '-fno-rtti', '-fno-exceptions'
       ],
+      'cflags_cc': [
+        '-std=c++11'
+      ]
     }],
   ]
 }
