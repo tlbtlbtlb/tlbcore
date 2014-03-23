@@ -52,7 +52,7 @@ struct jsonstr;
   This is the actual data in the packet
 */
 struct packet_contents {
-  int refcnt;
+  int refcnt; // should be std::atomic
   size_t alloc;
   uint8_t buf[1];
 };

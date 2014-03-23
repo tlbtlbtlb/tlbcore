@@ -216,8 +216,8 @@ Handle<Value> convJsonstrToJs(jsonstr const &it);
 template <typename CONTENTS>
 struct JsWrapGeneric : node::ObjectWrap {
   JsWrapGeneric()
-    :memory(NULL),
-     it(NULL)
+    :memory(nullptr),
+     it(nullptr)
   {
   }
   
@@ -279,7 +279,7 @@ struct JsWrapGeneric : node::ObjectWrap {
 
   static Handle<Value> NewInstance(CONTENTS const &_contents) {
     HandleScope scope;
-    Local<Object> instance = constructor->NewInstance(0, NULL);
+    Local<Object> instance = constructor->NewInstance(0, nullptr);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assign(_contents);
     return scope.Close(instance);
@@ -290,14 +290,14 @@ struct JsWrapGeneric : node::ObjectWrap {
   */
   static Handle<Value> ChildInstance(JsWrapOwnership *_memory, CONTENTS *_it) {
     HandleScope scope;
-    Local<Object> instance = constructor->NewInstance(0, NULL);
+    Local<Object> instance = constructor->NewInstance(0, nullptr);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assign(_memory, _it);
     return scope.Close(instance);
   }
   static Handle<Value> ChildInstance(JsWrapOwnership *_memory, CONTENTS const &_it) {
     HandleScope scope;
-    Local<Object> instance = constructor->NewInstance(0, NULL);
+    Local<Object> instance = constructor->NewInstance(0, nullptr);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assign(_memory, _it);
     return scope.Close(instance);
@@ -311,7 +311,7 @@ struct JsWrapGeneric : node::ObjectWrap {
         return node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(valueObject)->it;
       }
     }
-    return NULL;
+    return nullptr;
   }
 
   // Because node::ObjectWrap::Wrap is protected

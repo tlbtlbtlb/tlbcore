@@ -83,6 +83,3 @@ deploy:
 
 run:
 	node web/server.js doc
-
-t_anythreads :
-	$(CXX) $(CFLAGS) $(CXXFLAGS) -O2 -o $@ common/t_anythreads.cc common/anythreads.cc common/hacks.cc common/exceptions.cc

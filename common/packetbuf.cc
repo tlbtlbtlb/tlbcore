@@ -1,10 +1,11 @@
 #include "std_headers.h"
 #include <sys/stat.h>
-#include "anythreads.h"
+#include <mutex>
 #include "jsonio.h"
 
 packet_stats packet::stats;
 
+mutex refcnt_mutex;
 
 // ----------------------------------------------------------------------
 
@@ -23,7 +24,11 @@ void packet::decref(packet_contents *&it)
 {
   stats.decref_count++;
 
-  int newrefs = anyatomic_decr(it->refcnt);
+  int newrefs;
+  {
+    unique_lock<mutex> l1(refcnt_mutex);
+    newrefs = --it->refcnt;
+  }
   if (newrefs == 0) {
     stats.free_count++;
     free(it);
@@ -36,7 +41,11 @@ void packet::decref(packet_annotations *&it)
   if (!it) return;
   stats.decref_count++;
 
-  int newrefs = anyatomic_decr(it->refcnt);
+  int newrefs;
+  {
+    unique_lock<mutex> l1(refcnt_mutex);
+    newrefs = --it->refcnt;
+  }
   if (newrefs == 0) {
     stats.free_count++;
     delete it;
@@ -46,14 +55,20 @@ void packet::decref(packet_annotations *&it)
 
 void packet::incref(packet_contents *it)
 {
-  anyatomic_incr(it->refcnt);
+  {
+    unique_lock<mutex> l1(refcnt_mutex);
+    it->refcnt++;
+  }
   stats.incref_count++;
 }
 
 void packet::incref(packet_annotations *it)
 {
   if (!it) return;
-  anyatomic_incr(it->refcnt);
+  {
+    unique_lock<mutex> l1(refcnt_mutex);
+    it->refcnt++;
+  }
   stats.incref_count++;
 }
 

@@ -171,5 +171,4 @@ void utf8_backspace(std::string &s);
 
 double realtime();
 
-
 #endif

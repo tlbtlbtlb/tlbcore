@@ -1,7 +1,6 @@
 // -*- C++ -*-
 #ifndef TLBCORE_REFCOUNT_H
 #define TLBCORE_REFCOUNT_H
-#include "./anythreads.h"
 
 struct refcounted {
   refcounted();

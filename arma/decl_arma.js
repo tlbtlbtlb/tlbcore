@@ -10,16 +10,18 @@ module.exports = function(typereg) {
      It seems too complicated to extract these from the armadillo header files
   */
   _.each(['u_int', 'double', 'arma::cx_double', 'int'], function(et) {
-    var rTypename, cTypename, mTypename, srTypename;
-    var rType, cType, mType, srType;
+    var rTypename, cTypename, mTypename, srTypename, scTypename;
+    var rType, cType, mType, srType, scType;
     rTypename = 'arma::Row<' + et + '>';
     cTypename = 'arma::Col<' + et + '>';
     mTypename = 'arma::Mat<' + et + '>';
     srTypename = 'arma::subview_row<' + et + '>';
+    scTypename = 'arma::subview_col<' + et + '>';
     rType = typereg.template(rTypename);
     cType = typereg.template(cTypename);
     mType = typereg.template(mTypename);
     srType = typereg.template(srTypename);
+    scType = typereg.template(scTypename);
 
     if (et === 'double') {
       typereg.aliasType(rType, 'arma::rowvec');
@@ -46,11 +48,14 @@ module.exports = function(typereg) {
 
     srType.noSerialize = true;
     srType.isRef = true;
+    scType.noSerialize = true;
+    scType.isRef = true;
 
     // Mat type depends on Col and subview_row types when indexing
     mType.addDeclDependency(rType);
     mType.addDeclDependency(cType);
     mType.addDeclDependency(srType);
+    mType.addDeclDependency(scType);
 
     var isInteger = (et === 'int' || et === 'u_int');
     var isComplex = (et === 'arma::cx_double');

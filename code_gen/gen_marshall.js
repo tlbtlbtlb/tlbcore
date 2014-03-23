@@ -1170,6 +1170,10 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f('else if (args.Length() == 0) {');
       f('}');
     }
+    else if (type.templateName === 'arma::subview_col') {
+      f('else if (args.Length() == 0) {');
+      f('}');
+    }
 
     f('else {');
     if (0) f('eprintf("JSTYPE: Invalid args, len=%d\\n", (int)args.Length());');
@@ -1259,7 +1263,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     accessors.push({isNamed: true, get: true, set: true});
   }
 
-  if (type.templateName === 'arma::Col' || type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::subview_row') {
+  if (type.templateName === 'arma::Col' || 
+      type.templateName === 'arma::subview_row' || 
+      type.templateName === 'arma::subview_col') {
     f('static Handle<Value> jsGet_JSTYPE_n_rows(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
@@ -1291,7 +1297,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     accessors.push({isIndexed: true, get: true, set: true});
   }
 
-  if (type.templateName === 'arma::Mat' || type.templateName === 'arma::Mat::fixed' ) {
+  if (type.templateName === 'arma::Mat') {
     f('static Handle<Value> jsGet_JSTYPE_n_rows(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
@@ -1311,6 +1317,23 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('}');
     accessors.push({name: 'n_elem', get: true});
 
+    emitJsWrap(f, 'JSTYPE_row', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: ['u_int'], code: function() {
+          f('return scope.Close(' + type.reg.getType('arma::subview_row<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->row(a0)', 'thisObj->memory') + ');');
+        }
+      }]);
+    });
+    methods.push('row');
+
+    emitJsWrap(f, 'JSTYPE_col', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: ['u_int'], code: function() {
+          f('return scope.Close(' + type.reg.getType('arma::subview_col<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->col(a0)', 'thisObj->memory') + ');');
+        }
+      }]);
+    });
+    methods.push('col');
 
     f('static Handle<Value> jsGetIndexed_JSTYPE(unsigned int index, AccessorInfo const &ai) {');
     f('HandleScope scope;');
@@ -1496,7 +1519,10 @@ CollectionCType.prototype.emitJsTestImpl = function(f) {
   f('describe("JSTYPE C++ impl", function() {');
 
   f('it("should work", function() {');
-  if (type.templateName !== 'arma::subview_row' && type.templateName !== 'arma::Mat' && type.templateName !== 'arma::Row') { // WRITEME: implement fromString for Mat and Row
+  if (type.templateName !== 'arma::subview_row' && 
+      type.templateName !== 'arma::subview_col' && 
+      type.templateName !== 'arma::Mat' && 
+      type.templateName !== 'arma::Row') { // WRITEME: implement fromString for Mat and Row
     f('var t1 = ' + type.getExampleValueJs() + ';');
     f('var t1s = t1.toString();');
     f('var t2 = ur.JSTYPE.fromString(t1s);');
@@ -1589,7 +1615,7 @@ StructCType.prototype.getVarDecl = function(varname) {
 
 StructCType.prototype.getJsToCppTest = function(valueExpr) {
   var type = this;
-  return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != NULL)';
+  return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr)';
 };
 
 StructCType.prototype.getJsToCppExpr = function(valueExpr) {

@@ -37,8 +37,8 @@ map<string, LogBase *> &LogBase::objectByName()
 LogBase::LogBase(string const &_debugname)
   :verbose(0)
   ,debugname(strdup(withoutSlashes(_debugname).c_str()))
-  ,shortTypeName_(NULL)
-  ,logFp(NULL)
+  ,shortTypeName_(nullptr)
+  ,logFp(nullptr)
   ,nextLogTs(0.0)
 {
   setVerbose(verboseByName()[debugname]);
@@ -56,8 +56,8 @@ LogBase::LogBase(string const &_debugname)
 LogBase::LogBase(LogBase *_debugParent, string const &childName)
   :verbose(0)
   ,debugname(strdup((string(_debugParent->debugname) + string(".") + childName).c_str())),
-   shortTypeName_(NULL)
-  ,logFp(NULL)
+   shortTypeName_(nullptr)
+  ,logFp(nullptr)
   ,nextLogTs(0.0)
 {
   setVerbose(verboseByName()[debugname]);
@@ -86,7 +86,7 @@ LogBase::operator = (LogBase const &other) {
 LogBase::~LogBase()
 {
   if (deExistVerbose) eprintf("-DE %s (%p)...\n", debugname, this);
-  objectByName()[debugname] = NULL;
+  objectByName()[debugname] = nullptr;
   delete debugname;
   delete shortTypeName_;
 }
@@ -101,7 +101,7 @@ LogBase::setLoglevel(int ll)
   } else {
     if (logFp) {
       fclose(logFp);
-      logFp = NULL;
+      logFp = nullptr;
     }
   }
 }
@@ -158,7 +158,7 @@ LogBase::shortTypeName() const
 #ifdef __GNUC__
     int status = 0;
     size_t length = 0;
-    const_cast<LogBase *>(this)->shortTypeName_ = abi::__cxa_demangle(mangled, NULL, &length, &status);
+    const_cast<LogBase *>(this)->shortTypeName_ = abi::__cxa_demangle(mangled, nullptr, &length, &status);
     if (status != 0) const_cast<LogBase *>(this)->shortTypeName_ = mangled;
 #else
     // very basic C++ demangling

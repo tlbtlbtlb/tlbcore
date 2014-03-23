@@ -168,3 +168,38 @@ describe('mat33', function() {
   });
 });
 
+
+describe('mat', function() {
+  it('rows and cols work, mutate original matrix', function() {
+    var m = new ur.mat([[1,2,3], [4,5,6], [7,8,9]]);
+    var r0 = m.row(0);
+    assert.equal(r0[0], 1);
+    assert.equal(r0[1], 2);
+    assert.equal(r0[2], 3);
+    r0[1] *= 10;
+    assert.equal(m[0][1], 20);
+
+    var r1 = m.row(1);
+    assert.equal(r1[0], 4);
+    assert.equal(r1[1], 5);
+    assert.equal(r1[2], 6);
+    r1[1] *= 10;
+    assert.equal(m[1][1], 50);
+    
+    var c0 = m.col(0);
+    assert.equal(c0[0], 1);
+    assert.equal(c0[1], 4);
+    assert.equal(c0[2], 7);
+    c0[1] *= 10;
+    assert.equal(m[1][0], 40);
+
+    var c1 = m.col(1);
+    assert.equal(c1[0], 20);
+    assert.equal(c1[1], 50);
+    assert.equal(c1[2], 8);
+    c1[1] *= 10;
+    assert.equal(m[1][1], 500);
+    
+    
+  });
+});

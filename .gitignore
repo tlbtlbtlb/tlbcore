@@ -6,6 +6,5 @@
 .lock-wscript
 *.log
 *.o
-/t_anythreads
 /o3d-read-only/
 /webgl-loader-read-only/
