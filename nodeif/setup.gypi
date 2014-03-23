@@ -27,7 +27,7 @@
         '-larmadillo',
       ],
       'cflags_cc!': [
-        '-fno-rtti', '-fno-exceptions'
+        '-fno-rtti', '-fno-exceptions', '-fno-tree-vrp'
       ],
       'cflags_cc': [
         '-std=c++11'

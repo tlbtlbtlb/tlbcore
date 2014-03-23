@@ -6,7 +6,6 @@
     '../genes/test_genes.cc',
     '../common/LogBase.cc',
     '../common/hacks.cc',
-    '../common/refcount.cc',
     '../common/packetbuf.cc',
     '../common/host_debug.cc',
     '../common/jsonio.cc',
