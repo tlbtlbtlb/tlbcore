@@ -174,8 +174,6 @@ typedef unsigned char bool;
 #else
 #  include "./hacks.h"
 #ifdef __cplusplus
-struct debugentity;
-#  include "./LogBase.h"
 #  include "./packetbuf.h"
 #endif
 #  include "./host_debug.h"

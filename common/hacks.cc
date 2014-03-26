@@ -713,7 +713,7 @@ bool same_type(std::type_info const &t1, std::type_info const &t2)
 
   if (t1==t2) return true;
   if (!strcmp(t1.name(), t2.name())) {
-    if (0) printf("Type %s has two instances: %p[%p], %p[%p]\n", t1.name(), &t1, t1.name(), &t2, t2.name());
+    if (0) eprintf("Type %s has two instances: %p[%p], %p[%p]\n", t1.name(), &t1, t1.name(), &t2, t2.name());
     return true;
   }
   return false;

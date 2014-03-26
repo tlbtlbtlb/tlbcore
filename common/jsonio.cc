@@ -468,8 +468,7 @@ void wrJson(char *&s, arma::cx_double const &value)
 }
 bool rdJson(const char *&s, arma::cx_double &value)
 {
-  // WRITEME
-  return false;
+  throw runtime_error("rdJson(cx_double) not implemented");
 }
 
 
