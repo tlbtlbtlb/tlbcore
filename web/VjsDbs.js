@@ -8,7 +8,11 @@ var Topology            = require('./Topology');
 var Safety              = require('./Safety');
 
 /*
-  High-level interface to the database
+  High-level interface to the database.
+  Usage: 
+    require('VjsDbs').defDb('local', 'redis', '127.0.0.1', 6379, {}); 
+    ...
+    db = require('VjsDbs')('local');
 */
 
 module.exports = getNamedDb;
@@ -18,41 +22,44 @@ var dbDefs = {};
 var dbs = {};
 
 function getNamedDb(name) {
-  if (dbs[name]) return dbs[name];
+  if (!dbs[name]) { 
+    var defn = dbDefs[name];
+    if (!defn) throw new Error('Database not defined');
 
-  var defn = dbDefs[name];
-  if (!defn) throw new Error('Database not defined');
-
-  if (defn.type === 'redis') {
-    var redis0 = redis.createClient(defn.port, defn.host, null);
-    redis0.on('error', function(e) {
-      logio.E('redis', e);
-    });
-    enhanceRedis(redis0);
-    dbs[name] = redis0;
+    if (defn.type === 'redis') {
+      var redis0 = redis.createClient(defn.port, defn.host, defn.options);
+      redis0.on('error', function(e) {
+        logio.E('redis', e);
+      });
+      enhanceRedis(redis0);
+      dbs[name] = redis0;
+    }
+    // ADD new database types here
+    else {
+      throw new Error('Unknown database type ' + defn.type);
+    }
   }
-  // ADD new database types here
-  else {
-    throw new Error('Unknown database type ' + defn.type);
-  }
+  return dbs[name];
 }
 
-function defDb(name, type, host, port) {
+function defDb(name, type, host, port, options) {
+  options = _.extend({retry_max_delay: 5000}, options || {});
   if (dbDefs[name]) {
     var defn = dbDefs[name];
-    if (defn.name !== name || defn.type !== type || defn.host !== host || defn.port !== port) {
+    if (defn.name !== name || defn.type !== type || defn.host !== host || defn.port !== port || defn.options !== options) {
       throw new Error('Database ' + name + ' already defined with different info');
     }
   }
-  dbDefs[name] = { name: name, type: type, host: host, port: port };
+  dbDefs[name] = { name: name, type: type, host: host, port: port, options: options };
 }
 
 
 
-function enhanceRedis(self) {
+function enhanceRedis(redis0) {
 
-  self.getObj = function(key, cb) {
-    self.get(key, function(err, objStr) {
+  redis0.getObj = function(key, cb) {
+    var db = this;
+    db.get(key, function(err, objStr) {
       var obj;
       if (err) {
         if (cb) cb(err, undefined);
@@ -76,26 +83,29 @@ function enhanceRedis(self) {
     });
   };
 
-  self.setObj = function(key, obj, cb) {
+  redis0.setObj = function(key, obj, cb) {
+    var db = this;
     var objStr = JSON.stringify(obj);
-    self.set(key, objStr, function(err) {
+    db.set(key, objStr, function(err) {
       if (err) logio.E('redis.setObj ' + key, 'Error ' + err);
       if (cb) cb(err);
       cb = null;
     });
   };
 
-  self.createObj = function(key, obj, cb) {
+  redis0.createObj = function(key, obj, cb) {
+    var db = this;
     var objStr = JSON.stringify(obj);
-    self.setnx(key, objStr, function(err, created) {
+    db.setnx(key, objStr, function(err, created) {
       if (err) logio.E('redis.createObj ' + key, 'Error ' + err);
       if (cb) cb(err);
       cb = null;
     });
   };
 
-  self.updateObj = function(key, values, creator, cb) {
-    self.getObj(key, function(err, obj) {
+  redis0.updateObj = function(key, values, creator, cb) {
+    var db = this;
+    db.getObj(key, function(err, obj) {
       if (err) {
         if (cb) cb(err);
         cb = null;
@@ -130,12 +140,13 @@ function enhanceRedis(self) {
       } else {
         _.update(obj, values);
       }
-      self.setObj(key, obj, cb);
+      db.setObj(key, obj, cb);
     });
   };
 
-  self.deleteObj = function(key, cb) {
-    self.del(key, function(err) {
+  redis0.deleteObj = function(key, cb) {
+    var db = this;
+    db.del(key, function(err) {
       if (cb) cb(err);
       cb = null;
     });
