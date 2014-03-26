@@ -69,7 +69,7 @@ inline void jsonSkipSpace(char const *&s) {
 template<typename T>
 size_t wrJsonSize(vector<T> const &arr) {
   size_t ret = 2;
-  for (typename vector<T>::const_iterator it = arr.begin(); it != arr.end(); it++) {
+  for (auto it = arr.begin(); it != arr.end(); it++) {
     ret += wrJsonSize(*it) + 1;
   }
   return ret;
@@ -79,7 +79,7 @@ template<typename T>
 void wrJson(char *&s, vector<T> const &arr) {
   *s++ = '[';
   bool sep = false;
-  for (typename vector<T>::const_iterator it = arr.begin(); it != arr.end(); it++) {
+  for (auto it = arr.begin(); it != arr.end(); it++) {
     if (sep) *s++ = ',';
     sep = true;
     wrJson(s, *it);
@@ -254,7 +254,7 @@ bool rdJson(const char *&s, arma::Mat<T> &arr) {
 template<typename KT, typename VT>
 size_t wrJsonSize(map<KT, VT> const &arr) {
   size_t ret = 2;
-  for (typename map<KT, VT>::const_iterator it = arr.begin(); it != arr.end(); it++) {
+  for (auto it = arr.begin(); it != arr.end(); it++) {
     ret += wrJsonSize(it->first) + wrJsonSize(it->second) + 2;
   }
   return ret;
@@ -264,7 +264,7 @@ template<typename KT, typename VT>
 void wrJson(char *&s, map<KT, VT> const &arr) {
   *s++ = '{';
   bool sep = false;
-  for (typename map<KT, VT>::const_iterator it = arr.begin(); it != arr.end(); it++) {
+  for (auto it = arr.begin(); it != arr.end(); it++) {
     if (sep) *s++ = ',';
     sep = true;
     wrJson(s, it->first);

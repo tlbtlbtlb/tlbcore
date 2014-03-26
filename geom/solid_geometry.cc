@@ -315,7 +315,7 @@ void packet_wr_typetag(packet &p, StlSolid const &it)
 void
 StlSolid::transform(mat44 const &m)
 {
-  for (vector<StlFace>::iterator it = faces.begin(); it != faces.end(); ++it) {
+  for (auto it = faces.begin(); it != faces.end(); ++it) {
     StlFace &face = *it;
     face.transform(m);
   }
@@ -335,7 +335,7 @@ StlSolid::calcBbox()
   vec3 lo = faces[0].v0;
   vec3 hi = faces[0].v0;
 
-  for (vector<StlFace>::iterator it = faces.begin(); it != faces.end(); ++it) {
+  for (auto it = faces.begin(); it != faces.end(); ++it) {
     StlFace &face = *it;
     
     lo[0] = min(lo[0], face.v0[0]);
@@ -366,7 +366,7 @@ StlSolid::calcBbox()
 bool
 StlSolid::rayIntersects(vec3 const &p, vec3 const &d) const
 {
-  for (vector<StlFace>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
+  for (auto it = faces.begin(); it != faces.end(); ++it) {
     StlFace const &face = *it;
     double t;
     if (face.rayIntersects(p, d, t)) {
@@ -390,7 +390,7 @@ StlSolid::isInterior(vec3 const &pt) const
   dir[1] = 0;
   dir[2] = 0;
 
-  for (vector<StlFace>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
+  for (auto it = faces.begin(); it != faces.end(); ++it) {
     StlFace const &face = *it;
     double t;
     if (face.rayIntersects(pt, dir, t)) {
@@ -410,7 +410,7 @@ StlSolid::getIntersections(vec3 const &p, vec3 const &d) const
 {
   vector<StlIntersection> ret;
   
-  for (vector<StlFace>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
+  for (auto it = faces.begin(); it != faces.end(); ++it) {
     StlFace const &face = *it;
     double t;
     if (face.rayIntersects(p, d, t)) {
@@ -452,7 +452,7 @@ StlSolid::getStlMassProperties(double density) const
   double sum_yz = 0.0;
   double sum_zx = 0.0;
     
-  for (vector<StlFace>::const_iterator it = faces.begin(); it != faces.end(); ++it) {
+  for (auto it = faces.begin(); it != faces.end(); ++it) {
     StlFace const &f = *it;
         
     vec3 v0 = f.v0;
@@ -529,8 +529,9 @@ struct Vec3SpatialMap {
   
   ~Vec3SpatialMap()
   {
-    for (map<OctreeNode *, vector<vec3*>*>::iterator it = spatial.begin(); it != spatial.end(); ++it) {
+    for (auto it = spatial.begin(); it != spatial.end(); ++it) {
       delete it->second;
+      it->second = nullptr;
     }
     spatial.clear();
     delete root;
@@ -614,8 +615,7 @@ void StlSolid::removeTinyFaces(double minSize)
   
   for (int passi=0; passi<3; passi++) {
     
-    vector<int>::iterator fiit;
-    for (fiit = faceOrdering.begin(); fiit != faceOrdering.end(); ++fiit) {
+    for (auto fiit = faceOrdering.begin(); fiit != faceOrdering.end(); ++fiit) {
       StlFace &f = faces[*fiit];
       if (f.isDegenerate()) continue;
 
@@ -639,9 +639,9 @@ void StlSolid::removeTinyFaces(double minSize)
 
   size_t origFaces = faces.size();
 
-  vector<StlFace>::iterator fout = faces.begin();
-  vector<StlFace>::iterator fin = faces.begin();
-  vector<StlFace>::iterator fend = faces.end();
+  auto fout = faces.begin();
+  auto fin = faces.begin();
+  auto fend = faces.end();
 
   while (fin != fend) {
     StlFace &f = *fin++;

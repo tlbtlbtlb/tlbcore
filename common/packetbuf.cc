@@ -209,8 +209,7 @@ string &packet::annotation(string const &key)
 string packet::annotation(string const &key) const
 {
   if (annotations) {
-    map<string, string>::iterator slot;
-    slot = annotations->table.find(key);
+    auto slot = annotations->table.find(key);
     if (slot != annotations->table.end()) {
       return (*slot).second;
     }
@@ -221,8 +220,7 @@ string packet::annotation(string const &key) const
 bool packet::has_annotation(string const &key) const
 {
   if (annotations) {
-    map<string, string>::iterator slot;
-    slot = annotations->table.find(key);
+    auto slot = annotations->table.find(key);
     if (slot != annotations->table.end()) {
       return true;
     }

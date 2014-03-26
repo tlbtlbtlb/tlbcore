@@ -201,7 +201,7 @@ bool rdJson(const char *&s, double &value) {
 
 size_t wrJsonSize(string const &value) { 
   size_t ret = 2;
-  for (string::const_iterator vi = value.begin(); vi != value.end(); vi++) {
+  for (auto vi = value.begin(); vi != value.end(); vi++) {
     u_char c = *vi;
     if (c == (u_char)0x22) {
       ret += 2;
@@ -224,7 +224,7 @@ void wrJson(char *&s, string const &value) {
   mbstate_t mbs;
   memset(&mbs, 0, sizeof(mbs));
 #endif
-  for (string::const_iterator vi = value.begin(); vi != value.end(); vi++) {
+  for (auto vi = value.begin(); vi != value.end(); vi++) {
     u_char c = *vi;
     if (c == (u_char)0x22) {
       *s++ = 0x5c;

@@ -1,5 +1,16 @@
 # Coding style
 
+## Language/Compilers
+
+* We require C++11. It is regularly tested on OSX with XCode's clang 3.4 derivative, or on Linux with clang 3.3.
+* We require NodeJS 10.X
+* Browser code should work on modern browsers, but it's only regularly tested on Chrome-stable.
+
+## Libraries
+
+* We use Armadillo [http://arma.sourceforge.net/docs.html] for linear algebra
+* We use MLPACK [http://mlpack.org/doxygen.php] for 
+
 ## Exceptions
 
 * Code is not expected to recover gracefully from memory allocation failure.

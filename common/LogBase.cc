@@ -226,7 +226,7 @@ Handle<Object> LogBase::getAllInfo()
   ret->Set(String::NewSymbol("objs"), objs);
 
   map<string, LogBase *> &obn = objectByName();
-  for (map<string, LogBase *>::iterator it = obn.begin(); it!=obn.end(); it++) {
+  for (auto it = obn.begin(); it!=obn.end(); it++) {
     LogBase *de = it->second;
     if (de) {
       objs->Set(String::NewSymbol(it->first.c_str()), de->getInfo());
@@ -245,7 +245,7 @@ Handle<Object> LogBase::getAllHealth()
   ret->Set(String::NewSymbol("objs"), objs);
 
   map<string, LogBase *> &obn = objectByName();
-  for (map<string, LogBase *>::iterator it = obn.begin(); it!=obn.end(); it++) {
+  for (auto it = obn.begin(); it!=obn.end(); it++) {
     if (it->second) {
       Handle<Object> itHealth = it->second->getHealth();
       objs->Set(String::NewSymbol(it->first.c_str()), itHealth);
@@ -284,7 +284,7 @@ void LogBase::globalRemoteCmd(json &cmds, json &rsps)
   rsps.be_dict();
 
   map<string, json> cmdsMap = cmds.dict_value();
-  for (map<string, json>::iterator it = cmdsMap.begin(); it != cmdsMap.end(); it++) {
+  for (auto it = cmdsMap.begin(); it != cmdsMap.end(); it++) {
     string name = it->first;
     json cmd = it->second;
     
@@ -306,7 +306,7 @@ void LogBase::globalRemoteCmd(json &cmds, json &rsps)
 bool isSafeCaptureFn(string fn)
 {
   if (fn.size() < 1) return false;
-  string::iterator it = fn.begin();
+  auto it = fn.begin();
   if (it != fn.end() && *it == '/') {
     it++;
     if (it != fn.end() && *it == 't') {

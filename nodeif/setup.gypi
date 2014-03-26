@@ -8,6 +8,7 @@
         'OTHER_CFLAGS': ['-stdlib=libc++', 
                          '-Wall', '-Wextra', 
                          '-Wno-format-nonliteral', '-Wno-missing-prototypes', '-Wno-unused-parameter', 
+                         '-Wno-c++11-extensions',
                          '-Winit-self', '-Wshadow', '-Wpointer-arith', '-Wcast-qual',
                          '-Weffc++']
       },

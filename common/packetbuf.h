@@ -521,7 +521,7 @@ template<typename T1, typename T2>
 void packet_wr_value(packet &p, map<T1, T2> const &x)
 {
   p.add((uint32_t)x.size());
-  for (typename map<T1, T2>::const_iterator it = x.begin(); it != x.end(); it++) {
+  for (auto it = x.begin(); it != x.end(); it++) {
     p.add(it->first);
     p.add(it->second);
   }

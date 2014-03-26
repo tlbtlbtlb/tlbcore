@@ -678,15 +678,15 @@ string tlb_realpath(const string &pathname)
 
 string tlb_basename(const string &pathname)
 {
-  string::const_iterator pnbeg = pathname.begin();
-  string::const_iterator pnend = pathname.end();
+  auto pnbeg = pathname.begin();
+  auto pnend = pathname.end();
 
   if (pnbeg==pnend) return string(".");
   
-  string::const_iterator baseend = pnend;
+  auto baseend = pnend;
   while (baseend-1 > pnbeg && *(baseend-1)=='/') baseend--;
   
-  string::const_iterator basebeg = baseend-1;
+  auto basebeg = baseend-1;
   
   while (basebeg > pnbeg && *(basebeg-1) != '/') basebeg--;
   
@@ -723,7 +723,7 @@ bool same_type(std::type_info const &t1, std::type_info const &t2)
 void stl_exec(vector<string> const &args)
 {
   vector<const char *> cargs;
-  for (vector<string>::const_iterator it = args.begin(); it!=args.end(); it++) {
+  for (auto it = args.begin(); it!=args.end(); it++) {
     cargs.push_back(it->c_str());
   }
   cargs.push_back(nullptr);

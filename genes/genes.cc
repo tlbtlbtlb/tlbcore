@@ -7,7 +7,7 @@ GeneSet::GeneSet(const char *_filename)
   :filename(_filename), valid(false)
 {
   while (1) {
-    string::iterator slashIt = find(filename.begin(), filename.end(), '/');
+    auto slashIt = find(filename.begin(), filename.end(), '/');
     if (slashIt == filename.end()) break;
     filename = string(slashIt+1, filename.end());
   }
@@ -71,15 +71,15 @@ void GeneSet::save()
     return;
   }
 
-  for (map<string, int>::iterator it = mapInt.begin(); it != mapInt.end(); it++) {
+  for (auto it = mapInt.begin(); it != mapInt.end(); it++) {
     fprintf(f, "int %s %d\n", it->first.c_str(), (int)it->second);
   }
-  for (map<string, double>::iterator it = mapDouble.begin(); it != mapDouble.end(); it++) {
+  for (auto it = mapDouble.begin(); it != mapDouble.end(); it++) {
     fprintf(f, "double %s %g\n", it->first.c_str(), (double)it->second);
   }
-  for (map<string, vector<double> >::iterator it = mapVectorDouble.begin(); it != mapVectorDouble.end(); it++) {
+  for (auto it = mapVectorDouble.begin(); it != mapVectorDouble.end(); it++) {
     fprintf(f, "vector<double> %s", it->first.c_str());
-    for (vector<double>::iterator it2 = it->second.begin(); it2 != it->second.end(); it2++) {
+    for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++) {
       fprintf(f, " %g", *it2);
     }
     fprintf(f, "\n");

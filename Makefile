@@ -42,7 +42,7 @@ install.port ::
 
 install.npm ::
 	sudo npm install -g underscore node-gyp jshint mocha uglify-js
-	cd .. && sudo npm install mocha underscore marked websocket base64 xmldom  eventemitter jquery jsmin2 async codemirror
+	cd .. && sudo npm install mocha underscore hiredis redis marked websocket base64 xmldom  eventemitter jquery jsmin2 async codemirror
 
 clean ::
 	rm -rf build.src
