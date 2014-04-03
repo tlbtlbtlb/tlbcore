@@ -382,13 +382,18 @@ $.fn.fmtBullets = function(items) {
 /* ----------------------------------------------------------------------
   Set text, escaping potential html
 */
+
+function escapeHtml(text) {
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+};
+
 $.fn.fmtText = function(text) {  
-  this.html(text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+  this.html(String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
   return this;
 };
 
 $.fn.fmtTextLines = function(text) {  
-  this.html(text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>'));
+  this.html(String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>'));
   return this;
 };
 
