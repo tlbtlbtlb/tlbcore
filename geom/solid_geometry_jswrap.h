@@ -1,6 +1,6 @@
 #ifndef INCLUDE_solid_geometry_jswrap_h
 #define INCLUDE_solid_geometry_jswrap_h
-#include "../build.src/vec_jsWrap.h"
+#include "build.src/vec_jsWrap.h"
 #include "./solid_geometry.h"
 
 typedef JsWrapGeneric< StlSolid > JsWrap_StlSolid;
