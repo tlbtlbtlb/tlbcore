@@ -31,7 +31,7 @@ DECL_TYPES := \
 # See https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager
 install.ubuntu ::
 	sudo apt-get update
-	sudo apt-get -y install git make python-software-properties python g++ make software-properties-common
+	sudo apt-get -y install git make python-software-properties python g++ make software-properties-common curl pwgen
 	sudo add-apt-repository -y ppa:chris-lea/node.js
 	sudo apt-get update
 	sudo apt-get -y install nodejs
@@ -40,9 +40,12 @@ install.ubuntu ::
 install.port ::
 	sudo port install git nodejs armadillo
 
+install.brew ::
+	brew install rename zopfli ffmpeg python trash node tree ack hub git
+
 install.npm ::
 	sudo npm install -g underscore node-gyp jshint mocha uglify-js
-	cd .. && sudo npm install mocha underscore hiredis redis marked websocket base64 xmldom  eventemitter jquery jsmin2 async codemirror
+	sudo npm install -g hiredis redis marked websocket base64 xmldom  eventemitter jquery jsmin2 async codemirror mori
 
 clean ::
 	rm -rf build.src
@@ -65,7 +68,6 @@ build :: build.nodeif
 build.nodeif :: 
 	cd nodeif && node-gyp build --jobs 8
 	ln -sf build/Release nodeif/bin
-
 
 test :: build
 	env NODE_PATH=$(NODE_PATH):$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js)) build.src/test_*.js

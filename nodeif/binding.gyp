@@ -20,6 +20,7 @@
       ],
       'sources': [
         './main.cc',
+        '../genes/test_genes.cc',
       ]
     }
   ]
