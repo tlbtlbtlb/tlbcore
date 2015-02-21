@@ -474,7 +474,8 @@ TypeRegistry.prototype.addWrapFunction = function(desc, funcScope, funcname, fun
 };
 
 TypeRegistry.prototype.addRtFunction = function(name, inargs, outargs) {
-  return this.rtFunctions[name] = new gen_functions.RtFunction(this, name, inargs, outargs);
+  var typereg = this;
+  return typereg.rtFunctions[name] = new gen_functions.RtFunction(typereg, name, inargs, outargs);
 };
 
 // ----------------------------------------------------------------------
@@ -1004,6 +1005,13 @@ function CollectionCType(reg, typename) {
     }
   });
 
+  if (type.templateName == 'timeseq') {
+    type.extraJsWrapHeaderIncludes.push('timeseq/timeseq.h');
+    type.noSerialize = true;
+    type.noPacket = true;
+  }
+
+
   type.templateArgTypes = _.map(type.templateArgs, function(name) { return type.reg.types[name]; });
   if (0) console.log('template', typename, type.templateName, type.templateArgs);
 }
@@ -1172,6 +1180,11 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     }
     else if (type.templateName === 'arma::subview_col') {
       f('else if (args.Length() == 0) {');
+      f('}');
+    }
+    else if (type.templateName === 'timeseq') {
+      f('else if (args.Length() == 0) {');
+      f('it->assign();');
       f('}');
     }
 
@@ -1396,6 +1409,73 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     methods.push('clear');
   }
 
+  if (type.templateName === 'timeseq') {
+
+    emitJsWrap(f, 'JSTYPE_add', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: [type.templateArgTypes[0]], code: function() {
+          f('thisObj->it->add(a0);');
+          f('return scope.Close(Undefined());');
+        }
+      }]);
+    });
+    methods.push('add');
+
+    emitJsWrap(f, 'JSTYPE_getClosest', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: ['double'], code: function() {
+          f(type.templateArgTypes[0].typename + ' *ret = thisObj->it->get_closest(a0);');
+          f('if (ret == NULL) return scope.Close(Undefined());');
+          f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('*ret', 'thisObj->memory') + ');');
+        }
+      }]);
+    });
+    methods.push('getClosest');
+
+    emitJsWrap(f, 'JSTYPE_getAfter', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: ['double'], code: function() {
+          f(type.templateArgTypes[0].typename + ' *ret = thisObj->it->get_after(a0);');
+          f('if (ret == NULL) return scope.Close(Undefined());');
+          f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('*ret', 'thisObj->memory') + ');');
+        }
+      }]);
+    });
+    methods.push('getAfter');
+
+    emitJsWrap(f, 'JSTYPE_getBefore', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: ['double'], code: function() {
+          f(type.templateArgTypes[0].typename + ' *ret = thisObj->it->get_before(a0);');
+          f('if (ret == NULL) return scope.Close(Undefined());');
+          f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('*ret', 'thisObj->memory') + ');');
+        }
+      }]);
+    });
+    methods.push('getBefore');
+    
+    emitJsWrap(f, 'JSTYPE_writeToFile', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: ['string'], code: function() {
+          f('int ret = thisObj->it->write_to_file(a0);');
+          f('return scope.Close(Number::New(ret));');
+        }
+      }]);
+    });
+    methods.push('writeToFile');
+
+    emitJsWrap(f, 'JSTYPE_readFromFile', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: ['string'], code: function() {
+          f('int ret = thisObj->it->read_from_file(a0);');
+          f('return scope.Close(Number::New(ret));');
+        }
+      }]);
+    });
+    methods.push('readFromFile');
+
+  }
+
 
   if (!type.noSerialize) {
     emitJsWrap(f, 'JSTYPE_toJsonString', function() {
@@ -1525,8 +1605,10 @@ CollectionCType.prototype.emitJsTestImpl = function(f) {
       type.templateName !== 'arma::Row') { // WRITEME: implement fromString for Mat and Row
     f('var t1 = ' + type.getExampleValueJs() + ';');
     f('var t1s = t1.toString();');
-    f('var t2 = ur.JSTYPE.fromString(t1s);');
-    f('assert.strictEqual(t1.toString(), t2.toString());');
+    if (!type.noSerialize) {
+      f('var t2 = ur.JSTYPE.fromString(t1s);');
+      f('assert.strictEqual(t1.toString(), t2.toString());');
+    }
     
     if (!type.noPacket) {
       f('var t1b = t1.toPacket();');
