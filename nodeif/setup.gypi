@@ -6,18 +6,18 @@
         'GCC_ENABLE_CPP_RTTI': 'YES', 
         'MACOSX_DEPLOYMENT_TARGET': '10.7',
         'OTHER_CFLAGS': ['-stdlib=libc++', 
+                         '-std=c++11',
                          '-Wall', '-Wextra', 
                          '-Wno-format-nonliteral', '-Wno-missing-prototypes', '-Wno-unused-parameter', 
                          '-Wno-c++11-extensions',
-                         '-Winit-self', '-Wshadow', '-Wpointer-arith', '-Wcast-qual',
-                         '-Weffc++']
+                         '-Winit-self', '-Wshadow', '-Wpointer-arith', '-Wcast-qual']
       },
       'include_dirs+': [
-        '/opt/local/include',
+        '/usr/local/include',
       ],
       'libraries+': [
-        '-L/opt/local/lib', '-larmadillo',
-      ],
+        '-L/usr/local/lib', '-larmadillo',
+      ]
     }],
     ['OS=="linux"', {
       'make_global_settings': [
