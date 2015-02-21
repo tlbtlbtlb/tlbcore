@@ -4,6 +4,7 @@
 #include "./hacks.h"
 
 #include <regex.h>
+#include <netdb.h>
 
 
 char *
@@ -803,4 +804,12 @@ bool exec_change_watcher::w_check()
 }
 
 // ----------------------------------------------------------------------
+
+string sockaddr_desc(sockaddr *sa)
+{
+  char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+  getnameinfo(sa, sa->sa_len, hbuf, sizeof(hbuf), sbuf, sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV);
+  string ret = stringprintf("%s:%s", hbuf, sbuf);
+  return ret;
+}
 

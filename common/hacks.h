@@ -166,6 +166,8 @@ struct exec_change_watcher {
 
 void utf8_backspace(std::string &s);
 
+std::string sockaddr_desc(struct sockaddr *sa);
+
 #endif
 
 
