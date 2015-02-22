@@ -88,6 +88,27 @@ void wrJson(char *&s, vector<T> const &arr) {
 }
 
 template<typename T>
+size_t wrJsonSize(vector<T *> const &arr) {
+  size_t ret = 2;
+  for (auto it = arr.begin(); it != arr.end(); it++) {
+    ret += wrJsonSize(**it) + 1;
+  }
+  return ret;
+}
+
+template<typename T>
+void wrJson(char *&s, vector<T *> const &arr) {
+  *s++ = '[';
+  bool sep = false;
+  for (auto it = arr.begin(); it != arr.end(); it++) {
+    if (sep) *s++ = ',';
+    sep = true;
+    wrJson(s, **it);
+  }
+  *s++ = ']';
+}
+
+template<typename T>
 bool rdJson(const char *&s, vector<T> &arr) {
   jsonSkipSpace(s);
   if (*s != '[') return false;
