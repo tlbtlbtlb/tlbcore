@@ -1296,6 +1296,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
   }
 
   if (type.templateName === 'map' && type.templateArgs[0] === 'string') {
+    var valueType = type.reg.types[type.templateArgs[1]];
     f('static Handle<Value> jsGetNamed_JSTYPE(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
@@ -1311,9 +1312,14 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
     f('string key = convJsToString(name);');
-    f(type.templateArgs[1] + ' cvalue(' + type.reg.types[type.templateArgs[1]].getJsToCppExpr('value') + ');');
+    f('if (' + valueType.getJsToCppTest('value') + ') {');
+    f(type.templateArgs[1] + ' cvalue(' + valueType.getJsToCppExpr('value') + ');');
     f('(*thisObj->it)[key] = cvalue;');
     f('return scope.Close(value);');
+    f('}');
+    f('else {');
+    f('return scope.Close(ThrowTypeError("Expected ' + valueType.typename + '"));');
+    f('}');
     f('}');
     accessors.push({isNamed: true, get: true, set: true});
   }
@@ -1321,6 +1327,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
   if (type.templateName === 'arma::Col' || 
       type.templateName === 'arma::subview_row' || 
       type.templateName === 'arma::subview_col') {
+    var elType = type.reg.types[type.templateArgs[0]];
     f('static Handle<Value> jsGet_JSTYPE_n_rows(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
@@ -1338,16 +1345,21 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
     f('if (index >= thisObj->it->n_elem) return scope.Close(Undefined());');
-    f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->memory') + ');');
+    f('return scope.Close(' + elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->memory') + ');');
     f('}');
 
     f('static Handle<Value> jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
     f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
-    f(type.templateArgs[0] + ' cvalue(' + type.reg.types[type.templateArgs[0]].getJsToCppExpr('value') + ');');
+    f('if (' + elType.getJsToCppTest('value') + ') {');
+    f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value') + ');');
     f('(*thisObj->it)(index) = cvalue;');
     f('return scope.Close(value);');
+    f('}');
+    f('else {');
+    f('return scope.Close(ThrowTypeError("Expected ' + elType.typename + '"));');
+    f('}');
     f('}');
     accessors.push({isIndexed: true, get: true, set: true});
   }
@@ -1424,9 +1436,15 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('static Handle<Value> jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f(type.templateArgs[0] + ' cvalue(' + type.reg.types[type.templateArgs[0]].getJsToCppExpr('value') + ');');
+    var elType = type.reg.types[type.templateArgs[0]];
+    f('if (' + elType.getJsToCppTest('value') + ') {');
+    f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value') + ');');
     f('(*thisObj->it)[index] = cvalue;');
     f('return scope.Close(value);');
+    f('}');
+    f('else {');
+    f('return scope.Close(ThrowTypeError("Expected ' + elType.typename + '"));');
+    f('}');
     f('}');
     accessors.push({isIndexed: true, get: true, set: true});
 
@@ -1545,6 +1563,16 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       }]);
     });
     methods.push('readFromFile');
+
+    emitJsWrap(f, 'JSTYPE_getChunkJson', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: ['double'], code: function() {
+          f('jsonstr ret = thisObj->it->get_chunk_json(a0);');
+          f('return scope.Close(convStringToJsBuffer(ret.it));');
+        }
+      }]);
+    });
+    methods.push('getChunkJson');
 
   }
 
