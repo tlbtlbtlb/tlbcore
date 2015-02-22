@@ -160,7 +160,61 @@ bool rdJson(const char *&s, arma::Col<T> &arr) {
     }
   }
   s++;
-  arr.clear();
+  //arr.clear();
+  arr.set_size(tmparr.size());
+  for (size_t i=0; i < tmparr.size(); i++) {
+    arr(i) = tmparr[i];
+  }
+  return true;
+}
+
+// Json arma::Row
+template<typename T>
+size_t wrJsonSize(arma::Row<T> const &arr) {
+  size_t ret = 2;
+  for (size_t i = 0; i < arr.n_elem; i++) {
+    ret += wrJsonSize(arr(i)) + 1;
+  }
+  return ret;
+}
+
+template<typename T>
+void wrJson(char *&s, arma::Row<T> const &arr) {
+  *s++ = '[';
+  bool sep = false;
+  for (size_t i = 0; i < arr.n_elem; i++) {
+    if (sep) *s++ = ',';
+    sep = true;
+    wrJson(s, arr(i));
+  }
+  *s++ = ']';
+}
+
+template<typename T>
+bool rdJson(const char *&s, arma::Row<T> &arr) {
+  jsonSkipSpace(s);
+  if (*s != '[') return false;
+  s++;
+  vector<T> tmparr;
+  while (1) {
+    jsonSkipSpace(s);
+    if (*s == ']') break;
+    T tmp;
+    if (!rdJson(s, tmp)) return false;
+    tmparr.push_back(tmp);
+    jsonSkipSpace(s);
+    if (*s == ',') {
+      s++;
+    }
+    else if (*s == ']') {
+      break;
+    }
+    else {
+      return false;
+    }
+  }
+  s++;
+  //arr.clear();
   arr.set_size(tmparr.size());
   for (size_t i=0; i < tmparr.size(); i++) {
     arr(i) = tmparr[i];
@@ -195,35 +249,15 @@ void wrJson(char *&s, arma::Mat<T> const &arr) {
 
 template<typename T>
 bool rdJson(const char *&s, arma::Mat<T> &arr) {
-  // WRITEME
-#if 0
+
   jsonSkipSpace(s);
   if (*s != '[') return false;
   s++;
-  int n_rows, n_cols;
-  rdJson(s, n_rows);
-  jsonSkipSpace(s);
-  if (*s == ',') {
-    s++;
-  } else {
-    return false;
-  }
-  rdJson(s, n_cols);
-  jsonSkipSpace(s);
-  if (*s == ',') {
-    s++;
-  }
-  else if (*s == ']') {
-    arr.clear();
-    return true;
-  } else {
-    return false;
-  }
-  vector<T> tmparr;
+  vector< arma::Row<T> > tmparr;
   while (1) {
     jsonSkipSpace(s);
     if (*s == ']') break;
-    T tmp;
+    arma::Row<T> tmp;
     if (!rdJson(s, tmp)) return false;
     tmparr.push_back(tmp);
     jsonSkipSpace(s);
@@ -238,15 +272,17 @@ bool rdJson(const char *&s, arma::Mat<T> &arr) {
     }
   }
   s++;
-  arr.clear();
+
+  size_t n_rows = tmparr.size();
+  size_t n_cols = (n_rows > 0) ? tmparr[0].n_cols : 0;
+  if (0) eprintf("rdJson(arma::Mat): %d,%d -> %d,%d\n", (int)arr.n_rows, (int)arr.n_cols, (int)n_rows, (int)n_cols);
   arr.set_size(n_rows, n_cols);
-  for (size_t i=0; i < tmparr.size(); i++) {
-    arr(i) = tmparr[i];
+  for (size_t ri=0; ri < n_rows; ri++) {
+    for (size_t ci=0; ci < n_cols; ci++) {
+      arr(ri, ci) = tmparr[ri][ci];
+    }
   }
   return true;
-#else
-  return false;
-#endif
 }
 
 // Json Map
@@ -319,6 +355,9 @@ jsonstr asJson(const T &value) {
   char *buf = new char[retSize];
   char *p = buf;
   wrJson(p, value);
+  if (p > buf + retSize) {
+    throw runtime_error("wrJson buffer overrun");
+  }
   jsonstr ret(buf, p);
   delete buf;
   return ret;

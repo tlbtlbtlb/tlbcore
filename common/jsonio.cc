@@ -468,7 +468,79 @@ void wrJson(char *&s, arma::cx_double const &value)
 }
 bool rdJson(const char *&s, arma::cx_double &value)
 {
-  throw runtime_error("rdJson(cx_double) not implemented");
+  double value_real = 0.0, value_imag = 0.0;
+
+  char c;
+  jsonSkipSpace(s);
+  c = *s++;
+  if (c == '{') {
+    while(1) {
+      jsonSkipSpace(s);
+      c = *s++;
+      if (c == '}') {
+        value = arma::cx_double(value_real, value_imag);
+        return true;
+      }
+      else if (c == '\"') {
+        c = *s++;
+        if (c == 'r') {
+          c = *s++;
+          if (c == 'e') {
+            c = *s++;
+            if (c == 'a') {
+              c = *s++;
+              if (c == 'l') {
+                c = *s++;
+                if (c == '\"') {
+                  c = *s++;
+                  if (c == ':') {
+                    if (rdJson(s, value_real)) {
+                      jsonSkipSpace(s);
+                      c = *s++;
+                      if (c == ',') continue;
+                      if (c == '}') {
+                        value = arma::cx_double(value_real, value_imag);
+                        return true;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (c == 'i') {
+          c = *s++;
+          if (c == 'm') {
+            c = *s++;
+            if (c == 'a') {
+              c = *s++;
+              if (c == 'g') {
+                c = *s++;
+                if (c == '\"') {
+                  c = *s++;
+                  if (c == ':') {
+                    if (rdJson(s, value_imag)) {
+                      jsonSkipSpace(s);
+                      c = *s++;
+                      if (c == ',') continue;
+                      if (c == '}') {
+                        value = arma::cx_double(value_real, value_imag);
+                        return true;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+  s--;
+  return false;
 }
 
 
