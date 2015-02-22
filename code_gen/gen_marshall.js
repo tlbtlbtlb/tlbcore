@@ -1454,6 +1454,36 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     });
     methods.push('getBefore');
     
+    emitJsWrap(f, 'JSTYPE_getNBefore', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: ['double', 'int'], code: function() {
+          f('vector< ' + type.templateArgTypes[0].typename + ' * > ret = thisObj->it->get_n_before(a0, a1);');
+
+          f('Local<Array> jsret = Array::New(ret.size());');
+          f('for (size_t i=0; i<ret.size(); i++) {');
+          f('jsret->Set(i, ' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('*ret[i]', 'thisObj->memory') + ');');
+          f('}');
+          f('return scope.Close(jsret);');
+        }
+      }]);
+    });
+    methods.push('getNBefore');
+    
+    emitJsWrap(f, 'JSTYPE_getNAfter', function() {
+      emitArgSwitch(f, type.reg, type, [{
+        args: ['double', 'int'], code: function() {
+          f('vector< ' + type.templateArgTypes[0].typename + ' * > ret = thisObj->it->get_n_after(a0, a1);');
+
+          f('Local<Array> jsret = Array::New(ret.size());');
+          f('for (size_t i=0; i<ret.size(); i++) {');
+          f('jsret->Set(i, ' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('*ret[i]', 'thisObj->memory') + ');');
+          f('}');
+          f('return scope.Close(jsret);');
+        }
+      }]);
+    });
+    methods.push('getNAfter');
+    
     emitJsWrap(f, 'JSTYPE_writeToFile', function() {
       emitArgSwitch(f, type.reg, type, [{
         args: ['string'], code: function() {
