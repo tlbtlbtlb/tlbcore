@@ -138,8 +138,10 @@ describe('vec3', function() {
     var t2 = new ur.vec([9, 7, 5]);
     var t3 = new ur.vec([1, 2, 3]);
 
-    console.log('t1=t2: ' + ur.equals(t1, t2).toString());
-    console.log('t1=t3: ' + ur.equals(t1, t3).toString());
+    if (0) {
+      console.log('t1=t2: ' + ur.equals(t1, t2).toString());
+      console.log('t1=t3: ' + ur.equals(t1, t3).toString());
+    }
     assert.equal(ur.all(ur.equals(t1, t2)), 0);
     assert.equal(ur.all(ur.equals(t1, t3)), 1);
   });
