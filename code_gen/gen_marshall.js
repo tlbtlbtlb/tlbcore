@@ -522,6 +522,19 @@ function emitArgSwitch(f, typereg, thisType, argSets) {
   });
 
   f(ifSep + ' {');
+
+  if (1) {
+    f('eprintf("No matching args:\\n");');
+    _.each(argSets, function(argSet) {
+      f('eprintf("  argSet: ");');
+      _.each(argSet.args, function(argInfo, argi) {
+        var argType = typereg.getType(argInfo);
+        f('eprintf("  %s' +  argType.typename + '", (' + argType.getJsToCppTest('args[' + argi + ']') + ') ? "" : "!");')
+      });
+      f('eprintf("\\n");');
+    });
+  }
+
   f('return ThrowInvalidArgs();');
   f('}');
 }
@@ -788,6 +801,10 @@ CType.prototype.getFormalParameter = function(varname) {
   return type.typename + ' ' + varname;
 };
 
+CType.prototype.getInitExpr = function() {
+  return this.getAllZeroExpr();
+}
+
 
 // ----------------------------------------------------------------------
 
@@ -1026,6 +1043,15 @@ CollectionCType.prototype.getSynopsis = function() {
   return '(' + this.typename + ')';
 };
 
+CollectionCType.prototype.getInitExpr = function() {
+  var type = this;
+  if (/arma::.*::fixed/.test(type.templateName)) {
+    return 'arma::fill::zeros';
+  } else {
+    return '';
+  }
+}
+
 CollectionCType.prototype.getAllOneExpr = function() {
   return this.typename + '()';
 };
@@ -1114,6 +1140,10 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
   var accessors = [];
   var accessorsRo = [];
 
+  f('/*\ntemplateName = "' + type.templateName + '"' + '\n' +
+    'templateArgs = "' + util.inspect(type.templateArgs) + '"\n' +
+    '*/');
+
   if (1) {
     f('static Handle<Value> jsNew_JSTYPE(const Arguments& args) {');
     f('HandleScope scope;');
@@ -1141,25 +1171,37 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f('}');
     }
 
-    else if (type.templateName === 'arma::Col' || type.templateName === 'arma::Row') {
+    else if (type.templateName === 'arma::Col' || type.templateName === 'arma::Row' || type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
       f('else if (args.Length() == 0) {');
-      f('it->assign();');
+      if (/.*::fixed$/.test(type.templateName)) {
+        f('it->assign(TYPENAME(arma::fill::zeros));');
+      } else {
+        f('it->assign();');
+      }
       f('}');
-      f('else if (args.Length() == 1 && args[0]->IsNumber()) {');
-      f('it->assign(' + type.typename + '((size_t)args[0]->NumberValue(), arma::fill::zeros));');
-      f('}');
+      if (!/.*::fixed$/.test(type.templateName)) {
+        f('else if (args.Length() == 1 && args[0]->IsNumber()) {');
+        f('it->assign(' + type.typename + '((size_t)args[0]->NumberValue(), arma::fill::zeros));');
+        f('}');
+      }
       f('else if (args.Length() == 1 && canConvJsToArmaVec<' + type.templateArgs[0] + '>(args[0])) {');
       f('it->assign(convJsToArmaVec<' + type.templateArgs[0] + '>(args[0]));');
       f('}');
     }
 
-    else if (type.templateName === 'arma::Mat') {
+    else if (type.templateName === 'arma::Mat' || type.templateName === 'arma::Mat::fixed') {
       f('else if (args.Length() == 0) {');
-      f('it->assign();');
+      if (/.*::fixed$/.test(type.templateName)) {
+        f('it->assign(TYPENAME(arma::fill::zeros));');
+      } else {
+        f('it->assign();');
+      }
       f('}');
-      f('else if (args.Length() == 2 && args[0]->IsNumber() && args[1]->IsNumber()) {');
-      f('it->assign(arma::Mat<' + type.templateArgs[0] + '>((size_t)args[0]->NumberValue(), (size_t)args[1]->NumberValue(), arma::fill::zeros));');
-      f('}');
+      if (!/.*::fixed$/.test(type.templateName)) {
+        f('else if (args.Length() == 2 && args[0]->IsNumber() && args[1]->IsNumber()) {');
+        f('it->assign(arma::Mat<' + type.templateArgs[0] + '>((size_t)args[0]->NumberValue(), (size_t)args[1]->NumberValue(), arma::fill::zeros));');
+        f('}');
+      }
       f('else if (args.Length() == 1 && canConvJsToArmaMat<' + type.templateArgs[0] + '>(args[0])) {');
       f('it->assign(convJsToArmaMat<' + type.templateArgs[0] + '>(args[0]));');
       f('}');
@@ -1217,14 +1259,14 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f('}');
       f('return ret;');
     }
-    else if (type.templateName === 'arma::Col' || type.templateName === 'arma::Row') {
+    else if (type.templateName === 'arma::Col' || type.templateName === 'arma::Row' || type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
       f('Local<Array> ret = Array::New(it.n_elem);');
       f('for (size_t i=0; i<it.n_elem; i++) {');
       f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
       f('}');
       f('return ret;');
     }
-    else if (type.templateName === 'arma::Mat') {
+    else if (type.templateName === 'arma::Mat' || type.templateName === 'arma::Mat::fixed') {
       f('Local<Array> ret = Array::New(it.n_elem);');
       f('for (size_t i=0; i<it.n_elem; i++) {');
       f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
@@ -1781,7 +1823,7 @@ StructCType.prototype.add = function(memberName, memberType) {
     memberType = newMemberType;
   }
   if (_.isString(memberName)) {
-    if (!memberType) memberType = type.reg.types['float'];
+    if (!memberType) memberType = type.reg.types['double'];
     if (memberName in type.nameToType) {
       if (type.nameToType[memberName] !== memberType) throw new Error('Duplicate member ' + memberName + ' with different types');
       return; // duplicate entry. Warn?
@@ -1795,12 +1837,13 @@ StructCType.prototype.add = function(memberName, memberType) {
   }
 };
 
-StructCType.prototype.getMemberInitExpr = function(name) {
+StructCType.prototype.getMemberInitExpr = function(memberName) {
   var type = this;
-  if (name in type.nameToInitExpr) {
-    return type.nameToInitExpr(name);
+  var mType = type.nameToType[memberName];
+  if (memberName in type.nameToInitExpr) {
+    return type.nameToInitExpr[memberName];
   } else {
-    return type.nameToType[name].getAllZeroExpr();
+    return mType.getInitExpr();
   }
 };
 
