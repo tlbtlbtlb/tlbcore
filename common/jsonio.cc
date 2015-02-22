@@ -156,14 +156,14 @@ bool rdJson(const char *&s, u_int &value) {
 // json - float 
 
 size_t wrJsonSize(float const &value) { 
-  return 16; 
+  return 20;
 }
 void wrJson(char *&s, float const &value) {
   if (value == 0.0f) {
     *s++ = '0';
   }
   else {
-    s += snprintf(s, 16, "%g", value);
+    s += snprintf(s, 20, "%.9g", value);
   }
 }
 bool rdJson(const char *&s, float &value) {
@@ -178,14 +178,14 @@ bool rdJson(const char *&s, float &value) {
 // json - double
 
 size_t wrJsonSize(double const &value) { 
-  return 20; 
+  return 25;
 }
 void wrJson(char *&s, double const &value) {
   if (value == 0.0) {
     *s++ = '0';
   }
   else {
-    s += snprintf(s, 20, "%g", value);
+    s += snprintf(s, 25, "%.17g", value);
   }
 }
 bool rdJson(const char *&s, double &value) {
