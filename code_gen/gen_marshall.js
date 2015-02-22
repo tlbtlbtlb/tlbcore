@@ -523,7 +523,7 @@ function emitArgSwitch(f, typereg, thisType, argSets) {
 
   f(ifSep + ' {');
 
-  if (1) {
+  if (0) {
     f('eprintf("No matching args:\\n");');
     _.each(argSets, function(argSet) {
       f('eprintf("  argSet: ");');
@@ -2370,7 +2370,12 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f('static void jsSet_JSTYPE_' + name + '(Local<String> name, Local<Value> value, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('if (' + memberType.getJsToCppTest('value') + ') {');
     f('thisObj->it->' + name + ' = ' + memberType.getJsToCppExpr('value') + ';');
+    f('}');
+    f('else {');
+    f('ThrowTypeError("Expected ' + memberType.typename + '");');
+    f('}');
     f('}');
     f('');
     accessors.push(name);
