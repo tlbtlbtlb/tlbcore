@@ -27,6 +27,22 @@ jsonstr::~jsonstr()
 {
 }
 
+char *
+jsonstr::getBuffer(size_t n)
+{
+  it.resize(n);
+  return &it[0];
+}
+
+void
+jsonstr::truncBuffer(size_t n)
+{
+  if (n > it.capacity()) {
+    throw runtime_error("jsonstr buffer overrun");
+  }
+  it.resize(n);
+}
+
 bool jsonstr::isNull()
 {
   return it == string("null") || it.size() == 0;
@@ -402,8 +418,12 @@ bool skipJsonValue(char const *&s) {
       }
     }
   }
+  else if (isalnum(*s) || *s=='.' || *s == '-') {
+    s++;
+    while (isalnum(*s) || *s=='.' || *s == '-') s++;
+  }
   else {
-    while (isalnum(*s) || *s=='.') s++;
+    return false;
   }
   
   return true;

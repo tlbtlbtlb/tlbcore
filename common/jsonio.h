@@ -10,11 +10,15 @@
 */
 
 struct jsonstr {
+  // WRITEME: ensure move semantics work for efficient return values
   explicit jsonstr();
   explicit jsonstr(string const &_it);
   explicit jsonstr(const char *str);
   explicit jsonstr(const char *begin, const char *end);
   ~jsonstr();
+
+  char *getBuffer(size_t n);
+  void truncBuffer(size_t n);
   bool isNull();
   string it;
 };
@@ -63,6 +67,21 @@ inline void jsonSkipSpace(char const *&s) {
       break;
     }
   }
+}
+
+inline bool jsonMatch(char const *&s, char const *pattern)
+{
+  char const *p = s;
+  while (*pattern) {
+    if (*p == *pattern) {
+      p++;
+      pattern++;
+    } else {
+      return false;
+    }
+  }
+  s = p;
+  return true;
 }
 
 // Json vector
@@ -373,14 +392,11 @@ bool rdJson(const char *&s, map<KT, VT> &arr) {
 template <typename T>
 jsonstr asJson(const T &value) {
   size_t retSize = wrJsonSize(value);
-  char *buf = new char[retSize];
+  jsonstr ret;
+  char *buf = ret.getBuffer(retSize);
   char *p = buf;
   wrJson(p, value);
-  if (p > buf + retSize) {
-    throw runtime_error("wrJson buffer overrun");
-  }
-  jsonstr ret(buf, p);
-  delete buf;
+  ret.truncBuffer(p - buf);
   return ret;
 }
 
