@@ -18,7 +18,7 @@ module.exports = function(typereg) {
         if (rowFixed && colFixed && rowFixed !== colFixed) return;
 
         rTypename = 'arma::Row<' + et + '>' + (rowFixed ? '::fixed<'+rowFixed+'>' : '');
-        cTypename = 'arma::Col<' + et + '>' + (colFixed ? '::fixed<'+rowFixed+'>' : '');
+        cTypename = 'arma::Col<' + et + '>' + (colFixed ? '::fixed<'+colFixed+'>' : '');
         mTypename = 'arma::Mat<' + et + '>' + ((colFixed && rowFixed) ? '::fixed<' + rowFixed + ',' + colFixed + '>' : '');
         srTypename = 'arma::subview_row<' + et + '>';
         scTypename = 'arma::subview_col<' + et + '>';
