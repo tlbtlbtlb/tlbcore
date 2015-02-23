@@ -28,24 +28,60 @@ jsonstr::~jsonstr()
 }
 
 char *
-jsonstr::getBuffer(size_t n)
+jsonstr::startWrite(size_t n)
 {
-  it.resize(n);
+  it.resize(n+1);
   return &it[0];
 }
 
 void
-jsonstr::truncBuffer(size_t n)
+jsonstr::endWrite(char *p)
 {
-  if (n > it.capacity()) {
+  size_t n = p - &it[0];
+  if (n + 1 > it.capacity()) {
     throw runtime_error("jsonstr buffer overrun");
   }
+  it[n] = 0; // terminating null
   it.resize(n);
 }
 
 bool jsonstr::isNull()
 {
   return it == string("null") || it.size() == 0;
+}
+
+
+void jsonstr::writeToFile(string const &fn)
+{
+  FILE *fp = fopen(fn.c_str(), "w");
+  if (!fp) {
+    throw runtime_error(fn + string(": ") + string(strerror(errno)));
+  }
+  fwrite(&it[0], it.size(), 1, fp);
+  if (fclose(fp) < 0) {
+    throw runtime_error(fn + string(": ") + string(strerror(errno)));
+  }
+}
+
+void jsonstr::readFromFile(string const &fn)
+{
+  FILE *fp = fopen(fn.c_str(), "r");
+  if (!fp) {
+    throw runtime_error(fn + string(": ") + string(strerror(errno)));
+  }
+  if (fseek(fp, 0, SEEK_END) < 0) {
+    throw runtime_error(fn + string(": ") + string(strerror(errno)));
+  }
+  size_t fileSize = (size_t)ftello(fp);
+
+  fseek(fp, 0, SEEK_SET);
+  char *p = startWrite(fileSize);
+  fread(p, fileSize, 1, fp);
+  endWrite(p + fileSize);
+
+  if (fclose(fp) < 0) {
+    throw runtime_error(fn + string(": ") + string(strerror(errno)));
+  }
 }
 
 

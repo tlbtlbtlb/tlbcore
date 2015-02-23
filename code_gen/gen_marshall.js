@@ -1544,25 +1544,25 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     });
     methods.push('getNAfter');
     
-    emitJsWrap(f, 'JSTYPE_writeToFile', function() {
+    emitJsWrap(f, 'JSTYPE_writeChunkJson', function() {
       emitArgSwitch(f, type.reg, type, [{
-        args: ['string'], code: function() {
-          f('int ret = thisObj->it->writeToFile(a0);');
-          f('return scope.Close(Number::New(ret));');
+        args: ['string', 'double', 'double'], code: function() {
+          f('thisObj->it->writeChunkJson(a0, a1, a2);');
+          f('return scope.Close(Undefined());');
         }
       }]);
     });
-    methods.push('writeToFile');
+    methods.push('writeChunkJson');
 
-    emitJsWrap(f, 'JSTYPE_readFromFile', function() {
+    emitJsWrap(f, 'JSTYPE_readChunkJson', function() {
       emitArgSwitch(f, type.reg, type, [{
         args: ['string'], code: function() {
-          f('int ret = thisObj->it->readFromFile(a0);');
-          f('return scope.Close(Number::New(ret));');
+          f('thisObj->it->readChunkJson(a0);');
+          f('return scope.Close(Undefined());');
         }
       }]);
     });
-    methods.push('readFromFile');
+    methods.push('readChunkJson');
 
     emitJsWrap(f, 'JSTYPE_getChunkJson', function() {
       emitArgSwitch(f, type.reg, type, [{

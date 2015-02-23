@@ -17,9 +17,13 @@ struct jsonstr {
   explicit jsonstr(const char *begin, const char *end);
   ~jsonstr();
 
-  char *getBuffer(size_t n);
-  void truncBuffer(size_t n);
+  char *startWrite(size_t n);
+  void endWrite(char *p);
   bool isNull();
+
+  void writeToFile(string const &fn);
+  void readFromFile(string const &fn);
+  
   string it;
 };
 
@@ -393,10 +397,9 @@ template <typename T>
 jsonstr asJson(const T &value) {
   size_t retSize = wrJsonSize(value);
   jsonstr ret;
-  char *buf = ret.getBuffer(retSize);
-  char *p = buf;
+  char *p = ret.startWrite(retSize);
   wrJson(p, value);
-  ret.truncBuffer(p - buf);
+  ret.endWrite(p);
   return ret;
 }
 
