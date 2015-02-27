@@ -403,15 +403,15 @@ jsonstr asJson(const T &value) {
   return ret;
 }
 
-#if 0
+#if 1
 template <typename T>
-bool rdJson(jsonstr const &sj, T &value) {
+bool fromJson(jsonstr const &sj, T &value) {
   const char *s = sj.it.c_str();
   return rdJson(s, value);
 }
 
 template <typename T>
-bool rdJson(string const &ss, T &value) {
+bool fromJson(string const &ss, T &value) {
   const char *s = ss.c_str();
   return rdJson(s, value);
 }

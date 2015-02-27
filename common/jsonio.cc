@@ -58,6 +58,7 @@ void jsonstr::writeToFile(string const &fn)
     throw runtime_error(fn + string(": ") + string(strerror(errno)));
   }
   fwrite(&it[0], it.size(), 1, fp);
+  fputc('\n', fp);
   if (fclose(fp) < 0) {
     throw runtime_error(fn + string(": ") + string(strerror(errno)));
   }
