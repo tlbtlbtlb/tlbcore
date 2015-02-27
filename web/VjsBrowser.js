@@ -909,7 +909,14 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       hd.buttonDown = true;
       hd.mdX = mdX;
       hd.mdY = mdY;
-      if (action.onDown) action.onDown(mdX, mdY);
+      if (action.onDown) {
+	action.onDown(mdX, mdY, ev);
+	if (hd.dragging && hd.dragCursor) {
+	  // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
+	  // Grab not supported on IE or Chrome/Windows
+	  top.css('cursor', hd.dragCursor);
+	}
+      }
     }
     m.emit('changed');
     return false;
@@ -940,6 +947,10 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     }
     if (action && action.onUp) {
       action.onUp();
+    }
+    if (hd.dragging && hd.dragCursor) {
+      top.css('cursor', 'default');
+      hd.dragCursor = null;
     }
     hd.dragging = null;
     m.emit('changed');
