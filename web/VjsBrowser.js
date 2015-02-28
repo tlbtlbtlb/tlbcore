@@ -926,7 +926,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     var mdX = ev.offsetX;
     var mdY = ev.offsetY;
     var action = hd.find(mdX, mdY);
-    if (hd.buttonDown || action || hd.hoverActive || hd.dragging) {
+    if (hd.buttonDown || hd.hoverActive || hd.dragging) {
       hd.mdX = mdX;
       hd.mdY = mdY;
       if (hd.dragging) {
