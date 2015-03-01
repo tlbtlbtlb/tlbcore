@@ -13,8 +13,8 @@ module.exports = function(typereg) {
   _.each(['u_int', 'double', 'int', 'arma::cx_double'], function(et) {
     var rTypename, cTypename, mTypename, srTypename, scTypename;
     var rType, cType, mType, srType, scType;
-    _.each([0,2,3], function(rowFixed) {
-      _.each([0,2,3], function(colFixed) {
+    _.each([0,2,3,4], function(rowFixed) {
+      _.each([0,2,3,4], function(colFixed) {
         if (rowFixed && colFixed && rowFixed !== colFixed) return;
 
         rTypename = 'arma::Row<' + et + '>' + (rowFixed ? '::fixed<'+rowFixed+'>' : '');
