@@ -6,8 +6,9 @@ Some common infrastructure shared among my projects. Written in C++ and Javascri
   * code_gen: a javascript library for generating C++ data structure code, including
     marshalling and unmarshalling into JSON
   * nodeif: wrap C++ code for Node.js
-  * common: a grab-bag of C++ utilities like stringprintf, wrappers around pthreads, read/write STL into JSON, etc.
+  * common: a grab-bag of C++ utilities like stringprintf, packet buffers, read/write primitives and STL collections into JSON, etc.
   * numerical : numerical stuff, built on top of Armadillo
+  * arma: NodeJS wrappers for core Armadillo types
   * genes: a simple genome library, not good for anything yet
 
 

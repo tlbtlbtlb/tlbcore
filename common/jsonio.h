@@ -5,7 +5,8 @@
 /*
   Define JSON mappings for all the built-in types.
 
-  jsonstr is a wrapper around string, that doesn't get string-encoded when converting to json. So use it to store already-encoded blobs.
+  jsonstr is a wrapper around string, that doesn't get string-encoded when converting to json. 
+  So use it to store already-encoded blobs.
   
 */
 
@@ -17,10 +18,14 @@ struct jsonstr {
   explicit jsonstr(const char *begin, const char *end);
   ~jsonstr();
 
+  // Use this api to efficiently create a string of a given maximum size `n`. Write and advance 
+  // the pointer until the end, then call endWrite which will set the final size of the string
   char *startWrite(size_t n);
   void endWrite(char *p);
+
   bool isNull();
 
+  // Read and write to files. These throw runtime errors if the file isn't found or there's an IO error.
   void writeToFile(string const &fn);
   void readFromFile(string const &fn);
   
@@ -29,42 +34,91 @@ struct jsonstr {
 
 ostream & operator<<(ostream &s, jsonstr const &obj);
 
+/*
+  The high level API is asJson and fromJson
+*/
+
+template <typename T>
+jsonstr asJson(const T &value) {
+  size_t retSize = wrJsonSize(value);
+  jsonstr ret;
+  char *p = ret.startWrite(retSize);
+  wrJson(p, value);
+  ret.endWrite(p);
+  return ret;
+}
+
+template <typename T>
+bool fromJson(jsonstr const &sj, T &value) {
+  const char *s = sj.it.c_str();
+  return rdJson(s, value);
+}
+
+template <typename T>
+bool fromJson(string const &ss, T &value) {
+  const char *s = ss.c_str();
+  return rdJson(s, value);
+}
+
+
+
+/*
+  Write C++ types to a string (char *) as JSON.
+  For efficiency, this is a two-pass process:
+    - Call wrJsonSize to get the buffer size needed (a slight over-estimate).
+    - Allocate a buffer 
+    - Call wrJson.
+  See asJson (defined below) for the right way to do it.
+
+  To allow serializing your own types, add definitions of wrJsonSize, wrJson, and rdJson.
+*/
+
 size_t wrJsonSize(bool const &value);
 size_t wrJsonSize(int const &value);
 size_t wrJsonSize(u_int const &value);
 size_t wrJsonSize(float const &value);
 size_t wrJsonSize(double const &value);
+size_t wrJsonSize(arma::cx_double const &value);
 size_t wrJsonSize(string const &value);
 size_t wrJsonSize(jsonstr const &value);
-size_t wrJsonSize(arma::cx_double const &value);
 
 void wrJson(char *&s, bool const &value);
 void wrJson(char *&s, int const &value);
 void wrJson(char *&s, u_int const &value);
 void wrJson(char *&s, float const &value);
 void wrJson(char *&s, double const &value);
+void wrJson(char *&s, arma::cx_double const &value);
 void wrJson(char *&s, string const &value);
 void wrJson(char *&s, jsonstr const &value);
-void wrJson(char *&s, arma::cx_double const &value);
+
+/*
+  Read C++ types from a string (char *) as JSON
+  The string should be null-terminated.
+  See fromJson (defined below) for the right way to do it.
+*/
 
 bool rdJson(const char *&s, bool &value);
 bool rdJson(const char *&s, int &value);
 bool rdJson(const char *&s, u_int &value);
 bool rdJson(const char *&s, float &value);
 bool rdJson(const char *&s, double &value);
+bool rdJson(const char *&s, arma::cx_double &value);
 bool rdJson(const char *&s, string &value);
 bool rdJson(const char *&s, jsonstr &value);
-bool rdJson(const char *&s, arma::cx_double &value);
-
-bool skipJsonValue(const char *&s);
-bool skipJsonMember(const char *&s);
 
 /*
-  Because isspace does funky locale-dependent stuff that I don't want
+  Skip past a value or member of an object, ie "foo":123,
+*/
+bool jsonSkipValue(const char *&s);
+bool jsonSkipMember(const char *&s);
+
+/*
+  Skip whitespace.
 */
 inline void jsonSkipSpace(char const *&s) {
   while (1) {
     char c = *s;
+    // Because isspace does funky locale-dependent stuff that I don't want
     if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
       s++;
     } else {
@@ -73,22 +127,18 @@ inline void jsonSkipSpace(char const *&s) {
   }
 }
 
-inline bool jsonMatch(char const *&s, char const *pattern)
-{
-  char const *p = s;
-  while (*pattern) {
-    if (*p == *pattern) {
-      p++;
-      pattern++;
-    } else {
-      return false;
-    }
-  }
-  s = p;
-  return true;
-}
+/*
+  If the pattern matches, advance s past it and return true. Otherwise leave s the same and return false.a
+  jsonMatchKey matches "pattern":
+*/
+bool jsonMatch(char const *&s, char const *pattern);
+bool jsonMatchKey(char const *&s, char const *pattern);
 
-// Json vector
+/*
+  Json representation of various container templates.
+*/
+
+// vector<T> or vector<T *>
 template<typename T>
 size_t wrJsonSize(vector<T> const &arr) {
   size_t ret = 2;
@@ -158,7 +208,34 @@ bool rdJson(const char *&s, vector<T> &arr) {
   return true;
 }
 
-// Json arma::Col
+template<typename T>
+bool rdJson(const char *&s, vector<T *> &arr) {
+  jsonSkipSpace(s);
+  if (*s != '[') return false;
+  s++;
+  arr.clear();
+  while (1) {
+    jsonSkipSpace(s);
+    if (*s == ']') break;
+    T *tmp = new T;
+    if (!rdJson(s, *tmp)) return false;
+    arr.push_back(tmp);
+    jsonSkipSpace(s);
+    if (*s == ',') {
+      s++;
+    }
+    else if (*s == ']') {
+      break;
+    }
+    else {
+      return false;
+    }
+  }
+  s++;
+  return true;
+}
+
+// Json - arma::Col
 template<typename T>
 size_t wrJsonSize(arma::Col<T> const &arr) {
   size_t ret = 2;
@@ -212,7 +289,8 @@ bool rdJson(const char *&s, arma::Col<T> &arr) {
   return true;
 }
 
-// Json arma::Row
+
+// Json - arma::Row
 template<typename T>
 size_t wrJsonSize(arma::Row<T> const &arr) {
   size_t ret = 2;
@@ -266,7 +344,8 @@ bool rdJson(const char *&s, arma::Row<T> &arr) {
   return true;
 }
 
-// Json arma::Mat
+
+// Json - arma::Mat
 template<typename T>
 size_t wrJsonSize(arma::Mat<T> const &arr) {
   size_t ret = 3 + 3*arr.n_rows;
@@ -329,7 +408,8 @@ bool rdJson(const char *&s, arma::Mat<T> &arr) {
   return true;
 }
 
-// Json Map
+
+// Json - map<KT, VT> and map<KT, VT *>
 
 template<typename KT, typename VT>
 size_t wrJsonSize(map<KT, VT> const &arr) {
@@ -388,34 +468,63 @@ bool rdJson(const char *&s, map<KT, VT> &arr) {
   return true;
 }
 
-/*
-  Functional conversion to a string
-*/
-
-
-template <typename T>
-jsonstr asJson(const T &value) {
-  size_t retSize = wrJsonSize(value);
-  jsonstr ret;
-  char *p = ret.startWrite(retSize);
-  wrJson(p, value);
-  ret.endWrite(p);
+template<typename KT, typename VT>
+size_t wrJsonSize(map<KT, VT *> const &arr) {
+  size_t ret = 2;
+  for (auto it = arr.begin(); it != arr.end(); it++) {
+    ret += wrJsonSize(it->first) + wrJsonSize(*it->second) + 2;
+  }
   return ret;
 }
 
-#if 1
-template <typename T>
-bool fromJson(jsonstr const &sj, T &value) {
-  const char *s = sj.it.c_str();
-  return rdJson(s, value);
+template<typename KT, typename VT>
+void wrJson(char *&s, map<KT, VT *> const &arr) {
+  *s++ = '{';
+  bool sep = false;
+  for (auto it = arr.begin(); it != arr.end(); it++) {
+    if (sep) *s++ = ',';
+    sep = true;
+    wrJson(s, it->first);
+    *s++ = ':';
+    wrJson(s, *it->second);
+  }
+  *s++ = '}';
 }
 
-template <typename T>
-bool fromJson(string const &ss, T &value) {
-  const char *s = ss.c_str();
-  return rdJson(s, value);
+template<typename KT, typename VT>
+bool rdJson(const char *&s, map<KT, VT *> &arr) {
+  jsonSkipSpace(s);
+  if (*s != '{') return false;
+  s++;
+  arr.clear();
+  while (1) {
+    jsonSkipSpace(s);
+    if (*s == '}') break;
+    KT ktmp;
+    VT vtmp = new VT;
+    if (!rdJson(s, ktmp)) return false;
+    jsonSkipSpace(s);
+    if (*s != ':') return false;
+    s++;
+    jsonSkipSpace(s);
+    if (!rdJson(s, *vtmp)) return false;
+    arr[ktmp] = vtmp;
+
+    jsonSkipSpace(s);
+    if (*s == ',') {
+      s++;
+    }
+    else if (*s == '}') {
+      break;
+    }
+    else {
+      return false;
+    }
+  }
+  s++;
+  return true;
 }
-#endif
+
 
 
 #endif

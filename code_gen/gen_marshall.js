@@ -2296,7 +2296,7 @@ StructCType.prototype.emitRdJson = function(f) {
   f('c = *s++;');
   emitPrefix('');
   f('s = memberStart;');
-  f('if (!skipJsonMember(s)) return false;');
+  f('if (!jsonSkipMember(s)) return false;');
   f('c = *s++;');
   f('if (c == \',\') continue;');
   f('if (c == \'}\') return typeOk;');

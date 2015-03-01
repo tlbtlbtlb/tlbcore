@@ -30,6 +30,9 @@ jsonstr::~jsonstr()
 char *
 jsonstr::startWrite(size_t n)
 {
+  if (n > 1000000000) {
+    throw runtime_error("jsonstr: unreasonable size " + to_string(n));
+  }
   it.resize(n+1);
   return &it[0];
 }
@@ -39,9 +42,11 @@ jsonstr::endWrite(char *p)
 {
   size_t n = p - &it[0];
   if (n + 1 > it.capacity()) {
-    throw runtime_error("jsonstr buffer overrun");
+    // Don't throw, since memory is corrupt
+    eprintf("jsonstr: buffer overrun, memory corrupted, aborting. %lu/%lu", (unsigned long)n, (unsigned long)it.capacity());
+    abort();
   }
-  it[n] = 0; // terminating null
+  it[n] = 0; // terminating null. Observe that we provided the extra byte in startWrite.
   it.resize(n);
 }
 
@@ -57,8 +62,11 @@ void jsonstr::writeToFile(string const &fn)
   if (!fp) {
     throw runtime_error(fn + string(": ") + string(strerror(errno)));
   }
-  fwrite(&it[0], it.size(), 1, fp);
-  fputc('\n', fp);
+  int nw = fwrite(&it[0], it.size(), 1, fp);
+  if (nw != 1) {
+    throw runtime_error(fn + string(": partial write ") + to_string(nw) + "/" + to_string(it.size()));
+  }
+  fputc('\n', fp); // For human readability
   if (fclose(fp) < 0) {
     throw runtime_error(fn + string(": ") + string(strerror(errno)));
   }
@@ -74,10 +82,16 @@ void jsonstr::readFromFile(string const &fn)
     throw runtime_error(fn + string(": ") + string(strerror(errno)));
   }
   size_t fileSize = (size_t)ftello(fp);
+  if (fileSize > 1000000000) {
+    throw runtime_error(fn + string(": Unreasonable file size ") + to_string(fileSize));
+  }
 
   fseek(fp, 0, SEEK_SET);
   char *p = startWrite(fileSize);
-  fread(p, fileSize, 1, fp);
+  int nr = fread(p, fileSize, 1, fp);
+  if (nr != 1) {
+    throw runtime_error(fn + string(": partial read ") + to_string(nr) + "/" + to_string(fileSize));
+  }
   endWrite(p + fileSize);
 
   if (fclose(fp) < 0) {
@@ -86,7 +100,10 @@ void jsonstr::readFromFile(string const &fn)
 }
 
 
-// Spec at http://www.json.org/
+/* ----------------------------------------------------------------------
+   Low-level json stuff
+   Spec at http://www.json.org/
+*/
 
 static bool isHexDigit(u_char c) {
   return (c>='0' && c<='9') || (c>='a' && c<='f') || (c>='A' && c<='F');
@@ -105,7 +122,124 @@ static u_char toHexDigit(int x) {
   return '?';
 }
 
-// json - bool
+bool jsonSkipValue(char const *&s) {
+  jsonSkipSpace(s);
+  if (*s == '\"') {
+    string tmp;
+    rdJson(s, tmp);
+  }
+  else if (*s == '[') {
+    s++;
+    jsonSkipSpace(s);
+    while (1) {
+      if (*s == ',') {
+        s++;
+      }
+      else if (*s == ']') {
+        s++;
+        break;
+      }
+      else {
+        if (!jsonSkipValue(s)) return false;
+      }
+    }
+  }
+  else if (*s == '{') {
+    s++;
+    jsonSkipSpace(s);
+    while (1) {
+      if (*s == ',') {
+        s++;
+      }
+      else if (*s == ':') {
+        s++;
+      }
+      else if (*s == '}') {
+        s++;
+        break;
+      }
+      else {
+        if (!jsonSkipValue(s)) return false;
+      }
+    }
+  }
+  else if (isalnum(*s) || *s=='.' || *s == '-') {
+    s++;
+    while (isalnum(*s) || *s=='.' || *s == '-') s++;
+  }
+  else {
+    return false;
+  }
+  
+  return true;
+}
+
+bool jsonSkipMember(char const *&s) {
+  jsonSkipSpace(s);
+  if (*s == '\"') {
+    string tmp;
+    rdJson(s, tmp);
+    jsonSkipSpace(s);
+    if (*s == ':') {
+      s++;
+      jsonSkipSpace(s);
+      if (!jsonSkipValue(s)) return false;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool jsonMatch(char const *&s, char const *pattern)
+{
+  char const *p = s;
+  while (*pattern) {
+    if (*p == *pattern) {
+      p++;
+      pattern++;
+    } else {
+      return false;
+    }
+  }
+  s = p;
+  return true;
+}
+
+bool jsonMatchKey(char const *&s, char const *pattern)
+{
+  char const *p = s;
+  jsonSkipSpace(p);
+  if (*p != '"') {
+    return false;
+  }
+  p++;
+  while (*pattern) {
+    if (*p == *pattern) {
+      p++;
+      pattern++;
+    } else {
+      return false;
+    }
+  }
+  if (*p != '"') {
+    return false;
+  }
+  p++;
+  jsonSkipSpace(p);
+  if (*p != ':') {
+    return false;
+  }
+  p++;
+  jsonSkipSpace(p);
+  s = p;
+  return true;
+}
+
+/* ----------------------------------------------------------------------
+   Basic C++ types
+*/
+
+// Json - bool
 
 size_t wrJsonSize(bool const &value) { 
   return 5; 
@@ -402,7 +536,8 @@ bool rdJson(const char *&s, string &value) {
   return false;
 }
 
-
+// json -- jsonstr
+// These are just passed verbatim to the stream
 
 size_t wrJsonSize(jsonstr const &value) {
   return value.it.size();
@@ -413,80 +548,10 @@ void wrJson(char *&s, jsonstr const &value) {
   s += value.it.size();
 }
 
-
-bool skipJsonValue(char const *&s) {
-  jsonSkipSpace(s);
-  if (*s == '\"') {
-    string tmp;
-    rdJson(s, tmp);
-  }
-  else if (*s == '[') {
-    s++;
-    jsonSkipSpace(s);
-    while (1) {
-      if (*s == ',') {
-        s++;
-      }
-      else if (*s == ']') {
-        s++;
-        break;
-      }
-      else {
-        if (!skipJsonValue(s)) return false;
-      }
-    }
-  }
-  else if (*s == '{') {
-    s++;
-    jsonSkipSpace(s);
-    while (1) {
-      if (*s == ',') {
-        s++;
-      }
-      else if (*s == ':') {
-        s++;
-      }
-      else if (*s == '}') {
-        s++;
-        break;
-      }
-      else {
-        if (!skipJsonValue(s)) return false;
-      }
-    }
-  }
-  else if (isalnum(*s) || *s=='.' || *s == '-') {
-    s++;
-    while (isalnum(*s) || *s=='.' || *s == '-') s++;
-  }
-  else {
-    return false;
-  }
-  
-  return true;
-}
-
-bool skipJsonMember(char const *&s) {
-  jsonSkipSpace(s);
-  if (*s == '\"') {
-    string tmp;
-    rdJson(s, tmp);
-    jsonSkipSpace(s);
-    if (*s == ':') {
-      s++;
-      jsonSkipSpace(s);
-      if (!skipJsonValue(s)) return false;
-      return true;
-    }
-  }
-  return false;
-}
-
-
 bool rdJson(char const *&s, jsonstr &value) {
   jsonSkipSpace(s);
   char const *begin = s;
-  if (!skipJsonValue(s)) {
+  if (!jsonSkipValue(s)) {
     if (0) eprintf("rdJson/jsonstr: failed at %s\n", begin);
     return false;
   }
@@ -495,7 +560,7 @@ bool rdJson(char const *&s, jsonstr &value) {
   return true;
 }
 
-
+// cx_double - json
 
 size_t wrJsonSize(arma::cx_double const &value)
 {
