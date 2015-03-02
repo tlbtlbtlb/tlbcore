@@ -835,6 +835,14 @@ PrimitiveCType.prototype.getFns = function() {
   return {};
 };
 
+PrimitiveCType.prototype.emitJsWrapDecl = function(f) {
+  f('char const * getTypeVersionString(TYPENAME const &);');
+  f('char const * getTypeName(TYPENAME const &);');
+  f('char const * getJsTypeName(TYPENAME const &);');
+  f('char const * getSchema(TYPENAME const &);');
+};
+
+
 PrimitiveCType.prototype.getSynopsis = function() {
   return '(' + this.typename + ')';
 };
@@ -2049,6 +2057,11 @@ StructCType.prototype.emitTypeDecl = function(f) {
 
   f('};');
 
+  f('char const * getTypeVersionString(TYPENAME const &);');
+  f('char const * getTypeName(TYPENAME const &);');
+  f('char const * getJsTypeName(TYPENAME const &);');
+  f('char const * getSchema(TYPENAME const &);');
+
   f('');
   f('// IO');
   f('ostream & operator<<(ostream &s, const TYPENAME &obj);');
@@ -2105,6 +2118,13 @@ StructCType.prototype.emitHostImpl = function(f) {
     f('char const * TYPENAME::typeName = "TYPENAME";');
     f('char const * TYPENAME::jsTypeName = "' + type.jsTypename + '";');
     f('char const * TYPENAME::schema = "' + cgen.escapeCString(JSON.stringify(type.getSchema())) + '";');
+
+
+    f('char const * getTypeVersionString(TYPENAME const &it) { return TYPENAME::typeVersionString; }');
+    f('char const * getTypeName(TYPENAME const &it) { return TYPENAME::typeName; }');
+    f('char const * getJsTypeName(TYPENAME const &it) { return TYPENAME::jsTypeName; }');
+    f('char const * getSchema(TYPENAME const &it) { return TYPENAME::schema; }');
+
   }
 
   if (1) {
