@@ -808,6 +808,17 @@ function BoxLayout(t, r, b, l, pixelRatio) {
   this.boxL = this.canvasL = l;
   this.pixelRatio = pixelRatio;
   this.thinWidth = 1 / pixelRatio;
+  if (pixelRatio >= 2) {
+    this.lrgFont = '20px Arial';
+    this.medFont = '10px Arial';
+    this.smlFont = '9px Arial';
+    this.tinyFont = '7px Arial'
+  } else {
+    this.lrgFont = '25px Arial';
+    this.medFont = '12px Arial';
+    this.smlFont = '10px Arial'
+    this.tinyFont = '8px Arial'
+  }
 }
 
 BoxLayout.prototype.snap = function(x) {
@@ -904,17 +915,19 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   top.on('mousedown', function(ev) {
     var mdX = ev.offsetX;
     var mdY = ev.offsetY;
-    var action = hd.find(mdX, mdY);
-    if (action && (action.onDown || action.onClick || action.onUp)) {
-      hd.buttonDown = true;
-      hd.mdX = mdX;
-      hd.mdY = mdY;
-      if (action.onDown) {
-	action.onDown(mdX, mdY, ev);
-	if (hd.dragging && hd.dragCursor) {
-	  // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
-	  // Grab not supported on IE or Chrome/Windows
-	  top.css('cursor', hd.dragCursor);
+    var action = hd.find(mdX, mdY) || hd.defaultActions;
+    if (action) {
+      if (action.onDown || action.onClick || action.onUp) {
+	hd.buttonDown = true;
+	hd.mdX = mdX;
+	hd.mdY = mdY;
+	if (action.onDown) {
+	  action.onDown(mdX, mdY, ev);
+	  if (hd.dragging && hd.dragCursor) {
+	    // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
+	    // Grab not supported on IE or Chrome/Windows
+	    top.css('cursor', hd.dragCursor);
+	  }
 	}
       }
     }
@@ -926,7 +939,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     var mdX = ev.offsetX;
     var mdY = ev.offsetY;
     var action = hd.find(mdX, mdY);
-    if (hd.buttonDown || hd.hoverActive || hd.dragging) {
+    if (hd.buttonDown || hd.hoverActive || hd.dragging || (action && action.onHover)) {
       hd.mdX = mdX;
       hd.mdY = mdY;
       if (hd.dragging) {
@@ -995,7 +1008,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
         avgTime += (t1 - t0 - avgTime)*0.05;
       }
       ctx.fillStyle = '#888888';
-      ctx.font = '8px Arial';
+      ctx.font = lo.tinyFont;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'top';
       ctx.fillText(drawCount.toString() + '  ' + avgTime.toFixed(2), lo.boxR - 5, lo.boxT + 1);
