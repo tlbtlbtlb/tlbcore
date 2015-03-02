@@ -3,11 +3,14 @@
 #include <ctype.h>
 #include <armadillo>
 /*
-  Define JSON mappings for all the built-in types.
+  Define JSON mappings for C++ types, including the primitive types and containers. You can
+  add support for your own types by adding wrJson, wrJsonSize and rdJson functions.
 
-  jsonstr is a wrapper around string, that doesn't get string-encoded when converting to json. 
-  So use it to store already-encoded blobs.
-  
+  jsonstr is a json-encoded result. It can be further part of a data structure, so you can put
+  arbitrary dynamically typed data in there.
+
+  I think this is fairly compatible with browser JSON. Things are written without spaces,
+
 */
 
 struct jsonstr {
@@ -34,31 +37,34 @@ struct jsonstr {
 
 ostream & operator<<(ostream &s, jsonstr const &obj);
 
+
 /*
-  The high level API is asJson and fromJson
+  Skip past a value or member of an object, ie "foo":123,
 */
+bool jsonSkipValue(const char *&s);
+bool jsonSkipMember(const char *&s);
 
-template <typename T>
-jsonstr asJson(const T &value) {
-  size_t retSize = wrJsonSize(value);
-  jsonstr ret;
-  char *p = ret.startWrite(retSize);
-  wrJson(p, value);
-  ret.endWrite(p);
-  return ret;
+/*
+  Skip whitespace.
+*/
+inline void jsonSkipSpace(char const *&s) {
+  while (1) {
+    char c = *s;
+    // Because isspace does funky locale-dependent stuff that I don't want
+    if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+      s++;
+    } else {
+      break;
+    }
+  }
 }
 
-template <typename T>
-bool fromJson(jsonstr const &sj, T &value) {
-  const char *s = sj.it.c_str();
-  return rdJson(s, value);
-}
-
-template <typename T>
-bool fromJson(string const &ss, T &value) {
-  const char *s = ss.c_str();
-  return rdJson(s, value);
-}
+/*
+  If the pattern matches, advance s past it and return true. Otherwise leave s the same and return false.a
+  jsonMatchKey matches "pattern":
+*/
+bool jsonMatch(char const *&s, char const *pattern);
+bool jsonMatchKey(char const *&s, char const *pattern);
 
 
 
@@ -106,33 +112,6 @@ bool rdJson(const char *&s, arma::cx_double &value);
 bool rdJson(const char *&s, string &value);
 bool rdJson(const char *&s, jsonstr &value);
 
-/*
-  Skip past a value or member of an object, ie "foo":123,
-*/
-bool jsonSkipValue(const char *&s);
-bool jsonSkipMember(const char *&s);
-
-/*
-  Skip whitespace.
-*/
-inline void jsonSkipSpace(char const *&s) {
-  while (1) {
-    char c = *s;
-    // Because isspace does funky locale-dependent stuff that I don't want
-    if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
-      s++;
-    } else {
-      break;
-    }
-  }
-}
-
-/*
-  If the pattern matches, advance s past it and return true. Otherwise leave s the same and return false.a
-  jsonMatchKey matches "pattern":
-*/
-bool jsonMatch(char const *&s, char const *pattern);
-bool jsonMatchKey(char const *&s, char const *pattern);
 
 /*
   Json representation of various container templates.
@@ -208,6 +187,7 @@ bool rdJson(const char *&s, vector<T> &arr) {
   return true;
 }
 
+// Read a vector of T*, by calling tmp=new T, then rdJson(..., *tmp)
 template<typename T>
 bool rdJson(const char *&s, vector<T *> &arr) {
   jsonSkipSpace(s);
@@ -238,7 +218,7 @@ bool rdJson(const char *&s, vector<T *> &arr) {
 // Json - arma::Col
 template<typename T>
 size_t wrJsonSize(arma::Col<T> const &arr) {
-  size_t ret = 2;
+  size_t ret = 2; // brackets
   for (size_t i = 0; i < arr.n_elem; i++) {
     ret += wrJsonSize(arr(i)) + 1;
   }
@@ -444,12 +424,12 @@ bool rdJson(const char *&s, map<KT, VT> &arr) {
     jsonSkipSpace(s);
     if (*s == '}') break;
     KT ktmp;
-    VT vtmp;
     if (!rdJson(s, ktmp)) return false;
     jsonSkipSpace(s);
     if (*s != ':') return false;
     s++;
     jsonSkipSpace(s);
+    VT vtmp;
     if (!rdJson(s, vtmp)) return false;
     arr[ktmp] = vtmp;
 
@@ -501,12 +481,12 @@ bool rdJson(const char *&s, map<KT, VT *> &arr) {
     jsonSkipSpace(s);
     if (*s == '}') break;
     KT ktmp;
-    VT vtmp = new VT;
     if (!rdJson(s, ktmp)) return false;
     jsonSkipSpace(s);
     if (*s != ':') return false;
     s++;
     jsonSkipSpace(s);
+    VT *vtmp = new VT;
     if (!rdJson(s, *vtmp)) return false;
     arr[ktmp] = vtmp;
 
@@ -523,6 +503,33 @@ bool rdJson(const char *&s, map<KT, VT *> &arr) {
   }
   s++;
   return true;
+}
+
+
+/*
+  The high level API is asJson and fromJson
+*/
+
+template <typename T>
+jsonstr asJson(const T &value) {
+  size_t retSize = wrJsonSize(value);
+  jsonstr ret;
+  char *p = ret.startWrite(retSize);
+  wrJson(p, value);
+  ret.endWrite(p);
+  return ret;
+}
+
+template <typename T>
+bool fromJson(jsonstr const &sj, T &value) {
+  const char *s = sj.it.c_str();
+  return rdJson(s, value);
+}
+
+template <typename T>
+bool fromJson(string const &ss, T &value) {
+  const char *s = ss.c_str();
+  return rdJson(s, value);
 }
 
 
