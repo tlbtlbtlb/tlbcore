@@ -6,10 +6,17 @@
   Define JSON mappings for C++ types, including the primitive types and containers. You can
   add support for your own types by adding wrJson, wrJsonSize and rdJson functions.
 
+  The mapping between a statically typed data structure and JSON is subtle. The same JSON could 
+  read into different C++ types depending on what types rdJson is called with.
+
   jsonstr is a json-encoded result. It can be further part of a data structure, so you can put
   arbitrary dynamically typed data in there.
 
-  I think this is fairly compatible with browser JSON. Things are written without spaces,
+  I think this is fairly compatible with browser JSON. JSON is written without spaces or newlines,
+  but they are tolerated in the input. Possible bugs lurk in the following places:
+   - UTF-8 encoding of wacky characters in strings.
+   - Special floating point values like NaN or Inf.
+   - Reading of malformed input, such as objects with repeated keys
 
 */
 
@@ -261,7 +268,9 @@ bool rdJson(const char *&s, arma::Col<T> &arr) {
     }
   }
   s++;
-  //arr.clear();
+  // set_size will throw a logic_error if we're reading to a fixed_sized arma::Col and the size is wrong
+  // If I could figure out how to tell whether the type is fixed or not, I could check for it and return
+  // false instead.
   arr.set_size(tmparr.size());
   for (size_t i=0; i < tmparr.size(); i++) {
     arr(i) = tmparr[i];

@@ -11,9 +11,12 @@
   It's *not* architecture independent, so you'd be hosed if you tried
   to communicate between a big-endian and a little-endian machine.
 
+  In the robot environment, I standardize on the Intel binary format, so 
+  the AVR32 code does endian gymnastics to make that work.
+
   Reading:
 
-  A packet is with a binary blob of data and walks through it as you read
+  A packet is a binary blob of data. Walk through it as you read
   data objects one at a time.
   
   Example: {
@@ -41,6 +44,11 @@
     wr.add(string("foo"));
     write(fd, wr.ptr(), wr.size());
   }
+
+  Supporting your own data types:
+  
+  You have to implement packet_wr_value and packet_rd_value.
+  Also, packet_wr_typetag and packet_rd_typetag.
   
 */
 

@@ -300,6 +300,7 @@ bool rdJson(const char *&s, bool &value) {
 // json - int
 
 size_t wrJsonSize(int const &value) { 
+  if (value == 0) return 1;
   return 12; 
 }
 void wrJson(char *&s, int const &value) {
@@ -321,6 +322,7 @@ bool rdJson(const char *&s, int &value) {
 // json - u_int
 
 size_t wrJsonSize(u_int const &value) { 
+  if (value == 0) return 1;
   return 12; 
 }
 void wrJson(char *&s, u_int const &value) {
@@ -343,6 +345,7 @@ bool rdJson(const char *&s, u_int &value) {
 // json - float 
 
 size_t wrJsonSize(float const &value) { 
+  if (value == 0.0f) return 1;
   return 20;
 }
 void wrJson(char *&s, float const &value) {
@@ -365,19 +368,28 @@ bool rdJson(const char *&s, float &value) {
 // json - double
 
 size_t wrJsonSize(double const &value) { 
+  if (value == 0.0) return 1;
   return 25;
 }
 void wrJson(char *&s, double const &value) {
   if (value == 0.0) {
+    // Surprisingly powerful optimization, since zero is so common
     *s++ = '0';
   }
   else {
+    // We spend most of our time while writing big structures right here.
+    // For a flavor of what goes on, see http://sourceware.org/git/?p=glibc.git;a=blob;f=stdio-common/printf_fp.c;h=f9ea379b042c871992d2f076a4185ab84b2ce7d9;hb=refs/heads/master
     s += snprintf(s, 25, "%.17g", value);
   }
 }
 bool rdJson(const char *&s, double &value) {
   char *end = 0;
   jsonSkipSpace(s);
+  if (s[0] == '0' && (s[1] == ',' || s[1] == '}' || s[1] == ']')) {
+    value = 0.0;
+    s ++;
+    return true;
+  }
   value = strtod(s, &end);
   s = end;
   return true;
