@@ -1642,9 +1642,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     emitJsWrap(f, 'JSTYPE_getClosest', function() {
       emitArgSwitch(f, type.reg, type, [{
         args: ['double'], code: function() {
-          f(type.templateArgTypes[0].typename + ' *ret = thisObj->it->getClosest(a0);');
-          f('if (ret == NULL) return scope.Close(Undefined());');
-          f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('*ret', 'thisObj->memory') + ');');
+          f('auto ret = thisObj->it->getClosest(a0);');
+          f('if (ret.second == NULL) return scope.Close(Undefined());');
+          f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('*ret.second', 'thisObj->memory') + ');');
         }
       }]);
     });
@@ -1653,9 +1653,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     emitJsWrap(f, 'JSTYPE_getAfter', function() {
       emitArgSwitch(f, type.reg, type, [{
         args: ['double'], code: function() {
-          f(type.templateArgTypes[0].typename + ' *ret = thisObj->it->getAfter(a0);');
-          f('if (ret == NULL) return scope.Close(Undefined());');
-          f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('*ret', 'thisObj->memory') + ');');
+          f('auto ret = thisObj->it->getAfter(a0);');
+          f('if (ret.second == NULL) return scope.Close(Undefined());');
+          f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('*ret.second', 'thisObj->memory') + ');');
         }
       }]);
     });
@@ -1664,9 +1664,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     emitJsWrap(f, 'JSTYPE_getBefore', function() {
       emitArgSwitch(f, type.reg, type, [{
         args: ['double'], code: function() {
-          f(type.templateArgTypes[0].typename + ' *ret = thisObj->it->getBefore(a0);');
-          f('if (ret == NULL) return scope.Close(Undefined());');
-          f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('*ret', 'thisObj->memory') + ');');
+          f('auto ret = thisObj->it->getBefore(a0);');
+          f('if (ret.second == NULL) return scope.Close(Undefined());');
+          f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('*ret.second', 'thisObj->memory') + ');');
         }
       }]);
     });
