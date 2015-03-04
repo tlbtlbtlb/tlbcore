@@ -957,7 +957,6 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   });
 
   top.on('mousemove', function(ev) {
-    console.log('move', ev);
     var md = eventOffsets(ev);
     var action = hd.find(md.x, md.y);
     if (hd.buttonDown || hd.hoverActive || hd.dragging || (action && action.onHover)) {
