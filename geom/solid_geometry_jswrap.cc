@@ -22,7 +22,7 @@ static Handle<Value> jsNew_StlSolid(const Arguments& args) {
 Handle<Value> jsConstructor_StlSolid(JsWrap_StlSolid *thisObj, const Arguments& args) {
   HandleScope scope;
   if (args.Length() == 0) {
-    thisObj->assign();
+    thisObj->assignDefault();
   }
   else  {
     return ThrowInvalidArgs();
@@ -200,7 +200,7 @@ static Handle<Value> jsNew_StlFace(const Arguments& args) {
 Handle<Value> jsConstructor_StlFace(JsWrap_StlFace *thisObj, const Arguments& args) {
   HandleScope scope;
   if (args.Length() == 0) {
-    thisObj->assign();
+    thisObj->assignDefault();
   }
   else if (args.Length() == 3 && 
            JsWrap_vec::Extract(args[0]) != NULL &&
@@ -209,7 +209,7 @@ Handle<Value> jsConstructor_StlFace(JsWrap_StlFace *thisObj, const Arguments& ar
     vec a0 = *JsWrap_vec::Extract(args[0]);
     vec a1 = *JsWrap_vec::Extract(args[1]);
     vec a2 = *JsWrap_vec::Extract(args[2]);
-    thisObj->assign(StlFace(a0, a1, a2));
+    thisObj->assignConstruct(a0, a1, a2);
   }
   else  {
     return ThrowInvalidArgs();
@@ -313,7 +313,7 @@ static Handle<Value> jsNew_StlMassProperties(const Arguments& args) {
 Handle<Value> jsConstructor_StlMassProperties(JsWrap_StlMassProperties *thisObj, const Arguments& args) {
   HandleScope scope;
   if (args.Length() == 0) {
-    thisObj->assign();
+    thisObj->assignDefault();
   }
   else  {
     return ThrowInvalidArgs();

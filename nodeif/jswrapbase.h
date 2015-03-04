@@ -268,7 +268,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   }
   
   template<typename... Args>
-  void assign(Args &&... _args)
+  void assignConstruct(Args &&... _args)
   {
     if (memory) memory->unref();
     memory = new JsWrapOwnershipGeneric<CONTENTS>(std::forward<Args>(_args)...);
@@ -276,15 +276,13 @@ struct JsWrapGeneric : node::ObjectWrap {
     it = &((JsWrapOwnershipGeneric<CONTENTS> *)memory)->contents;
   }
 
-#if 0  
-  void assign()
+  void assignDefault()
   {
     if (memory) memory->unref();
     memory = new JsWrapOwnershipGeneric<CONTENTS>();
     memory->ref();
     it = &((JsWrapOwnershipGeneric<CONTENTS> *)memory)->contents;
   }
-#endif
   
   ~JsWrapGeneric()
   {
@@ -300,7 +298,7 @@ struct JsWrapGeneric : node::ObjectWrap {
     HandleScope scope;
     Local<Object> instance = constructor->NewInstance(0, nullptr);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->assign(_contents);
+    w->assignConstruct(_contents);
     return scope.Close(instance);
   }
 
@@ -327,7 +325,7 @@ struct JsWrapGeneric : node::ObjectWrap {
     HandleScope scope;
     Local<Object> instance = constructor->NewInstance(0, nullptr);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->assign(_it);
+    w->assignConstruct(_it);
     w->memory->addKeepalive(_memory);
     return scope.Close(instance);
   }
