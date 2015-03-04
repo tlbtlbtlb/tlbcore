@@ -34,13 +34,13 @@ Handle<Value> jsConstructor_StlSolid(JsWrap_StlSolid *thisObj, const Arguments& 
 static Handle<Value> jsGet_StlSolid_bboxLo(Local<String> name, AccessorInfo const &ai) {
   HandleScope scope;
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(ai.This());
-  return scope.Close(JsWrap_vec::ChildInstance(thisObj->memory, &(thisObj->it->bboxLo)));
+  return scope.Close(JsWrap_vec::MemberInstance(thisObj->memory, &(thisObj->it->bboxLo)));
 }
 
 static Handle<Value> jsGet_StlSolid_bboxHi(Local<String> name, AccessorInfo const &ai) {
   HandleScope scope;
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(ai.This());
-  return scope.Close(JsWrap_vec::ChildInstance(thisObj->memory, &(thisObj->it->bboxHi)));
+  return scope.Close(JsWrap_vec::MemberInstance(thisObj->memory, &(thisObj->it->bboxHi)));
 }
 
 static Handle<Value> jsGet_StlSolid_numFaces(Local<String> name, AccessorInfo const &ai) {
@@ -368,31 +368,31 @@ static Handle<Value> jsGet_StlMassProperties_area(Local<String> name, AccessorIn
 static Handle<Value> jsGet_StlMassProperties_cm(Local<String> name, AccessorInfo const &ai) {
   HandleScope scope;
   JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(JsWrap_vec::ChildInstance(thisObj->memory, &(thisObj->it->cm)));
+  return scope.Close(JsWrap_vec::MemberInstance(thisObj->memory, &(thisObj->it->cm)));
 }
 
 static Handle<Value> jsGet_StlMassProperties_inertiaOrigin(Local<String> name, AccessorInfo const &ai) {
   HandleScope scope;
   JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(JsWrap_mat::ChildInstance(thisObj->memory, &(thisObj->it->inertiaOrigin)));
+  return scope.Close(JsWrap_mat::MemberInstance(thisObj->memory, &(thisObj->it->inertiaOrigin)));
 }
 
 static Handle<Value> jsGet_StlMassProperties_inertiaCm(Local<String> name, AccessorInfo const &ai) {
   HandleScope scope;
   JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(JsWrap_mat::ChildInstance(thisObj->memory, &(thisObj->it->inertiaCm)));
+  return scope.Close(JsWrap_mat::MemberInstance(thisObj->memory, &(thisObj->it->inertiaCm)));
 }
 
 static Handle<Value> jsGet_StlMassProperties_rogOrigin(Local<String> name, AccessorInfo const &ai) {
   HandleScope scope;
   JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(JsWrap_mat::ChildInstance(thisObj->memory, &(thisObj->it->rogOrigin)));
+  return scope.Close(JsWrap_mat::MemberInstance(thisObj->memory, &(thisObj->it->rogOrigin)));
 }
 
 static Handle<Value> jsGet_StlMassProperties_rogCm(Local<String> name, AccessorInfo const &ai) {
   HandleScope scope;
   JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(JsWrap_mat::ChildInstance(thisObj->memory, &(thisObj->it->rogCm)));
+  return scope.Close(JsWrap_mat::MemberInstance(thisObj->memory, &(thisObj->it->rogCm)));
 }
 
 void jsInit_StlMassProperties(Handle<Object> exports) {

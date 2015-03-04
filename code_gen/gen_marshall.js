@@ -1076,7 +1076,7 @@ ObjectCType.prototype.getJsToCppExpr = function(valueExpr) {
 
 ObjectCType.prototype.getCppToJsExpr = function(valueExpr, memoryExpr) {
   if (memoryExpr) {
-    return 'JsWrap_' + type.jsTypename + '::ChildInstance(' + memoryExpr + ', &(' + valueExpr + '))';
+    return 'JsWrap_' + type.jsTypename + '::MemberInstance(' + memoryExpr + ', &(' + valueExpr + '))';
   } else {
     return 'JsWrap_' + type.jsTypename + '::NewInstance(' + valueExpr + ')';
   }
@@ -1199,9 +1199,9 @@ CollectionCType.prototype.getCppToJsExpr = function(valueExpr, memoryExpr) {
   
   if (memoryExpr) {
     if (type.isRef) {
-      return 'JsWrap_' + type.jsTypename + '::ChildInstance(' + memoryExpr + ', ' + valueExpr + ')';
+      return 'JsWrap_' + type.jsTypename + '::DependentInstance(' + memoryExpr + ', ' + valueExpr + ')';
     } else {
-      return 'JsWrap_' + type.jsTypename + '::ChildInstance(' + memoryExpr + ', &(' + valueExpr + '))';
+      return 'JsWrap_' + type.jsTypename + '::MemberInstance(' + memoryExpr + ', &(' + valueExpr + '))';
     }
   } else {
     return 'JsWrap_' + type.jsTypename + '::NewInstance(' + valueExpr + ')';
@@ -1324,6 +1324,11 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     else if (type.templateName === 'Timeseq') {
       f('else if (args.Length() == 0) {');
       f('it->assign();');
+      f('}');
+      f('else if (args.Length() == 2 && JsWrap_Trace::Extract(args[0]) && canConvJsToString(args[1])) {');
+      f('Trace *a0 = JsWrap_Trace::Extract(args[0]);');
+      f('string a1 = convJsToString(args[1]);');
+      f('it->assign(a0, a1);');
       f('}');
     }
 
@@ -1942,7 +1947,7 @@ StructCType.prototype.getCppToJsExpr = function(valueExpr, memoryExpr) {
   var type = this;
   
   if (memoryExpr) {
-    return 'JsWrap_' + type.jsTypename + '::ChildInstance(' + memoryExpr + ', &(' + valueExpr + '))';
+    return 'JsWrap_' + type.jsTypename + '::MemberInstance(' + memoryExpr + ', &(' + valueExpr + '))';
   } else {
     return 'JsWrap_' + type.jsTypename + '::NewInstance((' + valueExpr + '))';
   }
