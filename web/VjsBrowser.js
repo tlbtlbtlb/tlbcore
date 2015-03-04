@@ -900,29 +900,50 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   var drawCount = 0;
   var hd = new HitDetector(); // Persistent
 
+  // Isn't this what jQuery is supposed to do for me?
+  // http://stackoverflow.com/questions/12704686/html5-with-jquery-e-offsetx-is-undefined-in-firefox
+  function eventOffsets(ev) {
+    if (ev.offsetX !== undefined) {
+      return {x: ev.offsetX, y: ev.offsetY};
+    }
+    if (ev.originalEvent && ev.originalEvent.layerX !== undefined) {
+      return {x: ev.originalEvent.layerX, y: ev.originalEvent.layerY};
+    }
+    return null;
+  }
+  function eventDeltas(ev) {
+    if (ev.deltaX !== undefined) {
+      return {x: ev.deltaX, y: ev.deltaY};
+    }
+    if (ev.originalEvent && ev.originalEvent.layerX !== undefined) {
+      return {x: ev.originalEvent.deltaX, y: ev.originalEvent.deltaY};
+    }
+    return {x:0, y: 0};
+  }
+
   top.on('wheel', function(ev) {
-    var oev = ev.originalEvent;
-    var mdX = oev.offsetX; // offsetX not in ev for this event type, maybe it's not portable?
-    var mdY = oev.offsetY;
-    var action = hd.findScroll(mdX, mdY);
+    var md = eventOffsets(ev);
+    var action = hd.findScroll(md.x, md.y);
     if (action && action.onScroll) {
-      action.onScroll(oev.deltaX, oev.deltaY);
-      m.emit('changed');
+      var deltas = eventDeltas(ev);
+      if (deltas) {
+	action.onScroll(deltas.x, deltas.y);
+	m.emit('changed');
+      }
       return false;
     }
   });
   
   top.on('mousedown', function(ev) {
-    var mdX = ev.offsetX;
-    var mdY = ev.offsetY;
-    var action = hd.find(mdX, mdY) || hd.defaultActions;
+    var md = eventOffsets(ev);
+    var action = hd.find(md.x, md.y) || hd.defaultActions;
     if (action) {
       if (action.onDown || action.onClick || action.onUp) {
 	hd.buttonDown = true;
-	hd.mdX = mdX;
-	hd.mdY = mdY;
+	hd.mdX = md.x;
+	hd.mdY = md.y;
 	if (action.onDown) {
-	  action.onDown(mdX, mdY, ev);
+	  action.onDown(hd.mdX, hd.mdY, ev);
 	  if (hd.dragging && hd.dragCursor) {
 	    // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
 	    // Grab not supported on IE or Chrome/Windows
@@ -936,14 +957,14 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   });
 
   top.on('mousemove', function(ev) {
-    var mdX = ev.offsetX;
-    var mdY = ev.offsetY;
-    var action = hd.find(mdX, mdY);
+    console.log('move', ev);
+    var md = eventOffsets(ev);
+    var action = hd.find(md.x, md.y);
     if (hd.buttonDown || hd.hoverActive || hd.dragging || (action && action.onHover)) {
-      hd.mdX = mdX;
-      hd.mdY = mdY;
+      hd.mdX = md.x;
+      hd.mdY = md.y;
       if (hd.dragging) {
-        hd.dragging(mdX, mdY);
+        hd.dragging(hd.mdX, hd.mdY);
       }
       m.emit('changed');
     }
@@ -952,9 +973,8 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   top.on('mouseup', function(ev) {
     hd.mdX = hd.mdY = null;
     hd.buttonDown = false;
-    var mdX = ev.offsetX;
-    var mdY = ev.offsetY;
-    var action = hd.find(mdX, mdY);
+    var md = eventOffsets(ev);
+    var action = hd.find(md.x, md.y);
     if (action && action.onClick) {
       action.onClick();
     }
