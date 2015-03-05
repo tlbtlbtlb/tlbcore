@@ -165,6 +165,7 @@ function gotoLocationHash(pageid, o) {
   gotoCurrentState();
 }
 
+
 /* ----------------------------------------------------------------------
    Jquery magic
 */
@@ -906,8 +907,10 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     if (ev.offsetX !== undefined) {
       return {x: ev.offsetX, y: ev.offsetY};
     }
-    if (ev.originalEvent && ev.originalEvent.layerX !== undefined) {
-      return {x: ev.originalEvent.layerX, y: ev.originalEvent.layerY};
+    // Firefox doesn't have offsetX, you have to work from page coordinates
+    if (ev.pageX !== undefined) {
+      return {x: ev.pageX - top.offset().left,
+	      y: ev.pageY - top.offset().top};
     }
     return null;
   }
