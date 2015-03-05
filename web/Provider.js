@@ -555,6 +555,46 @@ JsonProvider.prototype.getType = function() {
 };
 
 /* ----------------------------------------------------------------------
+   KeyValueProvider(key, value) -- Most users use providerSet.addKeyValue(key, value);
+   Arrange for the browser to get the value as window[key] = value;
+*/
+
+function KeyValueProvider(key, value) {
+  AnyProvider.call(this);
+  this.key = key;
+  this.value = value;
+}
+KeyValueProvider.prototype = Object.create(AnyProvider.prototype);
+
+KeyValueProvider.prototype.equals = function(other) {
+  return (this.constructor === other.constructor && this.key === other.key && this.value === other.value);
+};
+
+KeyValueProvider.prototype.start = function() {
+  var self = this;
+  if (self.started) return;
+  self.started = true;
+
+  self.asScriptBody = 'window.' + self.key + ' = ' + JSON.stringify(self.value) + ';\n';
+  self.pending = false;
+  self.emit('changed');
+};
+
+KeyValueProvider.prototype.setValue = function(value) {
+  var self = this;
+  self.value = value;
+  self.emit('changed');
+};
+
+KeyValueProvider.prototype.toString = function() { 
+  return "KeyValueProvider(" + JSON.stringify(this.key) + ', ' + JSON.stringify(this.value) + ")"; 
+};
+
+KeyValueProvider.prototype.getType = function() {
+  return 'keyvalue';
+};
+
+/* ----------------------------------------------------------------------
    CssProvider(fn) -- Most users use providerSet.addCss(fn)
    Read the file named fn, and re-read if it changes. Arrange for the minified CSS to be included in the head
    of the HTML file served to the browser.
@@ -758,28 +798,31 @@ ProviderSet.prototype.setTitle = function(t) {
   module dependencies.
 */
 ProviderSet.prototype.addCss = function(name) {
-  this.addProvider(new CssProvider(name));
+  return this.addProvider(new CssProvider(name));
 };
 ProviderSet.prototype.addScript = function(name, moduleName) {
-  this.addProvider(new ScriptProvider(name, moduleName));
+  return this.addProvider(new ScriptProvider(name, moduleName));
 };
 ProviderSet.prototype.addJson = function(name, globalVarname) {
-  this.addProvider(new JsonProvider(name, globalVarname));
+  return this.addProvider(new JsonProvider(name, globalVarname));
+};
+ProviderSet.prototype.addKeyValue = function(key, value) {
+  return this.addProvider(new KeyValueProvider(key, value));
 };
 ProviderSet.prototype.addModule = function(name) {
-  this.addScript(require.resolve(name), name);
+  return this.addScript(require.resolve(name), name);
 };
 ProviderSet.prototype.addSvg = function(name) {
-  this.addProvider(new SvgProvider(name));
+  return this.addProvider(new SvgProvider(name));
 };
 ProviderSet.prototype.addMarkdown = function(name, contentName) {
-  this.addProvider(new MarkdownProvider(name, contentName));
+  return this.addProvider(new MarkdownProvider(name, contentName));
 };
 ProviderSet.prototype.addXmlContent = function(name) {
-  this.addProvider(new XmlContentProvider(name));
+  return this.addProvider(new XmlContentProvider(name));
 };
 ProviderSet.prototype.addXmlContentDir = function(name) {
-  this.addProvider(new XmlContentDirProvider(name));
+  return this.addProvider(new XmlContentDirProvider(name));
 };
 ProviderSet.prototype.addProvider = function(p) {
   assert.ok(p.equals(p));
@@ -787,6 +830,7 @@ ProviderSet.prototype.addProvider = function(p) {
     if (p.equals(this.providers[i])) return;
   }
   this.providers.push(p); 
+  return p;
 };
 
 ProviderSet.prototype.handleRequest = function(req, res, suffix) {

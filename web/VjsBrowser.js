@@ -1148,21 +1148,23 @@ function setupConsole(reloadKey) {
   }
 
   // Create remote console over a websocket connection
-  window.rconsole = mkWebSocket('console', {
-    start: function() {
-      if (reloadKey) {
-        // Ask the server to tell us to reload. Look for reloadKey in VjsSite.js for the control flow.
-        this.cmd('reloadOn', {reloadKey: reloadKey});
+  if (window.enableRemoteConsole) {
+    window.rconsole = mkWebSocket('console', {
+      start: function() {
+	if (reloadKey) {
+          // Ask the server to tell us to reload. Look for reloadKey in VjsSite.js for the control flow.
+          this.cmd('reloadOn', {reloadKey: reloadKey});
+	}
+      },
+      cmd_reload: function(msg) { // server is asking us to reload, because it knows that javascript files have changed
+	console.log('Reload');
+	window.location.reload(true);
+      },
+      cmd_flashError: function(msg) {
+	$.flashErrorMessage(msg.err);
       }
-    },
-    cmd_reload: function(msg) { // server is asking us to reload, because it knows that javascript files have changed
-      console.log('Reload');
-      window.location.reload(true);
-    },
-    cmd_flashError: function(msg) {
-      $.flashErrorMessage(msg.err);
-    }
-  });
+    });
+  }
 }
 
 function disableConsole() {
