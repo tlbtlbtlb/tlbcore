@@ -1,3 +1,4 @@
+'use strict';
 /*
   Maybe replace with node-browserify?
   This has a couple nice features I don't want to lose, though:
@@ -303,10 +304,10 @@ AnyProvider.prototype.getType = function() {
 };
 
 AnyProvider.prototype.equals = function(other) {
-  return (this.constructor === other.constructor && this.fn === other.fn)
+  return (this.constructor === other.constructor && this.fn === other.fn);
 };
 
-AnyProvider.prototype.isDir = function() { return false; }
+AnyProvider.prototype.isDir = function() { return false; };
 
 /* ----------------------------------------------------------------------
    XmlContentProvider(fn) -- Most users use providerSet.addXmlContent(fn).
@@ -971,7 +972,7 @@ function RawDirProvider(fn) {
 }
 RawDirProvider.prototype = Object.create(AnyProvider.prototype);
 
-RawDirProvider.prototype.isDir = function() { return true; }
+RawDirProvider.prototype.isDir = function() { return true; };
 
 RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
   var self = this;
@@ -986,6 +987,8 @@ RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
     encoding = 'binary';
   }
   
+  // WRITEME: when given a range request, don't read the entire file only to use a small slice
+  // Which means re-implementing most of fs.readFile
   fs.readFile(fullfn, encoding, function(err, content) {
     if (err) {
       logio.E(fullfn, 'Error: ' + err);
@@ -1008,6 +1011,7 @@ RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
         res.writeHead(206, {
           'Content-Type': contentType,
           'Content-Length': (end - start + 1).toString(),
+          // 'bytes ', not 'bytes=' like the request for some reason
           'Content-Range': 'bytes ' + start.toString() + '-' + end.toString() + '/' + content.length.toString(),
           'Accept-Ranges': 'bytes',
           'Cache-Control': 'max-age=900'

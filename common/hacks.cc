@@ -4,6 +4,7 @@
 #include "./hacks.h"
 
 #include <regex.h>
+#include <netdb.h>
 
 
 char *
@@ -65,7 +66,7 @@ eprintf(const char *format,...)
   va_list ap;
   va_start(ap,format);
 #ifdef WIN32
-  char *str=NULL;
+  char *str = nullptr;
   vasprintf(&str, format, ap);
   OutputDebugStringA(str);
   free(str);
@@ -107,7 +108,7 @@ die(const char *format,...)
 {
   va_list ap;
   va_start(ap, format);
-  char *message = NULL;
+  char *message = nullptr;
   int message_len = vasprintf(&message, format, ap);
   va_end(ap);
   if (message_len < 0) message = strdup("[[vasprintf error]]");
@@ -135,7 +136,7 @@ diek(const char *format,...)
 {
   va_list ap;
   va_start(ap,format);
-  char *message = NULL;
+  char *message = nullptr;
   int message_len = vasprintf(&message, format, ap);
   va_end(ap);
   if (message_len < 0) message = strdup("[[vasprintf error]]");
@@ -154,7 +155,7 @@ diee(const char *format,...)
 {
   va_list ap;
   va_start(ap,format);
-  char *message = NULL;
+  char *message = nullptr;
   int message_len = vasprintf(&message, format, ap);
   va_end(ap);
   if (message_len < 0) message = strdup("[[vasprintf error]]");
@@ -188,7 +189,7 @@ need_pbuf(int len)
   len+=5; // safety
   if (len > pbuf_len) {
     free(pbuf);
-    pbuf = NULL;
+    pbuf = nullptr;
     pbuf_len = max(len, pbuf_len*2);
   }
   if (!pbuf) {
@@ -247,10 +248,10 @@ saprintf(const char *format,...)
 {
   va_list ap;
   va_start(ap,format);
-  char *str = NULL;
+  char *str = nullptr;
   int str_len = vasprintf(&str, format, ap);
   va_end(ap);
-  if (str_len < 0) return NULL;
+  if (str_len < 0) return nullptr;
 
   return str;
 }
@@ -260,7 +261,7 @@ stringprintf(const char *format,...)
 {
   va_list ap;
   va_start(ap, format);
-  char *str = NULL;
+  char *str = nullptr;
   int str_len = vasprintf(&str, format, ap);
   va_end(ap);
   if (str_len < 0) return "";
@@ -276,7 +277,7 @@ fdprintf(int fd, const char *format, ...)
 {
   va_list ap;
   va_start(ap, format);
-  char *str = NULL;
+  char *str = nullptr;
   int len = vasprintf(&str, format, ap);
   if (write(fd, str, len) < 0) {
     free(str);
@@ -367,7 +368,7 @@ getln(FILE *f)
     if (c==EOF) {
       if (n_line==0) {
         free(line);
-        return NULL;
+        return nullptr;
       }
       break;
     }
@@ -399,7 +400,7 @@ getall(FILE *f)
     if (c==EOF && feof(f)) {
       if (n_line==0) {
         free(line);
-        return NULL;
+        return nullptr;
       }
       break;
     }
@@ -486,7 +487,7 @@ tmpfn::~tmpfn()
 
 FILE *mfopen()
 {
-  return fmemopen(NULL, 65536, "w");
+  return fmemopen(nullptr, 65536, "w");
 }
 
 #elif defined(WIN32)
@@ -502,7 +503,7 @@ struct memfile {
   int alloc_data;
 };
 
-int memfile_read(void *cookie, char *buf, int n)
+static int memfile_read(void *cookie, char *buf, int n)
 {
   memfile *mf=(memfile *)cookie;
 
@@ -512,7 +513,7 @@ int memfile_read(void *cookie, char *buf, int n)
   return nr;
 }
 
-int memfile_write(void *cookie, const char *buf, int n)
+static int memfile_write(void *cookie, const char *buf, int n)
 {
   memfile *mf=(memfile *)cookie;
 
@@ -529,11 +530,11 @@ int memfile_write(void *cookie, const char *buf, int n)
   return n;
 }
 
-off_t memfile_seek(void *cookie, off_t offset, int whence)
+static off_t memfile_seek(void *cookie, off_t offset, int whence)
 {
-  memfile *mf=(memfile *)cookie;
+  memfile *mf = (memfile *)cookie;
   if (whence == SEEK_SET) {
-    mf->ofs=offset;
+    mf->ofs = offset;
   }
   else if (whence == SEEK_CUR) {
     mf->ofs += offset;
@@ -544,9 +545,9 @@ off_t memfile_seek(void *cookie, off_t offset, int whence)
   return mf->ofs;
 }
 
-int memfile_close(void *cookie)
+static int memfile_close(void *cookie)
 {
-  memfile *mf=(memfile *)cookie;
+  memfile *mf = (memfile *)cookie;
   free(mf->data);
   return 0;
 }
@@ -554,11 +555,11 @@ int memfile_close(void *cookie)
 FILE *mfopen()
 {
   memfile *mf=new memfile;
-  mf->data=NULL;
-  mf->ofs=0;
-  mf->n_data=0;
-  mf->alloc_data=0;
-  return funopen(mf,memfile_read,memfile_write,memfile_seek,memfile_close);
+  mf->data = nullptr;
+  mf->ofs = 0;
+  mf->n_data = 0;
+  mf->alloc_data = 0;
+  return funopen(mf, memfile_read, memfile_write, memfile_seek, memfile_close);
 }
 
 #endif
@@ -566,8 +567,8 @@ FILE *mfopen()
 #if !defined(WIN32)
 FILE *mfopen_str(const char *s)
 {
-  FILE *mf=mfopen();
-  fputs(s,mf);
+  FILE *mf = mfopen();
+  fputs(s, mf);
   rewind(mf);
   return mf;
 }
@@ -575,8 +576,8 @@ FILE *mfopen_str(const char *s)
 
 FILE *mfopen_data(const char *d, int n_d)
 {
-  FILE *mf=mfopen();
-  fwrite(d,1,n_d,mf);
+  FILE *mf = mfopen();
+  fwrite(d, 1, n_d, mf);
   rewind(mf);
   return mf;
 }
@@ -615,7 +616,7 @@ double realtime()
   return 0.000001 * (double)tmpres;
 #else
   timeval tv;
-  gettimeofday(&tv, NULL);
+  gettimeofday(&tv, nullptr);
   return tv.tv_sec + 0.000001*tv.tv_usec;
 #endif
 }
@@ -631,7 +632,7 @@ int re_match_hostname(const char *re)
 #else
   regex_t reg;
   if (regcomp(&reg, re, REG_EXTENDED|REG_NOSUB|REG_ICASE)) die("regcomp");
-  if (regexec(&reg, hostname, 0, NULL, 0)) {
+  if (regexec(&reg, hostname, 0, nullptr, 0)) {
     regfree(&reg);
     return 0;
   }
@@ -678,15 +679,15 @@ string tlb_realpath(const string &pathname)
 
 string tlb_basename(const string &pathname)
 {
-  string::const_iterator pnbeg = pathname.begin();
-  string::const_iterator pnend = pathname.end();
+  auto pnbeg = pathname.begin();
+  auto pnend = pathname.end();
 
   if (pnbeg==pnend) return string(".");
   
-  string::const_iterator baseend = pnend;
+  auto baseend = pnend;
   while (baseend-1 > pnbeg && *(baseend-1)=='/') baseend--;
   
-  string::const_iterator basebeg = baseend-1;
+  auto basebeg = baseend-1;
   
   while (basebeg > pnbeg && *(basebeg-1) != '/') basebeg--;
   
@@ -713,7 +714,7 @@ bool same_type(std::type_info const &t1, std::type_info const &t2)
 
   if (t1==t2) return true;
   if (!strcmp(t1.name(), t2.name())) {
-    if (0) printf("Type %s has two instances: %p[%p], %p[%p]\n", t1.name(), &t1, t1.name(), &t2, t2.name());
+    if (0) eprintf("Type %s has two instances: %p[%p], %p[%p]\n", t1.name(), &t1, t1.name(), &t2, t2.name());
     return true;
   }
   return false;
@@ -723,10 +724,10 @@ bool same_type(std::type_info const &t1, std::type_info const &t2)
 void stl_exec(vector<string> const &args)
 {
   vector<const char *> cargs;
-  for (vector<string>::const_iterator it = args.begin(); it!=args.end(); it++) {
+  for (auto it = args.begin(); it!=args.end(); it++) {
     cargs.push_back(it->c_str());
   }
-  cargs.push_back(NULL);
+  cargs.push_back(nullptr);
   
 #if defined(WIN32)
   _execvp(cargs[0], (char *const *)&cargs[0]);
@@ -803,4 +804,13 @@ bool exec_change_watcher::w_check()
 }
 
 // ----------------------------------------------------------------------
+
+string sockaddr_desc(sockaddr *sa)
+{
+  char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+  socklen_t sa_len = sizeof(sockaddr_in);
+  getnameinfo(sa, sa_len, hbuf, sizeof(hbuf), sbuf, sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV);
+  string ret = stringprintf("%s:%s", hbuf, sbuf);
+  return ret;
+}
 

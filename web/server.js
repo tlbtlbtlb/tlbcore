@@ -1,3 +1,4 @@
+'use strict';
 var _                   = require('underscore');
 var net                 = require('net');
 var util                = require('util');
@@ -5,7 +6,6 @@ var util                = require('util');
 require('./VjsDbs').defDb('redis0', 'redis', '127.0.0.1', 6379);
 
 var VjsSite             = require('./VjsSite');
-var VjsApi              = require('./VjsApi');
 var Provider            = require('./Provider');
 var VjsRepl             = require('./VjsRepl');
 
@@ -52,9 +52,7 @@ function main() {
   
   VjsRepl.setupReplServer();
   VjsRepl.addToContext('webServer0', webServer0);
-  VjsRepl.addToContext('redis0', require('./VjsDbs')('redis0'));
-  VjsRepl.addToContext('VjsApi', VjsApi);
-  VjsRepl.addToContext('apis', VjsApi.apis);
+  if (0) VjsRepl.addToContext('redis0', require('./VjsDbs')('redis0'));
   VjsRepl.addToContext('VjsSite', VjsSite);
 
   webServer0.setupContent(sites);

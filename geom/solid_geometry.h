@@ -1,0 +1,115 @@
+//-*-C++-*-
+#ifndef _TLBCORE_SOLID_GEOMETRY_H
+#define _TLBCORE_SOLID_GEOMETRY_H
+
+struct StlMassProperties;
+
+struct OctreeNode {
+  OctreeNode(arma::vec3 const &_center, double _scale);
+  ~OctreeNode();
+
+  OctreeNode *lookup(arma::vec3 const &pt, double maxScale);
+
+  arma::vec3 center;
+  double scale;
+
+  OctreeNode *children[8];
+};
+
+
+struct StlFace {
+  StlFace();
+  StlFace(arma::vec3 _v0, arma::vec3 _v1, arma::vec3 _v2);
+  StlFace(arma::vec3 _v0, arma::vec3 _v1, arma::vec3 _v2, arma::vec3 _normal);
+  ~StlFace();
+
+  void calcNormal();
+
+  bool rayIntersects(arma::vec3 const &p, arma::vec3 const &d, double &t) const;
+  void transform(arma::mat44 const &m);
+  double getArea() const;
+  arma::vec3 getE1() const;
+  arma::vec3 getE2() const;
+  bool isDegenerate() const;
+  arma::vec3 getCentroid() const;
+
+  arma::vec3 v0, v1, v2;
+  arma::vec3 normal;
+
+};
+void packet_rd_value(packet &p, StlFace &it);
+void packet_wr_value(packet &p, StlFace const &it);
+void packet_rd_typetag(packet &p, StlFace &it);
+void packet_wr_typetag(packet &p, StlFace const &it);
+
+bool operator == (StlFace const &a, StlFace const &b);
+
+struct StlIntersection {
+  double t;
+  struct StlFace face;
+};
+
+struct StlWebglMesh {
+  StlWebglMesh() {}
+
+  arma::vec coords;
+  arma::ivec indexes;
+};
+
+struct StlSolid {
+  
+  StlSolid();
+  ~StlSolid();
+
+  void readBinaryFile(FILE *fp, double scale);
+  void calcBbox();
+  double getMaxScale() const;
+  bool rayIntersects(arma::vec3 const &p, arma::vec3 const &d) const;
+  void transform(arma::mat44 const &m);
+  bool isInterior(arma::vec3 const &pt) const;
+  vector<StlIntersection> getIntersections(arma::vec3 const &pt, arma::vec3 const &dir) const;
+  StlMassProperties getStlMassProperties(double density) const;
+  StlWebglMesh exportWebglMesh() const;
+  void removeTinyFaces(double minSize);
+
+  arma::vec3 bboxLo, bboxHi;
+  vector<StlFace> faces;
+  
+};
+
+ostream & operator << (ostream &s, StlSolid const &it);
+
+void packet_rd_value(packet &p, StlSolid &it);
+void packet_wr_value(packet &p, StlSolid const &it);
+void packet_rd_typetag(packet &p, StlSolid &it);
+void packet_wr_typetag(packet &p, StlSolid const &it);
+
+struct StlMassProperties {
+  StlMassProperties();
+  StlMassProperties(double _volume, double _mass, double _area, arma::vec3 _cm, arma::mat33 _inertiaOrigin);
+
+  StlMassProperties multiplyDensity(double factor);
+
+  void calcDerived();
+
+  double density;
+  double volume;
+  double mass;
+  double area;
+  arma::vec3 cm;
+  arma::mat33 inertiaOrigin;
+  arma::mat33 inertiaCm;
+  arma::vec3 rogOrigin;
+  arma::vec3 rogCm;
+};
+
+void packet_rd_value(packet &p, StlMassProperties &it);
+void packet_wr_value(packet &p, StlMassProperties const &it);
+void packet_rd_typetag(packet &p, StlMassProperties &it);
+void packet_wr_typetag(packet &p, StlMassProperties const &it);
+
+StlMassProperties operator +(StlMassProperties const &a, StlMassProperties const &b);
+
+ostream & operator << (ostream &s, StlMassProperties const &it);
+
+#endif

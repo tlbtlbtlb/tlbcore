@@ -1,7 +1,8 @@
-var _ = require('underscore');
-var os = require('os');
-var fs = require('fs');
-var util = require('util');
+'use strict';
+var _                   = require('underscore');
+var os                  = require('os');
+var fs                  = require('fs');
+var util                = require('util');
 
 exports.getHostname = getHostname;
 exports.getServerInfo = getServerInfo;
@@ -10,9 +11,7 @@ exports.getLocalServer = getLocalServer;
 exports.getBestAddr = getBestAddr;
 
 
-// ======================================================================
-
-var verbose           = 0;
+var verbose = 0;
 
 /*
 

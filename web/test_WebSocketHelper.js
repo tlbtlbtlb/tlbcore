@@ -42,14 +42,12 @@ describe('WebSocketHelper', function() {
 });
 
 describe('WebSocketHelper', function() {
-  it('should be fast for large STL collections', function() {
-    var vd = new ur.vector_double();
-    for (var i=0; i<1000; i++) {
-      vd.pushBack(i*123);
-    }
+  if (0) it('should be fast for large arma vectors collections', function() {
+    var vd = new ur.vec.linspace(0, 123000, 1001);
     var msg1 = {foo: vd};
+    var msg2;
     for (var iter=0; iter<50; iter++) {
-      var msg2 = wshPipe(msg1);
+      msg2 = wshPipe(msg1);
     }
     assert.equal(msg2.foo[10], 1230);
   });

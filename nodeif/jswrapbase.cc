@@ -23,6 +23,7 @@
 #include "../common/jsonio.h"
 #include "./jswrapbase.h"
 
+using namespace arma;
 
 bool fastJsonFlag;
 
@@ -38,7 +39,13 @@ Handle<Value> ThrowTypeError(char const *s) {
   return ThrowException(Exception::TypeError(String::New(s)));
 }
 
+Handle<Value> ThrowRuntimeError(char const *s) {
+  return ThrowException(Exception::Error(String::New(s)));
+}
 
+/* ----------------------------------------------------------------------
+  string I/O
+*/
 
 bool canConvJsToString(Handle<Value> it) {
   return it->IsString() || node::Buffer::HasInstance(it);
@@ -54,7 +61,7 @@ string convJsToString(Handle<Value> it) {
     return string(data, data+len);
   }
   else {
-    throw tlbcore_type_err("Can't convert to string");
+    throw runtime_error("Can't convert to string");
   }
 }
 Handle<Value> convStringToJs(string const &it) {
@@ -67,63 +74,50 @@ Handle<Value> convStringToJsBuffer(string const &it) {
 
 
 /* ----------------------------------------------------------------------
-   Convert JS arrays, both regular and native, to vector<double>
+   arma::mat I/O
+   WRITEME: make a template to handle other element types
+
+   Convert JS arrays, both regular and native, to arma mat / vec
    See https://github.com/joyent/node/issues/4201 for details on native arrays
 */
 
-bool canConvJsToVectorDouble(Handle<Value> itv) {
+bool canConvJsToArmaMat(Handle<Value> itv) {
   if (itv->IsObject()) {
     Handle<Object> it = itv->ToObject();
-    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) return true;
-    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) return true;
     if (it->IsArray()) return true;
   }
   return false;
 }
 
-vector<double> convJsToVectorDouble(Handle<Value> itv) {
+mat convJsToArmaMat(Handle<Value> itv) {
+#if 1
+  throw runtime_error("convJsToArmaMat: not implemented");
+#else
   if (itv->IsObject()) {
     Handle<Object> it = itv->ToObject();
-
-    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) {
-      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
-      double* itData = static_cast<double*>(it->GetIndexedPropertiesExternalArrayData());
-
-      return vector<double>(itData, itData+itLen);
-    }
-
-    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) {
-      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
-      float* itData = static_cast<float*>(it->GetIndexedPropertiesExternalArrayData());
-
-      return vector<double>(itData, itData+itLen);
-    }
 
     // Also handle regular JS arrays
     if (it->IsArray()) {
       Handle<Array> itArr = Handle<Array>::Cast(it);
       size_t itArrLen = itArr->Length();
-      vector<double> ret(itArrLen);
+      mat ret(itArrLen, itArrLen);
       for (size_t i=0; i<itArrLen; i++) {
-        ret[i] = itArr->Get(i)->NumberValue();
+        ret(i) = itArr->Get(i)->NumberValue();
       }
       return ret;
     }
   }
-  throw new tlbcore_type_err("convJsToVectorDouble: not an array");
+#endif
+  throw runtime_error("convJsToVectorDouble: not an array");
 }
 
-Handle<Object> convVectorDoubleToJs(vector<double> const &it) {
-  static Persistent<Function> float64_array_constructor;
-
-  if (float64_array_constructor.IsEmpty()) {
-    Local<Object> global = Context::GetCurrent()->Global();
-    Local<Value> val = global->Get(String::New("Float64Array"));
-    assert(!val.IsEmpty() && "type not found: Float64Array");
-    assert(val->IsFunction() && "not a constructor: Float64Array");
-    float64_array_constructor = Persistent<Function>::New(val.As<Function>());
-  }
-
+Handle<Object> convArmaMatToJs(vector<double> const &it) {
+  /*
+    WRITEME: this should take a 2-dimensional JS array, like [[1,2,3],[4,5,6],[7,8,9]] to a arma::mat
+  */
+#if 1
+  throw runtime_error("convArmaMatToJs: not implemented");
+#else
   Local<Value> itSize = Integer::NewFromUnsigned((u_int)it.size());
   Local<Object> ret = float64_array_constructor->NewInstance(1, &itSize);
   assert(ret->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray);
@@ -133,8 +127,50 @@ Handle<Object> convVectorDoubleToJs(vector<double> const &it) {
   memcpy(retData, &it[0], it.size() * sizeof(double));
   
   return ret;
+#endif
 }
 
+/* ----------------------------------------------------------------------
+  arma::cx_double I/O
+
+  arma::cx_double, the same as std::complex<double> is reflected into a simple {real:,imag:} object in JS. There's no binary wrapped type
+  See also jsonio.cc: wrJson(..., arma::cx_double)
+*/
+bool canConvJsToCxDouble(Handle<Value> itv)
+{
+  if (itv->IsObject()) {
+    Handle<Object> it = itv->ToObject();
+    Handle<Value> realv = it->Get(String::NewSymbol("real"));
+    Handle<Value> imagv = it->Get(String::NewSymbol("imag"));
+    if (realv->IsNumber() && imagv->IsNumber()) {
+      return true;
+    }
+  }
+  return false;
+}
+arma::cx_double convJsToCxDouble(Handle<Value> itv)
+{
+  if (itv->IsObject()) {
+    Handle<Object> it = itv->ToObject();
+    Handle<Value> realv = it->Get(String::NewSymbol("real"));
+    Handle<Value> imagv = it->Get(String::NewSymbol("imag"));
+    if (realv->IsNumber() && imagv->IsNumber()) {
+      return arma::cx_double(realv->NumberValue(), imagv->NumberValue());
+    }
+  }
+  throw runtime_error("convJsToCxDouble: conversion failed");
+}
+Handle<Object> convCxDoubleToJs(arma::cx_double const &it)
+{
+  Local<Object> ret = Object::New();
+  ret->Set(String::NewSymbol("real"), Number::New(it.real()));
+  ret->Set(String::NewSymbol("imag"), Number::New(it.imag()));
+  return ret;
+}
+
+/* ----------------------------------------------------------------------
+  Enhancements to the JSON module
+*/
 
 static Persistent<Object> JSON;
 static Persistent<Function> JSON_stringify;
@@ -157,6 +193,13 @@ static void setupJSON() {
     assert(tmpParse->IsFunction() && "not a function: JSON.parse");
     JSON_parse = Persistent<Function>::New(tmpParse.As<Function>());
   }
+}
+
+/* ----------------------------------------------------------------------
+  jsonstr I/O
+*/
+bool canConvJsToJsonstr(Handle<Value> value) {
+  return true;
 }
 
 jsonstr convJsToJsonstr(Handle<Value> value) {
@@ -182,7 +225,9 @@ Handle<Value> convJsonstrToJs(jsonstr const &it)
 }
 
 
-
+/* ----------------------------------------------------------------------
+  map<string, jsonstr> I/O
+*/
 
 bool canConvJsToMapStringJsonstr(Handle<Value> itv) {
   if (itv->IsObject()) return true;
@@ -209,6 +254,6 @@ map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
     }
     return ret;
   }
-  throw new tlbcore_type_err("convJsToMapStringJsonstr: not an object");
+  throw runtime_error("convJsToMapStringJsonstr: not an object");
 }
 

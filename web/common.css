@@ -21,9 +21,6 @@ a:link {
 a:visited {
     color: #666666;
 }
-b {
-    color: #333333;
-}
 img {
     border-width: 0;
 }
@@ -118,7 +115,16 @@ blockquote {
     clear: left;
 }
 
+/* See http://nicolasgallagher.com/micro-clearfix-hack/ */
+.clearfix:before, .clearfix:after {
+  content: " ";
+  display: table;
+}
+.clearfix:after {
+  clear: both;
+}
 
+/* Whole page overlays */
 #flashErrorMessage {
 }
 

@@ -1,8 +1,9 @@
-var _ = require('underscore');
-var util = require('util');
-var cgen = require('./cgen');
-var assert = require('assert');
-var fs = require('fs');
+'use strict';
+var _                   = require('underscore');
+var util                = require('util');
+var cgen                = require('./cgen');
+var assert              = require('assert');
+var fs                  = require('fs');
 
 exports.RtFunction = RtFunction;
 
@@ -49,7 +50,7 @@ RtFunction.prototype.registerWrapper = function() {
 
   // This is complicated because in an RtFunction the inargs & outargs are just {name:type}, but the wrap function takes the args explicitely
   // in order and with 
-  self.typereg.addWrapFunction(self.getSignature(), self.name, 'void', self.collectArgs(function(argname, argTypename, isOut) {
+  self.typereg.addWrapFunction(self.getSignature(), '', self.name, '', 'void', self.collectArgs(function(argname, argTypename, isOut) {
     return {typename: argTypename, passing: isOut ? '&' : 'const &'};
   }));
 };
@@ -224,8 +225,7 @@ function emitNode(l, node) {
         break;
     case 'erf':
         // WRITEME: erf http://en.wikipedia.org/wiki/Error_function
-        assert.fail();
-        break;
+      throw new Error('erf unimplemented');
 
     }
 }

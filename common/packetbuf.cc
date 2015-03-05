@@ -1,10 +1,11 @@
 #include "std_headers.h"
 #include <sys/stat.h>
-#include "anythreads.h"
+#include <mutex>
 #include "jsonio.h"
 
 packet_stats packet::stats;
 
+mutex refcnt_mutex;
 
 // ----------------------------------------------------------------------
 
@@ -23,7 +24,11 @@ void packet::decref(packet_contents *&it)
 {
   stats.decref_count++;
 
-  int newrefs = anyatomic_decr(it->refcnt);
+  int newrefs;
+  {
+    unique_lock<mutex> l1(refcnt_mutex);
+    newrefs = --it->refcnt;
+  }
   if (newrefs == 0) {
     stats.free_count++;
     free(it);
@@ -36,7 +41,11 @@ void packet::decref(packet_annotations *&it)
   if (!it) return;
   stats.decref_count++;
 
-  int newrefs = anyatomic_decr(it->refcnt);
+  int newrefs;
+  {
+    unique_lock<mutex> l1(refcnt_mutex);
+    newrefs = --it->refcnt;
+  }
   if (newrefs == 0) {
     stats.free_count++;
     delete it;
@@ -46,14 +55,20 @@ void packet::decref(packet_annotations *&it)
 
 void packet::incref(packet_contents *it)
 {
-  anyatomic_incr(it->refcnt);
+  {
+    unique_lock<mutex> l1(refcnt_mutex);
+    it->refcnt++;
+  }
   stats.incref_count++;
 }
 
 void packet::incref(packet_annotations *it)
 {
   if (!it) return;
-  anyatomic_incr(it->refcnt);
+  {
+    unique_lock<mutex> l1(refcnt_mutex);
+    it->refcnt++;
+  }
   stats.incref_count++;
 }
 
@@ -194,8 +209,7 @@ string &packet::annotation(string const &key)
 string packet::annotation(string const &key) const
 {
   if (annotations) {
-    map<string, string>::iterator slot;
-    slot = annotations->table.find(key);
+    auto slot = annotations->table.find(key);
     if (slot != annotations->table.end()) {
       return (*slot).second;
     }
@@ -206,8 +220,7 @@ string packet::annotation(string const &key) const
 bool packet::has_annotation(string const &key) const
 {
   if (annotations) {
-    map<string, string>::iterator slot;
-    slot = annotations->table.find(key);
+    auto slot = annotations->table.find(key);
     if (slot != annotations->table.end()) {
       return true;
     }
@@ -578,7 +591,10 @@ string packet::get_nl_string()
 void packet::add_typetag(char const *tag)
 {
   size_t size = strlen(tag);
-  assert (size < 255);
+  if (!(size < 255)) {
+    die("add_typetag: tag too long (len=%d)\n", (int)size);
+    return;
+  }
   add((u_char)size);
   add_bytes(tag, size);
 }  
@@ -691,43 +707,31 @@ void packet::clear_stats()
 // ----------------------------------------------------------------------
 
 packet_wr_overrun_err::packet_wr_overrun_err(int _howmuch)
-  :howmuch(_howmuch)
+  :runtime_error(stringprintf("Packet wr overrun by %d", _howmuch)),
+   howmuch(_howmuch)
 {
 }
-packet_wr_overrun_err::~packet_wr_overrun_err()
+packet_wr_overrun_err::~packet_wr_overrun_err() throw()
 {
-}
-string packet_wr_overrun_err::str() const
-{
-  return stringprintf("packet_wr_overrun_err(%d)", howmuch);
 }
 
 packet_rd_overrun_err::packet_rd_overrun_err(int _howmuch)
-  :howmuch(_howmuch)
+  :runtime_error(stringprintf("Packet rd overrun by %d", _howmuch)),
+   howmuch(_howmuch)
 {
 }
-packet_rd_overrun_err::~packet_rd_overrun_err()
+packet_rd_overrun_err::~packet_rd_overrun_err() throw()
 {
-}
-string packet_rd_overrun_err::str() const
-{
-  return stringprintf("packet_rd_overrun_err(%d)", howmuch);
 }
 
-packet_rd_type_err::packet_rd_type_err(char const *_expected, char const *_got)
-  :expected(strdup(_expected)), got(strdup(_got)) // leaks
-{
-}
 packet_rd_type_err::packet_rd_type_err(string const &_expected, string const &_got)
-  :expected(strdup(_expected.c_str())), got(strdup(_got.c_str())) // leaks
+  :runtime_error(stringprintf("Packet rd type error(expected %s, got %s)", _expected.c_str(), _got.c_str())),
+   expected(_expected), 
+   got(_got)
 {
 }
-packet_rd_type_err::~packet_rd_type_err()
+packet_rd_type_err::~packet_rd_type_err() throw()
 {
-}
-string packet_rd_type_err::str() const
-{
-  return stringprintf("packet_rd_type_err(expected %s, got %s)", expected, got);
 }
 
 // ----------------------------------------------------------------------
@@ -835,6 +839,11 @@ void packet_wr_value(packet &p, jsonstr const &x) { packet_wr_value(p, x.it); }
 void packet_rd_typetag(packet &p, jsonstr const &x) { p.check_typetag("json"); }
 void packet_rd_value(packet &p, jsonstr &x) { packet_rd_value(p, x.it); }
 
+void packet_wr_typetag(packet &p, arma::cx_double const &x) { p.add_typetag("cx_double"); }
+void packet_wr_value(packet &p, arma::cx_double const &x) { packet_wr_value(p, x.real()); packet_wr_value(p, x.imag()); }
+void packet_rd_typetag(packet &p, arma::cx_double const &x) { p.check_typetag("cx_double"); }
+void packet_rd_value(packet &p, arma::cx_double &x) { double real, imag; packet_rd_value(p, real); packet_rd_value(p, imag); x = arma::cx_double(real, imag); }
+
 
 // ----------------------------------------------------------------------
 
@@ -850,7 +859,7 @@ string packet::run_test(int testid)
     return packet::stats_str();
   }
   else {
-    throw tlbcore_index_err();
+    throw runtime_error("No such test");
   }
 }
 

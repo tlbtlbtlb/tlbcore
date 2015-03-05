@@ -1,3 +1,4 @@
+'use strict';
 /*
   The server side (nodejs) of a WebSocket connection.
   The API is symmetrical, but the browser end is implemented in WebSocketBrowser because of the narcissism of small differences.

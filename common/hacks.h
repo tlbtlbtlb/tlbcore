@@ -147,8 +147,6 @@ bool same_type(std::type_info const &t1, std::type_info const &t2);
 string stringprintf(const char *format,...)  ATT_FORMAT(printf,1,2);
 void stl_exec(vector<string> const &args);
 
-typedef vector<double> doublevector;
-
 
 #ifndef WIN32
 string file_string(string const &fn);
@@ -168,10 +166,11 @@ struct exec_change_watcher {
 
 void utf8_backspace(std::string &s);
 
+std::string sockaddr_desc(struct sockaddr *sa);
+
 #endif
 
 
 double realtime();
-
 
 #endif

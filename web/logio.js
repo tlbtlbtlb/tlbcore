@@ -1,6 +1,7 @@
-var _ = require('underscore');
-var util = require('util');
-var child_process = require('child_process');
+'use strict';
+var _                   = require('underscore');
+var util                = require('util');
+var child_process       = require('child_process');
 require('../common/MoreUnderscore');
 
 exports.vsystem = vsystem;
@@ -9,7 +10,7 @@ exports.I = I;
 exports.O = O;
 exports.E = E;
 
-var verbose    = 1;
+var verbose = 1;
 
 // ----------------------------------------------------------------------
 

@@ -1,15 +1,14 @@
-var _ = require('underscore');
-var util = require('util');
-var child_process = require('child_process');
+'use strict';
+var _                   = require('underscore');
+var util                = require('util');
+var child_process       = require('child_process');
 
-exports.mkImageVersions = mkImageVersions;
-
-var logio = require('./logio');
+var logio               = require('./logio');
 var Topology            = require('./Topology');
 var Storage             = require('./Storage');
 var Safety              = require('./Safety');
 
-// ======================================================================
+exports.mkImageVersions = mkImageVersions;
 
 var verbose    = 2;
 

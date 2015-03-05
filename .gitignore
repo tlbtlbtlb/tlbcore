@@ -1,6 +1,14 @@
+*~
 /build.src
 /nodeif/build
 /nodeif/bin
+/arma/build
+/arma/bin
 .lock-wscript
 *.log
 *.o
+.zedstate
+tags
+/o3d-read-only/
+/webgl-loader-read-only/
+/dump.rdb

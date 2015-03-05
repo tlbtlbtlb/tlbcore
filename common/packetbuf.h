@@ -2,6 +2,8 @@
 #ifndef _TLBCORE_PACKETBUF_H
 #define _TLBCORE_PACKETBUF_H
 
+#include <armadillo>
+
 /*
   The packetbuf system is a convenient and high-performance way of
   sending typed data around between processes.
@@ -9,9 +11,12 @@
   It's *not* architecture independent, so you'd be hosed if you tried
   to communicate between a big-endian and a little-endian machine.
 
+  In the robot environment, I standardize on the Intel binary format, so 
+  the AVR32 code does endian gymnastics to make that work.
+
   Reading:
 
-  A packet is with a binary blob of data and walks through it as you read
+  A packet is a binary blob of data. Walk through it as you read
   data objects one at a time.
   
   Example: {
@@ -39,10 +44,13 @@
     wr.add(string("foo"));
     write(fd, wr.ptr(), wr.size());
   }
+
+  Supporting your own data types:
+  
+  You have to implement packet_wr_value and packet_rd_value.
+  Also, packet_wr_typetag and packet_rd_typetag.
   
 */
-
-#include "./exceptions.h"
 
 struct packet_contents;
 struct packet_annotations;
@@ -52,7 +60,7 @@ struct jsonstr;
   This is the actual data in the packet
 */
 struct packet_contents {
-  int refcnt;
+  int refcnt; // should be std::atomic
   size_t alloc;
   uint8_t buf[1];
 };
@@ -66,27 +74,23 @@ struct packet_annotations {
 
 // ----------------------------------------------------------------------
 
-struct packet_wr_overrun_err : tlbcore_err {
-  packet_wr_overrun_err(int _howmuch);
-  virtual ~packet_wr_overrun_err();
-  string str() const;
+struct packet_wr_overrun_err : runtime_error {
+  explicit packet_wr_overrun_err(int _howmuch);
+  virtual ~packet_wr_overrun_err() throw();
   int howmuch;
 };
 
-struct packet_rd_overrun_err : tlbcore_err {
-  packet_rd_overrun_err(int _howmuch);
-  virtual ~packet_rd_overrun_err();
-  string str() const;
+struct packet_rd_overrun_err : runtime_error {
+  explicit packet_rd_overrun_err(int _howmuch);
+  virtual ~packet_rd_overrun_err() throw();
   int howmuch;
 };
 
-struct packet_rd_type_err : tlbcore_err {
-  packet_rd_type_err(char const *_expected, char const *_got);
-  packet_rd_type_err(string const &_expected, string const &_got); // Leaks
-  virtual ~packet_rd_type_err();
-  string str() const;
-  char const *expected;
-  char const *got;
+struct packet_rd_type_err : runtime_error {
+  explicit packet_rd_type_err(string const &_expected, string const &_got);
+  virtual ~packet_rd_type_err() throw();
+  string expected;
+  string got;
 };
 
 struct packet_stats {
@@ -304,6 +308,7 @@ void packet_wr_value(packet &p, const timeval &x);
 #endif
 void packet_wr_value(packet &p, const string &s);
 void packet_wr_value(packet &p, const jsonstr &s);
+void packet_wr_value(packet &p, const arma::cx_double &s);
 
 void packet_wr_typetag(packet &p, const bool &x);
 void packet_wr_typetag(packet &p, const char &x);
@@ -322,6 +327,7 @@ void packet_wr_typetag(packet &p, const timeval &x);
 #endif
 void packet_wr_typetag(packet &p, const string &s);
 void packet_wr_typetag(packet &p, const jsonstr &s);
+void packet_wr_typetag(packet &p, const arma::cx_double &s);
 
 void packet_rd_value(packet &p, bool &x);
 void packet_rd_value(packet &p, char &x);
@@ -340,6 +346,7 @@ void packet_rd_value(packet &p, timeval &x);
 #endif
 void packet_rd_value(packet &p, string &s);
 void packet_rd_value(packet &p, jsonstr &s);
+void packet_rd_value(packet &p, arma::cx_double &s);
 
 void packet_rd_typetag(packet &p, signed char const &x);
 void packet_rd_typetag(packet &p, char const &x);
@@ -358,6 +365,7 @@ void packet_rd_typetag(packet &p, timeval const &x);
 void packet_rd_typetag(packet &p, bool const &x);
 void packet_rd_typetag(packet &p, string const &s);
 void packet_rd_typetag(packet &p, jsonstr const &s);
+void packet_rd_typetag(packet &p, arma::cx_double const &s);
 
 /*
   Any vector is handled by writing a size followed by the items. Watch
@@ -376,7 +384,7 @@ void packet_wr_typetag(packet &p, vector<T> const &x) {
 
 template<typename T>
 void packet_wr_value(packet &p, vector<T> const &x) {
-  assert(x.size() < 0x3fffffff);
+  if (!(x.size() < 0x3fffffff)) throw runtime_error(stringprintf("Unreasonable size %lu", (u_long)x.size()));
   p.add((uint32_t)x.size());
   for (size_t i=0; i<x.size(); i++) {
     p.add(x[i]);
@@ -394,13 +402,90 @@ template<typename T>
 void packet_rd_value(packet &p, vector<T> &x) {
   uint32_t size;
   p.get(size);
-  assert(size < 0x3fffffff);
+  if (!(size < 0x3fffffff)) throw runtime_error(stringprintf("Unreasonable size %lu", (u_long)size));
   if (size > p.remaining() / sizeof(T)) throw packet_rd_overrun_err(size*sizeof(T) - p.remaining());
   x.resize(size);
   for (size_t i=0; i<x.size(); i++) {
     p.get(x[i]);
   }
 }
+
+// Armadillo math types
+
+template<typename T>
+void packet_wr_typetag(packet &p, arma::Col<T> const &x) {
+  p.add_typetag("arma::Col:1");
+  T dummy;
+  packet_wr_typetag(p, dummy);
+}
+
+template<typename T>
+void packet_wr_value(packet &p, arma::Col<T> const &x) {
+  assert(x.n_elem < 0x3fffffff);
+  p.add((uint32_t)x.n_elem);
+  for (size_t i=0; i<x.n_elem; i++) {
+    p.add(x[i]);
+  }
+}
+
+template<typename T>
+void packet_rd_typetag(packet &p, arma::Col<T> &x) {
+  p.check_typetag("arma::Col:1");
+  T dummy; // or use x[0]?
+  packet_rd_typetag(p, dummy);
+}
+
+template<typename T>
+void packet_rd_value(packet &p, arma::Col<T> &x) {
+  uint32_t size;
+  p.get(size);
+  assert(size < 0x3fffffff);
+  if (size > p.remaining() / sizeof(T)) throw packet_rd_overrun_err(size*sizeof(T) - p.remaining());
+  x.set_size(size);
+  for (size_t i=0; i<x.n_elem; i++) {
+    p.get(x(i));
+  }
+}
+
+template<typename T>
+void packet_wr_typetag(packet &p, arma::Mat<T> const &x) {
+  p.add_typetag("arma::Mat:1");
+  T dummy;
+  packet_wr_typetag(p, dummy);
+}
+
+template<typename T>
+void packet_wr_value(packet &p, arma::Mat<T> const &x) {
+  assert(x.n_elem < 0x3fffffff);
+  p.add((uint32_t)x.n_rows);
+  p.add((uint32_t)x.n_cols);
+  for (size_t i=0; i<x.n_elem; i++) {
+    p.add(x[i]);
+  }
+}
+
+template<typename T>
+void packet_rd_typetag(packet &p, arma::Mat<T> &x) {
+  p.check_typetag("arma::Mat:1");
+  T dummy; // or use x[0]?
+  packet_rd_typetag(p, dummy);
+}
+
+template<typename T>
+void packet_rd_value(packet &p, arma::Mat<T> &x) {
+  uint32_t n_rows, n_cols;
+  p.get(n_rows);
+  p.get(n_cols);
+  assert(n_rows < 0x3fffffff);
+  assert(n_cols < 0x3fffffff);
+  if (n_rows * n_cols > p.remaining() / sizeof(T)) throw packet_rd_overrun_err(n_rows * n_cols * sizeof(T) - p.remaining());
+  x.set_size(n_rows, n_cols);
+  for (size_t i=0; i<x.n_elem; i++) {
+    p.get(x(i));
+  }
+}
+
+// ----------------------------------------------------------------------
 
 template<typename T1, typename T2>
 void packet_wr_typetag(packet &p, pair<T1, T2> const &x)
@@ -444,7 +529,7 @@ template<typename T1, typename T2>
 void packet_wr_value(packet &p, map<T1, T2> const &x)
 {
   p.add((uint32_t)x.size());
-  for (typename map<T1, T2>::const_iterator it = x.begin(); it != x.end(); it++) {
+  for (auto it = x.begin(); it != x.end(); it++) {
     p.add(it->first);
     p.add(it->second);
   }

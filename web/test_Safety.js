@@ -1,6 +1,6 @@
-var _ = require('underscore');
-var url = require('url');
-var Safety = require('./Safety');
+var _                   = require('underscore');
+var url                 = require('url');
+var Safety              = require('./Safety');
 
 describe('Safety.isValidEmail', function() {
   function cgood(email) {

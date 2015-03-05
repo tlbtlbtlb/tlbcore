@@ -1,5 +1,4 @@
-// -*- js-indent-level:2 -*-
-var Auth = require('./Auth');
+var Auth                = require('./Auth');
 
 describe('generateCookie', function() {
   it('should have reasonable characters', function() {

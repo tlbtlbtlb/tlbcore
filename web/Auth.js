@@ -1,3 +1,4 @@
+'use strict';
 var _ = require('underscore');
 var fs = require('fs');
 var util = require('util');
@@ -65,7 +66,6 @@ function parseToken(token) {
 
 
 function mkRandomStream() {
-  var self = this;
   var randChunk = '';
   var readPos = 0;
   var counter = 0;

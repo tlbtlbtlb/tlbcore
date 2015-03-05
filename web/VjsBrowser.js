@@ -92,7 +92,7 @@ function gotoCurrentState() {
     var action = $.action[pageid];
     if (action) {
       try {
-        rc = action.call($(document.body), options);
+        action.call($(document.body), options);
       } catch(ex) {
         errlog('action', pageid, ex);
         return;
@@ -164,6 +164,7 @@ function gotoLocationHash(pageid, o) {
   pushLocationHash(pageid, o);
   gotoCurrentState();
 }
+
 
 /* ----------------------------------------------------------------------
    Jquery magic
@@ -382,13 +383,18 @@ $.fn.fmtBullets = function(items) {
 /* ----------------------------------------------------------------------
   Set text, escaping potential html
 */
+
+function escapeHtml(text) {
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+};
+
 $.fn.fmtText = function(text) {  
-  this.html(text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+  this.html(String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
   return this;
 };
 
 $.fn.fmtTextLines = function(text) {  
-  this.html(text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>'));
+  this.html(String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>'));
   return this;
 };
 
@@ -803,6 +809,17 @@ function BoxLayout(t, r, b, l, pixelRatio) {
   this.boxL = this.canvasL = l;
   this.pixelRatio = pixelRatio;
   this.thinWidth = 1 / pixelRatio;
+  if (pixelRatio >= 2) {
+    this.lrgFont = '20px Arial';
+    this.medFont = '10px Arial';
+    this.smlFont = '9px Arial';
+    this.tinyFont = '7px Arial'
+  } else {
+    this.lrgFont = '25px Arial';
+    this.medFont = '12px Arial';
+    this.smlFont = '10px Arial'
+    this.tinyFont = '8px Arial'
+  }
 }
 
 BoxLayout.prototype.snap = function(x) {
@@ -884,41 +901,72 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   var drawCount = 0;
   var hd = new HitDetector(); // Persistent
 
+  // Isn't this what jQuery is supposed to do for me?
+  // http://stackoverflow.com/questions/12704686/html5-with-jquery-e-offsetx-is-undefined-in-firefox
+  function eventOffsets(ev) {
+    if (ev.offsetX !== undefined) {
+      return {x: ev.offsetX, y: ev.offsetY};
+    }
+    // Firefox doesn't have offsetX, you have to work from page coordinates
+    if (ev.pageX !== undefined) {
+      return {x: ev.pageX - top.offset().left,
+	      y: ev.pageY - top.offset().top};
+    }
+    return null;
+  }
+  function eventDeltas(ev) {
+    if (ev.deltaX !== undefined) {
+      return {x: ev.deltaX, y: ev.deltaY};
+    }
+    if (ev.originalEvent && ev.originalEvent.layerX !== undefined) {
+      return {x: ev.originalEvent.deltaX, y: ev.originalEvent.deltaY};
+    }
+    return {x:0, y: 0};
+  }
+
   top.on('wheel', function(ev) {
-    var oev = ev.originalEvent;
-    var mdX = oev.offsetX; // offsetX not in ev for this event type, maybe it's not portable?
-    var mdY = oev.offsetY;
-    var action = hd.findScroll(mdX, mdY);
+    var md = eventOffsets(ev);
+    var action = hd.findScroll(md.x, md.y);
     if (action && action.onScroll) {
-      action.onScroll(oev.deltaX, oev.deltaY);
-      m.emit('changed');
+      var deltas = eventDeltas(ev);
+      if (deltas) {
+	action.onScroll(deltas.x, deltas.y);
+	m.emit('changed');
+      }
       return false;
     }
   });
   
   top.on('mousedown', function(ev) {
-    var mdX = ev.offsetX;
-    var mdY = ev.offsetY;
-    var action = hd.find(mdX, mdY);
-    if (action && (action.onDown || action.onClick || action.onUp)) {
-      hd.buttonDown = true;
-      hd.mdX = mdX;
-      hd.mdY = mdY;
-      if (action.onDown) action.onDown(mdX, mdY);
+    var md = eventOffsets(ev);
+    var action = hd.find(md.x, md.y) || hd.defaultActions;
+    if (action) {
+      if (action.onDown || action.onClick || action.onUp) {
+	hd.buttonDown = true;
+	hd.mdX = md.x;
+	hd.mdY = md.y;
+	if (action.onDown) {
+	  action.onDown(hd.mdX, hd.mdY, ev);
+	  if (hd.dragging && hd.dragCursor) {
+	    // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
+	    // Grab not supported on IE or Chrome/Windows
+	    top.css('cursor', hd.dragCursor);
+	  }
+	}
+      }
     }
     m.emit('changed');
     return false;
   });
 
   top.on('mousemove', function(ev) {
-    var mdX = ev.offsetX;
-    var mdY = ev.offsetY;
-    var action = hd.find(mdX, mdY);
-    if (hd.buttonDown || action || hd.hoverActive || hd.dragging) {
-      hd.mdX = mdX;
-      hd.mdY = mdY;
+    var md = eventOffsets(ev);
+    var action = hd.find(md.x, md.y);
+    if (hd.buttonDown || hd.hoverActive || hd.dragging || (action && action.onHover)) {
+      hd.mdX = md.x;
+      hd.mdY = md.y;
       if (hd.dragging) {
-        hd.dragging(mdX, mdY);
+        hd.dragging(hd.mdX, hd.mdY);
       }
       m.emit('changed');
     }
@@ -927,14 +975,17 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   top.on('mouseup', function(ev) {
     hd.mdX = hd.mdY = null;
     hd.buttonDown = false;
-    var mdX = ev.offsetX;
-    var mdY = ev.offsetY;
-    var action = hd.find(mdX, mdY);
+    var md = eventOffsets(ev);
+    var action = hd.find(md.x, md.y);
     if (action && action.onClick) {
       action.onClick();
     }
     if (action && action.onUp) {
       action.onUp();
+    }
+    if (hd.dragging && hd.dragCursor) {
+      top.css('cursor', 'default');
+      hd.dragCursor = null;
     }
     hd.dragging = null;
     m.emit('changed');
@@ -979,7 +1030,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
         avgTime += (t1 - t0 - avgTime)*0.05;
       }
       ctx.fillStyle = '#888888';
-      ctx.font = '8px Arial';
+      ctx.font = lo.tinyFont;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'top';
       ctx.fillText(drawCount.toString() + '  ' + avgTime.toFixed(2), lo.boxR - 5, lo.boxT + 1);
@@ -1103,9 +1154,28 @@ function setupConsole(reloadKey) {
       window.location.reload(true);
     },
     cmd_flashError: function(msg) {
-      $(document.body).flashErrorMessage(msg.err);
+      $.flashErrorMessage(msg.err);
     }
   });
+}
+
+function disableConsole() {
+  try {
+    var _console = window.console;
+    Object.defineProperty(window, 'console', {
+      get: function() {
+        if (_console._commandLineAPI) {
+          throw "Sorry, for security reasons, the script console is deactivated";
+        } else {
+          return _console;
+        }
+      },
+      set: function(_val) {
+        _console = _val;
+      }
+    });
+  } catch (ex) {
+  }
 }
 
 /*
@@ -1162,7 +1232,6 @@ function setupClicks() {
     }
   });
 }
-
 
 /* ----------------------------------------------------------------------
   Interface to Mixpanel.

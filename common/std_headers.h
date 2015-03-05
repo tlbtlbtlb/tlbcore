@@ -12,6 +12,7 @@
 #include <compiler.h>
 #include <string.h>
 #include <machine/endian.h>
+#include <stdint.h>
 
 #elif defined(__AVR__)
 
@@ -85,6 +86,7 @@
 #    include <memory>
 #    include <typeinfo>
 #    include <limits>
+#    include <stdexcept>
 using namespace std;
 #  endif
 
@@ -160,23 +162,14 @@ typedef complex<float> complexf;
 typedef unsigned char bool;
 #endif
 
-// OS X screws this up
-#ifdef __OLD_APPLE_CC__
-#  define isnan __isnand
-#  define isnanf __isnanf
-#endif
-
 #ifdef __EMBEDDED__
-#  include "./embedded_debug.h"
-#  include "./embedded_utils.h"
-#  include "./embedded_profts.h"
 #else
 #  include "./hacks.h"
+
 #ifdef __cplusplus
-struct debugentity;
-#  include "./LogBase.h"
 #  include "./packetbuf.h"
 #endif
+
 #  include "./host_debug.h"
 #  include "./host_profts.h"
 #endif

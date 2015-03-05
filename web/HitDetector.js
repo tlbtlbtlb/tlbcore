@@ -1,8 +1,10 @@
+'use strict';
 
 function HitDetector() {
   var hd = this;
   hd.hits = [];
   hd.scrolls = [];
+  hd.defaultActions = null;
   hd.buttonDown = false;
   hd.mdX = hd.mdY = null;
   hd.ctx = null;
@@ -14,6 +16,7 @@ HitDetector.prototype.clear = function() {
   var hd = this;
   hd.hits = null;
   hd.scrolls = null;
+  hd.defaultActions = null;
   hd.ctx = null;
   hd.hoverActive = false;
   hd.dragging = null;
@@ -24,6 +27,7 @@ HitDetector.prototype.beginDrawing = function(ctx) {
   hd.ctx = ctx;
   hd.hits.length = 0;
   hd.scrolls.length = 0;
+  hd.defaultActions = null;
   hd.hoverActive = false;
 };
 
@@ -66,6 +70,11 @@ HitDetector.prototype.addScroll = function(t, r, b, l, actions) {
   var hd = this;
   hd.scrolls.push({t: t, r: r, b: b, l: l, actions: actions});
 };
+
+HitDetector.prototype.addDefault = function(actions) {
+  var hd = this;
+  hd.defaultActions = actions;
+}
 
 /*
   Find the smallest area enclosing x,y.
