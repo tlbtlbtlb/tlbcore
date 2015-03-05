@@ -912,6 +912,11 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       return {x: ev.pageX - top.offset().left,
 	      y: ev.pageY - top.offset().top};
     }
+    // jQuery doesn't copy pageX when the event is 'wheel'
+    if (ev.originalEvent.pageX !== undefined) {
+      return {x: ev.originalEvent.pageX - top.offset().left,
+	      y: ev.originalEvent.pageY - top.offset().top};
+    }
     return null;
   }
   function eventDeltas(ev) {
@@ -926,6 +931,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
 
   top.on('wheel', function(ev) {
     var md = eventOffsets(ev);
+    if (!md) return;
     var action = hd.findScroll(md.x, md.y);
     if (action && action.onScroll) {
       var deltas = eventDeltas(ev);
