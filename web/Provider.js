@@ -15,7 +15,7 @@ var assert              = require('assert');
 var jsmin               = require('jsmin2');
 var base64              = require('base64');
 var xml                 = require('xmldom');
-var markdown            = require('markdown');
+var marked              = require('marked');
 
 var logio               = require('./logio');
 
@@ -31,7 +31,7 @@ exports.SvgProvider = SvgProvider;
 exports.MarkdownProvider = MarkdownProvider;
 exports.ProviderSet = ProviderSet;
 exports.emitBinaryDoc = emitBinaryDoc;
-exports.emitXhtml = emitXhtml;
+exports.emitHtmlDoc = emitHtmlDoc;
 exports.emit404 = emit404;
 exports.emit301 = emit301;
 exports.emit302 = emit302;
@@ -51,45 +51,53 @@ function removeComments(content) {
 }
 
 /*
-  'website/images/topnavCenter.gif' => 'data:image/gif;base64,R0lGODlhAQBLAIAAAPX29wAAACH5BAAAAAAALAAAAAABAEsAAAIHhI+py+3fCgA7'
+  Given a file name, return a base64-encoded URL with the image contents.
+  Example: mkDataUrl('images/topnavCenter.gif') => 'data:image/gif;base64,R0lGODlhAQBLAIAAAPX29wAAACH5BAAAAAAALAAAAAABAEsAAAIHhI+py+3fCgA7'
+  Returns null if the file can't be loaded, or isn't an image, or exceeds maxLen
 */
-function mkDataUrl(fn) {
-  var ct = contentTypeFromFn(fn),
-  data, 
-  dataE;
-  try {
-    data = fs.readFileSync('website/' + fn, 'binary');
-  } catch(ex) {
-    util.puts('Failed to read ' + fn + ': ' + ex.toString());
+function mkDataUrl(fn, maxLen) {
+  var ct = contentTypeFromFn(fn);
+  if (!ct || ct === 'application/octet-stream') {
     return null;
   }
-  dataE = base64.Base64.encode(data);
-  return 'data:' + ct + ';base64,' + dataE;
+  var data, dataE;
+  try {
+    data = fs.readFileSync(fn, 'binary');
+  } catch(ex) {
+    util.puts('mkDataUrl: Failed to read ' + fn + ': ' + ex.toString());
+    return null;
+  }
+  if (!data || !data.length) {
+    if (0) util.puts('mkDataUrl: Failed to read ' + fn + ': empty');
+    return null;
+  }
+  if (maxLen && data.length > maxLen) {
+    if (1) util.puts('mkDataUrl: ' + fn + ' too large');
+    return null;
+  }
+  dataE = base64.encode(data);
+  var ret = 'data:' + ct + ';base64,' + dataE;
+  if (0) util.puts('Encoded: ' + fn + ' as ' + ret);
+  return ret;
 }
 
-function emitXhtml(res, emitHead, emitBody) {
-  if (1) {
-    res.write('<!DOCTYPE html>\n<head><meta charset="utf-8">\n');
-  } else {
-    res.write('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n' +
-              '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">\n' +
-              '<head>\n');
-  }
+function emitHtmlDoc(res, emitHead, emitBody) {
+  res.write('<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n');
   emitHead(res);
   res.write('</head><body>\n');
   emitBody(res);
-  res.write('</body>\n');
+  res.write('</body>\n</html>\n');
 }
 
 function emit404(res, comment) {
   res.writeHead(404, {'Content-Type': 'text/html'});
-  emitXhtml(res, 
-            function(dst) { 
-              dst.write('<title>Not Found</title>'); 
-            },
-            function(dst) { 
-              dst.write('<h1>404 Not Found</h1><p>\n' + comment + '\n</p>');
-            });
+  emitHtmlDoc(res, 
+              function(dst) { 
+                dst.write('<title>Not Found</title>'); 
+              },
+              function(dst) { 
+                dst.write('<h1>404 Not Found</h1><p>\n' + comment + '\n</p>');
+              });
   res.end();
 }
 
@@ -138,23 +146,25 @@ function emitBinaryDoc(res, fn, callid) {
       logio.O(remote, callid + ': failed to read ' + fn + ': ' + err);
 
       res.writeHead(404, {'Content-Type': 'text/html'});
-      emitXhtml(res, 
-                function(res) { 
-                  res.write('<title>Not Found</title>'); 
-                },
-                function(res) { 
-                  res.write('<h1>Not Found</h1><p>Resource ' + callid + ' not found</p>');
-                });
-
+      emitHtmlDoc(res, 
+                  function(res) { 
+                    res.write('<title>Not Found</title>'); 
+                  },
+                  function(res) { 
+                    res.write('<h1>Not Found</h1><p>Resource ' + callid + ' not found</p>');
+                  });
+      
       res.end();
       return;
     }
 
     var ct = contentTypeFromFn(fn);
     logio.O(remote, callid + ': (200 ' + ct + ' len=' + content.length + ') ' + ct);
-    res.writeHead(200, { 'Content-Type': ct, 
-                         'Content-Length': content.length.toString(),
-                         'Cache-Control': 'max-age=900'});
+    res.writeHead(200, {
+      'Content-Type': ct,
+      'Content-Length': content.length.toString(),
+      'Cache-Control': 'max-age=900'
+    });
     res.write(content, 'binary');
     res.end();
   });
@@ -245,7 +255,10 @@ function getBasename(fn) {
   return fn.replace(/^.*\/([-\w]+)\.\w+$/, '$1');
 }
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   AnyProvider() -- Superclass of all Providers
+   
+*/
 
 function AnyProvider() {
   this.basename = '???';
@@ -295,7 +308,10 @@ AnyProvider.prototype.equals = function(other) {
 
 AnyProvider.prototype.isDir = function() { return false; }
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   XmlContentProvider(fn) -- Most users use providerSet.addXmlContent(fn).
+   Read the xml file named fn, and make each <content name="foo"> node available to the browser as $(...).fmtContent('foo')
+*/
 
 
 function XmlContentProvider(fn) {
@@ -352,18 +368,17 @@ XmlContentProvider.prototype.start = function() {
 };
 
 XmlContentProvider.prototype.toString = function() { 
-  return "ContentProvider(" + JSON.stringify(this.fn) + ")"; 
+  return "XmlContentProvider(" + JSON.stringify(this.fn) + ")"; 
 };
 
 XmlContentProvider.prototype.getType = function() {
   return 'content';
 };
 
-XmlContentProvider.prototype.getDesc = function() {
-  return this.basename;
-};
-
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   XmlContentDirProvider(fn) -- Most users use providerSet.addXmlContentDir(fn).
+   Read all the .xml files in a directory and create an XmlContentProvider for each
+*/
 
 function XmlContentDirProvider(fn) {
   AnyProvider.call(this);
@@ -374,7 +389,7 @@ function XmlContentDirProvider(fn) {
 XmlContentDirProvider.prototype = Object.create(AnyProvider.prototype);
 
 XmlContentDirProvider.prototype.toString = function() { 
-  return "ContentDirProvider(" + JSON.stringify(this.fn) + ")"; 
+  return "XmlContentDirProvider(" + JSON.stringify(this.fn) + ")"; 
 };
 
 XmlContentDirProvider.prototype.start = function() {
@@ -391,7 +406,7 @@ XmlContentDirProvider.prototype.start = function() {
       
       var m = basename.match(/^[a-zA-Z0-9](.*)\.xml$/);
       if (m) {
-        var subFn = self.fn + '/' + basename;
+        var subFn = path.join(self.fn, basename);
         
         var cp = self.subs[basename] = new XmlContentProvider(subFn);
         cp.on('changed', function() { 
@@ -420,15 +435,18 @@ XmlContentDirProvider.prototype.getStats = function() {
   return ret;
 };
 
-XmlContentDirProvider.prototype.getDesc = function() {
-  return this.fn;
-};
-
 XmlContentDirProvider.prototype.getType = function() {
   return 'dir';
 };
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   ScriptProvider(fn, commonjsModule) -- Most users use providerSet.addScript(fn, commonjsModule);
+   Read the file named fn and arrange for the browser to get the minified contents as a <script>
+   If commonjsModule is set, it wraps it as a module that can use require & exports. 
+   If it's not set, it goes into the browser's global javascript scope.
+   If (this.minifyLevel >= 1), it runs it through jsmin to save a fair bit of space.
+   Otherwise, it just collapses whitespace
+*/
 
 function ScriptProvider(fn, commonjsModule) {
   AnyProvider.call(this);
@@ -492,7 +510,10 @@ ScriptProvider.prototype.getType = function() {
   return 'script';
 };
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   JsonProvider(fn, globalVarname) -- Most users use providerSet.addJson(fn, globalVarname);
+   Read the file named fn and arrange for the browser to get the value as window[globalVarname];
+*/
 
 function JsonProvider(fn, globalVarname) {
   AnyProvider.call(this);
@@ -528,7 +549,18 @@ JsonProvider.prototype.getType = function() {
   return 'json';
 };
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   CssProvider(fn) -- Most users use providerSet.addCss(fn)
+   Read the file named fn, and re-read if it changes. Arrange for the minified CSS to be included in the head
+   of the HTML file served to the browser.
+
+   It adds some minor conveniences to the CSS, such as adding vendor prefixes. Currently, it handles:
+     border-radius
+     box-shadow
+     opacity
+   So you can just say opacity: 0.8 and it turns that into what's needed for webkit, mozilla, and IE
+   It also replaces small images with data URLs, for efficiency.
+*/
 
 function CssProvider(fn) {
   AnyProvider.call(this);
@@ -561,11 +593,12 @@ CssProvider.prototype.start = function() {
     if (1) {
       /*
         Replace tiny images with data urls for faster loading
-        See http://www.sveinbjorn.org/dataurlsCss
+        See http://www.sveinbjorn.org/dataurlsCss.
+        This only works if the CSS is like url("images/foo.png") and the file is found in <css file dir>/images
       */
-      data = data.replace(/url\(\"images\/(\w+)\.(gif|png|jpg)\"\)/g, function(all, basename, ext) {
-        var du = mkDataUrl('images/' + basename + '.' + ext);
-        if (du === null || du.length > 1000) return all;
+      data = data.replace(/url\(\"(images\/\w+)\.(gif|png|jpg)\"\)/g, function(all, pathname, ext) {
+        var du = mkDataUrl(path.join(path.dirname(self.fn), pathname + '.' + ext), 1000);
+        if (du === null) return all;
         return 'url(\"' + du + '\")';
       });
     }
@@ -587,9 +620,13 @@ CssProvider.prototype.getType = function() {
   return 'css';
 };
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   SvgProvider(fn, contentName) -- Most users use providerSet.addSvg(fn, contentName)
+   Read the file named fn, and re-read if it changes. Arrange for the SVG content
+   to be available in the browser with $(...).fmtContent[contentName]
+*/
 
-function SvgProvider(fn) {
+function SvgProvider(fn, contentName) {
   AnyProvider.call(this);
   this.fn = fn;
   this.basename = getBasename(fn);
@@ -633,7 +670,11 @@ SvgProvider.prototype.getType = function() {
   return 'svg';
 };
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+   MarkdownProvider(fn, contentName) -- Most users use providerSet.addMarkdown(fn, contentName)
+   Read the file named fn, and re-read if it changes. Convert Markdown to HTML, and arrange for the 
+   HTML to be available in the browser with $(...).fmtContent[contentName];
+*/
 
 function MarkdownProvider(fn, contentName) {
   AnyProvider.call(this);
@@ -654,11 +695,27 @@ MarkdownProvider.prototype.start = function() {
   self.pending = true;
 
   persistentReadFile(self.fn, 'utf8', function(data) {
-    var html = markdown.markdown.toHTML(data);
-    // Use JSON.stringify instead? Result may be slightly larger because it uses and escapes double quotes
-    self.asScriptBody = '$.defContent("' + self.contentName + '",' + JSON.stringify(html) + ');\n';
-    self.pending = false;
-    self.emit('changed');
+    var renderer = new marked.Renderer();
+    // WRITEME: override renderer methods to get fancy results
+    marked(data, {
+      renderer: renderer,
+      gfm: true,
+      tables: true,
+      breaks: true,
+      pedantic: false,
+      sanitize: true,
+      smartLists: true,
+      smartypants: false
+    }, function(err, asHtml) {
+      if (err) {
+        logio.E(self.fn, err);
+        self.asScriptBody = '\n';
+      } else {
+        self.asScriptBody = '$.defContent("' + self.contentName + '",' + JSON.stringify(asHtml) + ');\n';
+      }
+      self.pending = false;
+      self.emit('changed');
+    });
   });
 };
 
@@ -673,6 +730,8 @@ function ProviderSet() {
   this.providers = [];
   this.title = 'VJS';
   this.faviconUrl = 'favicon.ico';
+  this.body = '<center><img src="/spinner-lib/spinner.gif" width="24" height="24" class="spinner320x240"/></center>\n';
+
   this.reloadKey = undefined;
 }
 ProviderSet.prototype = Object.create(AnyProvider.prototype);
@@ -687,6 +746,12 @@ ProviderSet.prototype.anyPending = function() {
 ProviderSet.prototype.setTitle = function(t) {
   this.title = t;
 };
+
+/*
+  Use these to build up the document. Duplicates are ignored and all CSS is placed before any scripts.
+  Otherwise, things are emitted within the document in the order added, so the order should respect
+  module dependencies.
+*/
 ProviderSet.prototype.addCss = function(name) {
   this.addProvider(new CssProvider(name));
 };
@@ -757,14 +822,14 @@ ProviderSet.prototype.start = function() {
         }
       }
       
-      cat.push('<!DOCTYPE html>\n<head>\n<meta charset="utf-8">\n');
+      cat.push('<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n');
       // Maybe these could be providers?
       cat.push('<title>' + self.title + '</title>\n');
-      cat.push('<link href="' + self.faviconUrl + '" rel="shortcut icon" type="image/x-icon"/>\n');
+      cat.push('<link rel="shortcut icon" type="image/x-icon" href="' + self.faviconUrl + '" />\n');
       emitAll('asCssHead', '<style type="text/css">\n/* <![CDATA[ */\n', '\n/* ]]> */\n</style>\n');
       emitAll('asHtmlHead', '', '');
-      cat.push('</head><body>' +
-               '<center><img src="/spinner-lib/spinner.gif" width="24" height="24" class="spinner320x240"/></center>\n');
+      cat.push('</head><body>');
+      cat.push(self.body);
 
       emitAll('asHtmlBody', '', '');
       emitAll('asScriptBody', '<script type="text/javascript">\n//<![CDATA[\n', '\n//]]>\n</script>\n');
@@ -773,10 +838,10 @@ ProviderSet.prototype.start = function() {
                'setTimeout(function() {' +
                'pageSetupFromHash(' + JSON.stringify(self.reloadKey) + ');' +
                '});\n' +
-               '</script>\n' +
-               '</body>\n</html>\n');
+               '</script>\n');
+      cat.push('</body>\n</html>\n');
 
-      self.asHtml = cat.join('');
+      self.asHtml = new Buffer(cat.join(''), 'utf8');
       self.pending = false;
       self.emit('changed');
     });
@@ -913,27 +978,52 @@ RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
 
   var fullfn = path.join(self.fn, suffix);
 
-  // WRITEME
-  fs.readFile(fullfn, self.encoding, function(err, content) {
+  var contentType = contentTypeFromFn(suffix);
+  var encoding;
+  if (contentType === 'text/html' || contentType === 'text/xml') {
+    encoding = 'utf8';
+  } else {
+    encoding = 'binary';
+  }
+  
+  fs.readFile(fullfn, encoding, function(err, content) {
     if (err) {
       logio.E(fullfn, 'Error: ' + err);
       emit404(res, err);
       return;
     }
 
-    var contentType = contentTypeFromFn(suffix);
-    var encoding;
-    if (contentType === 'text/html' || contentType === 'text/xml') {
-      encoding = 'utf8';
-    } else {
-      encoding = 'binary';
+    var remote = res.connection.remoteAddress + '!http';
+
+    if (encoding === 'binary' && req.headers.range) {
+      // We have to support range queries for video files on iPhone, at least
+      var range = req.headers.range;
+      var rangem = /^(bytes=)?(\d+)-(\d*)/.exec(range);
+      if (rangem) {
+        var start = parseInt(rangem[2]);
+        // byte ranges are inclusive, so "bytes=0-1" means 2 bytes.
+        var end = rangem[3] ? parseInt(rangem[3]) : content.length -1;
+        
+        logio.O(remote, fullfn + ': (206 ' + contentType + ' range=' + start.toString() + '-' + end.toString() + '/' + content.length.toString() + ')');
+        res.writeHead(206, {
+          'Content-Type': contentType,
+          'Content-Length': (end - start + 1).toString(),
+          'Content-Range': 'bytes ' + start.toString() + '-' + end.toString() + '/' + content.length.toString(),
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'max-age=900'
+        });
+        res.write(content.slice(start, end + 1), encoding);
+        res.end();
+        return;
+      }
     }
 
-    var remote = res.connection.remoteAddress + '!http';
     logio.O(remote, fullfn + ': (200 ' + contentType + ' len=' + content.length.toString() + ')');
-    res.writeHead(200, {'Content-Type': contentType,
-                        'Content-Length': (encoding === 'binary' ? content.length.toString() : undefined),
-                        'Cache-Control': 'max-age=900'});
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Content-Length': (encoding === 'binary' ? content.length.toString() : undefined),
+      'Cache-Control': 'max-age=900'
+    });
     res.write(content, encoding);
     res.end();
   });
