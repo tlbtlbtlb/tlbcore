@@ -18,8 +18,7 @@
       'libraries+': [
         '-L/usr/local/lib', '-larmadillo',
       ]
-    }],
-    ['OS=="linux"', {
+    }, {
       'make_global_settings': [
         ['CXX','/usr/bin/clang++'],
         ['LINK','/usr/bin/clang++'],
