@@ -149,7 +149,8 @@ function fmtHashOptions(pageid, o) {
   if (oStr === '{}') { // common special case, make less ugly
     return '#' + pageid;
   }
-  return '#' + pageid + '_.' + btoa(JSON.stringify(o));
+  var encoded = btoa(JSON.stringify(o));
+  return '#' + pageid + '_.' + encoded
 }
 
 function pushLocationHash(pageid, o) {
@@ -162,7 +163,7 @@ function replaceLocationHash(pageid, o) {
 
 function gotoLocationHash(pageid, o) {
   pushLocationHash(pageid, o);
-  gotoCurrentState();
+  gotoCurrentHash();
 }
 
 
@@ -936,7 +937,8 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     if (action && action.onScroll) {
       var deltas = eventDeltas(ev);
       if (deltas) {
-	action.onScroll(deltas.x, deltas.y);
+	var scrollRate = Math.max(Math.abs(deltas.x), Math.abs(deltas.y));
+	action.onScroll(deltas.x*scrollRate, deltas.y*scrollRate);
 	m.emit('changed');
       }
       return false;
