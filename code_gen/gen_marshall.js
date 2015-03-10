@@ -620,6 +620,10 @@ CType.prototype.isPtr = function() {
   return false;
 };
 
+CType.prototype.isCopyConstructable = function() {
+  return true;
+};
+
 CType.prototype.hasArrayNature = function() {
   return false;
 };
@@ -1154,7 +1158,7 @@ function CollectionCType(reg, typename) {
     }
   });
 
-  if (type.templateName == 'Timeseq' || type.templateName == 'Engine') {
+  if (type.templateName == 'Timeseq') {
     type.extraJsWrapHeaderIncludes.push('timeseq/timeseq_jsWrap.h');
     type.extraHeaderIncludes.push('timeseq/timeseq.h');
     type.noSerialize = true;
@@ -1801,17 +1805,19 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     });
     methods.push('inspect');
 
-    emitJsWrap(f, 'JSTYPE_fromString', function() {
-      emitArgSwitch(f, type.reg, null, [
-        {args: ['string'], returnType: type, code: function() {
-          f('const char *a0s = a0.c_str();');
-          f('bool ok = rdJson(a0s, ret);');
-          f('if (!ok) return ThrowInvalidArgs();');
-        }}
-      ]);
-    });
-    factories.push('fromString');
-
+    if (type.isCopyConstructable()) {
+      emitJsWrap(f, 'JSTYPE_fromString', function() {
+	emitArgSwitch(f, type.reg, null, [
+          {args: ['string'], returnType: type, code: function() {
+            f('const char *a0s = a0.c_str();');
+            f('bool ok = rdJson(a0s, ret);');
+            f('if (!ok) return ThrowInvalidArgs();');
+          }}
+	]);
+      });
+      factories.push('fromString');
+      }
+      
     if (!type.noPacket) {
       emitJsWrap(f, 'JSTYPE_toPacket', function() {
         emitArgSwitch(f, type.reg, type, [
@@ -1825,18 +1831,20 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       });
       methods.push('toPacket');
 
-      emitJsWrap(f, 'JSTYPE_fromPacket', function() {
-        emitArgSwitch(f, type.reg, null, [{
-          args: ['string'], returnType: type, code: function() {
-            f('packet rd(a0);');
-            f('try {');
-            f('rd.get_checked(ret);');
-            f('} catch(exception &ex) {');
-            f('return ThrowRuntimeError(ex.what());');
-            f('};');
-          }}]);
-      });
-      factories.push('fromPacket');
+      if (type.isCopyConstructable()) {
+	emitJsWrap(f, 'JSTYPE_fromPacket', function() {
+          emitArgSwitch(f, type.reg, null, [{
+            args: ['string'], returnType: type, code: function() {
+              f('packet rd(a0);');
+              f('try {');
+              f('rd.get_checked(ret);');
+              f('} catch(exception &ex) {');
+              f('return ThrowRuntimeError(ex.what());');
+              f('};');
+            }}]);
+	});
+	factories.push('fromPacket');
+      }
     }
   }
 
@@ -2118,8 +2126,10 @@ StructCType.prototype.emitTypeDecl = function(f) {
   
   f('');
   f('// Factory functions');
-  f('static TYPENAME allZero();');
-  f('static TYPENAME allNan();');
+  if (!type.noStdValues) {
+    f('static TYPENAME allZero();');
+    f('static TYPENAME allNan();');
+  }
   f('TYPENAME copy() const;');
   f('');
   f('// Member variables');
@@ -2251,7 +2261,7 @@ StructCType.prototype.emitHostImpl = function(f) {
     f('}');
   }
 
-  if (1) {
+  if (!type.noStdValues && type.isCopyConstructable()) {
     f('');
     f('TYPENAME TYPENAME::allZero() {');
     f('TYPENAME ret;');
@@ -2644,7 +2654,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     factories.push('fromPacket');
   }
 
-  if (!type.noStdValues) {
+  if (!type.noStdValues && type.isCopyConstructable()) {
     _.each(['allZero', 'allNan'], function(name) {
       f('static Handle<Value> jsWrap_JSTYPE_' + name + '(const Arguments& args) {');
       f('HandleScope scope;');
