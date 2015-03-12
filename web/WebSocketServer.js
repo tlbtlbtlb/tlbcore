@@ -134,7 +134,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     handlers.tx = function(msg) {
       emitMsg(msg);
     };
-    if (handlers.start) handlers.start();
+    if (handlers.start) handlers.start(wsr, wsc);
   }
 
   function emitMsg(msg) {
