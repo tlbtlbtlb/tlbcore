@@ -38,7 +38,11 @@ OAuthProvider.prototype = Object.create(Provider.AnyProvider.prototype);
 OAuthProvider.prototype.isDir = function() { return true; };
 
 
-// Test at http://192.168.1.6:8000/yoga/oauth/login?redirect_url=http%3A%2F%2F192.168.1.6%3A8000%2Fyoga%2F%23scope_foo20
+/*
+  Test at:
+  http://192.168.1.6:8000/yoga/oauth/login?redirect_url=http%3A%2F%2F192.168.1.6%3A8000%2Fyoga%2F%23scope_foo20
+  http://127.0.0.1:8000/yoga/oauth/login?redirect_url=http%3A%2F%2F127.0.0.1%3A8000%2Fyoga%2F%23scope_foo20
+*/
 
 OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
   var self = this;
@@ -51,7 +55,7 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
 
     var appRedirectUrl = up.query['redirect_url'];
 
-    var callbackUrl = up.protocol + '//' + up.host + up.pathname + 'callback';
+    var callbackUrl = up.protocol + '//' + up.host + path.dirname(up.pathname) + '/callback';
 
     var stateCookie = Auth.generateCookie();
     self.codesCache[stateCookie] = {

@@ -1379,18 +1379,6 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f('it->assignConstruct(a0, a1);');
       f('}');
     }
-    else if (type.templateName === 'Engine') {
-      if (0) {
-	f('else if (args.Length() == 0) {');
-	f('it->assignDefault();');
-	f('}');
-      }
-      f('else if (args.Length() == 2 && JsWrap_Trace::Extract(args[0]) && JsWrap_' + type.templateArgs[0] + '::Extract(args[1])) {');
-      f('Trace *a0 = JsWrap_Trace::Extract(args[0]);');
-      f(type.templateArgs[0] + ' *a1 = JsWrap_' + type.templateArgs[0] + '::Extract(args[1]);');
-      f('it->assignConstruct(a0, *a1);');
-      f('}');
-    }
 
     f('else {');
     if (0) f('eprintf("JSTYPE: Invalid args, len=%d\\n", (int)args.Length());');
@@ -1762,28 +1750,6 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     accessors.push({name: 'endTs', get: true});
 
   }
-
-  else if (type.templateName === 'Engine') {
-    var configType = type.reg.getType(type.templateArgs[0]);
-    f('static Handle<Value> jsGet_JSTYPE_config(Local<String> name, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('return scope.Close(JsWrap_' + configType.jsTypename + '::MemberInstance(thisObj->memory, &thisObj->it->config));');
-    f('}');
-
-    f('static void jsSet_JSTYPE_config(Local<String> name, Local<Value> value, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('if (' + configType.getJsToCppTest('value') + ') {');
-    f('thisObj->it->config = ' + configType.getJsToCppExpr('value') + ';');
-    f('}');
-    f('else {');
-    f('ThrowTypeError("Expected ' + configType.typename + '");');
-    f('}');
-    f('}');
-    accessors.push({name: 'config', get: true, set:true});
-  }
-
 
   if (!type.noSerialize) {
     emitJsWrap(f, 'JSTYPE_toJsonString', function() {
