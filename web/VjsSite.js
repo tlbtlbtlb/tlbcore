@@ -179,6 +179,12 @@ WebServer.prototype.mirrorAll = function() {
   }
 };
 
+function delPort(hn) {
+  if (!hn) return hn;
+  var parts = hn.split(':');
+  return parts[0];
+}
+
 WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
   var webServer = this;
   if (!bindPort) bindPort = 8000;
@@ -203,32 +209,31 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
       return Provider.emit404(res, 'Invalid url');
     }
 
-    function delPort(hn) {
-      if (!hn) return hn;
-      var parts = hn.split(':');
-      return parts[0];
-    }
-    
-    var origHost = delPort(up.host);
-    if (!up.host) up.host = delPort(req.headers.host);
-    if (!up.host) up.host = 'localhost';
-    if (up.host.match(/[^-\w\.]/)) {
-      logio.E(remote, 'Invalid host header', up.host);
+    if (!up.hostname) up.hostname = delPort(req.headers.host);
+    if (!up.hostname) up.hostname = 'localhost';
+    if (up.hostname.match(/[^-\w\.]/)) {
+      logio.E(remote, 'Invalid host header', up.hostname);
       return Provider.emit404(res, 'Invalid host header');
     }
+    if (!up.port) up.port = bindPort;
+    if (!up.host) up.host = up.hostname + (up.port === 80 ? '' : ':' + up.port);
+    up.protocol = 'http:';
+
+    req.urlParsed = up;
+    req.urlFull = url.format(up);
 
     if (0) logio.I(remote, req.url, up, req.headers);
 
-    var hostPrefix = webServer.hostPrefixes[up.host];
+    var hostPrefix = webServer.hostPrefixes[up.hostname];
     if (!hostPrefix) hostPrefix = '/';
 
     var fullPath = hostPrefix + up.pathname.substr(1);
     var callid = req.method + ' ' + fullPath;
-    var desc = req.method + ' http://' + up.host + up.pathname;
+    var desc = req.method + ' ' + req.urlFull;
     webServer.serverAccessCounts[callid] = (webServer.serverAccessCounts[callid] || 0) + 1;
     var p = webServer.urlProviders[callid];
     if (p) {
-      logio.I(remote, desc, fullPath, p.toString());
+      logio.I(remote, desc, p.toString());
       p.handleRequest(req, res, '');
       return;
     }
