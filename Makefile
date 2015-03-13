@@ -43,7 +43,7 @@ install.brew ::
 
 install.npm ::
 	sudo npm install -g underscore node-gyp jshint mocha uglify-js
-	sudo npm install -g hiredis redis marked websocket base64 xmldom  eventemitter jquery jsmin2 async codemirror mori
+	sudo npm install -g hiredis redis marked websocket base64 xmldom  eventemitter jquery jsmin2 async codemirror mori cookie
 
 clean ::
 	rm -rf build.src

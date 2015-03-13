@@ -33,7 +33,7 @@ var util                = require('util');
 var logio               = require('./logio');
 var WebSocketHelper     = require('./WebSocketHelper');
 
-var verbose = 3;
+var verbose = 1;
 
 exports.mkWebSocketRpc = mkWebSocketRpc;
 
@@ -43,8 +43,11 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
   var callbacks = {};
   var rxBinaries = [];
 
-  setupWsc();
   setupHandlers();
+  if (handlers.grabAuth) {
+    handlers.grabAuth(wsr.httpRequest);
+  }
+  setupWsc();
   return handlers;
 
   function setupWsc() {
@@ -117,7 +120,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
   }
 
   function setupHandlers() {
-    handlers.labelWs = handlers.label = wsc.remoteAddress + '!ws' + wsr.resource;
+    handlers.remoteLabel = handlers.label = wsr.remoteLabel;
     handlers.cmd = function(cmd, args) {
       handlers.tx({cmd: cmd, args: args});
     };
@@ -134,7 +137,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     handlers.tx = function(msg) {
       emitMsg(msg);
     };
-    if (handlers.start) handlers.start(wsr, wsc);
+    if (handlers.start) handlers.start();
   }
 
   function emitMsg(msg) {

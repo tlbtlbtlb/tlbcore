@@ -17,6 +17,7 @@ exports.isValidPassword = isValidPassword;
 exports.isValidMessage = isValidMessage;
 exports.isSafeDirName = isSafeDirName;
 exports.shellQuote = shellQuote;
+exports.isValidToken = isValidToken;
 
 // ======================================================================
 
@@ -85,3 +86,8 @@ function shellQuote(str) {
   return '\"' + str.replace(/[\"\'\\]/g, '\\$&') + '\"';
 }
 
+function isValidToken(token) {
+  if (!(typeof token === 'string')) return false;
+  if (!(/^[\w]+$/.test(token))) return false;
+  return true;
+}

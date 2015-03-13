@@ -199,41 +199,21 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
 
   function httpHandler(req, res) {
 
-    var remote = req.connection.remoteAddress + '!http';
+    req.remoteLabel = req.connection.remoteAddress + '!http';
     
-    var up;
-    try {
-      up = url.parse(req.url, true);
-    } catch (ex) {
-      logio.E(remote, 'Error parsing', req.url, ex);
-      return Provider.emit404(res, 'Invalid url');
-    }
+    annotateReq(req);
+    if (0) logio.I(req.remoteLabel, req.url, up, req.headers);
 
-    if (!up.hostname) up.hostname = delPort(req.headers.host);
-    if (!up.hostname) up.hostname = 'localhost';
-    if (up.hostname.match(/[^-\w\.]/)) {
-      logio.E(remote, 'Invalid host header', up.hostname);
-      return Provider.emit404(res, 'Invalid host header');
-    }
-    if (!up.port) up.port = bindPort;
-    if (!up.host) up.host = up.hostname + (up.port === 80 ? '' : ':' + up.port);
-    up.protocol = 'http:';
-
-    req.urlParsed = up;
-    req.urlFull = url.format(up);
-
-    if (0) logio.I(remote, req.url, up, req.headers);
-
-    var hostPrefix = webServer.hostPrefixes[up.hostname];
+    var hostPrefix = webServer.hostPrefixes[req.urlParsed.hostname];
     if (!hostPrefix) hostPrefix = '/';
 
-    var fullPath = hostPrefix + up.pathname.substr(1);
+    var fullPath = hostPrefix + req.urlParsed.pathname.substr(1);
     var callid = req.method + ' ' + fullPath;
-    var desc = req.method + ' ' + req.urlFull;
+    var desc = callid;
     webServer.serverAccessCounts[callid] = (webServer.serverAccessCounts[callid] || 0) + 1;
     var p = webServer.urlProviders[callid];
     if (p) {
-      logio.I(remote, desc, p.toString());
+      logio.I(req.remoteLabel, desc, p.toString());
       p.handleRequest(req, res, '');
       return;
     }
@@ -244,27 +224,31 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
       p = webServer.dirProviders[prefix];
       if (p) { 
         var suffix = pathc.slice(pathcPrefix, pathc.length).join('/');
-        logio.I(remote, desc, prefix, suffix, p.toString());
+        logio.I(req.remoteLabel, desc, p.toString());
         p.handleRequest(req, res, suffix);
         return;
       }
     }
 
-    logio.E(remote, desc, '404', 'referer:', req.headers.referer);
+    logio.E(req.remoteLabel, desc, '404', 'referer:', req.headers.referer);
     Provider.emit404(res, callid);
     return;
   }
 
   function wsRequestHandler(wsr) {
     var callid = wsr.resource;
+
+    wsr.remoteLabel = wsr.httpRequest.connection.remoteAddress + '!ws' + wsr.resource;
+    annotateReq(wsr.httpRequest);
     
     var handlersFunc = webServer.wsHandlers[callid];
     if (!handlersFunc) {
-      logio.E('ws', 'Unknown api', callid, webServer.wsHandlers);
+      logio.E(wsr.remoteLabel, 'Unknown api', callid, webServer.wsHandlers);
       wsr.reject();
       return;
     }
 
+    logio.I(wsr.remoteLabel, 'Origin', wsr.origin);
     if (0) {     // WRITEME: check origin
       wsr.reject();
       return;
@@ -272,13 +256,37 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
 
     var wsc = wsr.accept(null, wsr.origin);
     if (!wsc) {
-      logio.E('wsr.accept failed');
+      logio.E('ws', 'wsr.accept failed');
       return;
     }
 
     var handlers = handlersFunc();
     WebSocketServer.mkWebSocketRpc(wsr, wsc, handlers);
   }
+
+  function annotateReq(req) {
+    var up;
+    try {
+      up = url.parse(req.url, true);
+    } catch (ex) {
+      logio.E(req.remoteLabel, 'Error parsing', req.url, ex);
+      return Provider.emit404(res, 'Invalid url');
+    }
+
+    if (!up.hostname) up.hostname = delPort(req.headers.host);
+    if (!up.hostname) up.hostname = 'localhost';
+    if (up.hostname.match(/[^-\w\.]/)) {
+      logio.E(req.remoteLabel, 'Invalid host header', up.hostname);
+      return Provider.emit404(res, 'Invalid host header');
+    }
+    if (!up.port) up.port = bindPort;
+    if (!up.host) up.host = up.hostname + (up.port === 80 ? '' : ':' + up.port);
+    up.protocol = 'http:';
+
+    req.urlParsed = up;
+    req.urlFull = url.format(up);
+  }
+
 };
 
 WebServer.prototype.getSiteHits = function(cb) {
@@ -308,15 +316,17 @@ WebServer.prototype.mkConsoleHandler = function() {
   var webServer = this;
   return {
     start: function() {
-      logio.I(this.label, 'Console started');
-      webServer.allConsoleHandlers.push(this);
+      var self = this;
+      logio.I(self.label, 'Console started');
+      webServer.allConsoleHandlers.push(self);
     },
     close: function() {
       var self = this;
       webServer.allConsoleHandlers = _.filter(webServer.allConsoleHandlers, function(other) { return other !== self; });
     },
     cmd_errlog: function(msg) {
-      logio.E(this.label, 'Errors in ' + msg.ua);
+      var self = this;
+      logio.E(self.label, 'Errors in ' + msg.ua);
       var err = msg.err;
       if (err) {
         if (_.isObject(err)) {
@@ -326,7 +336,8 @@ WebServer.prototype.mkConsoleHandler = function() {
       }
     },
     cmd_reloadOn: function(msg) {
-      this.reloadKey = msg.reloadKey;
+      var self = this;
+      self.reloadKey = msg.reloadKey;
     }
   };
 };

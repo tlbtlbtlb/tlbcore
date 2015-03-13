@@ -33,6 +33,22 @@ describe('Safety.isValidLogName', function() {
   });
 });
 
+describe('Safety.isValidToken', function() {
+  function cgood(name) {
+    if (!Safety.isValidToken(name)) throw new Error('should be valid, but isValidToken=false: ' + name);
+  }
+  function cbad(name) {
+    if (Safety.isValidToken(name)) throw new Error('should be invalid, but isValidToken=true: ' + name);
+  }
+  it('should work', function() {
+    cgood('run_147');
+    cgood('123123123123123123123123213213123123');
+    cbad('foo-bar');
+    cbad('');
+    cbad('../../etc/passwd');
+  });
+});
+
 
 describe('Safety.isValidPassword', function() {
   function cgood(password) {

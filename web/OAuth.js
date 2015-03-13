@@ -7,12 +7,50 @@ var fs                  = require('fs');
 var url                 = require('url');
 var querystring         = require('querystring');
 var https               = require('https');
+var cookie              = require('cookie');
 var logio               = require('./logio');
 var Safety              = require('./Safety');
 var Auth                = require('./Auth');
 var Provider            = require('./Provider');
 
 exports.OAuthProvider = OAuthProvider;
+exports.getHttpRequestAccessToken = getHttpRequestAccessToken;
+exports.getOAuthRedirectUrl = getOAuthRedirectUrl;
+
+function getHttpRequestAccessToken(req) {
+  var headers = req.headers;
+  if (headers.cookie) {
+    var cookies = cookie.parse(headers.cookie);
+    if (cookies) {
+      var accessToken = cookies['access_token'];
+      if (accessToken) {
+	if (!Safety.isValidToken(accessToken)) {
+	  logio.E(req.connection.remoteAddress, 'Invalid access_token cookie:', accessToken);
+	  return null;
+	}
+	return accessToken;
+      }
+    }
+  }
+  return null;
+}
+
+function getOAuthRedirectUrl(req)
+{
+  var up = req.urlParsed;
+  var redUrlParsed = {
+    protocol: up.protocol,
+    port: up.port,
+    host: up.host,
+    hostname: up.hostname,
+    pathname: path.dirname(up.pathname) + '/oauth/login',
+    query: {
+      'redirect_url': url.format(req.urlParsed)
+    }
+  };
+  console.log('redUrlParsed', redUrlParsed);
+  return url.format(redUrlParsed);
+}
 
 /* ----------------------------------------------------------------------
 
@@ -42,6 +80,7 @@ OAuthProvider.prototype.isDir = function() { return true; };
   Test at:
   http://192.168.1.6:8000/yoga/oauth/login?redirect_url=http%3A%2F%2F192.168.1.6%3A8000%2Fyoga%2F%23scope_foo20
   http://127.0.0.1:8000/yoga/oauth/login?redirect_url=http%3A%2F%2F127.0.0.1%3A8000%2Fyoga%2F%23scope_foo20
+  http://studio-alpha.umbrellaresearch.com/oauth/login?redirect_url=http%3A%2F%2Fstudio-alpha.umbrellaresearch.com%2F%23scope_foo20
 */
 
 OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
@@ -83,7 +122,12 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
       self.getAccessToken(authCode, up, function(err, accessTokenInfo) {
 	logio.O(remote, 'Cookie access_token', accessTokenInfo['access_token']);
 	res.writeHead(302, {
-	  'Set-Cookie': 'access_token='+accessTokenInfo['access_token'] + '; Max-Age=86400; Path=/; HttpOnly;',
+	  'Set-Cookie': cookie.serialize('access_token', accessTokenInfo['access_token'], {
+	    path: '/',
+	    maxAge: 86400,
+	    httpOnly: false,
+	    secure: (up.protocol === 'https:')
+	  }),
 	  'Location': codeInfo.redirectUrl,
 	});
 	res.end();
@@ -141,5 +185,5 @@ OAuthProvider.prototype.getAccessToken = function(authCode, up, cb) {
 };
 
 OAuthProvider.prototype.toString = function() {
-  return 'OAuthProvider(' + this.oauthUrl + ',' + this.clientId + ',' + this.scopes.join(',') + ')'; 
+  return 'OAuthProvider(' + this.oauthUrl + ', ' + this.clientId + ', ..., [' + this.scopes.join(',') + '])'; 
 };
