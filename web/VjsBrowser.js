@@ -552,10 +552,10 @@ $.flashErrorMessage = function(msg) {
   var fem = $('#flashErrorMessage');
   if (fem.length === 0) {
     fem = $('<div id="flashErrorMessage">').appendTo(document.body);
-    var sw = $(window).width();
-    var fw = fem.width();
-    fem.css({left: Math.floor((sw-fw)/2 - 30).toString() + 'px'});
   }
+  var sw = $(window).width();
+  var fw = fem.width();
+  fem.css({left: Math.floor((sw-fw)/2 - 30).toString() + 'px'});
   var em = $('<div class="errorMessage">');
   fem.append(em).show();
   fem.fmtErrorMessage(msg);

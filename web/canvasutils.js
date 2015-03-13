@@ -89,43 +89,91 @@ function drawSpinner(ctx, spinnerX, spinnerY, spinnerSize, phase) {
 
 /*
   For maximum convenience, import these with
-  var T = Geom2D.T, R = Geom2D.R, R0 = Geom2D.R0, S = Geom2D.S, S1 = Geom2D.S1, D = Geom2D.D, A = Geom2D.A;
+  var I = Geom2D.I, T = Geom2D.T, R = Geom2D.R, R0 = Geom2D.R0, S = Geom2D.S, S1 = Geom2D.S1, D = Geom2D.D, A = Geom2D.A;
 */
 
 var Geom2D = {
-  T: function T(t, x, y) { // Transform a local x,y coordinate
-    return {x: t.x + t.xx*x + t.xy*y,   y: t.y + t.yx*x + t.yy*y,
-            xx: t.xx,                   xy: t.xy,
-            yx: t.yx,                   yy: t.yy};
+  I: function() { // identity matrix
+    return [[1, 0, 0],
+	    [0, 1, 0]];
+  },
+  T: function T(t, x, y) { // Transform a local coordinate
+    return [[t[0][0], t[0][1], t[0][0]*x + t[0][1]*y + t[0][2]],
+	    [t[1][0], t[1][1], t[1][0]*x + t[1][1]*y + t[1][2]]];
   },
   R: function R(t, a) { // Rotate
     var ca = Math.cos(a), sa = Math.sin(a);
-    return {x: t.x,                     y: t.y,
-            xx: t.xx*ca - t.yx*sa,      xy: t.xy*ca + t.yy*sa,
-            yx: t.yx*ca + t.xx*sa,      yy: t.yy*ca + t.yx*sa};
+    return [[t[0][0]*ca - t[1][0]*sa, t[0][1]*ca + t[1][1]*sa, t[0][2]],
+	    [t[1][0]*ca + t[0][0]*sa, t[1][1]*ca + t[1][0]*sa, t[1][2]]];
   },
   R0: function R0(t) { // Rotate to zero
-    var s = Math.sqrt(t.xx*t.xx + t.xy*t.xy);
-    return {x: t.x,                     y: t.y,
-            xx: s,                      xy: 0,
-            yx: 0,                      yy: s};
+    var s = Math.sqrt(t[0][0]*t[0][0] + t[0][1]*t[0][1]);
+    return [[s, 0, t[0][2]],
+	    [0, s, t[1][2]]];
   },
   S: function S(t, s) { // Scale
-    return {x: t.x,                     y: t.y,
-            xx: t.xx*s,                 xy: t.xy*s,
-            yx: t.yx*s,                 yy: t.yy*s};
+    return [[t[0][0]*s,   t[0][1]*s, t[0][2]],
+	    [t[1][0]*s,   t[1][1]*s, t[1][2]]];
   },
   S1: function S1(t) { // Scales to 1
-    var a = Math.atan2(t.yx, t.xx);
+    var a = Math.atan2(t[1][0], t[0][0]);
     var ca = Math.cos(a), sa = Math.sin(a);
-    return {x: t.x,                     y: t.y,
-            xx: ca,                     xy: -sa,
-            yx: sa,                     yy: ca};
+    return [[ca, -sa, t[0][2]],
+	    [sa, ca, t[1][2]]];
   },
   D: function D(a, b) {
-    return Math.sqrt((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y));
+    return Math.sqrt((a[0][2]-b[0][2])*(a[0][2]-b[0][2]) + (a[1][2]-b[1][2])*(a[1][2]-b[1][2]));
   },
   A: function A(a, b) {
-    return Math.atan2(b.y - a.y, b.x - a.x);
+    return Math.atan2(b[1][2] - a[1][2], b[0][2] - a[0][2]);
   }
 };
+
+/*
+  For maximum convenience, import these with
+  var I = Geom3D.I, T = Geom3D.T, S = Geom3D.S
+*/
+
+var Geom3D = {
+  I: function() { // identity matrix
+    return [[1, 0, 0, 0],
+	    [0, 1, 0, 0]
+	    [0, 0, 1, 0]];
+  },
+  T: function T(t, x, y, z) { // Transform a local coordinate
+    return [[t[0][0], t[0][1], t[0][2], t[0][0]*x + t[0][1]*y + t[0][2]*z + t[0][3]],
+	    [t[1][0], t[1][1], t[1][2], t[1][0]*x + t[1][1]*y + t[1][2]*z + t[1][3]],
+	    [t[2][0], t[2][1], t[2][2], t[2][0]*x + t[2][1]*y + t[2][2]*z + t[2][3]],
+	   ];
+  },
+  S: function S(t, s) { // Scale
+    return [[t[0][0]*s,   t[0][1]*s, t[0][2]*s, t[0][3]],
+	    [t[1][0]*s,   t[1][1]*s, t[1][2]*s, t[1][3]],
+	    [t[2][0]*s,   t[2][1]*s, t[2][2]*s, t[2][3]]];
+  },
+  fromOrientation: function(m) {
+    return [[m[0][0], m[0][1], m[0][2], 0],
+	    [m[1][0], m[1][1], m[1][2], 0],
+	    [m[2][0], m[2][1], m[2][2], 0]];
+  },
+  toScreen: function(t, xc, yc, zc) {
+    var persp = zc/(zc + t[1][3]);
+    // X is right, Y is away from viewer, Z is up
+    return [xc + t[0][3]*persp,
+	    yc - t[2][3]*persp,
+	    zc + t[1][3]];
+  },
+  depthSort: function(faces) {
+    return _.sortBy(faces, function(face) {
+      var coords = face.coords;
+      var cl = coords.length;
+      if (cl === 0) return 0.0;
+      var accum = 0.0;
+      for (var i=0; i<cl; i++) {
+	accum += coords[i][2];
+      }
+      return -accum / cl;
+    });
+  },
+};
+
