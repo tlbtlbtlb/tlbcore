@@ -139,6 +139,19 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
       Provider.emit404(res, 'No auth code found');
     }
   }
+  else if (suffix === 'logout') {
+    var appRedirectUrl = up.query['redirect_url'];
+    res.writeHead(302, {
+      'Set-Cookie': cookie.serialize('access_token', '', {
+	path: '/',
+	maxAge: 0,
+	httpOnly: false,
+	secure: (up.protocol === 'https:')
+      }),
+      'Location': appRedirectUrl
+    });
+    res.end();
+  }
   else {
     logio.E(remote, 'Unknown suffix', suffix);
   }
