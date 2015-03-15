@@ -112,24 +112,23 @@ function gotoCurrentHash() {
     var parts = hash.substr(1).split('_');
     pageid = parts[0] || '';
     var optionsEnc = decodeURIComponent(parts.slice(1).join('_'));
-    if (optionsEnc.length > 0) {
-      var humanUrl = $.humanUrl[pageid];
-      if (humanUrl && optionsEnc[0] !== '.') {
-        try {
-          options = humanUrl.parse(optionsEnc);
-          var optionsEnc2 = humanUrl.fmt(options);
-          if (optionsEnc !== optionsEnc2) {
-            errlog('gotoCurrentHash', 'Mismatch:', optionsEnc, optionsEnc2);
-          }
-        } catch(ex) {
-          errlog('gotoCurrentHash', 'Error parsing', optionsEnc, ex);
+    var humanUrl = $.humanUrl[pageid];
+    if (humanUrl && optionsEnc[0] !== '.') {
+      try {
+        options = humanUrl.parse(optionsEnc);
+        var optionsEnc2 = humanUrl.fmt(options);
+        if (optionsEnc !== optionsEnc2) {
+          errlog('gotoCurrentHash', 'Mismatch:', optionsEnc, optionsEnc2);
         }
-      } else {
-        try {
-          options = JSON.parse(atob(optionsEnc.substr(1)));
-        } catch(ex) {
-          console.log('Error JSON-parsing options', optionsEnc.substr(1), ex);
-        }
+      } catch(ex) {
+        errlog('gotoCurrentHash', 'Error parsing', optionsEnc, ex);
+      }
+    } 
+    else if (optionsEnc[0] === '.') {
+      try {
+        options = JSON.parse(atob(optionsEnc.substr(1)));
+      } catch(ex) {
+        console.log('Error JSON-parsing options', optionsEnc.substr(1), ex);
       }
     }
   }
@@ -142,7 +141,7 @@ function fmtHashOptions(pageid, o) {
   if (humanUrl) {
     var optionsEnc = humanUrl.fmt(o);
     if (optionsEnc !== null) {
-      return '#' + pageid + '_' + optionsEnc;
+      return '#' + pageid + '_' + encodeURIComponent(optionsEnc);
     }
   }
   var oStr = o ? JSON.stringify(o) : '';
