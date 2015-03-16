@@ -54,7 +54,7 @@ function mkWebSocketRpc(wsc, handlers) {
       txQueue = [];
       if (!shutdownRequested) {	
 	if (handlers.reopen) {
-	  handles.reopen();
+	  handlers.reopen();
 	} else {
           setTimeout(function() {
             if (verbose >= 1) console.log('Reopening socket to ' + wsc.url);
