@@ -45,15 +45,9 @@ function main() {
                      ['foo', 'double'],
                      ['bar', 'int'],
                      ['buz', 'double']);
+      
+      typereg.addRtFunction('test1', {a: 'TestStruct'}, {b: 'TestStruct'});
 
-      var rtfn = typereg.addRtFunction('test1', {a: 'TestStruct'}, {b: 'TestStruct'});
-      rtfn.node('scalar.+', [], ['a.foo', 'a.foo'], ['b.foo']);
-      rtfn.node('scalar.+', [], ['a.bar', 'a.bar'], ['b.bar']);
-      rtfn.node('scalar.atan', [], ['a.foo'], ['b.buz']);
-      //rtfn.node('scalar.poly', [1,2,3,4,5,6], ['a.foo'], ['b.buz']);
-    }
-
-    if (1) {
       typereg.struct('TestStructString', 
                      ['foo', 'string']);
     }

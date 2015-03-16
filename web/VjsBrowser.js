@@ -936,7 +936,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     if (action && action.onScroll) {
       var deltas = eventDeltas(ev);
       if (deltas) {
-	var scrollRate = Math.max(Math.abs(deltas.x), Math.abs(deltas.y));
+	var scrollRate = Math.min(15, Math.max(Math.abs(deltas.x), Math.abs(deltas.y)));
 	action.onScroll(deltas.x*scrollRate, deltas.y*scrollRate);
 	m.emit('changed');
       }
