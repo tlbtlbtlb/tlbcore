@@ -15,6 +15,7 @@ function mkWebSocketRpc(wsc, handlers) {
   var pending = new WebSocketHelper.RpcPendingQueue();
   var callbacks = {};
   var rxBinaries = [];
+  var shutdownRequested = false;
 
   setupWsc();
   setupHandlers();
@@ -35,6 +36,7 @@ function mkWebSocketRpc(wsc, handlers) {
       }
     };
     wsc.onopen = function(event) {
+      if (verbose >= 1) console.log(wsc.url + ' Opened');
       if (txQueue) {
         _.each(txQueue, function(m) {
           emitMsg(m);
@@ -46,14 +48,20 @@ function mkWebSocketRpc(wsc, handlers) {
     wsc.onclose = function(event) {
       if (handlers.close) {
         handlers.close();
-      } else {
-        if (verbose >= 1) console.log(wsc.url + ' Closed');
-        txQueue = [];
-        setTimeout(function() {
-          if (verbose >= 1) console.log('Reopening socket to ' + wsc.url);
-          wsc = new WebSocket(wsc.url);
-          setupWsc(wsc);
-        }, 3000);
+      } 
+
+      if (verbose >= 1) console.log(wsc.url + ' Closed');
+      txQueue = [];
+      if (!shutdownRequested) {	
+	if (handlers.reopen) {
+	  handles.reopen();
+	} else {
+          setTimeout(function() {
+            if (verbose >= 1) console.log('Reopening socket to ' + wsc.url);
+            wsc = new WebSocket(wsc.url);
+            setupWsc(wsc);
+          }, 3000);
+	}
       }
     };
   }
@@ -126,6 +134,11 @@ function mkWebSocketRpc(wsc, handlers) {
       } else {
         emitMsg(msg);
       }
+    };
+    handlers.shutdown = function() {
+      shutdownRequested = true;
+      console.log('Closing websocket to', wsc.url);
+      wsc.close();
     };
     handlers.pending = pending;
     handlers.getPendingCount = function() {

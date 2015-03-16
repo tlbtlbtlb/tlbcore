@@ -1157,6 +1157,12 @@ function setupConsole(reloadKey) {
           this.cmd('reloadOn', {reloadKey: reloadKey});
 	}
       },
+      close: function() {
+	window.rconsole = null;
+      },
+      reopen: function() {
+	// Don't reopen the console, since it's sort of optional
+      },
       cmd_reload: function(msg) { // server is asking us to reload, because it knows that javascript files have changed
 	console.log('Reload');
 	window.location.reload(true);
@@ -1279,6 +1285,7 @@ function mkWebSocket(path, handlers) {
 
   // WRITEME: detect vendor-prefixed WebSocket.
   // WRITEME: Give some appropriately dire error message if websocket not found or fails to connect
+  console.log('Opening websocket to', wsUrl);
   var wsc = new WebSocket(wsUrl);
   return WebSocketBrowser.mkWebSocketRpc(wsc, handlers);
 }
