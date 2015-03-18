@@ -956,7 +956,6 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   });
   
   top.on('mousedown', function(ev) {
-    console.log('mousedown', ev.originalEvent.buttons);
     var md = eventOffsets(ev);
     var action = hd.find(md.x, md.y) || hd.defaultActions;
     if (action) {
@@ -970,8 +969,6 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
 	    // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
 	    // Grab not supported on IE or Chrome/Windows
 	    top.css('cursor', hd.dragCursor);
-
-	    // WRITEME: add mouseup listener on document, but unbind when this element is destroyed
 	  }
 	}
       }
@@ -1011,6 +1008,20 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     hd.dragging = null;
     m.emit('changed');
     return false;
+  });
+
+  $(window).on('mouseup.mkAnimatedCanvas', function(ev) {
+    if (hd.dragCursor) {
+      top.css('cursor', 'default');
+      hd.dragCursor = null;
+    }
+    if (hd.dragging) {
+      hd.dragging = null;
+      return true;
+    }
+  });
+  m.on('destroyed', function() {
+    $(window).off('mouseup.mkAnimatedCanvas');
   });
 
   m.on('animate', function() {
