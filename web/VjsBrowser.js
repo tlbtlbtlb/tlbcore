@@ -765,8 +765,10 @@ $.fn.animation2 = function(m) {
   var mChangeCounter = 0;
   var vChangeCounter = 0;
   var afActive = false;
+  var changesPending = 0;
   m.on('changed', function() {
     if (mChangeCounter === vChangeCounter) mChangeCounter++;
+    if (changesPending < 2) changesPending++;
     if (!afActive) {
       afActive = true;
       lastTime = 0;
@@ -789,7 +791,16 @@ $.fn.animation2 = function(m) {
       if (m.animate) m.animate(dt);
       m.emit('animate');
       window.requestAnimationFrame(wrap);
-    } else {
+    } 
+    else if (changesPending > 0) {
+      changesPending--;
+      if (changesPending === 0) {
+	m.fastDraw = false;
+	m.emit('animate');
+      }
+      window.requestAnimationFrame(wrap);
+    } 
+    else {
       afActive = false;
     }
   }
@@ -945,6 +956,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   });
   
   top.on('mousedown', function(ev) {
+    console.log('mousedown', ev.originalEvent.buttons);
     var md = eventOffsets(ev);
     var action = hd.find(md.x, md.y) || hd.defaultActions;
     if (action) {
@@ -958,6 +970,8 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
 	    // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
 	    // Grab not supported on IE or Chrome/Windows
 	    top.css('cursor', hd.dragCursor);
+
+	    // WRITEME: add mouseup listener on document, but unbind when this element is destroyed
 	  }
 	}
       }
@@ -1040,7 +1054,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       ctx.font = lo.tinyFont;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'top';
-      ctx.fillText(drawCount.toString() + '  ' + avgTime.toFixed(2), lo.boxR - 5, lo.boxT + 1);
+      ctx.fillText(drawCount.toString() + '  ' + avgTime.toFixed(2) + ' ' + (t1-t0).toFixed(0), lo.boxR - 5, lo.boxT + 1);
     }
     hd.endDrawing();
     ctx.restore();

@@ -15,7 +15,6 @@ var Provider            = require('./Provider');
 
 exports.OAuthProvider = OAuthProvider;
 exports.getHttpRequestAccessToken = getHttpRequestAccessToken;
-exports.getOAuthRedirectUrl = getOAuthRedirectUrl;
 
 function getHttpRequestAccessToken(req) {
   var headers = req.headers;
@@ -24,32 +23,16 @@ function getHttpRequestAccessToken(req) {
     if (cookies) {
       var accessToken = cookies['access_token'];
       if (accessToken) {
-	if (!Safety.isValidToken(accessToken)) {
+	var accessTokenParts = accessToken.split(' ');
+	if (!_.every(accessTokenParts, Safety.isValidToken)) {
 	  logio.E(req.connection.remoteAddress, 'Invalid access_token cookie:', accessToken);
 	  return null;
 	}
-	return accessToken;
+	return accessTokenParts;
       }
     }
   }
   return null;
-}
-
-function getOAuthRedirectUrl(req)
-{
-  var up = req.urlParsed;
-  var redUrlParsed = {
-    protocol: up.protocol,
-    port: up.port,
-    host: up.host,
-    hostname: up.hostname,
-    pathname: path.dirname(up.pathname) + '/oauth/login',
-    query: {
-      'redirect_url': url.format(req.urlParsed)
-    }
-  };
-  console.log('redUrlParsed', redUrlParsed);
-  return url.format(redUrlParsed);
 }
 
 /* ----------------------------------------------------------------------
@@ -120,9 +103,9 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
 
     if (codeInfo && codeInfo.redirectUrl) {
       self.getAccessToken(authCode, up, function(err, accessTokenInfo) {
-	logio.O(remote, 'Cookie access_token', accessTokenInfo['access_token']);
+	logio.O(remote, 'Cookie access_token', 'github ' + accessTokenInfo['access_token']);
 	res.writeHead(302, {
-	  'Set-Cookie': cookie.serialize('access_token', accessTokenInfo['access_token'], {
+	  'Set-Cookie': cookie.serialize('access_token', 'github ' + accessTokenInfo['access_token'], {
 	    path: '/',
 	    maxAge: 86400,
 	    httpOnly: false,
