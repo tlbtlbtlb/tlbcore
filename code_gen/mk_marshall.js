@@ -41,10 +41,13 @@ function main() {
     var filegen = new cgen.FileGen(prefix);
 
     if (1) {
-      typereg.struct('TestStruct', 
-                     ['foo', 'double'],
-                     ['bar', 'int'],
-                     ['buz', 'double']);
+      var ts = typereg.struct('TestStruct', 
+			      ['foo', 'double'],
+			      ['bar', 'int'],
+			      ['buz', 'double']);
+      ts.extraConstructorCode.push('eprintf("Construct TestStruct %p\\n", this);');
+      ts.extraDestructorCode.push('eprintf("Destruct TestStruct %p\\n", this);');
+      ts.needsDestructor
       
       typereg.addRtFunction('test1', {a: 'TestStruct'}, {b: 'TestStruct'});
 

@@ -31,6 +31,7 @@ using namespace v8;
 
 extern bool fastJsonFlag;
 
+// WRITEME: replace with shared_ptr
 struct JsWrapOwnership {
   JsWrapOwnership() : refcnt(0) {
   }
@@ -225,123 +226,79 @@ Handle<Value> convJsonstrToJs(jsonstr const &it);
 template <typename CONTENTS>
 struct JsWrapGeneric : node::ObjectWrap {
   JsWrapGeneric()
-    :memory(nullptr),
-     it(nullptr)
   {
   }
 
   template<typename... Args>
   JsWrapGeneric(Args &&... _args)
-    :memory(new JsWrapOwnershipGeneric<CONTENTS>(std::forward<Args>(_args)...)),
-     it(&((JsWrapOwnershipGeneric<CONTENTS> *)memory)->contents)
+    :it(make_shared<CONTENTS>(std::forward<Args>(_args)...))
   {
-    memory->ref();
   }
   
-  JsWrapGeneric(JsWrapOwnership *_memory, CONTENTS *_it)
-    :memory(_memory),
-     it(_it)
+  JsWrapGeneric(shared_ptr<CONTENTS> _it)
+    :it(_it)
   {
-    memory->ref();
   }
 
-  template<typename OTHER>
-  void addKeepalive(OTHER *other)
+  void assign(shared_ptr<CONTENTS> _it)
   {
-    memory->addKeepalive(other->memory);
-  }
-
-  void assign(CONTENTS *_it)
-  {
-    if (memory) memory->unref();
-    memory = new JsWrapOwnership();
-    memory->ref();
-    it = _it;
-  }
-  
-  void assign(JsWrapOwnership *_memory, CONTENTS *_it)
-  {
-    if (memory) memory->unref();
-    memory = _memory;
-    memory->ref();
     it = _it;
   }
   
   template<typename... Args>
   void assignConstruct(Args &&... _args)
   {
-    if (memory) memory->unref();
-    memory = new JsWrapOwnershipGeneric<CONTENTS>(std::forward<Args>(_args)...);
-    memory->ref();
-    it = &((JsWrapOwnershipGeneric<CONTENTS> *)memory)->contents;
+    it = make_shared<CONTENTS>(std::forward<Args>(_args)...);
   }
 
   void assignDefault()
   {
-    if (memory) memory->unref();
-    memory = new JsWrapOwnershipGeneric<CONTENTS>();
-    memory->ref();
-    it = &((JsWrapOwnershipGeneric<CONTENTS> *)memory)->contents;
+    it = make_shared<CONTENTS>();
   }
   
   ~JsWrapGeneric()
   {
-    if (memory) memory->unref();
-    memory = 0;
-    it = 0;
+  }
+  
+  shared_ptr<CONTENTS> it;
+  Persistent<Value> owner;
+
+  template<typename... Args>
+  static Handle<Value> NewInstance(Args &&... _args) {
+    HandleScope scope;
+    Local<Object> instance = constructor->NewInstance(0, nullptr);
+    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    w->assignConstruct(std::forward<Args>(_args)...);
+    return scope.Close(instance);
   }
 
-  JsWrapOwnership *memory;
-  CONTENTS *it;
+  static Handle<Value> NewInstance(shared_ptr<CONTENTS> _it) {
+    HandleScope scope;
+    Local<Object> instance = constructor->NewInstance(0, nullptr);
+    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    w->assign(_it);
+    return scope.Close(instance);
+  }
 
-  static Handle<Value> NewInstance(CONTENTS const &_contents) {
+  template<class OWNER>
+  static Handle<Value> MemberInstance(shared_ptr<OWNER> _parent, CONTENTS *_ptr) {
+    HandleScope scope;
+    Local<Object> instance = constructor->NewInstance(0, nullptr);
+    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    w->assign(shared_ptr<CONTENTS>(_parent, _ptr));
+    return scope.Close(instance);
+  }
+
+  static Handle<Value> DependentInstance(Handle<Value> _owner, CONTENTS const &_contents) {
     HandleScope scope;
     Local<Object> instance = constructor->NewInstance(0, nullptr);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assignConstruct(_contents);
+    w->owner = Persistent<Value>::New(_owner);
     return scope.Close(instance);
   }
 
-  /*
-    Create an instance pointing into memory already owned by a JsWrap
-  */
-  static Handle<Value> MemberInstance(JsWrapOwnership *_memory, CONTENTS *_it) {
-    HandleScope scope;
-    Local<Object> instance = constructor->NewInstance(0, nullptr);
-    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->assign(_it);
-    w->memory->addKeepalive(_memory);
-    return scope.Close(instance);
-  }
-  static Handle<Value> DependentInstance(JsWrapOwnership *_memory, CONTENTS *_it) {
-    HandleScope scope;
-    Local<Object> instance = constructor->NewInstance(0, nullptr);
-    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->assign(_it);
-    w->memory->addKeepalive(_memory);
-    return scope.Close(instance);
-  }
-  static Handle<Value> DependentInstance(JsWrapOwnership *_memory, CONTENTS const &_it) {
-    HandleScope scope;
-    Local<Object> instance = constructor->NewInstance(0, nullptr);
-    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->assignConstruct(_it);
-    w->memory->addKeepalive(_memory);
-    return scope.Close(instance);
-  }
-
-  static CONTENTS *ExtractMemory(Handle<Value> value) {
-    if (value->IsObject()) {
-      Handle<Object> valueObject = value->ToObject();
-      Local<String> valueTypeName = valueObject->GetConstructorName();
-      if (valueTypeName == constructor->GetName()) {
-        return node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(valueObject)->memory;
-      }
-    }
-    return nullptr;
-  }
-
-  static CONTENTS *Extract(Handle<Value> value) {
+  static shared_ptr<CONTENTS> Extract(Handle<Value> value) {
     if (value->IsObject()) {
       Handle<Object> valueObject = value->ToObject();
       Local<String> valueTypeName = valueObject->GetConstructorName();
@@ -349,7 +306,7 @@ struct JsWrapGeneric : node::ObjectWrap {
         return node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(valueObject)->it;
       }
     }
-    return nullptr;
+    return shared_ptr<CONTENTS>();
   }
 
   // Because node::ObjectWrap::Wrap is protected
