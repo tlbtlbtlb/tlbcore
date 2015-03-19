@@ -30,7 +30,7 @@
         '-fno-rtti', '-fno-exceptions', '-fno-tree-vrp'
       ],
       'cflags_cc': [
-        '-std=c++11'
+        '-std=c++11', '-DARMA_MAT_PREALLOC=3'
       ]
     }],
   ]

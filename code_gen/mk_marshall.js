@@ -45,9 +45,10 @@ function main() {
 			      ['foo', 'double'],
 			      ['bar', 'int'],
 			      ['buz', 'double']);
-      ts.extraConstructorCode.push('eprintf("Construct TestStruct %p\\n", this);');
-      ts.extraDestructorCode.push('eprintf("Destruct TestStruct %p\\n", this);');
-      ts.needsDestructor
+      if (0) {
+	ts.extraConstructorCode.push('eprintf("Construct TestStruct %p\\n", this);');
+	ts.extraDestructorCode.push('eprintf("Destruct TestStruct %p\\n", this);');
+      }
       
       typereg.addRtFunction('test1', {a: 'TestStruct'}, {b: 'TestStruct'});
 
