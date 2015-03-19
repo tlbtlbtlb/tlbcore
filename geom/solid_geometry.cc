@@ -315,8 +315,7 @@ void packet_wr_typetag(packet &p, StlSolid const &it)
 void
 StlSolid::transform(mat44 const &m)
 {
-  for (auto it = faces.begin(); it != faces.end(); ++it) {
-    StlFace &face = *it;
+  for (auto &face : faces) {
     face.transform(m);
   }
   calcBbox();
@@ -335,8 +334,7 @@ StlSolid::calcBbox()
   vec3 lo = faces[0].v0;
   vec3 hi = faces[0].v0;
 
-  for (auto it = faces.begin(); it != faces.end(); ++it) {
-    StlFace &face = *it;
+  for (auto &face: faces) {
     
     lo[0] = min(lo[0], face.v0[0]);
     lo[1] = min(lo[1], face.v0[1]);
@@ -366,8 +364,7 @@ StlSolid::calcBbox()
 bool
 StlSolid::rayIntersects(vec3 const &p, vec3 const &d) const
 {
-  for (auto it = faces.begin(); it != faces.end(); ++it) {
-    StlFace const &face = *it;
+  for (auto &face : faces) {
     double t;
     if (face.rayIntersects(p, d, t)) {
       return true;
@@ -390,8 +387,7 @@ StlSolid::isInterior(vec3 const &pt) const
   dir[1] = 0;
   dir[2] = 0;
 
-  for (auto it = faces.begin(); it != faces.end(); ++it) {
-    StlFace const &face = *it;
+  for (auto &face : faces) {
     double t;
     if (face.rayIntersects(pt, dir, t)) {
       ret = !ret;
@@ -410,8 +406,7 @@ StlSolid::getIntersections(vec3 const &p, vec3 const &d) const
 {
   vector<StlIntersection> ret;
   
-  for (auto it = faces.begin(); it != faces.end(); ++it) {
-    StlFace const &face = *it;
+  for (auto &face : faces) {
     double t;
     if (face.rayIntersects(p, d, t)) {
       StlIntersection si;
@@ -452,8 +447,7 @@ StlSolid::getStlMassProperties(double density) const
   double sum_yz = 0.0;
   double sum_zx = 0.0;
     
-  for (auto it = faces.begin(); it != faces.end(); ++it) {
-    StlFace const &f = *it;
+  for (auto &f : faces) {
         
     vec3 v0 = f.v0;
     vec3 v1 = f.v1;
@@ -529,9 +523,9 @@ struct Vec3SpatialMap {
   
   ~Vec3SpatialMap()
   {
-    for (auto it = spatial.begin(); it != spatial.end(); ++it) {
-      delete it->second;
-      it->second = nullptr;
+    for (auto it : spatial) {
+      delete it.second;
+      it.second = nullptr;
     }
     spatial.clear();
     delete root;
@@ -615,8 +609,8 @@ void StlSolid::removeTinyFaces(double minSize)
   
   for (int passi=0; passi<3; passi++) {
     
-    for (auto fiit = faceOrdering.begin(); fiit != faceOrdering.end(); ++fiit) {
-      StlFace &f = faces[*fiit];
+    for (auto fiit : faceOrdering) {
+      StlFace &f = faces[fiit];
       if (f.isDegenerate()) continue;
 
       if (norm(f.v1 - f.v0, 2) < minSize) {

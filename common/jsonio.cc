@@ -400,8 +400,8 @@ bool rdJson(const char *&s, double &value) {
 
 size_t wrJsonSize(string const &value) { 
   size_t ret = 2;
-  for (auto vi = value.begin(); vi != value.end(); vi++) {
-    u_char c = *vi;
+  for (auto vi : value) {
+    u_char c = vi;
     if (c == (u_char)0x22) {
       ret += 2;
     }
@@ -423,8 +423,8 @@ void wrJson(char *&s, string const &value) {
   mbstate_t mbs;
   memset(&mbs, 0, sizeof(mbs));
 #endif
-  for (auto vi = value.begin(); vi != value.end(); vi++) {
-    u_char c = *vi;
+  for (auto vi : value) {
+    u_char c = vi;
     if (c == (u_char)0x22) {
       *s++ = 0x5c;
       *s++ = 0x22;

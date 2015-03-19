@@ -1013,7 +1013,7 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr) {
   case 'jsonstr':
     return 'true';
   default:
-    return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != NULL)';
+    return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr)';
     //throw new Error('Unknown primitive type');
   }
 };
@@ -1081,15 +1081,15 @@ ObjectCType.prototype.getSynopsis = function() {
 };
 
 ObjectCType.prototype.getAllOneExpr = function() {
-  return 'NULL';
+  return 'nullptr';
 };
 
 ObjectCType.prototype.getAllZeroExpr = function() {
-  return 'NULL';
+  return 'nullptr';
 };
 
 ObjectCType.prototype.getAllNanExpr = function() {
-  return 'NULL';
+  return 'nullptr';
 };
 
 ObjectCType.prototype.getExampleValueJs = function() {
@@ -1117,7 +1117,7 @@ ObjectCType.prototype.getVarDecl = function(varname) {
 
 ObjectCType.prototype.getJsToCppTest = function(valueExpr) {
   var type = this;
-  return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != NULL)';
+  return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr)';
 };
 
 ObjectCType.prototype.getJsToCppExpr = function(valueExpr) {
@@ -1238,7 +1238,7 @@ CollectionCType.prototype.getVarDecl = function(varname) {
 
 CollectionCType.prototype.getJsToCppTest = function(valueExpr) {
   var type = this;
-  return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != NULL)';
+  return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr)';
 };
 
 CollectionCType.prototype.getJsToCppExpr = function(valueExpr) {
@@ -2582,15 +2582,15 @@ PtrCType.prototype.getSynopsis = function() {
 };
 
 PtrCType.prototype.getAllOneExpr = function() {
-  return 'NULL';
+  return 'nullptr';
 };
 
 PtrCType.prototype.getAllZeroExpr = function() {
-  return 'NULL';
+  return 'nullptr';
 };
 
 PtrCType.prototype.getAllNanExpr = function() {
-  return 'NULL';
+  return 'nullptr';
 };
 
 PtrCType.prototype.getExampleValueJs = function() {
@@ -2623,7 +2623,7 @@ PtrCType.prototype.getVarDecl = function(varname) {
 
 PtrCType.prototype.getJsToCppTest = function(valueExpr) {
   var type = this;
-  return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != NULL)';
+  return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr)';
 };
 
 PtrCType.prototype.getJsToCppExpr = function(valueExpr) {
