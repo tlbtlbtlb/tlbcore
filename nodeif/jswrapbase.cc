@@ -74,63 +74,6 @@ Handle<Value> convStringToJsBuffer(string const &it) {
 
 
 /* ----------------------------------------------------------------------
-   arma::mat I/O
-   WRITEME: make a template to handle other element types
-
-   Convert JS arrays, both regular and native, to arma mat / vec
-   See https://github.com/joyent/node/issues/4201 for details on native arrays
-*/
-
-bool canConvJsToArmaMat(Handle<Value> itv) {
-  if (itv->IsObject()) {
-    Handle<Object> it = itv->ToObject();
-    if (it->IsArray()) return true;
-  }
-  return false;
-}
-
-mat convJsToArmaMat(Handle<Value> itv) {
-#if 1
-  throw runtime_error("convJsToArmaMat: not implemented");
-#else
-  if (itv->IsObject()) {
-    Handle<Object> it = itv->ToObject();
-
-    // Also handle regular JS arrays
-    if (it->IsArray()) {
-      Handle<Array> itArr = Handle<Array>::Cast(it);
-      size_t itArrLen = itArr->Length();
-      mat ret(itArrLen, itArrLen);
-      for (size_t i=0; i<itArrLen; i++) {
-        ret(i) = itArr->Get(i)->NumberValue();
-      }
-      return ret;
-    }
-  }
-#endif
-  throw runtime_error("convJsToVectorDouble: not an array");
-}
-
-Handle<Object> convArmaMatToJs(vector<double> const &it) {
-  /*
-    WRITEME: this should take a 2-dimensional JS array, like [[1,2,3],[4,5,6],[7,8,9]] to a arma::mat
-  */
-#if 1
-  throw runtime_error("convArmaMatToJs: not implemented");
-#else
-  Local<Value> itSize = Integer::NewFromUnsigned((u_int)it.size());
-  Local<Object> ret = float64_array_constructor->NewInstance(1, &itSize);
-  assert(ret->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray);
-  assert((size_t)ret->GetIndexedPropertiesExternalArrayDataLength() == it.size());
-
-  double* retData = static_cast<double*>(ret->GetIndexedPropertiesExternalArrayData());
-  memcpy(retData, &it[0], it.size() * sizeof(double));
-  
-  return ret;
-#endif
-}
-
-/* ----------------------------------------------------------------------
   arma::cx_double I/O
 
   arma::cx_double, the same as std::complex<double> is reflected into a simple {real:,imag:} object in JS. There's no binary wrapped type
