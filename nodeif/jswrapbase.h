@@ -31,46 +31,6 @@ using namespace v8;
 
 extern bool fastJsonFlag;
 
-// WRITEME: replace with shared_ptr
-struct JsWrapOwnership {
-  JsWrapOwnership() : refcnt(0) {
-  }
-  virtual ~JsWrapOwnership() {
-    for (auto it = keepalives.begin(); it != keepalives.end(); it++) {
-      (*it)->unref();
-    }
-  }
-  void ref() { 
-    assert(refcnt >= 0);
-    refcnt++;
-  }
-  void unref() {
-    assert(refcnt > 0);
-    refcnt--;
-    if (refcnt == 0) delete this;
-  }
-  void addKeepalive(JsWrapOwnership *other) {
-    other->ref();
-    keepalives.push_back(other);
-  }
-  int refcnt;
-  vector<JsWrapOwnership *> keepalives;
-};
-
-template <typename CONTENTS>
-struct JsWrapOwnershipGeneric : JsWrapOwnership {
-  template<typename... Args>
-  JsWrapOwnershipGeneric(Args &&... _args)
-    :contents(std::forward<Args>(_args)...)
-  {
-  }
-  virtual ~JsWrapOwnershipGeneric()
-  {
-  }
-
-  CONTENTS contents;
-};
-
 Handle<Value> ThrowInvalidArgs();
 Handle<Value> ThrowInvalidThis();
 Handle<Value> ThrowTypeError(char const *s);
@@ -321,14 +281,5 @@ struct JsWrapGeneric : node::ObjectWrap {
 template <typename CONTENTS>
 Persistent<Function> JsWrapGeneric<CONTENTS>::constructor;
 
-
-template<typename CONTENTS>
-CONTENTS convJsWrapToC(JsWrapGeneric<CONTENTS> *valobj) {
-  if (valobj && valobj->it) {
-    return *valobj->it;
-  } else {
-    return CONTENTS();
-  }
-}
 
 #endif
