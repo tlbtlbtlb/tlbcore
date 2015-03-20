@@ -70,7 +70,7 @@ struct StlSolid {
   bool isInterior(arma::vec3 const &pt) const;
   vector<StlIntersection> getIntersections(arma::vec3 const &pt, arma::vec3 const &dir) const;
   StlMassProperties getStlMassProperties(double density) const;
-  StlWebglMesh exportWebglMesh() const;
+  StlWebglMesh exportWebglMesh(double eps) const;
   void removeTinyFaces(double minSize);
 
   arma::vec3 bboxLo, bboxHi;

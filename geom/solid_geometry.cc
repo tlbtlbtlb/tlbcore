@@ -593,10 +593,9 @@ void StlSolid::removeTinyFaces(double minSize)
 }
 
 
-StlWebglMesh StlSolid::exportWebglMesh() const
+StlWebglMesh StlSolid::exportWebglMesh(double eps) const
 {
   OctreeNode *root = new OctreeNode(mkVec3(0.0, 0.0, 0.0), getMaxScale());
-  double eps = 0.000001;
   map<OctreeNode *, int> ptIndex;
 
   size_t nFaces = faces.size();
@@ -610,8 +609,14 @@ StlWebglMesh StlSolid::exportWebglMesh() const
   map<string, int> dupMap;
 
   auto pushVertex = [&](arma::vec3 const &position, arma::vec3 const &normal) {
-    string dupKey = (to_string(position[0]) + " " + to_string(position[1]) + " " + to_string(position[2]) + " " + 
-                     to_string(normal[0]) + " " + to_string(normal[1]) + " " + to_string(normal[2]));
+    // Lame, but performance doesn't matter much here
+    string dupKey = stringprintf("%.0f %.0f %.0f %.3f %.3f %.3f",
+				 position[0]/eps,
+				 position[1]/eps,
+				 position[2]/eps,
+				 normal[0],
+				 normal[1],
+				 normal[2]);
 
     // Store index+1 in dupMap, to distinguish zero as unassigned
     int &vi = dupMap[dupKey];
@@ -635,61 +640,6 @@ StlWebglMesh StlSolid::exportWebglMesh() const
     pushVertex(f.v1, f.normal);
     pushVertex(f.v2, f.normal);
   }
-
-#if 0
-  for (size_t fi=0; fi<faces.size(); fi++) {
-    StlFace const &f = faces[fi];
-    OctreeNode *nodeV0 = root->lookup(f.v0, eps);
-    int indexV0;
-    if (1 || !ptIndex.count(nodeV0)) {
-      indexV0 = ptIndex[nodeV0] = coordi;
-      ret.coords[coordi*3 + 0] = f.v0(0);
-      ret.coords[coordi*3 + 1] = f.v0(1);
-      ret.coords[coordi*3 + 2] = f.v0(2);
-      coordi++;
-    } else {
-      indexV0 = ptIndex[nodeV0];
-    }
-    ret.normals[indexV0*3 + 0] += f.normal(0);
-    ret.normals[indexV0*3 + 1] += f.normal(1);
-    ret.normals[indexV0*3 + 2] += f.normal(2);
-
-    OctreeNode *nodeV1 = root->lookup(f.v1, eps);
-    int indexV1;
-    if (1 || !ptIndex.count(nodeV1)) {
-      indexV1 = ptIndex[nodeV1] = coordi;
-      ret.coords[coordi*3 + 0] = f.v1(0);
-      ret.coords[coordi*3 + 1] = f.v1(1);
-      ret.coords[coordi*3 + 2] = f.v1(2);
-      coordi++;
-    } else {
-      indexV1 = ptIndex[nodeV1];
-    }
-    ret.normals[indexV1*3 + 0] += f.normal(0);
-    ret.normals[indexV1*3 + 1] += f.normal(1);
-    ret.normals[indexV1*3 + 2] += f.normal(2);
-
-    OctreeNode *nodeV2 = root->lookup(f.v2, eps);
-    int indexV2;
-    if (1 || !ptIndex.count(nodeV2)) {
-      indexV2 = ptIndex[nodeV2] = coordi;
-      ret.coords[coordi*3 + 0] = f.v2(0);
-      ret.coords[coordi*3 + 1] = f.v2(1);
-      ret.coords[coordi*3 + 2] = f.v2(2);
-      coordi++;
-    } else {
-      indexV2 = ptIndex[nodeV2];
-    }
-    ret.normals[indexV2*3 + 0] += f.normal(0);
-    ret.normals[indexV2*3 + 1] += f.normal(1);
-    ret.normals[indexV2*3 + 2] += f.normal(2);
-
-    ret.indexes[indexi*3+0] = indexV0;
-    ret.indexes[indexi*3+1] = indexV1;
-    ret.indexes[indexi*3+2] = indexV2;
-    indexi++;
-  }
-#endif
 
   assert(coordi <= nFaces*3);
   assert(indexi <= nFaces*3);

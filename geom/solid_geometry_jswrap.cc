@@ -149,8 +149,9 @@ static Handle<Value> jsWrap_StlSolid_exportWebglMesh(const Arguments& args)
 {
   HandleScope scope;
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
-  if (args.Length() == 0) {
-    StlWebglMesh ret = thisObj->it->exportWebglMesh();
+  if (args.Length() == 1 && args[0]->IsNumber()) {
+    double a0 = args[0]->NumberValue();
+    StlWebglMesh ret = thisObj->it->exportWebglMesh(a0);
     Local<Object> retJs = Object::New();
     retJs->Set(String::NewSymbol("coords"), JsWrap_vec::NewInstance(ret.coords));
     retJs->Set(String::NewSymbol("normals"), JsWrap_vec::NewInstance(ret.normals));
