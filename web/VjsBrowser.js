@@ -596,7 +596,7 @@ $.fn.syncChildren = function(newItems, options) {
   var domClass = options.domClass || 'syncDomChildren';
   
   var removeEl = options.removeEl || function(name) {
-    top.fadeOut(500, function() { $(this).empty(); });
+    this.fadeOut(500, function() { $(this).remove(); });
   };
   var createEl = options.createEl || function(name) {
     return $('<div class="' + domClass + '">');
@@ -623,7 +623,7 @@ $.fn.syncChildren = function(newItems, options) {
   });
 
   // Remove orphaned elems (in oldEls but not in itemToIndex)
-  _.each(oldEls, function(name) {
+  _.each(oldEls, function(obj, name) {
     if (!itemToIndex.hasOwnProperty(name)) {
       removeEl.call($(oldEls[name]), name);
     }
@@ -666,7 +666,8 @@ $.fn.syncChildren = function(newItems, options) {
   });
 
   // Return map of old & new elements
-  return oldEls;
+  //return oldEls;
+  return this;
 };
 
 
@@ -699,6 +700,16 @@ $.fn.syncChildren = function(newItems, options) {
       clearTimeout(id);
     };
 }());
+
+/*
+  Call m.addListener(eventName, handler), but also remove it when the DOM node gets destroyed
+*/
+$.fn.onEventsFrom = function(m, eventName, handler) {
+  m.addListener(eventName, handler);
+  this.on('destroyed', function() {
+    m.removeListener(eventName, handler);
+  });
+};
 
 /*
   Arrange for a function to be called to animate the DOM.
@@ -766,7 +777,7 @@ $.fn.animation2 = function(m) {
   var vChangeCounter = 0;
   var afActive = false;
   var changesPending = 0;
-  m.on('changed', function() {
+  top.onEventsFrom(m, 'changed', function() {
     if (mChangeCounter === vChangeCounter) mChangeCounter++;
     if (changesPending < 2) changesPending++;
     if (!afActive) {
