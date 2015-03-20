@@ -53,6 +53,7 @@ struct StlWebglMesh {
   StlWebglMesh() {}
 
   arma::vec coords;
+  arma::vec normals;
   arma::ivec indexes;
 };
 

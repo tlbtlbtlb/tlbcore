@@ -1,5 +1,6 @@
 var _                   = require('underscore');
-var ur                  = require('ur'); // argh
+var fs                  = require('fs');
+var ur                  = require('ur');
 var util                = require('util');
 var assert              = require('assert');
 
@@ -40,6 +41,7 @@ describe('solid_geometry', function() {
     checkIntersection(new ur.vec([0,0,1]), [new ur.vec([5.23085,-13.0847,-8.64565]), new ur.vec([5.23085,-13.0847,-8.27919])]);
 
     var mesh = s.exportWebglMesh();
+    fs.writeFileSync('/tmp/test_solid_geometry_mesh.json', JSON.stringify(mesh, true, 2));
     console.log('coords:', mesh.coords.n_elem, 'indexes:', mesh.indexes.n_elem);
     
   });

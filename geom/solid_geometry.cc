@@ -201,34 +201,6 @@ bool operator == (StlFace const &a, StlFace const &b)
           all(a.v2 == b.v2));
 }
 
-/* ----------------------------------------------------------------------
-   Packet IO
-*/
-
-#if 0
-void packet_rd_value(packet &p, StlFace &it)
-{
-  packet_rd_value(p, it.v0);
-  packet_rd_value(p, it.v1);
-  packet_rd_value(p, it.v2);
-}
-void packet_wr_value(packet &p, StlFace const &it)
-{
-  packet_wr_value(p, it.v0);
-  packet_wr_value(p, it.v1);
-  packet_wr_value(p, it.v2);
-}
-void packet_rd_typetag(packet &p, StlFace &it)
-{
-  p.check_typetag("StlFace:1");
-}
-void packet_wr_typetag(packet &p, StlFace const &it)
-{
-  p.add_typetag("StlFace:1");
-}
-#endif
-
-
 // ----------------------------------------------------------------------
 
 StlSolid::StlSolid()
@@ -245,22 +217,22 @@ ostream & operator << (ostream &s, StlSolid const &it)
   return s;
 }
 
-
 void
 StlSolid::readBinaryFile(FILE *fp, double scale)
 {
+  // See https://en.wikipedia.org/wiki/STL_(file_format)
   char dummyline[80];
-  if (fread(dummyline, 1, 80, fp)!=80) throw runtime_error("reading header");
+  if (fread(dummyline, 1, 80, fp) != 80) throw runtime_error("reading header");
 
-  int nTriangles=0;
-  if (fread(&nTriangles, sizeof(int), 1, fp)!=1) throw runtime_error("reading n_triangles");
+  uint32_t nTriangles=0;
+  if (fread(&nTriangles, sizeof(uint32_t), 1, fp) != 1) throw runtime_error("reading n_triangles");
 
   faces.reserve(nTriangles);
   
-  for (int ti=0; ti<nTriangles; ti++) {
+  for (uint32_t ti=0; ti<nTriangles; ti++) {
 
     float data[12];
-    if (fread(&data, sizeof(float), 12, fp) != 12) throw runtime_error("reading 12 doubles");
+    if (fread(&data, sizeof(float), 12, fp) != 12) throw runtime_error("reading 12 floats");
 
     vec3 n = mkVec3(data[0], data[1], data[2]);
     vec3 v0 = mkVec3(data[3] * scale, data[4] * scale, data[5] * scale);
@@ -269,10 +241,10 @@ StlSolid::readBinaryFile(FILE *fp, double scale)
 
     StlFace face(v0, v1, v2, n);
     
-    short attrByteCount=0;
-    if (fread(&attrByteCount, sizeof(short), 1, fp)!=1) throw runtime_error("reading attrByteCount");
+    uint16_t attrByteCount = 0;
+    if (fread(&attrByteCount, sizeof(uint16_t), 1, fp) != 1) throw runtime_error("reading attrByteCount");
 
-    if (attrByteCount!=0) throw runtime_error(stringprintf("bad attrByteCount=%d", (int)attrByteCount).c_str());
+    if (attrByteCount != 0) throw runtime_error(stringprintf("bad attrByteCount=%d", (int)attrByteCount).c_str());
 
     faces.push_back(face);
 
@@ -281,35 +253,6 @@ StlSolid::readBinaryFile(FILE *fp, double scale)
 
   if (0) eprintf("Read %d faces\n", nTriangles);
 }
-
-#if 0
-void packet_rd_value(packet &p, StlSolid &it)
-{
-  packet_rd_value(p, it.bboxLo);
-  packet_rd_value(p, it.bboxHi);
-  packet_rd_value(p, it.faces);
-}
-void packet_wr_value(packet &p, StlSolid const &it)
-{
-  packet_wr_value(p, it.bboxLo);
-  packet_wr_value(p, it.bboxHi);
-  packet_wr_value(p, it.faces);
-}
-void packet_rd_typetag(packet &p, StlSolid &it)
-{
-  p.check_typetag("StlSolid:1");
-  packet_rd_typetag(p, it.bboxLo);
-  packet_rd_typetag(p, it.bboxHi);
-  packet_rd_typetag(p, it.faces);
-}
-void packet_wr_typetag(packet &p, StlSolid const &it)
-{
-  p.add_typetag("StlSolid:1");
-  packet_wr_typetag(p, it.bboxLo);
-  packet_wr_typetag(p, it.bboxHi);
-  packet_wr_typetag(p, it.faces);
-}
-#endif
 
 
 void
@@ -656,57 +599,112 @@ StlWebglMesh StlSolid::exportWebglMesh() const
   double eps = 0.000001;
   map<OctreeNode *, int> ptIndex;
 
+  size_t nFaces = faces.size();
   StlWebglMesh ret;
-  ret.coords.resize(faces.size() * 12);
-  ret.indexes.resize(faces.size() * 4);
+  ret.coords.resize(nFaces * 9);
+  ret.normals.resize(nFaces * 9);
+  ret.indexes.resize(nFaces * 3);
   size_t coordi = 0;
   size_t indexi = 0;
 
+  map<string, int> dupMap;
+
+  auto pushVertex = [&](arma::vec3 const &position, arma::vec3 const &normal) {
+    string dupKey = (to_string(position[0]) + " " + to_string(position[1]) + " " + to_string(position[2]) + " " + 
+                     to_string(normal[0]) + " " + to_string(normal[1]) + " " + to_string(normal[2]));
+
+    // Store index+1 in dupMap, to distinguish zero as unassigned
+    int &vi = dupMap[dupKey];
+    if (!vi) {
+      vi = coordi + 1;
+      ret.coords[coordi*3 + 0] = position(0);
+      ret.coords[coordi*3 + 1] = position(1);
+      ret.coords[coordi*3 + 2] = position(2);
+      ret.normals[coordi*3 + 0] = normal(0);
+      ret.normals[coordi*3 + 1] = normal(1);
+      ret.normals[coordi*3 + 2] = normal(2);
+      coordi++;
+    }
+    ret.indexes[indexi] = vi - 1;
+    indexi++;
+  };
+
   for (size_t fi=0; fi<faces.size(); fi++) {
     StlFace const &f = faces[fi];
-    int &indexV0 = ptIndex[root->lookup(f.v0, eps)];
-    if (!indexV0) {
-      indexV0 = coordi/3 + 1;
-      ret.coords[coordi++] = f.v0(0);
-      ret.coords[coordi++] = f.v0(1);
-      ret.coords[coordi++] = f.v0(2);
-    }
-
-    int &indexV1 = ptIndex[root->lookup(f.v1, eps)];
-    if (!indexV1) {
-      indexV1 = coordi/3 + 1;
-      ret.coords[coordi++] = f.v1(0);
-      ret.coords[coordi++] = f.v1(1);
-      ret.coords[coordi++] = f.v1(2);
-    }
-
-    int &indexV2 = ptIndex[root->lookup(f.v2, eps)];
-    if (!indexV2) {
-      indexV2 = coordi/3 + 1;
-      ret.coords[coordi++] = f.v2(0);
-      ret.coords[coordi++] = f.v2(1);
-      ret.coords[coordi++] = f.v2(2);
-    }
-
-    int &indexNormal = ptIndex[root->lookup(f.normal, eps)];
-    if (!indexNormal) {
-      indexNormal = coordi/3 + 1;
-      ret.coords[coordi++] = f.normal(0);
-      ret.coords[coordi++] = f.normal(1);
-      ret.coords[coordi++] = f.normal(2);
-    }
-
-    ret.indexes[indexi++] = indexV0 - 1;
-    ret.indexes[indexi++] = indexV1 - 1;
-    ret.indexes[indexi++] = indexV2 - 1;
-    ret.indexes[indexi++] = indexNormal - 1;
+    pushVertex(f.v0, f.normal);
+    pushVertex(f.v1, f.normal);
+    pushVertex(f.v2, f.normal);
   }
 
-  assert(coordi <= ret.coords.n_elem);
-  assert(indexi <= ret.indexes.n_elem);
+#if 0
+  for (size_t fi=0; fi<faces.size(); fi++) {
+    StlFace const &f = faces[fi];
+    OctreeNode *nodeV0 = root->lookup(f.v0, eps);
+    int indexV0;
+    if (1 || !ptIndex.count(nodeV0)) {
+      indexV0 = ptIndex[nodeV0] = coordi;
+      ret.coords[coordi*3 + 0] = f.v0(0);
+      ret.coords[coordi*3 + 1] = f.v0(1);
+      ret.coords[coordi*3 + 2] = f.v0(2);
+      coordi++;
+    } else {
+      indexV0 = ptIndex[nodeV0];
+    }
+    ret.normals[indexV0*3 + 0] += f.normal(0);
+    ret.normals[indexV0*3 + 1] += f.normal(1);
+    ret.normals[indexV0*3 + 2] += f.normal(2);
 
-  ret.coords.resize(coordi);
+    OctreeNode *nodeV1 = root->lookup(f.v1, eps);
+    int indexV1;
+    if (1 || !ptIndex.count(nodeV1)) {
+      indexV1 = ptIndex[nodeV1] = coordi;
+      ret.coords[coordi*3 + 0] = f.v1(0);
+      ret.coords[coordi*3 + 1] = f.v1(1);
+      ret.coords[coordi*3 + 2] = f.v1(2);
+      coordi++;
+    } else {
+      indexV1 = ptIndex[nodeV1];
+    }
+    ret.normals[indexV1*3 + 0] += f.normal(0);
+    ret.normals[indexV1*3 + 1] += f.normal(1);
+    ret.normals[indexV1*3 + 2] += f.normal(2);
+
+    OctreeNode *nodeV2 = root->lookup(f.v2, eps);
+    int indexV2;
+    if (1 || !ptIndex.count(nodeV2)) {
+      indexV2 = ptIndex[nodeV2] = coordi;
+      ret.coords[coordi*3 + 0] = f.v2(0);
+      ret.coords[coordi*3 + 1] = f.v2(1);
+      ret.coords[coordi*3 + 2] = f.v2(2);
+      coordi++;
+    } else {
+      indexV2 = ptIndex[nodeV2];
+    }
+    ret.normals[indexV2*3 + 0] += f.normal(0);
+    ret.normals[indexV2*3 + 1] += f.normal(1);
+    ret.normals[indexV2*3 + 2] += f.normal(2);
+
+    ret.indexes[indexi*3+0] = indexV0;
+    ret.indexes[indexi*3+1] = indexV1;
+    ret.indexes[indexi*3+2] = indexV2;
+    indexi++;
+  }
+#endif
+
+  assert(coordi <= nFaces*3);
+  assert(indexi <= nFaces*3);
+
+  ret.coords.resize(coordi*3);
+  ret.normals.resize(coordi*3);
   ret.indexes.resize(indexi);
+  for (size_t i = 0; i < coordi; i++) {
+    double mag = sqrt(sqr(ret.normals[i*3+0]) + sqr(ret.normals[i*3+1]) + sqr(ret.normals[i*3+2]));
+    if (mag < 1e-6) continue;
+    double scale = 1.0/mag;
+    ret.normals[i*3+0] *= scale;
+    ret.normals[i*3+1] *= scale;
+    ret.normals[i*3+2] *= scale;
+  }
 
   delete root;
   return ret;
@@ -742,61 +740,6 @@ StlMassProperties::StlMassProperties(double _volume, double _mass, double _area,
 {
   calcDerived();
 }
-
-#if 0
-void packet_rd_value(packet &p, StlMassProperties &it)
-{
-  p.get(it.density);
-  p.get(it.volume);
-  p.get(it.mass);
-  p.get(it.area);
-  p.get(it.cm);
-  p.get(it.inertia_origin);
-  p.get(it.inertia_cm);
-  p.get(it.rog_origin);
-  p.get(it.rog_cm);
-}
-void packet_wr_value(packet &p, StlMassProperties const &it)
-{
-  p.add(it.density);
-  p.add(it.volume);
-  p.add(it.mass);
-  p.add(it.area);
-  p.add(it.cm);
-  p.add(it.inertia_origin);
-  p.add(it.inertia_cm);
-  p.add(it.rog_origin);
-  p.add(it.rog_cm);
-}
-
-void packet_rd_typetag(packet &p, StlMassProperties &it)
-{
-  p.check_typetag("StlMassProperties:1");
-  packet_rd_typetag(p, it.density);
-  packet_rd_typetag(p, it.volume);
-  packet_rd_typetag(p, it.mass);
-  packet_rd_typetag(p, it.area);
-  packet_rd_typetag(p, it.cm);
-  packet_rd_typetag(p, it.inertia_origin);
-  packet_rd_typetag(p, it.inertia_cm);
-  packet_rd_typetag(p, it.rog_origin);
-  packet_rd_typetag(p, it.rog_cm);
-}
-
-void packet_wr_typetag(packet &p, StlMassProperties const &it) 
-{
-  p.add_typetag("StlMassProperties:1");
-  packet_wr_typetag(p, it.density);
-  packet_wr_typetag(p, it.volume);
-  packet_wr_typetag(p, it.mass);
-  packet_wr_typetag(p, it.area);
-  packet_wr_typetag(p, it.cm);
-  packet_wr_typetag(p, it.inertia_origin);
-  packet_wr_typetag(p, it.inertia_cm);
-  packet_wr_typetag(p, it.rog_origin);
-  packet_wr_typetag(p, it.rog_cm);
-}
-#endif
 
 void
 StlMassProperties::calcDerived()

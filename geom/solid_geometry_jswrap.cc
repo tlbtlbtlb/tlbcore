@@ -153,6 +153,7 @@ static Handle<Value> jsWrap_StlSolid_exportWebglMesh(const Arguments& args)
     StlWebglMesh ret = thisObj->it->exportWebglMesh();
     Local<Object> retJs = Object::New();
     retJs->Set(String::NewSymbol("coords"), JsWrap_vec::NewInstance(ret.coords));
+    retJs->Set(String::NewSymbol("normals"), JsWrap_vec::NewInstance(ret.normals));
     retJs->Set(String::NewSymbol("indexes"), JsWrap_ivec::NewInstance(ret.indexes));
     return scope.Close(retJs);
   }
