@@ -15,4 +15,5 @@ module.exports = function(typereg) {
                  ['c5', 'double']);
 
   typereg.scanCHeader(require.resolve('./polyfit.h'));
+  typereg.scanCHeader(require.resolve('./haltonseq.h'));
 };
