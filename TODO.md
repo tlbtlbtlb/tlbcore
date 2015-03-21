@@ -8,8 +8,11 @@
 
 ### Web
 
+ * Go through and make sure I'm decoding URI components in just the right places.
+ * Add test cases for malicious URLs.
  * Add sourcemaps?   http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/
  * Consider using some actual supported framework? Maybe it's too late.
+
 
 ### code_gen
 

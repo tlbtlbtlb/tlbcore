@@ -17,8 +17,8 @@ var jsmin               = require('jsmin2');
 var base64              = require('base64');
 var xml                 = require('xmldom');
 var marked              = require('marked');
-
 var logio               = require('./logio');
+var Safety              = require('./Safety');
 
 exports.AnyProvider = AnyProvider;
 exports.RawFileProvider = RawFileProvider;
@@ -122,6 +122,7 @@ function contentTypeFromFn(fn) {
     case 'gif':               return 'image/gif';
     case 'xml':               return 'text/xml';
     case 'html':              return 'text/html';
+    case 'json':              return 'text/json';
     case 'flv':               return 'video/x-flv';
     case 'svg':               return 'image/svg+xml';
     case 'ico':               return 'image/vnd.microsoft.icon';
@@ -1025,6 +1026,11 @@ RawDirProvider.prototype.isDir = function() { return true; };
 RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
   var self = this;
 
+  if (!Safety.isSafeDirName(suffix)) {
+    logio.E(req.remoteLabel, 'Unsafe filename ', suffix);
+    emit404(res, 'Invalid filename');
+    return;
+  }
   var fullfn = path.join(self.fn, suffix);
 
   var contentType = contentTypeFromFn(suffix);
@@ -1039,7 +1045,7 @@ RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
   // Which means re-implementing most of fs.readFile
   fs.readFile(fullfn, encoding, function(err, content) {
     if (err) {
-      logio.E(fullfn, 'Error: ' + err);
+      logio.E(req.remoteLabel, 'Error: ' + err);
       emit404(res, err);
       return;
     }

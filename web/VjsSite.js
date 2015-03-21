@@ -202,12 +202,12 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
     req.remoteLabel = req.connection.remoteAddress + '!http';
     
     annotateReq(req);
-    if (0) logio.I(req.remoteLabel, req.url, up, req.headers);
+    if (0) logio.I(req.remoteLabel, req.url, req.urlParsed, req.headers);
 
     var hostPrefix = webServer.hostPrefixes[req.urlParsed.hostname];
     if (!hostPrefix) hostPrefix = '/';
 
-    var fullPath = hostPrefix + req.urlParsed.pathname.substr(1);
+    var fullPath = hostPrefix + decodeURIComponent(req.urlParsed.pathname.substr(1));
     var callid = req.method + ' ' + fullPath;
     var desc = callid;
     webServer.serverAccessCounts[callid] = (webServer.serverAccessCounts[callid] || 0) + 1;
@@ -267,7 +267,7 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
   function annotateReq(req) {
     var up;
     try {
-      up = url.parse(req.url, true);
+      up = url.parse(decodeURIComponent(req.url), true);
     } catch (ex) {
       logio.E(req.remoteLabel, 'Error parsing', req.url, ex);
       return Provider.emit404(res, 'Invalid url');
