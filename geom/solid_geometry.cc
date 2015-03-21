@@ -81,7 +81,7 @@ void StlFace::calcNormal()
 }
 
 // Test whether the vector starting at p and of length/direction d intersects me
-#if 0
+#ifdef USE_SLOW_StlFace__rayIntersects
 bool
 StlFace::rayIntersects(vec3 const &p, vec3 const &d, double &t) const
 {
