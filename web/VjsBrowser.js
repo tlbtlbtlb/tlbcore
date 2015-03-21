@@ -596,7 +596,7 @@ $.fn.syncChildren = function(newItems, options) {
   var domClass = options.domClass || 'syncDomChildren';
   
   var removeEl = options.removeEl || function(name) {
-    this.fadeOut(500, function() { $(this).remove(); });
+    $(this).remove();
   };
   var createEl = options.createEl || function(name) {
     return $('<div class="' + domClass + '">');
