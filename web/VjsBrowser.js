@@ -1120,6 +1120,7 @@ $.fn.maximizeCanvasResolution = function() {
       var oldWidth = canvas.width;
       var oldHeight = canvas.height;
       
+      // Store pixelRatio here for use by client code
       canvas.pixelRatio = ratio;
 
       canvas.width = oldWidth * ratio;
@@ -1131,6 +1132,28 @@ $.fn.maximizeCanvasResolution = function() {
       canvas.pixelRatio = 1;
     }
   });
+  return this;
+};
+
+$.fn.setCanvasSize = function(cssWidth, cssHeight, ctx) {
+  var canvas = this[0];
+  if (!ctx) ctx = canvas.getContext('2d');
+  var devicePixelRatio = window.devicePixelRatio || 1;
+  var backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
+                           ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1);
+
+  var ratio = devicePixelRatio / backingStoreRatio;
+  if (0) console.log('SCS', cssWidth, cssHeight, ratio);
+    
+  // Store pixelRatio here for use by client code
+  canvas.pixelRatio = ratio;
+  
+  canvas.width = cssWidth * ratio;
+  canvas.height = cssHeight * ratio;
+  
+  canvas.style.width = cssWidth + 'px';
+  canvas.style.height = cssHeight + 'px';
+
   return this;
 };
 
