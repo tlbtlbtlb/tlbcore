@@ -1,39 +1,6 @@
 /*
-A way of building up arithmetic formulas in Python that can be emitted as C++ code,
-or directly evaluated.
-
-There are two layers of using it: directly through formula objects, or through magic variables.
-
-At the formula object layer, you build up expression trees. The leaves are objects like
-formula_var and formula_const, and there are operators like formula_binop and formula_func.
-
->>> x = formula_var('x', 'int')
->>> two = formula_const(2)
->>> y = formula_binop('*', two, x)
->>> y
-2 * x
->>> three = formula_const(3)
->>> formula_binop('+', y, three)
-3 + 2 * x
-
-The magic variable layer makes this all much more convenient:
-
->>> x = magic('x', 'int')
->>> x*2+3
-3 + 2 * x
-
-It does this by defining all the numeric operators, like __add__ and __mul__ in the magic
-class to return formula instances, themselves wrapped (cloaked?) in magic.
-
-It's not just convenience that the magic layer provides: you can actually pass magics into a wide
-range of numerical routines designed for regular numbers and get expressions out of them. Look at
-mk_filtcoeff.py for an example of using this to derive symbolic expressions for digital filter
-coefficients by passing magic variables into Scipy's filter design routines.
-
-Also check out the formula_3d module, which provides matrix transforms suitable for magic variables.
-
-Formula includes basic constant folding optimizations, which work especially well for matrix transforms
-where there are a lot of 1s and 0s in the matrices.
+  A way of building up arithmetic formulas in JS that can be emitted as C++ code,
+  or directly evaluated.
 */
 var _                   = require('underscore');
 var util                = require('util');
@@ -46,7 +13,7 @@ exports.SymbolicContext = SymbolicContext;
 
 var defops = {};
 
-function defop(retType, op /* argTypes... */) {
+function defop(retType, op /*, argTypes..., impl */) {
   var argTypes = [];
   for (var argi=2; argi + 1 < arguments.length; argi++) argTypes.push(arguments[argi]);
   
@@ -87,12 +54,20 @@ SymbolicContext.prototype.V = function(type, name) {
   return c.dedup(new SymbolicVar(c, type, name));
 };
 
+SymbolicContext.prototype.A = function(name, value) {
+  var c = this;
+  return c.dedup(new SymbolicAssign(c, 
+                                    value.type,
+                                    name,
+                                    value));
+};
+
 SymbolicContext.prototype.C = function(type, value) {
   var c = this;
   return c.dedup(new SymbolicConst(c, type, value));
 };
 
-SymbolicContext.prototype.E = function(op /* args... */) {
+SymbolicContext.prototype.E = function(op /*, args... */) {
   var c = this;
   var args = [];
   for (var argi=1; argi < arguments.length; argi++) args.push(arguments[argi]);
@@ -125,18 +100,25 @@ SymbolicContext.prototype.D = function(wrt, e) {
 };
 
 
-SymbolicContext.prototype.getCExpr = function(e) {
+SymbolicContext.prototype.getCExpr = function(e, availCses) {
   var c = this;
   assert.strictEqual(e.c, c);
   if (e instanceof SymbolicVar) {
     return e.name;
   }
   else if (e instanceof SymbolicConst) {
-    return e.value;
+    if (e.type === 'double' || e.type === 'int') {
+      return e.value.toString();
+    }
+    // Handle more cases
+    return '(' + e.type + ' { ' + e.value.toString() + ' })';
   }
   else if (e instanceof SymbolicExpr) {
+    if (availCses && availCses[e.cseKey]) {
+      return e.cseKey;
+    }
     var argExprs = _.map(e.args, function(arg) {
-      return c.getCExpr(arg);
+      return c.getCExpr(arg, availCses);
     });
     return e.opInfo.impl.c.apply(e, argExprs);
   }
@@ -166,8 +148,71 @@ SymbolicContext.prototype.getImm = function(e, vars) {
   }
 };
 
+SymbolicContext.prototype.getCosts = function(e, costs) {
+  var c = this;
+  assert.strictEqual(e.c, c);
+  if (costs[e.cseKey]) {
+    costs[e.cseKey] += e.cseCost;
+  } else {
+    costs[e.cseKey] = e.cseCost;
+    if (e instanceof SymbolicExpr) {
+      _.each(e.args, function(arg) {
+        c.getCosts(arg, costs);
+      });
+    }
+    else if (e instanceof SymbolicAssign) {
+      c.getCosts(e.value, costs);
+    }
+  }
+};
+
+SymbolicContext.prototype.emitCppCses = function(e, f, availCses, costs) {
+  var c = this;
+  assert.strictEqual(e.c, c);
+  if (e instanceof SymbolicExpr) {
+    if (!availCses[e.cseKey]) {
+      _.each(e.args, function(arg) {
+        c.emitCppCses(arg, f, availCses, costs);
+      });
+      if ((costs[e.cseKey] || 0) >= 1) {
+        // Wrong for composite types, use TypeRegistry
+        f(e.type + ' ' + e.cseKey + ' = ' + c.getCExpr(e, availCses) + ';');
+        availCses[e.cseKey] = true;
+      }
+    }
+  }
+  else if (e instanceof SymbolicAssign) {
+    c.emitCppCses(e.value, f, availCses, costs);
+  }
+};
+
+SymbolicContext.prototype.emitCpp = function(f, assigns) {
+  var c = this;
+  var costs = {};
+  var availCses = {};
+  _.each(assigns, function(a) {
+    c.getCosts(a, costs);
+    c.emitCppCses(a, f, availCses, costs);
+  });
+  _.each(assigns, function(a) {
+    f(a.name + ' = ' + c.getCExpr(a.value, availCses) + ';');  
+  });
+  
+};
+
+
 
 // ----------------------------------------------------------------------
+
+function SymbolicAssign(c, type, name, value) {
+  var e = this;
+  e.c = c;
+  e.type = type;
+  e.name = name;
+  e.value = value;
+  e.cseKey = 'A' + simpleHash(e.type + ',' + e.name + ',' + value.cseKey);
+  e.cseCost = 1.0;
+}
 
 function SymbolicVar(c, type, name) {
   var e = this;
@@ -201,10 +246,11 @@ function SymbolicExpr(c, op, args) {
     });
   });
   if (!e.opInfo) {
-    throw new Error('Could not deduce arg types for ' + op + ' ' + util.inspect(args));
+    throw new Error('Could not deduce arg types for ' + op + ' ' + _.map(args, function (arg) {
+      return arg.type; }).join(' '));
   }
   e.type = e.opInfo.retType;
-  e.cseKey = 'E' + simpleHash(e.type + ',' + e.op) + '_' + _.map(e.args, function(arg) { return arg.cseKey; }).join('_');
+  e.cseKey = 'E' + simpleHash(e.type + ',' + e.op + ',' + _.map(e.args, function(arg) { return arg.cseKey; }).join(','));
   e.cseCost = 0.5;
 }
 
@@ -333,7 +379,12 @@ defop('double',  'sqrt',        'double', {
   c: function(a) { return 'sqrt(' + a + ')'; },
 });
 
-defop('mat3',    'mat3RotationZ',   'double', {
+defop('double',  'jointRange',        'double', 'double', 'double', {
+  imm: function(a, b, c) { return b + a*(c-b); },
+  c: function(a) { return '(' + b + ' + ' + a + ' * (' + c + ' - ' + b + '))'; },
+});
+
+defop('arma::mat3',    'mat3RotationZ',   'double', {
   imm: function(a) {
     var ca = Math.cos(a);
     var sa = Math.sin(a);
@@ -342,10 +393,10 @@ defop('mat3',    'mat3RotationZ',   'double', {
 	    [0, 0, 1]];
   },
   c: function(a) {
-    return 'arma::mat3 { cos(a), sin(a), 0, -sin(a), cos(a), 0, 0, 0, 1 }';
+    return 'arma::mat3 { cos(' + a + '), sin(' + a + '), 0, -sin(' + a + '), cos(' + a + '), 0, 0, 0, 1 }';
   },
 });
-defop('mat4',    'mat4RotationZ',   'double', {
+defop('arma::mat4',        'mat4RotationZ',   'double', {
   imm: function(a) {
     var ca = Math.cos(a);
     var sa = Math.sin(a);
@@ -355,71 +406,89 @@ defop('mat4',    'mat4RotationZ',   'double', {
 	    [0, 0, 0, 1]];
   },
   c: function(a) {
-    return 'arma::mat4 { cos(a), sin(a), 0, 0, -sin(a), cos(a), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 }';
+    return 'arma::mat4 { cos(' + a + '), sin(' + a + '), 0, 0, -sin(' + a + '), cos(' + a + '), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 }';
   },
 });
 
-defop('mat4',    '*',           'mat4', 'mat4', {
+defop('arma::mat4',        'mat4Translation',   'double', 'double', 'double', {
+  imm: function(x, y, z) {
+    return [[1, 0, 0, x],
+	    [0, 1, 0, y],
+	    [0, 0, 1, z],
+	    [0, 0, 0, 1]];
+  },
+  c: function(x, y, z) {
+    return 'arma::mat4 { 1, 0, 0, ' + x + ', 0, 1, 0, ' + y + ', 0, 0, 1, ' + z + ', 0, 0, 0, 1 }';
+  },
+});
+
+defop('arma::mat4',    '*',           'arma::mat4', 'arma::mat4', {
   c: function(a, b) {
     return '(' + a + ' * ' + b + ')';
   },
 });
 
+defop('arma::mat4',    '+',           'arma::mat4', 'arma::mat4', {
+  c: function(a, b) {
+    return '(' + a + ' + ' + b + ')';
+  },
+});
+
 
 if (0) {
-defop('double',  'at',          'mat2', 'int', 'int')
-defop('double',  'at',          'mat3', 'int', 'int')
-defop('double',  'at',          'mat4', 'int', 'int')
+defop('double',        'at',          'arma::mat2', 'int', 'int')
+defop('double',        'at',          'arma::mat3', 'int', 'int')
+defop('double',        'at',          'arma::mat4', 'int', 'int')
 
-defop('double',  'at',          'vec2', 'int')
-defop('double',  'at',          'vec3', 'int')
-defop('double',  'at',          'vec4', 'int')
+defop('double',        'at',          'arma::vec2', 'int')
+defop('double',        'at',          'arma::vec3', 'int')
+defop('double',        'at',          'arma::vec4', 'int')
 
-defop('mat2',    '*',           'mat2', 'mat2')
-defop('mat3',    '*',           'mat3', 'mat3')
+defop('arma::mat2',    '*',           'arma::mat2', 'arma::mat2')
+defop('arma::mat3',    '*',           'arma::mat3', 'arma::mat3')
 
-defop('mat2',    '+',           'mat2', 'mat2')
-defop('mat3',    '+',           'mat3', 'mat3')
-defop('mat4',    '+',           'mat4', 'mat4')
+defop('arma::mat2',    '+',           'arma::mat2', 'arma::mat2')
+defop('arma::mat3',    '+',           'arma::mat3', 'arma::mat3')
+defop('arma::mat4',    '+',           'arma::mat4', 'arma::mat4')
 
-defop('mat2',    '-',           'mat2', 'mat2')
-defop('mat3',    '-',           'mat3', 'mat3')
-defop('mat4',    '-',           'mat4', 'mat4')
+defop('arma::mat2',    '-',           'arma::mat2', 'arma::mat2')
+defop('arma::mat3',    '-',           'arma::mat3', 'arma::mat3')
+defop('arma::mat4',    '-',           'arma::mat4', 'arma::mat4')
 
-defop('vec2',    '*',           'vec2', 'vec2')
-defop('vec3',    '*',           'vec3', 'vec3')
-defop('vec4',    '*',           'vec4', 'vec4')
+defop('arma::vec2',    '*',           'arma::vec2', 'arma::vec2')
+defop('arma::vec3',    '*',           'arma::vec3', 'arma::vec3')
+defop('arma::vec4',    '*',           'arma::vec4', 'arma::vec4')
 
-defop('vec2',    '+',           'vec2', 'vec2')
-defop('vec3',    '+',           'vec3', 'vec3')
-defop('vec4',    '+',           'vec4', 'vec4')
+defop('arma::vec2',    '+',           'arma::vec2', 'arma::vec2')
+defop('arma::vec3',    '+',           'arma::vec3', 'arma::vec3')
+defop('arma::vec4',    '+',           'arma::vec4', 'arma::vec4')
 
-defop('vec2',    '-',           'vec2', 'vec2')
-defop('vec3',    '-',           'vec3', 'vec3')
-defop('vec4',    '-',           'vec4', 'vec4')
+defop('arma::vec2',    '-',           'arma::vec2', 'arma::vec2')
+defop('arma::vec3',    '-',           'arma::vec3', 'arma::vec3')
+defop('arma::vec4',    '-',           'arma::vec4', 'arma::vec4')
 
-defop('mat3',    'inverse',     'mat3')
-defop('mat4',    'inverse',     'mat4')
-defop('mat3',    'transpose',   'mat3')
+defop('arma::mat3',    'inverse',     'arma::mat3')
+defop('arma::mat4',    'inverse',     'arma::mat4')
+defop('arma::mat3',    'transpose',   'arma::mat3')
 
-defop('mat2',    '*',           'mat2', 'double')
-defop('mat3',    '*',           'mat3', 'double')
-defop('mat4',    '*',           'mat4', 'double')
+defop('arma::mat2',    '*',           'arma::mat2', 'double')
+defop('arma::mat3',    '*',           'arma::mat3', 'double')
+defop('arma::mat4',    '*',           'arma::mat4', 'double')
 
-defop('vec2',    '*',           'mat2', 'vec2')
-defop('vec3',    '*',           'mat3', 'vec3')
-defop('vec3',    '*',           'mat4', 'vec3')
-defop('vec4',    '*',           'mat4', 'vec4')
+defop('arma::vec2',    '*',           'arma::mat2', 'arma::vec2')
+defop('arma::vec3',    '*',           'arma::mat3', 'arma::vec3')
+defop('arma::vec3',    '*',           'arma::mat4', 'arma::vec3')
+defop('arma::vec4',    '*',           'arma::mat4', 'arma::vec4')
  
-defop('vec2',    '*',           'vec2', 'double')
-defop('vec3',    '*',           'vec3', 'double')
-defop('vec4',    '*',           'vec4', 'double')
+defop('arma::vec2',    '*',           'arma::vec2', 'double')
+defop('arma::vec3',    '*',           'arma::vec3', 'double')
+defop('arma::vec4',    '*',           'arma::vec4', 'double')
 
-defop('vec2',    '*',           'double', 'vec2')
-defop('vec3',    '*',           'double', 'vec3')
-defop('vec4',    '*',           'double', 'vec4')
+defop('arma::vec2',    '*',           'double', 'arma::vec2')
+defop('arma::vec3',    '*',           'double', 'arma::vec3')
+defop('arma::vec4',    '*',           'double', 'arma::vec4')
 
-defop('vec3',    'cross',       'vec3', 'vec3')
-defop('float',   'dot',         'vec3', 'vec3')
+defop('arma::vec3',    'cross',       'arma::vec3', 'arma::vec3')
+defop('float',         'dot',         'arma::vec3', 'arma::vec3')
 
 }
