@@ -39,35 +39,133 @@ var _                   = require('underscore');
 var util                = require('util');
 var cgen                = require('./cgen');
 var assert              = require('assert');
+var crypto              = require('crypto');
+
+exports.defop = defop;
+exports.SymbolicContext = SymbolicContext;
 
 var defops = {};
 
-function defop(op, retType, argTypes) {
+function defop(retType, op /* argTypes... */) {
+  var argTypes = [];
+  for (var argi=2; argi + 1 < arguments.length; argi++) argTypes.push(arguments[argi]);
+  
   if (!defops[op]) defops[op] = [];
-  defops[op].push({retType: retType,
-                   argTypes: argTypes});
+  defops[op].push({
+    retType: retType,
+    argTypes: argTypes,
+    impl: arguments[arguments.length - 1]
+  });
 }
+
+
+function simpleHash(s) {
+  var h = crypto.createHmac('sha1', 'key');
+  h.update(s);
+  return h.digest('hex').substr(0, 16);
+}
+
 
 function SymbolicContext(typereg) {
   var c = this;
   c.typereg = typereg;
+  c.cses = {};
 }
 
+SymbolicContext.prototype.dedup = function(e) {
+  var c = this;
+  assert.strictEqual(e.c, c);
+  var cse = c.cses[e.cseKey];
+  if (cse) return cse;
+  c.cses[e.cseKey] = e;
+  return e;
+};
+
+
 SymbolicContext.prototype.V = function(type, name) {
-  return new SymbolicVar(this, type, name);
+  var c = this;
+  return c.dedup(new SymbolicVar(c, type, name));
 };
 
 SymbolicContext.prototype.C = function(type, value) {
-  return new SymbolicConst(this, type, value);
+  var c = this;
+  return c.dedup(new SymbolicConst(c, type, value));
 };
 
-SymbolicContext.prototype.E = function(op, /* ... */) {
+SymbolicContext.prototype.E = function(op /* args... */) {
+  var c = this;
   var args = [];
-  for (var argi=1; argi < arguments.length; argi++) {
-    args.push(arguments[argi]);
-  }
-  return new SymbolicExpr(this, op, args);
+  for (var argi=1; argi < arguments.length; argi++) args.push(arguments[argi]);
+  _.each(args, function(arg) {
+    assert.strictEqual(arg.c, c);
+  });
+  return c.dedup(new SymbolicExpr(c, op, args));
 };
+
+SymbolicContext.prototype.D = function(wrt, e) {
+  var c = this;
+  assert.strictEqual(wrt.c, c);
+  assert.strictEqual(e.c, c);
+  if (e instanceof SymbolicVar) {
+    if (e === wrt) {
+      return c.C(e.type, 1);
+    } else {
+      return c.C(e.type, 0);
+    }
+  }
+  else if (e instanceof SymbolicConst) {
+    return c.C(e.type, 0);
+  }
+  else if (e instanceof SymbolicExpr) {
+    return e.opInfo.impl.deriv.apply(e, [wrt].concat(e.args));
+  }
+  else {
+    throw new Error('Unknown expression type ' + e.toString());
+  }
+};
+
+
+SymbolicContext.prototype.getCExpr = function(e) {
+  var c = this;
+  assert.strictEqual(e.c, c);
+  if (e instanceof SymbolicVar) {
+    return e.name;
+  }
+  else if (e instanceof SymbolicConst) {
+    return e.value;
+  }
+  else if (e instanceof SymbolicExpr) {
+    var argExprs = _.map(e.args, function(arg) {
+      return c.getCExpr(arg);
+    });
+    return e.opInfo.impl.c.apply(e, argExprs);
+  }
+  else {
+    throw new Error('Unknown expression type ' + e.toString());
+  }
+};
+
+SymbolicContext.prototype.getImm = function(e, vars) {
+  var c = this;
+  assert.strictEqual(e.c, c);
+  if (e instanceof SymbolicVar) {
+    return vars[e.name];
+  }
+  else if (e instanceof SymbolicConst) {
+    // WRITEME: needs work for arma::mat & other non-immediate types
+    return e.value;
+  }
+  else if (e instanceof SymbolicExpr) {
+    var argExprs = _.map(e.args, function(arg) {
+      return c.getImm(arg, vars);
+    });
+    return e.opInfo.impl.imm.apply(e, argExprs);
+  }
+  else {
+    throw new Error('Unknown expression type ' + e.toString());
+  }
+};
+
 
 // ----------------------------------------------------------------------
 
@@ -76,148 +174,252 @@ function SymbolicVar(c, type, name) {
   e.c = c;
   e.type = type;
   e.name = name;
+  e.cseKey = 'V' + simpleHash(e.type + ',' + e.name);
+  e.cseCost = 0.25;
 }
 
 function SymbolicConst(c, type, value) {
   var e = this;
   e.c = c;
-  e.type = this;
+  e.type = type;
   e.value = value;
+  e.cseKey = 'C' + simpleHash(e.type + ',' + e.value.toString());
+  e.cseCost = 0.25;
 }
 
 function SymbolicExpr(c, op, args) {
   var e = this;
   e.c = c;
-  e.value = value;
   e.op = op;
   e.args = args;
+  if (!defops[op]) {
+    throw new Error('No op ' + op);
+  }
+  e.opInfo = _.find(defops[op], function(opInfo) {
+    return opInfo.argTypes.length == args.length && _.every(_.range(opInfo.argTypes.length), function(argi) {
+      return args[argi].type == opInfo.argTypes[argi];
+    });
+  });
+  if (!e.opInfo) {
+    throw new Error('Could not deduce arg types for ' + op + ' ' + util.inspect(args));
+  }
+  e.type = e.opInfo.retType;
+  e.cseKey = 'E' + simpleHash(e.type + ',' + e.op) + '_' + _.map(e.args, function(arg) { return arg.cseKey; }).join('_');
+  e.cseCost = 0.5;
 }
 
 
 
+defop('double',  'pow',     	'double', 'double', {
+  imm: function(a, b) { return Math.pow(a,b); },
+  c: function(a, b) { return 'pow(' + a + ',' + b + ')'; },
+});
+defop('double',  'sin',     	'double', {
+  imm: function(a) { return Math.sin(a); },
+  c: function(a) { return 'sin(' + a + ')'; },
+  deriv: function(a) {
+    return this.c.E('*',
+		    this.c.D(wrt, a),
+		    this.c.E('cos', a));
+  },
+});
+defop('double',  'cos',     	'double', {
+  imm: function(a) { return Math.cos(a); },
+  c: function(a) { return 'cos(' + a + ')'; },
+  deriv: function(a) {
+    return this.c.E('*',
+		    this.c.C('double', '-1'),
+		    this.c.E('*',
+			     this.c.D(wrt, a),
+			     this.c.E('sin', a)));
+  },
+});
+defop('double',  'tan',     	'double', {
+  imm: function(a) { return Math.tan(a); },
+  c: function(a) { return 'tan(' + a + ')'; },
+});
+defop('double',  'exp',     	'double', {
+  imm: function(a) { return Math.exp(a); },
+  c: function(a) { return 'exp(' + a + ')'; },
+  deriv: function(a) {
+    return this.c.E('*',
+		    this.c.D(wrt, a),
+		    this);
+  },
+});
+defop('double',  'log',     	'double', {
+  imm: function(a) { return Math.log(a); },
+  c: function(a) { return 'log(' + a + ')'; },
+});
 
-def formula_typedecl(rettype, optemplate, *argtemplates):
-    '''
-    Declare a new type to add to the global type map for functions.
-    >>> formula_typedecl('double', 'sqrt()', 'float/double')
-    '''
-    optemplates=optemplate.split()
-    _c_typemap.append((rettype, optemplates, argtemplates))
-    for op in optemplates:
-        if 0: print op, argtemplates
-        _c_typemap_by_op.setdefault(op, []).append((rettype, argtemplates))
+defop('double',  '*',       	'double', 'double', {
+  imm: function(a, b) { return a * b; },
+  c: function(a, b) { return '(' + a + ' * ' + b + ')'; },
+  deriv: function(wrt, a, b) {
+    return this.c.E('+',
+		    this.c.E('*', a, this.c.D(wrt, b)),
+		    this.c.E('*', b, this.c.D(wrt, a)));
+  },
+});
+defop('double',  '+',       	'double', 'double', {
+  imm: function(a, b) { return a + b; },
+  c: function(a, b) { return '(' + a + ' + ' + b + ')'; },
+  deriv: function(wrt, a, b) {
+    return this.c.E('+', this.c.D(wrt, a), this.c.D(wrt, b));
+  },
+});
+defop('double',  '-',       	'double', 'double', {
+  imm: function(a, b) { return a - b; },
+  c: function(a, b) { return '(' + a + ' - ' + b + ')'; },
+  deriv: function(wrt, a, b) {
+    return this.c.E('-', this.c.D(wrt, a), this.c.D(wrt, b));
+  },
+});
+defop('double',  '/',       	'double', 'double', {
+  imm: function(a, b) { return a / b; },
+  c: function(a, b) { return '(' + a + ' / ' + b + ')'; },
+});
+defop('double',  'min',     	'double', 'double', {
+  imm: function(a, b) { return Math.min(a, b); },
+  c: function(a, b) { return 'min(' + a + ', ' + b + ')'; },
+});
+defop('double',  'max',     	'double', 'double', {
+  imm: function(a, b) { return Math.max(a, b); },
+  c: function(a, b) { return 'max(' + a + ', ' + b + ')'; },
+});
 
-formula_typedecl('float',   'pow()',  'float', 'float/int')
-formula_typedecl('double',  'pow()',  'double', 'double/float/int')
-formula_typedecl('double',  'sin()',  'double')
-formula_typedecl('double',  'cos()',  'double')
-formula_typedecl('double',  'tan()',  'double')
-formula_typedecl('double',  'exp()',  'double')
-formula_typedecl('double',  'log()',  'double')
-formula_typedecl('float',   'sin()',  'float')
-formula_typedecl('float',   'cos()',  'float')
-formula_typedecl('float',   'tan()',  'float')
-formula_typedecl('float',   'exp()',  'float')
-formula_typedecl('float',   'log()',  'float')
-formula_typedecl('double',  'real()', 'double/complexd')
-formula_typedecl('float',   'real()', 'float')
-formula_typedecl('double',  'imag()', 'complex<double>')
+defop('int',     '*',           'int', 'int', {
+  imm: function(a, b) { return a * b; },
+  c: function(a, b) { return '(' + a + ' * ' + b + ')'; }
+});
+defop('int',  	 '+', 	        'int', 'int', {
+  imm: function(a, b) { return a + b; },
+  c: function(a, b) { return '(' + a + ' + ' + b + ')'; },
+});
+defop('int',  	 '-', 	        'int', 'int', {
+  imm: function(a, b) { return a - b; },
+  c: function(a, b) { return '(' + a + ' - ' + b + ')'; },
+});
+defop('int',  	 '/', 	        'int', 'int', {
+  imm: function(a, b) { var r = a / b; return (r < 0) ? Math.ceil(r) : Math.floor(r); }, // Math.trunc not widely supported
+  c: function(a, b) { return '(' + a + ' / ' + b + ')'; },
+});
+defop('int',  	 'min',         'int', 'int', {
+  imm: function(a, b) { return Math.min(a, b); },
+  c: function(a, b) { return 'min(' + a + ', ' + b + ')'; },
+});
+defop('int',  	 'max',         'int', 'int', {
+  imm: function(a, b) { return Math.max(a, b); },
+  c: function(a, b) { return 'max(' + a + ', ' + b + ')'; },
+});
 
-formula_typedecl('float',   '* + - / min() max()', 'float', 'float/int')
-formula_typedecl('float',   '* + - / min() max()', 'float/int', 'float')
-formula_typedecl('double',  '* + - / min() max()', 'float', 'quad_t')
-formula_typedecl('double',  '* + - / min() max()', 'quad_t', 'float')
-formula_typedecl('double',  '* + - / min() max()', 'double', 'double/float/int/quad_t')
-formula_typedecl('double',  '* + - / min() max()', 'double/float/int/quad_t', 'double')
-    
-formula_typedecl('double',  '/', 'int', 'int'),  # since we're emulating truediv
-formula_typedecl('int',     '* % + - min() max()', 'int', 'int')
+defop('double',  '(double)',    'int', {
+  imm: function(a) { return a; },
+  c: function(a) { return '(double)' + a; },
+});
+defop('int',     '(int)',       'double', {
+  imm: function(a) { return a; },
+  c: function(a) { return '(int)' + a; },
+});
 
-formula_typedecl('complexd', '* + - /', 'complexd', 'complexd/double/float/int')
-formula_typedecl('complexd', '* + - /', 'complexd/double/float/int', 'complexd')
+if (0) {
+defop('double',  'sigmoid_01',  'double')
+defop('double',  'sigmoid_11',  'double')
+defop('double',  'sigmoid_22',  'double')
+}
 
-formula_typedecl('complexf', 'complexf()', 'float', 'float')
-formula_typedecl('complexd', 'complexd()', 'double/float/int', 'double/float/int')
+defop('double',  'sqrt',        'double', {
+  imm: function(a) { return Math.sqrt(a); },
+  c: function(a) { return 'sqrt(' + a + ')'; },
+});
 
-formula_typedecl('float',   '.value()', 'pwlin3_rep/pwlin4_rep/pwlin5_rep', 'float/double')
-formula_typedecl('float',   '.intvalue()', 'pwlin3_rep/pwlin4_rep/pwlin5_rep', 'float/double')
-formula_typedecl('float',   '.value()', 'pwstep3_rep/pwstep4_rep/pwstep5_rep', 'float/double')
-formula_typedecl('float',   '.intvalue()', 'pwstep3_rep/pwstep4_rep/pwstep5_rep', 'float/double')
+defop('mat3',    'mat3RotationZ',   'double', {
+  imm: function(a) {
+    var ca = Math.cos(a);
+    var sa = Math.sin(a);
+    return [[ca, sa, 0],
+	    [-sa, ca, 0],
+	    [0, 0, 1]];
+  },
+  c: function(a) {
+    return 'arma::mat3 { cos(a), sin(a), 0, -sin(a), cos(a), 0, 0, 0, 1 }';
+  },
+});
+defop('mat4',    'mat4RotationZ',   'double', {
+  imm: function(a) {
+    var ca = Math.cos(a);
+    var sa = Math.sin(a);
+    return [[ca, sa, 0, 0],
+	    [-sa, ca, 0, 0],
+	    [0, 0, 1, 0],
+	    [0, 0, 0, 1]];
+  },
+  c: function(a) {
+    return 'arma::mat4 { cos(a), sin(a), 0, 0, -sin(a), cos(a), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 }';
+  },
+});
 
-formula_typedecl('double',  'frandom_normal()')
-formula_typedecl('int',     '(int)()',      'double/float/int/long')
-formula_typedecl('float',   '(float)()',    'double/float/int/long')
-formula_typedecl('double',  '(double)()',   'double/float/int/long')
+defop('mat4',    '*',           'mat4', 'mat4', {
+  c: function(a, b) {
+    return '(' + a + ' * ' + b + ')';
+  },
+});
 
-formula_typedecl('double',  'sigmoid_01()', 'float/double')
-formula_typedecl('double',  'sigmoid_11()', 'float/double')
-formula_typedecl('double',  'sigmoid_22()', 'float/double')
 
-formula_typedecl('double',  'normangle()', 'float/double')
+if (0) {
+defop('double',  'at',          'mat2', 'int', 'int')
+defop('double',  'at',          'mat3', 'int', 'int')
+defop('double',  'at',          'mat4', 'int', 'int')
 
-formula_typedecl('double',  'sqrt()', 'float/double')
-formula_typedecl('float',   'nanzero()', 'float')
-formula_typedecl('double',  'nanzero()', 'double/int')
+defop('double',  'at',          'vec2', 'int')
+defop('double',  'at',          'vec3', 'int')
+defop('double',  'at',          'vec4', 'int')
 
-formula_typedecl('float',   '.feed_fc_preemph_lowpass()', 'smoother2_float_float/smoother3_float_float/smoother4_float_float', 'double/float', 'double/float', 'double/float')
-formula_typedecl('float',   '.feed_tc_butt_lowpass()', 'smoother1_float_float/smoother2_float_float/smoother3_float_float/smoother4_float_float', 'double/float', 'double/float')
-formula_typedecl('float',   '.feed_tc_bessel_lowpass()', 'smoother1_float_float/smoother2_float_float/smoother3_float_float/smoother4_float_float', 'double/float', 'double/float')
-formula_typedecl('float',   '.feed_tc_maxdamp_lowpass()', 'smoother1_float_float/smoother2_float_float/smoother3_float_float/smoother4', 'double/float', 'double/float')
+defop('mat2',    '*',           'mat2', 'mat2')
+defop('mat3',    '*',           'mat3', 'mat3')
 
-formula_typedecl('double', '[]', 'double[]')
-formula_typedecl('float', '[]', 'float[]')
-formula_typedecl('int', '[]', 'int[]')
-formula_typedecl('double', '[]', 'dgelsd')
-formula_typedecl('float', '[]', 'sgelsd')
-formula_typedecl('struct', '[]', 'struct[]')
+defop('mat2',    '+',           'mat2', 'mat2')
+defop('mat3',    '+',           'mat3', 'mat3')
+defop('mat4',    '+',           'mat4', 'mat4')
 
-formula_typedecl('pwstep2_rep', '.randomly_perturbed()', 'pwstep2_rep')
-formula_typedecl('pwstep3_rep', '.randomly_perturbed()', 'pwstep3_rep')
-formula_typedecl('pwstep4_rep', '.randomly_perturbed()', 'pwstep4_rep')
-formula_typedecl('pwstep5_rep', '.randomly_perturbed()', 'pwstep5_rep')
-formula_typedecl('pwstep6_rep', '.randomly_perturbed()', 'pwstep6_rep')
-formula_typedecl('pwstep7_rep', '.randomly_perturbed()', 'pwstep7_rep')
-formula_typedecl('pwlin2_rep', '.randomly_perturbed()', 'pwlin2_rep')
-formula_typedecl('pwlin3_rep', '.randomly_perturbed()', 'pwlin3_rep')
-formula_typedecl('pwlin4_rep', '.randomly_perturbed()', 'pwlin4_rep')
-formula_typedecl('pwlin5_rep', '.randomly_perturbed()', 'pwlin5_rep')
-formula_typedecl('pwlin6_rep', '.randomly_perturbed()', 'pwlin6_rep')
-formula_typedecl('pwlin7_rep', '.randomly_perturbed()', 'pwlin7_rep')
+defop('mat2',    '-',           'mat2', 'mat2')
+defop('mat3',    '-',           'mat3', 'mat3')
+defop('mat4',    '-',           'mat4', 'mat4')
 
-formula_typedecl('mat2',   '* + -', 'mat2', 'mat2')
-formula_typedecl('mat3',   '* + -', 'mat3', 'mat3')
-formula_typedecl('mat4',   '* + -', 'mat4', 'mat4')
+defop('vec2',    '*',           'vec2', 'vec2')
+defop('vec3',    '*',           'vec3', 'vec3')
+defop('vec4',    '*',           'vec4', 'vec4')
 
-formula_typedecl('vec2',   '* + -', 'vec2', 'vec2')
-formula_typedecl('vec3',   '* + -', 'vec3', 'vec3')
-formula_typedecl('vec4',   '* + -', 'vec4', 'vec4')
+defop('vec2',    '+',           'vec2', 'vec2')
+defop('vec3',    '+',           'vec3', 'vec3')
+defop('vec4',    '+',           'vec4', 'vec4')
 
-formula_typedecl('mat3', '.inverse()', 'mat3')
-formula_typedecl('mat3', '.transposed()', 'mat3')
-formula_typedecl('ea3',  '.to_ea()', 'mat3')
-formula_typedecl('mat3',  '.to_mat()', 'ea3')
-formula_typedecl('mat3', '.just_rotation()', 'mat4')
-formula_typedecl('mat3', 'mat3::rotation()', 'vec3', 'double/float')
-formula_typedecl('mat3', 'mat3::rotation_vector()', 'vec3')
-formula_typedecl('mat4', '.inverse()', 'mat4')
+defop('vec2',    '-',           'vec2', 'vec2')
+defop('vec3',    '-',           'vec3', 'vec3')
+defop('vec4',    '-',           'vec4', 'vec4')
 
-formula_typedecl('mat2',   '*', 'mat2', 'float/double')
-formula_typedecl('mat3',   '*', 'mat3', 'float/double')
-formula_typedecl('mat4',   '*', 'mat4', 'float/double')
+defop('mat3',    'inverse',     'mat3')
+defop('mat4',    'inverse',     'mat4')
+defop('mat3',    'transpose',   'mat3')
 
-formula_typedecl('vec2',   '*', 'mat2', 'vec2')
-formula_typedecl('vec3',   '*', 'mat3', 'vec3')
-formula_typedecl('vec3',   '*', 'mat4', 'vec3')
-formula_typedecl('vec4',   '*', 'mat4', 'vec4')
+defop('mat2',    '*',           'mat2', 'double')
+defop('mat3',    '*',           'mat3', 'double')
+defop('mat4',    '*',           'mat4', 'double')
 
-formula_typedecl('vec2',   '*', 'vec2', 'float/double')
-formula_typedecl('vec3',   '*', 'vec3', 'float/double')
-formula_typedecl('vec3',   '*', 'vec4', 'float/double')
+defop('vec2',    '*',           'mat2', 'vec2')
+defop('vec3',    '*',           'mat3', 'vec3')
+defop('vec3',    '*',           'mat4', 'vec3')
+defop('vec4',    '*',           'mat4', 'vec4')
+ 
+defop('vec2',    '*',           'vec2', 'double')
+defop('vec3',    '*',           'vec3', 'double')
+defop('vec4',    '*',           'vec4', 'double')
 
-formula_typedecl('vec2',   '*', 'float/double', 'vec2')
-formula_typedecl('vec3',   '*', 'float/double', 'vec3')
-formula_typedecl('vec3',   '*', 'float/double', 'vec4')
+defop('vec2',    '*',           'double', 'vec2')
+defop('vec3',    '*',           'double', 'vec3')
+defop('vec4',    '*',           'double', 'vec4')
 
-formula_typedecl('vec3',   'cross()', 'vec3', 'vec3')
-formula_typedecl('float',  'dot()', 'vec3', 'vec3')
+defop('vec3',    'cross',       'vec3', 'vec3')
+defop('float',   'dot',         'vec3', 'vec3')
 
+}
