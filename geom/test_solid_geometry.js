@@ -40,9 +40,22 @@ describe('solid_geometry', function() {
     checkIntersection(new ur.vec([0,1,0]), [new ur.vec([5.23085,-13.0847,-8.64565]), new ur.vec([5.23085,-12.5246,-8.64565])]);
     checkIntersection(new ur.vec([0,0,1]), [new ur.vec([5.23085,-13.0847,-8.64565]), new ur.vec([5.23085,-13.0847,-8.27919])]);
 
-    var mesh = s.exportWebglMesh();
-    fs.writeFileSync('/tmp/test_solid_geometry_mesh.json', JSON.stringify(mesh, true, 2));
+    var mesh = s.exportWebglMesh(0.000001);
     console.log('coords:', mesh.coords.n_elem, 'indexes:', mesh.indexes.n_elem);
+    console.log('Write mesh to /tmp/test_solid_geometry_mesh.json');
+    fs.writeFileSync('/tmp/test_solid_geometry_mesh.json', JSON.stringify(mesh, true, 2));
     
+  });
+});
+
+
+describe('solid_geometry', function() {
+  it ('analyzeHole should work', function() {
+    var s = new ur.StlSolid();
+    s.readBinaryFile(require.resolve('./test_pelvis.stl'), 0.001);
+    console.log('bbox=', s.bboxLo.toString(), s.bboxHi.toString());
+    var hole = s.analyzeHole();
+    console.log('Hole=', hole);
+    assert.ok(ur.norm(ur.sub(hole, new ur.vec([0,0,1])), 2) < 1e-6);
   });
 });

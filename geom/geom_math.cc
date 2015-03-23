@@ -15,23 +15,16 @@ double limit(double v, double lo, double hi) {
   return v;
 }
 
-vec normalize(vec const &u)
-{
-  double n = norm(u, 2);
-  if (n == 0.0) return u;
-  return u / n;
-}
-
-mat33 orthonormalize(mat33 const &u)
+mat33 orthonormalise(mat33 const &u)
 {
   // We use column vectors, ie the ones that the standard unit vectors are mapped onto by left-multiplication
   vec3 vx = u.col(0);
   vec3 vy = u.col(1);
   vec3 vz = u.col(2);
 
-  vec3 vxfix = normalize(cross(vy, vz));
-  vec3 vyfix = normalize(cross(vz, vxfix));
-  vec3 vzfix = normalize(cross(vxfix, vyfix));
+  vec3 vxfix = normalise(cross(vy, vz));
+  vec3 vyfix = normalise(cross(vz, vxfix));
+  vec3 vzfix = normalise(cross(vxfix, vyfix));
 
   /*
     In the case of a rotation matrix the dot{x,y,z} terms are all ==1, but they
@@ -171,7 +164,7 @@ mat33 mat33RotationVectorToVector(vec3 const &src, vec3 const &dst)
   double dp = dot(src, dst);
   double angle = atan2(norm(cp, 2), dp);
   
-  return mat33Rotation(normalize(cp), angle);
+  return mat33Rotation(normalise(cp), angle);
 }
 
 mat33 mat33RotationXAxis(double theta) { return mat33RotationYZPlane(theta); }
@@ -305,7 +298,7 @@ mat44 mat44PerspectiveFov(double fovy, double aspect, double znear, double zfar)
 
 mat44 mat44GeneralProjection(double xmon, double ymon, vec3 const &dvec, double znear, double zfar)
 {
-  vec3 dvecnorm = normalize(dvec);
+  vec3 dvecnorm = normalise(dvec);
   double zp = dvec(2);
   double q = norm(dvec, 2);
 
@@ -329,8 +322,8 @@ mat44 mat44GeneralProjection(double xmon, double ymon, vec3 const &dvec, double 
 
 mat44 mat44LookAt(vec3 const &eyepos, vec3 const &lookat, vec3 const &up)
 {
-  vec3 zaxis = normalize(eyepos-lookat);
-  vec3 xaxis = normalize(cross(up, zaxis));
+  vec3 zaxis = normalise(eyepos-lookat);
+  vec3 xaxis = normalise(cross(up, zaxis));
   vec3 yaxis = cross(zaxis, xaxis);
   
   mat44 ret(fill::zeros);
@@ -361,11 +354,11 @@ mat33 alignWithZ(mat33 const &u, vec3 const &z_targ, double weight)
 {
   vec3 vx = u.col(0);
   vec3 vy = u.col(1);
-  vec3 vz = normalize(u.col(2) * (1.0-weight) + z_targ*weight);
+  vec3 vz = normalise(u.col(2) * (1.0-weight) + z_targ*weight);
 
-  vec3 vxfix = normalize(cross(vy, vz));
-  vec3 vyfix = normalize(cross(vz, vxfix));
-  vec3 vzfix = normalize(cross(vxfix, vyfix));
+  vec3 vxfix = normalise(cross(vy, vz));
+  vec3 vyfix = normalise(cross(vz, vxfix));
+  vec3 vzfix = normalise(cross(vxfix, vyfix));
 
   if (!(dot(vx, vxfix)>0.0)) throw runtime_error("!(dot(vx, vxfix)>0)");
   if (!(dot(vy, vyfix)>0.0)) throw runtime_error("!(dot(vy, vyfix)>0)");
@@ -381,12 +374,12 @@ mat33 alignWithZ(mat33 const &u, vec3 const &z_targ, double weight)
 mat33 alignWithY(mat33 const &u, vec3 const &y_targ, double weight)
 {
   vec3 vx = u.col(0);
-  vec3 vy = normalize(u.col(1) * (1.0-weight) + y_targ * weight);
+  vec3 vy = normalise(u.col(1) * (1.0-weight) + y_targ * weight);
   vec3 vz = u.col(2);
 
-  vec3 vxfix = normalize(cross(vy, vz));
-  vec3 vzfix = normalize(cross(vxfix, vy));
-  vec3 vyfix = normalize(cross(vzfix, vxfix));
+  vec3 vxfix = normalise(cross(vy, vz));
+  vec3 vzfix = normalise(cross(vxfix, vy));
+  vec3 vyfix = normalise(cross(vzfix, vxfix));
 
   if (!(dot(vx, vxfix)>0.0)) throw runtime_error("!(dot(vx, vxfix)>0)");
   if (!(dot(vy, vyfix)>0.0)) throw runtime_error("!(dot(vy, vyfix)>0)");

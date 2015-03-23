@@ -1,6 +1,7 @@
 #include "../common/std_headers.h"
 #include "./geom_math.h"
 #include "./solid_geometry.h"
+#include "../numerical/haltonseq.h"
 
 using namespace arma;
 
@@ -22,10 +23,8 @@ OctreeNode *OctreeNode::lookup(vec3 const &pt, double maxScale)
                ((pt[1] >= center[1]) ? 2:0) |
                ((pt[2] >= center[2]) ? 1:0));
   if (!children[index]) {
-    vec3 newCenter = mkVec3(center[0] + scale * ((index&4) ? +0.5 : -0.5),
-                            center[1] + scale * ((index&2) ? +0.5 : -0.5),
-                            center[2] + scale * ((index&1) ? +0.5 : -0.5));
-  
+    vec3 newCenter { center[0] + scale * ((index&4) ? +0.5 : -0.5), center[1] + scale * ((index&2) ? +0.5 : -0.5), center[2] + scale * ((index&1) ? +0.5 : -0.5) };
+    
     children[index] = new OctreeNode(newCenter, scale*0.5);
   }
   return children[index]->lookup(pt, maxScale);
@@ -53,10 +52,10 @@ StlFace::StlFace(vec3 _v0, vec3 _v1, vec3 _v2, vec3 _normal)
   :v0(_v0),
    v1(_v1),
    v2(_v2),
-   normal(normalize(_normal))
+   normal(normalise(_normal))
 {
 #if 0
-  vec3 cpnorm = normalize(cross(v1-v0, v2-v0));
+  vec3 cpnorm = normalise(cross(v1-v0, v2-v0));
   double dp = dot(normal, cpnorm);
   if (dp<0.95 || dp>1.05) {
     cout << "Bad normal dp=" << dp << " area=" << get_area() << "\n";
@@ -77,7 +76,7 @@ StlFace::~StlFace()
 
 void StlFace::calcNormal()
 {
-  normal = normalize(cross(v1-v0, v2-v0));
+  normal = normalise(cross(v1-v0, v2-v0));
 }
 
 // Test whether the vector starting at p and of length/direction d intersects me
@@ -234,10 +233,10 @@ StlSolid::readBinaryFile(FILE *fp, double scale)
     float data[12];
     if (fread(&data, sizeof(float), 12, fp) != 12) throw runtime_error("reading 12 floats");
 
-    vec3 n = mkVec3(data[0], data[1], data[2]);
-    vec3 v0 = mkVec3(data[3] * scale, data[4] * scale, data[5] * scale);
-    vec3 v1 = mkVec3(data[6] * scale, data[7] * scale, data[8] * scale);
-    vec3 v2 = mkVec3(data[9] * scale, data[10] * scale, data[11] * scale);
+    vec3 n {data[0], data[1], data[2]};
+    vec3 v0 {data[3] * scale, data[4] * scale, data[5] * scale};
+    vec3 v1 {data[6] * scale, data[7] * scale, data[8] * scale};
+    vec3 v2 {data[9] * scale, data[10] * scale, data[11] * scale};
 
     StlFace face(v0, v1, v2, n);
     
@@ -362,7 +361,7 @@ StlSolid::getIntersections(vec3 const &p, vec3 const &d) const
   if (ret.size() % 2) {
     // If an odd number, we must have started inside so add fake face
     StlIntersection si;
-    si.face.normal = normalize(d * -1.0); // points opposite to d
+    si.face.normal = normalise(d * -1.0); // points opposite to d
     si.face.v0.zeros();
     si.face.v1.zeros();
     si.face.v2.zeros();
@@ -445,10 +444,10 @@ StlSolid::getStlMassProperties(double density) const
   double volume = sum_1;
   double mass = volume * density;
   return StlMassProperties(sum_1, mass, sum_area,
-                           mkVec3(sum_x/volume, sum_y/volume, sum_z/volume),
-                           mkMat33(+sum_yy + sum_zz,   -sum_xy,            -sum_zx,
-                                   -sum_xy,            +sum_xx + sum_zz,   -sum_yz,
-                                   -sum_zx,            -sum_yz,            +sum_xx + sum_yy) * density);
+                           vec3 {sum_x/volume, sum_y/volume, sum_z/volume},
+                           mat33 {+sum_yy + sum_zz,   -sum_xy,            -sum_zx,
+                                  -sum_xy,            +sum_xx + sum_zz,   -sum_yz,
+                                  -sum_zx,            -sum_yz,            +sum_xx + sum_yy} * density);
 }
 
 
@@ -461,7 +460,7 @@ struct Vec3SpatialMap {
   {
     eps = 0.000001;
     epssq = eps*eps;
-    root = new OctreeNode(mkVec3(0.0, 0.0, 0.0), maxScale);
+    root = new OctreeNode(vec3 {0.0, 0.0, 0.0}, maxScale);
   }
   
   ~Vec3SpatialMap()
@@ -595,7 +594,7 @@ void StlSolid::removeTinyFaces(double minSize)
 
 StlWebglMesh StlSolid::exportWebglMesh(double eps) const
 {
-  OctreeNode *root = new OctreeNode(mkVec3(0.0, 0.0, 0.0), getMaxScale());
+  OctreeNode *root = new OctreeNode(vec3 {0.0, 0.0, 0.0}, getMaxScale());
   map<OctreeNode *, int> ptIndex;
 
   size_t nFaces = faces.size();
@@ -661,6 +660,111 @@ StlWebglMesh StlSolid::exportWebglMesh(double eps) const
 }
 
 
+/*
+  Find the direction and location of a hole near the origin mostly aligned with the Z axis.
+  If you need another direction, transform the StlSolid first.
+*/
+
+arma::vec3 StlSolid::analyzeHole()
+{
+  const int itercount = 300;
+  arma::vec3 fudge {0.001, 0.001, 0.001};
+  arma::vec3 corner = bboxLo - fudge;
+  arma::vec3 diagonal = bboxHi + fudge - corner;
+
+  vector<arma::vec3> directions;
+  arma::vec3 avec {0, 0, 1};
+
+  for (int testi = 0; testi < itercount; testi++) {
+    /* 
+       Choose random points along the Z axis
+       and a vector of unit length in a random direction in the XY plane.
+    */
+    
+    double th = unipolarHaltonAxis(testi, 3) * (M_PI*2.0);
+    double height = unipolarHaltonAxis(testi, 5);
+    
+    arma::vec3 pt {0, 0, corner[2] + avec[2] * height};
+    arma::vec3 d {cos(th), sin(th), 0};
+    
+    auto intersections = getIntersections(pt, d);
+    for (size_t intersectioni=0; intersectioni < 2 && intersectioni < intersections.size(); intersectioni++) {
+      auto intersection = intersections[intersectioni];
+      if (intersection.face.getArea() > 0) {
+        arma::vec3 si_pt = pt + d * intersection.t;
+        arma::vec3 tangent = arma::normalise(arma::cross(avec, intersection.face.normal));
+        arma::vec3 realaxis = arma::normalise(arma::cross(tangent, intersection.face.normal)) * -1;
+        
+        if (arma::dot(avec, realaxis) > 0.9) {
+          directions.push_back(realaxis);
+        }
+      }
+    }
+  }
+  
+  if (directions.size() < 10) return arma::vec3 {0, 0, 0};
+  
+  sort(directions.begin(), directions.end(), [&](arma::vec3 const &a, arma::vec3 const &b) {
+      return dot(avec, a) < dot(avec, b);
+    });
+
+  // Keep only best 70%
+  directions.resize(directions.size() * 7 / 10);
+       
+  arma::vec3 avg_dir = accumulate(directions.begin(), directions.end(), arma::vec3 {0, 0, 0}) * (1.0/directions.size()); 
+
+  return avg_dir;
+}
+
+/*
+  Estimate the volume of the solid. We choose random points on the XY plane and calculate the section
+  along the Z axis by ray casting.
+*/
+pair<double, arma::vec3>
+StlSolid::estimateVolume()
+{
+  const int itercount = 300;
+  arma::vec3 corner = bboxLo;
+  arma::vec3 diagonal = bboxHi - corner;
+  
+  double volume_accum = 0.0;
+  double volume_denom = 0.0;
+  arma::vec3 center_accum(arma::fill::zeros);
+  double center_denom = 0.0;
+  
+
+  for (int testi = 0; testi < itercount; testi++) {
+    // Choose random points in the XY plane
+    double hx = unipolarHaltonAxis(testi, 3);
+    double hy = unipolarHaltonAxis(testi, 5);
+    
+    arma::vec3 pt { corner[0] + hx*diagonal[0], corner[1] + hy*diagonal[1], corner[2] };
+
+    // and pointing to the other side. We want unit length so t == actual distance
+    arma::vec3 d {0.0, 0.0, diagonal[2]/abs(diagonal[2])};
+    
+    auto intersections = getIntersections(pt, d);
+    
+    if (intersections.size()) {
+      for (size_t ii=0; ii < intersections.size(); ii += 2) {
+        double minz = intersections[ii].t + corner[2];
+        double maxz = intersections[ii+1].t + corner[2];
+        
+        volume_accum += (maxz - minz);
+        center_accum[0] += pt[0] * (maxz-minz);
+        center_accum[1] += pt[1] * (maxz-minz);
+        center_accum[2] += (maxz+minz)/2 * (maxz-minz);
+        center_denom += maxz-minz;
+      }
+    }
+    volume_denom += 1.0;
+  }
+
+  double volume = volume_accum * (diagonal[0] * diagonal[1]) / volume_denom;
+  arma::vec3 center = center_accum / center_denom;
+    
+  return make_pair(volume, center);
+}
 
 // ----------------------------------------------------------------------
 
@@ -701,9 +805,9 @@ StlMassProperties::calcDerived()
     rogCm = vec3(fill::zeros);
   } else {
     density = mass / volume;
-    inertiaCm = inertiaOrigin + mkMat33(-(sqr(cm[1]) + sqr(cm[2])),  +cm[0] * cm[1],              +cm[2] * cm[0],
-                                        +cm[0] * cm[1],              -(sqr(cm[2]) + sqr(cm[0])),  +cm[1] * cm[2],
-                                        +cm[2] * cm[0],              +cm[1] * cm[2],              -(sqr(cm[0]) + sqr(cm[1]))) * mass;
+    inertiaCm = inertiaOrigin + mat33{ -(sqr(cm[1]) + sqr(cm[2])),  +cm[0] * cm[1],              +cm[2] * cm[0],
+                                       +cm[0] * cm[1],              -(sqr(cm[2]) + sqr(cm[0])),  +cm[1] * cm[2],
+                                       +cm[2] * cm[0],              +cm[1] * cm[2],              -(sqr(cm[0]) + sqr(cm[1]))} * mass;
 
     rogOrigin = inertiaOrigin.diag() / mass;
     rogCm = inertiaCm.diag() / mass;
@@ -731,6 +835,6 @@ StlMassProperties StlMassProperties::multiplyDensity(double factor)
 
 ostream & operator << (ostream &s, StlMassProperties const &it)
 {
-  s << "StlMassProperties(volume=" << it.volume << ", mass=" << it.mass << ", area=" << it.area << ", cm=" << it.cm << ", inertiaOrigin=" << it.inertiaOrigin << ")";
+  s << "StlMassProperties(volume=" << it.volume << ", mass=" << it.mass << ", area=" << it.area << ", cm=\n" << it.cm << ", inertiaOrigin=\n" << it.inertiaOrigin << ")";
   return s;
 }

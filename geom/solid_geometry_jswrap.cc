@@ -163,6 +163,37 @@ static Handle<Value> jsWrap_StlSolid_exportWebglMesh(const Arguments& args)
   }
 }
 
+static Handle<Value> jsWrap_StlSolid_analyzeHole(const Arguments& args)
+{
+  HandleScope scope;
+  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
+  if (args.Length() == 0) {
+    arma::vec3 ret = thisObj->it->analyzeHole();
+    return scope.Close(JsWrap_vec::NewInstance(ret));
+  }
+  else {
+    return ThrowInvalidArgs();
+  }
+}
+
+static Handle<Value> jsWrap_StlSolid_estimateVolume(const Arguments& args)
+{
+  HandleScope scope;
+  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
+  if (args.Length() == 0) {
+    auto ret = thisObj->it->estimateVolume();
+    
+    Local<Object> retJs = Object::New();
+    retJs->Set(String::NewSymbol("volume"), Number::New(ret.first));
+    retJs->Set(String::NewSymbol("center"), JsWrap_vec::NewInstance(ret.second));
+    
+    return scope.Close(retJs);
+  }
+  else {
+    return ThrowInvalidArgs();
+  }
+}
+
 
 
 void jsInit_StlSolid(Handle<Object> exports) {
@@ -182,6 +213,8 @@ void jsInit_StlSolid(Handle<Object> exports) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getIntersections"), FunctionTemplate::New(jsWrap_StlSolid_getIntersections)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("removeTinyFaces"), FunctionTemplate::New(jsWrap_StlSolid_removeTinyFaces)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("exportWebglMesh"), FunctionTemplate::New(jsWrap_StlSolid_exportWebglMesh)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("analyzeHole"), FunctionTemplate::New(jsWrap_StlSolid_analyzeHole)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("estimateVolume"), FunctionTemplate::New(jsWrap_StlSolid_estimateVolume)->GetFunction());
   
   JsWrap_StlSolid::constructor = Persistent<Function>::New(tpl->GetFunction());
   exports->Set(String::NewSymbol("StlSolid"), JsWrap_StlSolid::constructor);

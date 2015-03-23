@@ -945,7 +945,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     if (ev.deltaX !== undefined) {
       return {x: ev.deltaX, y: ev.deltaY};
     }
-    if (ev.originalEvent && ev.originalEvent.layerX !== undefined) {
+    if (ev.originalEvent && ev.originalEvent.deltaX !== undefined) {
       return {x: ev.originalEvent.deltaX, y: ev.originalEvent.deltaY};
     }
     return {x:0, y: 0};

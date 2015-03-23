@@ -19,3 +19,7 @@
 ### nodeif
 
 ### geom
+
+ * Get rid of solid_geometry.cc. Do it all in JS.
+   - Make sure THREE.STLLoader works in Node environment.
+   - Re-implement mass properties & hole analysis in JS.

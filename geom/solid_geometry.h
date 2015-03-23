@@ -72,6 +72,8 @@ struct StlSolid {
   StlMassProperties getStlMassProperties(double density) const;
   StlWebglMesh exportWebglMesh(double eps) const;
   void removeTinyFaces(double minSize);
+  arma::vec3 analyzeHole();
+  pair<double, arma::vec3> estimateVolume();
 
   arma::vec3 bboxLo, bboxHi;
   vector<StlFace> faces;
