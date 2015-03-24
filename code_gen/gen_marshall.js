@@ -1352,7 +1352,15 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         f('}');
       }
       f('else if (args.Length() == 1 && canConvJsToArmaMat<' + type.templateArgs[0] + '>(args[0])) {');
-      f('it->assignConstruct(convJsToArmaMat<' + type.templateArgs[0] + '>(args[0]));');
+      f('try {');
+      if (/.*::fixed$/.test(type.templateName)) {
+	f('it->assignConstruct(convJsToArmaMat<' + type.templateArgs[0] + '>(args[0], ' + type.templateArgs[1] + ', ' + type.templateArgs[2] + '));');
+      } else {
+	f('it->assignConstruct(convJsToArmaMat<' + type.templateArgs[0] + '>(args[0]));');
+      }
+      f('} catch (exception &ex) {');
+      f('return ThrowTypeError(ex.what());');
+      f('}');
       f('}');
     }
 

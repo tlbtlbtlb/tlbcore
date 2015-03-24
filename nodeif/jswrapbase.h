@@ -118,48 +118,58 @@ Handle<Object> convArmaVecToJs(arma::Col<T> const &it) {
   return ret;
 }
 
-// arma::Mat conversion
+/* arma::Mat conversion.
+   arma::Mats are in column-major order. That means the elements are
+   0  4  8  12
+   1  5  9  13
+   2  6  10 14
+   3  7  11 15
+ */
 
 template<typename T>
-bool canConvJsToArmaMat(Handle<Value> it) {
+bool canConvJsToArmaMat(Handle<Value> it)
+{
   if (it->IsArray()) return true;
   return false;
 }
 
 template<typename T>
-arma::Mat<T> convJsToArmaMat(Handle<Value> it) {
+arma::Mat<T> convJsToArmaMat(Handle<Value> it, int nRows=0, int nCols=0)
+{
   if (it->IsArray()) {
-    Handle<Array> itRows = Handle<Array>::Cast(it);
-    size_t itRowsLen = itRows->Length();
-    if (itRowsLen > 0 && itRows->Get(0)->IsArray()) {
-      Handle<Array> itRow0 = Handle<Array>::Cast(itRows->Get(0));
-      size_t itRow0Len = itRow0->Length();
-      if (itRow0Len > 0) {
-        arma::Mat<T> ret(itRowsLen, itRow0Len);
-        for (size_t ri=0; ri<itRowsLen; ri++) {
-          Handle<Array> itRowRi = Handle<Array>::Cast(itRows->Get(ri));
-          for (size_t ci=0; ci<itRow0Len; ci++) {
-            ret(ri, ci) = itRowRi->Get(ci)->NumberValue();
-          }
-        }
-        return ret;
+
+    Handle<Array> itArr = Handle<Array>::Cast(it);
+    size_t itArrLen = itArr->Length();
+    
+    if (nRows == 0 && nCols == 0) {
+      switch (itArrLen) {
+      case 16: nRows = 4; nCols = 4; break;
+      case 9:  nRows = 3; nCols = 3; break;
+      case 4:  nRows = 2; nCols = 2; break;
+      default: throw runtime_error(stringprintf("convJsToArmaMat: unknown size %d", int(itArrLen)));
+      }
+    } else {
+      if (nRows * nCols != itArrLen) {
+	throw runtime_error(stringprintf("convJsToArmaMat: wrong size: %d != %dx%d", int(itArrLen), int(nRows), int(nCols)));
       }
     }
+
+    arma::Mat<T> ret(nRows, nCols);
+
+    for (size_t i=0; i<itArrLen; i++) {
+      ret(i) = itArr->Get(i)->NumberValue();
+    }
+    return ret;
   }
   throw runtime_error("convJsToArmaMat: not an array");
 }
 
 template<typename T>
-Handle<Object> convArmaMatToJs(arma::Mat<T> const &it) {
-
-  
-  Local<Array> ret = Array::New(it.n_rows);
-  for (size_t ri = 0; ri < it.n_rows; ri++) {
-    Local<Array> row = Array::New(it.n_cols);
-    for (size_t ci = 0; ci < it.n_cols; ci++) {
-      row->Set(ci, Number::New(it(ri, ci)));
-    }
-    ret->Set(ri, row);
+Handle<Object> convArmaMatToJs(arma::Mat<T> const &it) 
+{
+  Local<Array> ret = Array::New(it.n_elems);
+  for (size_t ei = 0; ei < it.n_elems; ei++) {
+    ret->Set(ei, Number::New(it(ei)));
   }
   return ret;
 }

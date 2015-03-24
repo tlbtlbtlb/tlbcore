@@ -222,179 +222,19 @@ bool rdJson(const char *&s, vector<T *> &arr) {
 }
 
 // Json - arma::Col
-template<typename T>
-size_t wrJsonSize(arma::Col<T> const &arr) {
-  size_t ret = 2; // brackets
-  for (size_t i = 0; i < arr.n_elem; i++) {
-    ret += wrJsonSize(arr(i)) + 1;
-  }
-  return ret;
-}
-
-template<typename T>
-void wrJson(char *&s, arma::Col<T> const &arr) {
-  *s++ = '[';
-  bool sep = false;
-  for (size_t i = 0; i < arr.n_elem; i++) {
-    if (sep) *s++ = ',';
-    sep = true;
-    wrJson(s, arr(i));
-  }
-  *s++ = ']';
-}
-
-template<typename T>
-bool rdJson(const char *&s, arma::Col<T> &arr) {
-  jsonSkipSpace(s);
-  if (*s != '[') return false;
-  s++;
-  vector<T> tmparr;
-  while (1) {
-    jsonSkipSpace(s);
-    if (*s == ']') break;
-    T tmp;
-    if (!rdJson(s, tmp)) return false;
-    tmparr.push_back(tmp);
-    jsonSkipSpace(s);
-    if (*s == ',') {
-      s++;
-    }
-    else if (*s == ']') {
-      break;
-    }
-    else {
-      return false;
-    }
-  }
-  s++;
-  // set_size will throw a logic_error if we're reading to a fixed_sized arma::Col and the size is wrong
-  // If I could figure out how to tell whether the type is fixed or not, I could check for it and return
-  // false instead.
-  arr.set_size(tmparr.size());
-  for (size_t i=0; i < tmparr.size(); i++) {
-    arr(i) = tmparr[i];
-  }
-  return true;
-}
-
+template<typename T> size_t wrJsonSize(arma::Col<T> const &arr);
+template<typename T> void wrJson(char *&s, arma::Col<T> const &arr);
+template<typename T> bool rdJson(const char *&s, arma::Col<T> &arr);
 
 // Json - arma::Row
-template<typename T>
-size_t wrJsonSize(arma::Row<T> const &arr) {
-  size_t ret = 2;
-  for (size_t i = 0; i < arr.n_elem; i++) {
-    ret += wrJsonSize(arr(i)) + 1;
-  }
-  return ret;
-}
-
-template<typename T>
-void wrJson(char *&s, arma::Row<T> const &arr) {
-  *s++ = '[';
-  bool sep = false;
-  for (size_t i = 0; i < arr.n_elem; i++) {
-    if (sep) *s++ = ',';
-    sep = true;
-    wrJson(s, arr(i));
-  }
-  *s++ = ']';
-}
-
-template<typename T>
-bool rdJson(const char *&s, arma::Row<T> &arr) {
-  jsonSkipSpace(s);
-  if (*s != '[') return false;
-  s++;
-  vector<T> tmparr;
-  while (1) {
-    jsonSkipSpace(s);
-    if (*s == ']') break;
-    T tmp;
-    if (!rdJson(s, tmp)) return false;
-    tmparr.push_back(tmp);
-    jsonSkipSpace(s);
-    if (*s == ',') {
-      s++;
-    }
-    else if (*s == ']') {
-      break;
-    }
-    else {
-      return false;
-    }
-  }
-  s++;
-  //arr.clear();
-  arr.set_size(tmparr.size());
-  for (size_t i=0; i < tmparr.size(); i++) {
-    arr(i) = tmparr[i];
-  }
-  return true;
-}
-
+template<typename T> size_t wrJsonSize(arma::Row<T> const &arr);
+template<typename T> void wrJson(char *&s, arma::Row<T> const &arr);
+template<typename T> bool rdJson(const char *&s, arma::Row<T> &arr);
 
 // Json - arma::Mat
-template<typename T>
-size_t wrJsonSize(arma::Mat<T> const &arr) {
-  size_t ret = 3 + 3*arr.n_rows;
-  for (size_t i = 0; i < arr.n_elem; i++) {
-    ret += wrJsonSize(arr(i)) + 1;
-  }
-  return ret;
-}
-
-template<typename T>
-void wrJson(char *&s, arma::Mat<T> const &arr) {
-  *s++ = '[';
-  for (size_t ri = 0; ri < arr.n_rows; ri++) {
-    if (ri) *s++ = ',';
-    *s++ = '[';
-    for (size_t ci = 0; ci < arr.n_cols; ci++) {
-      if (ci) *s++ = ',';
-      wrJson(s, arr(ri, ci));
-    }
-    *s++ = ']';
-  }
-  *s++ = ']';
-}
-
-template<typename T>
-bool rdJson(const char *&s, arma::Mat<T> &arr) {
-
-  jsonSkipSpace(s);
-  if (*s != '[') return false;
-  s++;
-  vector< arma::Row<T> > tmparr;
-  while (1) {
-    jsonSkipSpace(s);
-    if (*s == ']') break;
-    arma::Row<T> tmp;
-    if (!rdJson(s, tmp)) return false;
-    tmparr.push_back(tmp);
-    jsonSkipSpace(s);
-    if (*s == ',') {
-      s++;
-    }
-    else if (*s == ']') {
-      break;
-    }
-    else {
-      return false;
-    }
-  }
-  s++;
-
-  size_t n_rows = tmparr.size();
-  size_t n_cols = (n_rows > 0) ? tmparr[0].n_cols : 0;
-  if (0) eprintf("rdJson(arma::Mat): %d,%d -> %d,%d\n", (int)arr.n_rows, (int)arr.n_cols, (int)n_rows, (int)n_cols);
-  arr.set_size(n_rows, n_cols);
-  for (size_t ri=0; ri < n_rows; ri++) {
-    for (size_t ci=0; ci < n_cols; ci++) {
-      arr(ri, ci) = tmparr[ri][ci];
-    }
-  }
-  return true;
-}
+template<typename T> size_t wrJsonSize(arma::Mat<T> const &arr);
+template<typename T> void wrJson(char *&s, arma::Mat<T> const &arr);
+template<typename T> bool rdJson(const char *&s, arma::Mat<T> &arr);
 
 
 // Json - map<KT, VT> and map<KT, VT *>
