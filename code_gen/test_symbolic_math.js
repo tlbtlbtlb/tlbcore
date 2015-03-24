@@ -34,10 +34,10 @@ describe('symbolic_math', function() {
     var a = c.V('double', 'a');
     var az = c.E('mat4RotationZ', a);
     console.log(c.getCExpr(az));
-    var b = c.V('arma::mat4', [[1, 0, 0, 0],
-			       [0, 1, 0, 0], 
-			       [0, 0, 1, 0], 
-			       [0, 0, 0, 1]]);
+    var b = c.V('arma::mat44', [[1, 0, 0, 0],
+				[0, 1, 0, 0], 
+				[0, 0, 1, 0], 
+				[0, 0, 0, 1]]);
     var r = c.E('*', az, b);
     console.log(c.getCExpr(r));
   });
@@ -47,24 +47,23 @@ describe('symbolic_math', function() {
 describe('symbolic_math', function() {
   it('should emit correct C code', function() {
     var c = new symbolic_math.SymbolicContext(null);
-    var assigns = [];
     
     var a = c.V('double', 'body.joints.rht');
     var az = c.E('mat4RotationZ', a);
-    var x = c.C('arma::mat4', [[1, 0, 0, 0],
-			       [0, 1, 0, 0], 
-			       [0, 0, 1, 0], 
-			       [0, 0, 0, 1]]);
-    var y = c.C('arma::mat4', [[0, 1, 0, 0],
-			       [1, 0, 0, 0], 
-			       [0, 0, 1, 0], 
-			       [0, 0, 0, 1]]);
-    assigns.push(c.A('body.segments.rht', c.E('+', 
-                                              c.E('*', az, x), 
-                                              c.E('+', 
-                                                  c.E('*', az, y),
-                                                  c.E('*', az, x)))));
-    c.emitCpp(console.log, assigns);
+    var x = c.C('arma::mat44', [[1, 0, 0, 0],
+				[0, 1, 0, 0], 
+				[0, 0, 1, 0], 
+				[0, 0, 0, 1]]);
+    var y = c.C('arma::mat44', [[0, 1, 0, 0],
+				[1, 0, 0, 0], 
+				[0, 0, 1, 0], 
+				[0, 0, 0, 1]]);
+    c.A('body.segments.rht', c.E('+', 
+                                 c.E('*', az, x), 
+                                 c.E('+', 
+                                     c.E('*', az, y),
+                                     c.E('*', az, x))));
+    c.emitCpp(console.log, function(name) { return true ;});
   });
 });
     

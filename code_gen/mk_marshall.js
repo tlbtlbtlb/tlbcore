@@ -5,6 +5,7 @@ var _                   = require('underscore');
 var cgen                = require('./cgen');
 var gen_marshall        = require('./gen_marshall');
 var gen_functions       = require('./gen_functions');
+var symbolic_math       = require('./symbolic_math');
 
 
 function main() {
@@ -50,8 +51,6 @@ function main() {
 	ts.extraDestructorCode.push('eprintf("Destruct TestStruct %p\\n", this);');
       }
       
-      typereg.addRtFunction('test1', {a: 'TestStruct'}, {b: 'TestStruct'});
-
       typereg.struct('TestStructString', 
                      ['foo', 'string']);
     }

@@ -25,7 +25,7 @@ var util                = require('util');
 var crypto              = require('crypto');
 var path                = require('path');
 var cgen                = require('./cgen');
-var gen_functions       = require('./gen_functions');
+var symbolic_math       = require('./symbolic_math');
 
 var debugJson = false;
 
@@ -59,7 +59,7 @@ function TypeRegistry(groupname) {
   typereg.enums = [];
   typereg.consts = {};
   typereg.wrapFunctions = {};
-  typereg.rtFunctions = {};
+  typereg.symbolics = {};
   typereg.extraJsWrapFuncsHeaders = [];
 
   typereg.setPrimitives();
@@ -161,7 +161,7 @@ TypeRegistry.prototype.emitAll = function(files) {
 
   typereg.emitJsWrapFuncs(files);
   typereg.emitJsBoot(files);
-  typereg.emitRtFunctions(files);
+  typereg.emitSymbolics(files);
   typereg.emitGypFile(files);
   typereg.emitMochaFile(files);
   typereg.emitSchema(files);
@@ -207,7 +207,7 @@ TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
   var f = files.getFile('functions_' + typereg.groupname + '_jsWrap.cc');
   f('#include "tlbcore/common/std_headers.h"');
   f('#include "tlbcore/nodeif/jswrapbase.h"');
-  f('#include "./rtfns_' + typereg.groupname + '.h"');
+  f('#include "./symbolics_' + typereg.groupname + '.h"');
   _.each(typereg.extraJsWrapFuncsHeaders, f);
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
@@ -239,7 +239,7 @@ TypeRegistry.prototype.emitGypFile = function(files) {
     }
   });
   f('\"' + 'jsboot_' + typereg.groupname + '.cc' + '\",');
-  f('\"' + 'rtfns_' + typereg.groupname + '.cc' + '\",');
+  f('\"' + 'symbolics_' + typereg.groupname + '.cc' + '\",');
   f('\"' + 'functions_' + typereg.groupname + '_jsWrap.cc' + '\",');
   f(']');
   f('}');
@@ -463,26 +463,27 @@ TypeRegistry.prototype.scanCHeader = function(fn) {
   typereg.extraJsWrapFuncsHeaders.push('#include "' + fn + '"');
 };
 
-TypeRegistry.prototype.emitRtFunctions = function(files) {
+TypeRegistry.prototype.emitSymbolics = function(files) {
   var typereg = this;
 
   // For now put them all in one file. It might make sense to split out at some point
-  var hl = files.getFile('rtfns_' + typereg.groupname + '.h');
+  var hl = files.getFile('symbolics_' + typereg.groupname + '.h');
 
   // Make a list of all includes: collect all types for all functions, then collect the customerIncludes for each type, and remove dups
-  var allIncludes = _.uniq(_.flatten(_.map(_.flatten(_.map(typereg.rtFunctions, function(func) { return func.getAllTypes(); })), function(typename) {
+  var allIncludes = _.uniq(_.flatten(_.map(_.flatten(_.map(typereg.symbolics, function(func) { return func.getAllTypes(); })), function(typename) {
     var type = typereg.types[typename];
+    if (!type) throw new Error('No such type ' + typename);
     return type.getCustomerIncludes();
   })));
   _.each(allIncludes, function(incl) {
     hl(incl);
   });
 
-  var cl = files.getFile('rtfns_' + typereg.groupname + '.cc');
+  var cl = files.getFile('symbolics_' + typereg.groupname + '.cc');
   cl('#include "tlbcore/common/std_headers.h"');
-  cl('#include "./rtfns_' + typereg.groupname + '.h"');
+  cl('#include "./symbolics_' + typereg.groupname + '.h"');
 
-  _.each(typereg.rtFunctions, function(func, funcname) {
+  _.each(typereg.symbolics, function(func, funcname) {
     func.emitDecl(hl);
     func.emitDefn(cl);
   });
@@ -504,9 +505,9 @@ TypeRegistry.prototype.addWrapFunction = function(desc, funcScope, funcname, fun
                                           args: args});
 };
 
-TypeRegistry.prototype.addRtFunction = function(name, inargs, outargs) {
+TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs) {
   var typereg = this;
-  return typereg.rtFunctions[name] = new gen_functions.RtFunction(typereg, name, inargs, outargs);
+  return typereg.symbolics[name] = new symbolic_math.SymbolicContext(typereg, name, inargs, outargs);
 };
 
 // ----------------------------------------------------------------------

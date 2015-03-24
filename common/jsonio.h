@@ -1,5 +1,4 @@
-#ifndef INCLUDE_tlbcore_jsonio_h
-#define INCLUDE_tlbcore_jsonio_h
+#pragma once
 #include <ctype.h>
 #include <armadillo>
 /*
@@ -542,5 +541,3 @@ bool fromJson(string const &ss, T &value) {
 }
 
 
-
-#endif

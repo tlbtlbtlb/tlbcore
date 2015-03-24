@@ -8,18 +8,18 @@ var fs                  = require('fs');
 exports.RtFunction = RtFunction;
 
 
-function RtFunction(typereg, name, inargs, outargs, nodes) {
+function RtFunction(typereg, name, inargs, outargs, assigns) {
   this.typereg = typereg;
   this.name = name;
   this.inargs = inargs;
   this.outargs = outargs;
-  this.nodes = nodes || [];
+  this.assigns = assigns || [];
   this.checkArgs();
   this.registerWrapper();
 }
 
 RtFunction.prototype.writeToFile = function(fn, onDone) {
-  var s = JSON.stringify({typereg: this.typereg, name: this.name, inargs: this.inargs, outargs: this.outargs, nodes: this.nodes});
+  var s = JSON.stringify({typereg: this.typereg, name: this.name, inargs: this.inargs, outargs: this.outargs, assigns: this.assigns});
   fs.writeFile(fn, s, function(err) {
     if (err) console.log(fn + ': write failed');
     if (onDone) onDone();
@@ -30,7 +30,7 @@ RtFunction.readFromFile = function(fn, onDone) {
   var s = fs.readFile(fn, function(err, s) {
     if (err) console.log(fn + ': read failed');
     var o = JSON.parse(s);
-    var rtfn = new RtFunction(o.typereg, o.name, o.inargs, o.outargs, o.nodes);
+    var rtfn = new RtFunction(o.typereg, o.name, o.inargs, o.outargs, o.assigns);
     onDone(rtfn);
   });
 };
@@ -84,148 +84,13 @@ RtFunction.prototype.emitDecl = function(l) {
 
 RtFunction.prototype.emitDefn = function(l) {
   l(this.getSignature() + ' {');
-  emitNodes(l, this.nodes);
+  emitAssigns(l, this.assigns);
   l('}');
   l('');
 };
 
 
-RtFunction.prototype.node = function(type, parms, srcs, dsts) {
-  var n = new ExprNode(type, parms, srcs, dsts);
-  this.nodes.push(n);
-  return n;
+RtFunction.prototype.addAssign = function(e) {
+  this.assigns.push(e);
 };
 
-
-
-function ExprNode(type, parms, srcs, dsts) {
-    this.type = type;
-    this.parms = parms;
-    this.srcs = srcs;
-    this.dsts = dsts;
-    this.annotations = {};
-}
-
-function emitNodes(l, nodes) {
-
-  var deps = {};
-  _.each(nodes, function(node, ni) {
-    _.each(node.dsts, function(dst) {
-      if (deps[dst]) throw new TypeError('Multiple deps for ' + dst);
-      deps[dst] = ni;
-    });
-  });
-
-  var doneNodes = _.map(_.range(0, nodes.length), function(ni) { return 0; } );
-
-  _.each(_.range(0, nodes.length), function(i) {
-    emitNodeIndex(i);
-  });
-  
-  function emitNodeIndex(nodei) {
-    if (doneNodes[nodei] === 2) return;
-    if (doneNodes[nodei] === 1) throw new TypeError('Circular dependency for ' + nodes[nodei]);
-
-    doneNodes[nodei] = 1;
-    _.each(nodes[nodei].srcs, function(src) {
-      if (src in deps) emitNodeIndex(deps[src]);
-    });
-    emitNode(l, nodes[nodei]);
-    doneNodes[nodei] = 2;
-  }
-}
-
-function emitNode(l, node) {
-    var a,b;
-    
-    switch (node.type) {
-
-    case 'scalar.copy':
-        l(node.dsts[0] + ' = ' + node.srcs[0] + ';');
-        break;
-    case 'vec3.copy':
-        l(node.dsts[0] + '.x = ' + node.srcs[0] + '.x;');
-        l(node.dsts[0] + '.y = ' + node.srcs[0] + '.y;');
-        l(node.dsts[0] + '.z = ' + node.srcs[0] + '.z;');
-        break;
-    case 'complex.copy':
-        l(node.dsts[0] + '.re = ' + node.srcs[0] + '.re;');
-        l(node.dsts[0] + '.im = ' + node.srcs[0] + '.im;');
-        break;
-
-    case 'scalar.const':
-        l(node.dsts[0] + ' = ' + JSON.stringify(node.parms[0]) + ';');
-        break;
-    case 'vec3.const':
-        l(node.dsts[0] + '.x = ' + JSON.stringify(node.parms[0]) + ';');
-        l(node.dsts[0] + '.y = ' + JSON.stringify(node.parms[1]) + ';');
-        l(node.dsts[0] + '.z = ' + JSON.stringify(node.parms[2]) + ';');
-        break;
-    case 'complex.const':
-        l(node.dsts[0] + '.re = ' + JSON.stringify(node.parms[0]) + ';');
-        l(node.dsts[0] + '.im = ' + JSON.stringify(node.parms[1]) + ';');
-        break;
-        
-    case 'scalar.+':
-        l(node.dsts[0] + ' = ' + node.srcs[0] + ' + ' + node.srcs[1] + ';');
-        break;
-    case 'scalar.-':
-        l(node.dsts[0] + ' = ' + node.srcs[0] + ' - ' + node.srcs[1] + ';');
-        break;
-    case 'scalar.*':
-        l(node.dsts[0] + ' = ' + node.srcs[0] + ' * ' + node.srcs[1] + ';');
-        break;
-    case 'scalar./':
-        l(node.dsts[0] + ' = ' + node.srcs[0] + ' / ' + node.srcs[1] + ';');
-        break;
-
-    case 'scalar.poly':
-      l(node.dsts[0] + ' = ' +
-        _.map(node.parms, function(p, pi) {
-          if (pi === node.parms.length-1) return p.toString();
-          return '(' + p.toString() + ' + ' + node.srcs[0] + ' * '; 
-        }).join('') +
-        _.map(node.parms, function(p, pi) { 
-          if (pi === node.parms.length-1) return '';
-          return ')'; 
-        }).join('') + ';');
-      break;
-      
-    case 'vec3.+':
-        l(node.dsts[0] + '.x = ' + node.srcs[0] + '.x + ' + node.srcs[1] + '.x;');
-        l(node.dsts[0] + '.y = ' + node.srcs[0] + '.y + ' + node.srcs[1] + '.y;');
-        l(node.dsts[0] + '.z = ' + node.srcs[0] + '.z + ' + node.srcs[1] + '.z;');
-        break;
-        
-    case 'scalar.sin':
-        l(node.dsts[0] + ' = sin(' + node.srcs[0] + ');');
-        break;
-    case 'scalar.cos':
-        l(node.dsts[0] + ' = cos(' + node.srcs[0] + ');');
-        break;
-    case 'scalar.tan':
-        l(node.dsts[0] + ' = tan(' + node.srcs[0] + ');');
-        break;
-    case 'scalar.atan2':
-        l(node.dsts[0] + ' = atan2(' + node.srcs[0] + ', ' + node.srcs[1] + ');');
-        break;
-
-    case 'scalar.exp':
-        l(node.dsts[0] + ' = exp(' + node.srcs[0] + ');');
-        break;
-    case 'scalar.log':
-        l(node.dsts[0] + ' = log(' + node.srcs[0] + ');');
-        break;
-
-    case 'scalar.sigmoid':
-        l(node.dsts[0] + ' = sigmoid(' + node.srcs[0] + ');');
-        break;
-    case 'scalar.atan':
-        l(node.dsts[0] + ' = atan(' + node.srcs[0] + ');');
-        break;
-    case 'erf':
-        // WRITEME: erf http://en.wikipedia.org/wiki/Error_function
-      throw new Error('erf unimplemented');
-
-    }
-}
