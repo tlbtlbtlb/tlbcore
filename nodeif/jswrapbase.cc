@@ -200,3 +200,175 @@ map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
   throw runtime_error("convJsToMapStringJsonstr: not an object");
 }
 
+
+
+// ----------------------------------------------------------------------
+
+template<typename T>
+bool canConvJsToArmaVec(Handle<Value> itv) {
+  if (itv->IsObject()) {
+    Handle<Object> it = itv->ToObject();
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) return true;
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) return true;
+    if (it->IsArray()) return true;
+  }
+  return false;
+}
+
+template<typename T>
+arma::Col<T> convJsToArmaVec(Handle<Value> itv) {
+  if (itv->IsObject()) {
+    Handle<Object> it = itv->ToObject();
+
+    // Sort of wrong for T = cx_double. I believe it only sets the real part.
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) {
+      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
+      double* itData = static_cast<double*>(it->GetIndexedPropertiesExternalArrayData());
+
+      arma::Col<T> ret(itLen);
+      for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
+      return ret;
+    }
+
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) {
+      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
+      float* itData = static_cast<float*>(it->GetIndexedPropertiesExternalArrayData());
+
+      arma::Col<T> ret(itLen);
+      for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
+      return ret;
+    }
+
+    // Also handle regular JS arrays
+    if (it->IsArray()) {
+      Handle<Array> itArr = Handle<Array>::Cast(it);
+      size_t itArrLen = itArr->Length();
+      arma::Col<T> ret(itArrLen);
+      for (size_t i=0; i<itArrLen; i++) {
+        ret(i) = itArr->Get(i)->NumberValue();
+      }
+      return ret;
+    }
+  }
+  throw runtime_error("convJsToArmaVec: not an array");
+}
+
+template<typename T>
+Handle<Object> convArmaVecToJs(arma::Col<T> const &it) {
+  static Persistent<Function> float64_array_constructor;
+
+  if (float64_array_constructor.IsEmpty()) {
+    Local<Object> global = Context::GetCurrent()->Global();
+    Local<Value> val = global->Get(String::New("Float64Array"));
+    assert(!val.IsEmpty() && "type not found: Float64Array");
+    assert(val->IsFunction() && "not a constructor: Float64Array");
+    float64_array_constructor = Persistent<Function>::New(val.As<Function>());
+  }
+
+  Local<Value> itSize = Integer::NewFromUnsigned((u_int)it.n_elem);
+  Local<Object> ret = float64_array_constructor->NewInstance(1, &itSize);
+  assert(ret->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray);
+  assert((size_t)ret->GetIndexedPropertiesExternalArrayDataLength() == it.n_elem);
+
+  double* retData = static_cast<double*>(ret->GetIndexedPropertiesExternalArrayData());
+  for (size_t i=0; i<it.n_elem; i++) {
+    retData[i] = it(i);
+  }
+  
+  return ret;
+}
+
+/* arma::Mat conversion.
+   arma::Mats are in column-major order. That means the elements are
+   0  4  8  12
+   1  5  9  13
+   2  6  10 14
+   3  7  11 15
+ */
+
+template<typename T>
+bool canConvJsToArmaMat(Handle<Value> it)
+{
+  if (it->IsArray()) return true;
+  return false;
+}
+
+template<typename T>
+arma::Mat<T> convJsToArmaMat(Handle<Value> it, size_t nRows, size_t nCols)
+{
+  if (it->IsArray()) {
+
+    Handle<Array> itArr = Handle<Array>::Cast(it);
+    size_t itArrLen = itArr->Length();
+    
+    if (nRows == 0 && nCols == 0) {
+      switch (itArrLen) {
+      case 16: nRows = 4; nCols = 4; break;
+      case 9:  nRows = 3; nCols = 3; break;
+      case 4:  nRows = 2; nCols = 2; break;
+      default: throw runtime_error(stringprintf("convJsToArmaMat: unknown size %d", int(itArrLen)));
+      }
+    } else {
+      if (nRows * nCols != itArrLen) {
+	throw runtime_error(stringprintf("convJsToArmaMat: wrong size: %d != %dx%d", int(itArrLen), int(nRows), int(nCols)));
+      }
+    }
+
+    arma::Mat<T> ret(nRows, nCols);
+
+    for (size_t i=0; i<itArrLen; i++) {
+      ret(i) = itArr->Get(i)->NumberValue();
+    }
+    return ret;
+  }
+  throw runtime_error("convJsToArmaMat: not an array");
+}
+
+template<typename T>
+Handle<Object> convArmaMatToJs(arma::Mat<T> const &it) 
+{
+  Local<Array> ret = Array::New(it.n_elem);
+  for (size_t ei = 0; ei < it.n_elem; ei++) {
+    ret->Set(ei, Number::New(it(ei)));
+  }
+  return ret;
+}
+
+
+
+template bool canConvJsToArmaVec<double>(Handle<Value> itv);
+template arma::Col<double> convJsToArmaVec<double>(Handle<Value> itv);
+template Handle<Object> convArmaVecToJs<double>(arma::Col<double> const &it);
+template bool canConvJsToArmaMat<double>(Handle<Value> it);
+template arma::Mat<double> convJsToArmaMat<double>(Handle<Value> it, size_t nRows, size_t nCols);
+template Handle<Object> convArmaMatToJs<double>(arma::Mat<double> const &it);
+
+template bool canConvJsToArmaVec<float>(Handle<Value> itv);
+template arma::Col<float> convJsToArmaVec<float>(Handle<Value> itv);
+template Handle<Object> convArmaVecToJs<float>(arma::Col<float> const &it);
+template bool canConvJsToArmaMat<float>(Handle<Value> it);
+template arma::Mat<float> convJsToArmaMat<float>(Handle<Value> it, size_t nRows, size_t nCols);
+template Handle<Object> convArmaMatToJs<float>(arma::Mat<float> const &it);
+
+template bool canConvJsToArmaVec<int>(Handle<Value> itv);
+template arma::Col<int> convJsToArmaVec<int>(Handle<Value> itv);
+template Handle<Object> convArmaVecToJs<int>(arma::Col<int> const &it);
+template bool canConvJsToArmaMat<int>(Handle<Value> it);
+template arma::Mat<int> convJsToArmaMat<int>(Handle<Value> it, size_t nRows, size_t nCols);
+template Handle<Object> convArmaMatToJs<int>(arma::Mat<int> const &it);
+
+template bool canConvJsToArmaVec<u_int>(Handle<Value> itv);
+template arma::Col<u_int> convJsToArmaVec<u_int>(Handle<Value> itv);
+template Handle<Object> convArmaVecToJs<u_int>(arma::Col<u_int> const &it);
+template bool canConvJsToArmaMat<u_int>(Handle<Value> it);
+template arma::Mat<u_int> convJsToArmaMat<u_int>(Handle<Value> it, size_t nRows, size_t nCols);
+template Handle<Object> convArmaMatToJs<u_int>(arma::Mat<u_int> const &it);
+
+#if 0
+template bool canConvJsToArmaVec<arma::cx_double>(Handle<Value> itv);
+template arma::Col<arma::cx_double> convJsToArmaVec<arma::cx_double>(Handle<Value> itv);
+template Handle<Object> convArmaVecToJs<arma::cx_double>(arma::Col<arma::cx_double> const &it);
+template bool canConvJsToArmaMat<arma::cx_double>(Handle<Value> it);
+template arma::Mat<arma::cx_double> convJsToArmaMat<arma::cx_double>(Handle<Value> it, size_t nRows, size_t nCols);
+template Handle<Object> convArmaMatToJs<arma::cx_double>(arma::Mat<arma::cx_double> const &it);
+#endif

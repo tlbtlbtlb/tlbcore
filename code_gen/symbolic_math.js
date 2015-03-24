@@ -105,7 +105,9 @@ SymbolicContext.prototype.dedup = function(e) {
   var c = this;
   assert.strictEqual(e.c, c);
   while (e.opInfo && e.opInfo.impl.replace) {
-    e = e.opInfo.impl.replace.call(e);
+    var newe = e.opInfo.impl.replace.call(e);
+    if (!newe) break;
+    e = newe;
   }
   assert.strictEqual(e.c, c);
   var cse = c.cses[e.cseKey];
@@ -122,6 +124,7 @@ SymbolicContext.prototype.V = function(type, name) {
 
 SymbolicContext.prototype.A = function(name, value) {
   var c = this;
+  if (0) value.printName = name;
   var e = c.dedup(new SymbolicAssign(c, 
                                      value.type,
                                      name,
@@ -261,6 +264,9 @@ SymbolicContext.prototype.emitCppCses = function(e, f, availCses, costs) {
       if ((costs[e.cseKey] || 0) >= 1) {
         // Wrong for composite types, use TypeRegistry
         f(e.type + ' ' + e.cseKey + ' = ' + c.getCExpr(e, availCses) + ';');
+        if (e.printName) {
+          f('eprintf("' + e.printName + ' ' + e.cseKey + ' = %s\\n", asJson(' + e.cseKey + ').it.c_str());');
+        }
         availCses[e.cseKey] = true;
       }
     }
@@ -353,16 +359,34 @@ defop('double',  'sin',     	'double', {
 	       c.E('cos', a));
   },
 });
+defop('double',  '-sin',     	'double', {
+  imm: function(a) { return -Math.sin(a); },
+  c: function(a) { return '-sin(' + a + ')'; },
+  deriv: function(wrt, a) {
+    var c = this.c;
+    return c.E('*',
+	       c.D(wrt, a),
+	       c.E('-cos', a));
+  },
+});
 defop('double',  'cos',     	'double', {
   imm: function(a) { return Math.cos(a); },
   c: function(a) { return 'cos(' + a + ')'; },
   deriv: function(wrt, a) {
     var c = this.c;
     return c.E('*',
-	       c.C('double', '-1'),
-	       c.E('*',
-		   c.D(wrt, a),
-		   c.E('sin', a)));
+	       c.D(wrt, a),
+	       c.E('-sin', a));
+  },
+});
+defop('double',  '-cos',     	'double', {
+  imm: function(a) { return -Math.cos(a); },
+  c: function(a) { return '-cos(' + a + ')'; },
+  deriv: function(wrt, a) {
+    var c = this.c;
+    return c.E('*',
+	       c.D(wrt, a),
+	       c.E('sin', a));
   },
 });
 defop('double',  'tan',     	'double', {
@@ -387,6 +411,12 @@ defop('double',  'log',     	'double', {
 defop('double',  '*',       	'double', 'double', {
   imm: function(a, b) { return a * b; },
   c: function(a, b) { return '(' + a + ' * ' + b + ')'; },
+  replace: function() {
+    if (this.args[0] instanceof SymbolicConst && this.args[0].value === 0) return this.args[0];
+    if (this.args[1] instanceof SymbolicConst && this.args[1].value === 0) return this.args[1];
+    if (this.args[0] instanceof SymbolicConst && this.args[0].value === 1) return this.args[1];
+    if (this.args[1] instanceof SymbolicConst && this.args[1].value === 1) return this.args[0];
+  },
   deriv: function(wrt, a, b) {
     var c = this.c;
     return c.E('+',
@@ -529,7 +559,8 @@ defop('arma::mat44',        'arma::mat44',
 		     c.D(wrt, this.args[12]),
 		     c.D(wrt, this.args[13]),
 		     c.D(wrt, this.args[14]),
-		     c.D(wrt, this.args[15]));
+		     c.D(wrt, this.args[15])
+                    );
 	},
       });
 
@@ -550,7 +581,7 @@ defop('arma::mat44',        'mat44RotationX',   'double', {
                c.C('double', 0),
                
                c.C('double', 0),
-               c.E('*', c.C('double', -1), c.E('sin', a)),
+               c.E('-sin', a),
 	       c.E('cos', a),
 	       c.C('double', 0),
                
@@ -568,7 +599,7 @@ defop('arma::mat44',        'mat44RotationY',   'double', {
     return c.E('arma::mat44',
                c.E('cos', a),
                c.C('double', 0),
-               c.E('*', c.C('double', -1), c.E('sin', a)),
+               c.E('-sin', a),
                c.C('double', 0),
                
                c.C('double', 0),
@@ -597,7 +628,7 @@ defop('arma::mat44',        'mat44RotationZ',   'double', {
                c.C('double', 0),
                c.C('double', 0),
                
-               c.E('*', c.C('double', -1), c.E('sin', a)),
+               c.E('-sin', a),
                c.E('cos', a),
                c.C('double', 0),
                c.C('double', 0),
@@ -645,8 +676,9 @@ defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
     var c = this.c;
     return c.E('+',
 	       c.E('*', a, c.D(wrt, b)),
-	       c.E('*', b, c.D(wrt, a)));
+	       c.E('*', c.D(wrt, a), b));
   },
+  print: true,
 });
 
 defop('arma::mat44',    '+',           'arma::mat44', 'arma::mat44', {
