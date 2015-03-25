@@ -11,6 +11,8 @@ var crypto              = require('crypto');
 exports.defop = defop;
 exports.SymbolicContext = SymbolicContext;
 
+var optimize = true;
+
 var defops = {};
 
 function defop(retType, op /*, argTypes..., impl */) {
@@ -142,8 +144,17 @@ SymbolicContext.prototype.E = function(op /*, args... */) {
   var c = this;
   var args = [];
   for (var argi=1; argi < arguments.length; argi++) args.push(arguments[argi]);
-  _.each(args, function(arg) {
-    assert.strictEqual(arg.c, c);
+  args = _.map(args, function(arg) {
+    if (_.isObject(arg)) {
+      assert.strictEqual(arg.c, c);
+      return arg;
+    }
+    else if (_.isNumber(arg)) {
+      return c.C('double', arg);
+    }
+    else {
+      throw new Error('Unknown arg type' + util.inspect(arg));
+    }
   });
   return c.dedup(new SymbolicExpr(c, op, args));
 };
@@ -303,6 +314,8 @@ function SymbolicAssign(c, type, name, value) {
   e.cseKey = 'A' + simpleHash(e.type + ',' + e.name + ',' + value.cseKey);
   e.cseCost = 1.0;
 }
+SymbolicAssign.prototype.isZero = function() { return false; }
+SymbolicAssign.prototype.isOne = function() { return false; }
 
 function SymbolicVar(c, type, name) {
   var e = this;
@@ -312,6 +325,8 @@ function SymbolicVar(c, type, name) {
   e.cseKey = 'V' + simpleHash(e.type + ',' + e.name);
   e.cseCost = 0.25;
 }
+SymbolicVar.prototype.isZero = function() { return false; }
+SymbolicVar.prototype.isOne = function() { return false; }
 
 function SymbolicConst(c, type, value) {
   var e = this;
@@ -320,6 +335,18 @@ function SymbolicConst(c, type, value) {
   e.value = value;
   e.cseKey = 'C' + simpleHash(e.type + ',' + e.value.toString());
   e.cseCost = 0.25;
+}
+SymbolicConst.prototype.isZero = function() { 
+  var e = this;
+  if (e.type === 'double' && e.value === 0) return true;
+  if (e.type === 'arma::mat4' && e.value === 0) return true;
+  return false; 
+}
+SymbolicConst.prototype.isOne = function() { 
+  var e = this;
+  if (e.type === 'double' && e.value === 1) return true;
+  if (e.type === 'arma::mat4' && e.value === 1) return true;
+  return false; 
 }
 
 function SymbolicExpr(c, op, args) {
@@ -343,7 +370,23 @@ function SymbolicExpr(c, op, args) {
   e.cseKey = 'E' + simpleHash(e.type + ',' + e.op + ',' + _.map(e.args, function(arg) { return arg.cseKey; }).join(','));
   e.cseCost = 1.0;
 }
+SymbolicExpr.prototype.isZero = function() { 
+  var e = this;
+  if (e.opInfo.impl.isZero) {
+    return e.opInfo.impl.isZero.call(e);
+  }
+  return false; 
+}
+SymbolicExpr.prototype.isOne = function() { 
+  var e = this;
+  if (e.opInfo.impl.isOne) {
+    return e.opInfo.impl.isOne.call(e);
+  }
+  return false; 
+}
 
+
+// ----------------------------------------------------------------------
 
 defop('double',  'pow',     	'double', 'double', {
   imm: function(a, b) { return Math.pow(a,b); },
@@ -412,10 +455,10 @@ defop('double',  '*',       	'double', 'double', {
   imm: function(a, b) { return a * b; },
   c: function(a, b) { return '(' + a + ' * ' + b + ')'; },
   replace: function() {
-    if (this.args[0] instanceof SymbolicConst && this.args[0].value === 0) return this.args[0];
-    if (this.args[1] instanceof SymbolicConst && this.args[1].value === 0) return this.args[1];
-    if (this.args[0] instanceof SymbolicConst && this.args[0].value === 1) return this.args[1];
-    if (this.args[1] instanceof SymbolicConst && this.args[1].value === 1) return this.args[0];
+    if (this.args[0].isZero()) return this.args[0];
+    if (this.args[1].isZero()) return this.args[1];
+    if (this.args[0].isOne()) return this.args[1];
+    if (this.args[1].isOne()) return this.args[0];
   },
   deriv: function(wrt, a, b) {
     var c = this.c;

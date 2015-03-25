@@ -800,7 +800,7 @@ bool rdJson(const char *&s, arma::Row<T> &arr) {
 // Json - arma::Mat
 template<typename T>
 size_t wrJsonSize(arma::Mat<T> const &arr) {
-  size_t ret = 3 + 1*arr.n_rows;
+  size_t ret = 2;
   for (size_t i = 0; i < arr.n_elem; i++) {
     ret += wrJsonSize(arr(i)) + 1;
   }
