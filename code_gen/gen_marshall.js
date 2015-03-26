@@ -523,18 +523,28 @@ function emitArgSwitch(f, typereg, thisType, argSets) {
   _.each(argSets, function(argSet) {
     
     f(ifSep + 'if (args.Length() ' + (argSet.ignoreExtra ? '>=' : '==') + ' ' + argSet.args.length +
-      _.map(argSet.args, function(argInfo, argi) {
-        var argType = typereg.getType(argInfo);
-	if (!argType) {
-	  throw new Error('No type found for ' + util.inspect(argInfo) + ' in [' + util.inspect(argSet) + ']');
+      _.map(argSet.args, function(argTypename, argi) {
+	if (argTypename === 'Object') {
+	  return ' && args[' + argi + ']->IsObject()';
 	}
-        return ' && ' + argType.getJsToCppTest('args[' + argi + ']');
+	else {
+          var argType = typereg.getType(argTypename);
+	  if (!argType) {
+	    throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
+	  }
+          return ' && ' + argType.getJsToCppTest('args[' + argi + ']');
+	}
       }).join('') +
       ') {');
     
-    _.each(argSet.args, function(argInfo, argi) {
-      var argType = typereg.getType(argInfo);
-      f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']') + ';');
+    _.each(argSet.args, function(argTypename, argi) {
+      if (argTypename === 'Object') {
+	f('Local<Object> a' + argi + ' = args[' + argi + ']->ToObject();');
+      }
+      else {
+	var argType = typereg.getType(argTypename);
+	f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']') + ';');
+      }
     });
 
     if (argSet.returnType) {
@@ -2375,7 +2385,20 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 	f('thisObj->assignConstruct(' + _.map(constructorArgs, function(argInfo, argi) {
 	  return 'a'+argi;
 	}) + ');');
-      }}
+      }},
+      {args: ['Object'], code: function() {
+	if (constructorArgs.length !== type.orderedNames.length) {
+	  f('return ThrowRuntimeError("Cannot construct this type from hash because it has extraConstructorArgs or superTypes");');
+	} else {
+	  f('thisObj->assignConstruct(' + _.map(type.orderedNames, function(memberName, argi) {
+            var memberType = type.reg.getType(type.nameToType[memberName]);
+	    if (!memberType) {
+	      throw new Error('No type found for ' + util.inspect(memberName));
+	    }
+            return memberType.getJsToCppExpr('a0->Get(String::NewSymbol("' + memberName + '"))');
+	  }) + ');');
+	}
+      }},
     ]);
 
     f('thisObj->Wrap2(args.This());');

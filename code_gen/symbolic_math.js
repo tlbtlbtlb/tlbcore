@@ -542,16 +542,15 @@ defop('double',  'sqrt',        'double', {
 });
 
 defop('double',  'jointRange',        'double', 'double', 'double', {
-  imm: function(a, lo, hi) { return (lo + a*(hi-lo)) * (Math.PI/180.0); },
-  c: function(a, lo, hi) { return '((' + lo + ' + ' + a + ' * (' + hi + ' - ' + lo + ')) * M_PI/180.0)'; },
+  imm: function(a, lo, hi) { return ((lo+hi)*0.5 + a*(hi-lo)*0.5) * (Math.PI/180.0); },
+  c: function(a, lo, hi) { return '(((' + lo + ' + ' + hi + ') + ' + a + ' * ' + '(' + hi + ' - ' + lo + '))*0.5*M_PI/180.0)'; },
   deriv: function(wrt, a, lo, hi) {
     var c = this.c;
     return c.E('*', 
                c.D(wrt, a),
-               c.E('*',
-                   c.C('double', Math.PI/180),
-                   c.E('-', hi, lo)));
-               
+               c.E('*', 
+		   c.E('-', hi, lo),
+		   c.C('double', 0.5*Math.PI/180)));
   }
 });
 

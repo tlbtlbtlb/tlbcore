@@ -36,7 +36,7 @@ function mkWebSocketRpc(wsc, handlers) {
       }
     };
     wsc.onopen = function(event) {
-      if (verbose >= 1) console.log(wsc.url + ' Opened');
+      if (verbose >= 2) console.log(wsc.url + ' Opened');
       if (txQueue) {
         _.each(txQueue, function(m) {
           emitMsg(m);
@@ -50,7 +50,7 @@ function mkWebSocketRpc(wsc, handlers) {
         handlers.close();
       } 
 
-      if (verbose >= 1) console.log(wsc.url + ' Closed');
+      if (verbose >= 2) console.log(wsc.url + ' Closed');
       txQueue = [];
       if (!shutdownRequested) {	
 	if (handlers.reopen) {

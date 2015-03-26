@@ -800,14 +800,14 @@ $.fn.animation2 = function(m) {
       var dt = (lastTime ? Math.min(curTime - lastTime, 200) : 20) * 0.001;
       lastTime = curTime;
       if (m.animate) m.animate(dt);
-      m.emit('animate');
+      m.emit('animate', dt);
       window.requestAnimationFrame(wrap);
     } 
     else if (changesPending > 0) {
       changesPending--;
       if (changesPending === 0) {
 	m.fastDraw = false;
-	m.emit('animate');
+	m.emit('animate', 0.0);
       }
       window.requestAnimationFrame(wrap);
     } 
@@ -1344,7 +1344,7 @@ function mkWebSocket(path, handlers) {
 
   // WRITEME: detect vendor-prefixed WebSocket.
   // WRITEME: Give some appropriately dire error message if websocket not found or fails to connect
-  console.log('Opening websocket to', wsUrl);
+  if (0) console.log('Opening websocket to', wsUrl);
   var wsc = new WebSocket(wsUrl);
   return WebSocketBrowser.mkWebSocketRpc(wsc, handlers);
 }

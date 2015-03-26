@@ -107,7 +107,7 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
 	res.writeHead(302, {
 	  'Set-Cookie': cookie.serialize('access_token', 'github ' + accessTokenInfo['access_token'], {
 	    path: '/',
-	    maxAge: 86400,
+	    maxAge: 30*86400,
 	    httpOnly: false,
 	    secure: (up.protocol === 'https:')
 	  }),

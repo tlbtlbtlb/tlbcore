@@ -130,38 +130,48 @@ var Geom2D = {
 };
 
 /*
+  These use a 3x4 matrix stored in column-major order, so the elements are
+    0  3  6  9
+    1  4  7  10
+    2  5  8  11
   For maximum convenience, import these with
   var I = Geom3D.I, T = Geom3D.T, S = Geom3D.S
 */
 
 var Geom3D = {
   I: function() { // identity matrix
-    return [[1, 0, 0, 0],
-	    [0, 1, 0, 0]
-	    [0, 0, 1, 0]];
+    return [1, 0, 0,
+	    0, 1, 0,
+	    0, 0, 1,
+	    0, 0, 0];
   },
   T: function T(t, x, y, z) { // Transform a local coordinate
-    return [[t[0][0], t[0][1], t[0][2], t[0][0]*x + t[0][1]*y + t[0][2]*z + t[0][3]],
-	    [t[1][0], t[1][1], t[1][2], t[1][0]*x + t[1][1]*y + t[1][2]*z + t[1][3]],
-	    [t[2][0], t[2][1], t[2][2], t[2][0]*x + t[2][1]*y + t[2][2]*z + t[2][3]],
-	   ];
+    return [t[0], t[1], t[2], 
+	    t[3], t[4], t[5],
+	    t[6], t[7], t[8],
+	    t[9] + t[0]*x + t[3]*y + t[6]*z, 
+	    t[10] + t[1]*x + t[4]*y + t[7]*z, 
+	    t[11] + t[2]*x + t[5]*y + t[8]*z];
   },
   S: function S(t, s) { // Scale
-    return [[t[0][0]*s,   t[0][1]*s, t[0][2]*s, t[0][3]],
-	    [t[1][0]*s,   t[1][1]*s, t[1][2]*s, t[1][3]],
-	    [t[2][0]*s,   t[2][1]*s, t[2][2]*s, t[2][3]]];
+    return [t[0]*s,   t[1]*s, t[2]*s,
+	    t[3]*s,   t[4]*s, t[5]*s,
+	    t[6]*s,   t[7]*s, t[8]*s,
+	    t[9], t[10], t[11]];
+	    
   },
   fromOrientation: function(m) {
-    return [[m[0][0], m[0][1], m[0][2], 0],
-	    [m[1][0], m[1][1], m[1][2], 0],
-	    [m[2][0], m[2][1], m[2][2], 0]];
+    return [m[0], m[1], m[2],
+	    m[3], m[4], m[5],
+	    m[6], m[7], m[8],
+	    0, 0, 0];
   },
   toScreen: function(t, xc, yc, zc) {
-    var persp = zc/(zc + t[1][3]);
+    var persp = zc/(zc + t[10]);
     // X is right, Y is away from viewer, Z is up
-    return [xc + t[0][3]*persp,
-	    yc - t[2][3]*persp,
-	    zc + t[1][3]];
+    return [xc + t[9]*persp,
+	    yc - t[11]*persp,
+	    zc + t[10]];
   },
   depthSort: function(faces) {
     return _.sortBy(faces, function(face) {
