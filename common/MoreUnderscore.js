@@ -150,12 +150,21 @@ _.mixin({
     if (x === undefined || x === null) {
       return "";
     }
+    if (x.length && typeof x.length === 'number') {
+      return '[' + _.map(x, _.fmt3).join(' ') + ']';
+    }
+    if (_.isFunction(x.inspect)) {
+      return x.inspect(0);
+    }
     return (x < 0 ? '' : '+') + x.toFixed(3);
   },
   
   fmt6: function(x) {
     if (x === undefined || x === null) {
       return "";
+    }
+    if (x.length && typeof x.length === 'number') {
+      return '[' + _.map(x, _.fmt6).join(' ') + ']';
     }
     return (x < 0 ? '' : '+') + x.toFixed(6);
   }

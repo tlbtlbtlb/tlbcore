@@ -1490,6 +1490,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
   }
 
   if (type.templateName === 'arma::Col' || 
+      type.templateName === 'arma::Col::fixed' || 
+      type.templateName === 'arma::Row' || 
+      type.templateName === 'arma::Row::fixed' || 
       type.templateName === 'arma::subview_row' || 
       type.templateName === 'arma::subview_col') {
     var elType = type.reg.types[type.templateArgs[0]];
@@ -1499,12 +1502,20 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('return scope.Close(Number::New(thisObj->it->n_rows));');
     f('}');
     accessors.push({name: 'n_rows', get: true});
+
     f('static Handle<Value> jsGet_JSTYPE_n_elem(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
     f('return scope.Close(Number::New(thisObj->it->n_elem));');
     f('}');
     accessors.push({name: 'n_elem', get: true});
+
+    f('static Handle<Value> jsGet_JSTYPE_length(Local<String> name, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('return scope.Close(Number::New(thisObj->it->n_elem));');
+    f('}');
+    accessors.push({name: 'length', get: true});
 
     f('static Handle<Value> jsGetIndexed_JSTYPE(unsigned int index, AccessorInfo const &ai) {');
     f('HandleScope scope;');
@@ -1529,7 +1540,8 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     accessors.push({isIndexed: true, get: true, set: true});
   }
 
-  if (type.templateName === 'arma::Mat') {
+  if (type.templateName === 'arma::Mat' ||
+      type.templateName === 'arma::Mat::fixed') {
     f('static Handle<Value> jsGet_JSTYPE_n_rows(Local<String> name, AccessorInfo const &ai) {');
     f('HandleScope scope;');
     f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
@@ -1548,6 +1560,13 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('return scope.Close(Number::New(thisObj->it->n_elem));');
     f('}');
     accessors.push({name: 'n_elem', get: true});
+    f('static Handle<Value> jsGet_JSTYPE_length(Local<String> name, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('return scope.Close(Number::New(thisObj->it->n_elem));');
+    f('}');
+    accessors.push({name: 'length', get: true});
+
 
     emitJsWrap(f, 'JSTYPE_row', function() {
       emitArgSwitch(f, type.reg, type, [{
@@ -1590,6 +1609,13 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
 
   if (type.templateName === 'vector') {
+
+    f('static Handle<Value> jsGet_JSTYPE_length(Local<String> name, AccessorInfo const &ai) {');
+    f('HandleScope scope;');
+    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+    f('return scope.Close(Number::New(thisObj->it->size()));');
+    f('}');
+    accessors.push({name: 'length', get: true});
 
     f('static Handle<Value> jsGetIndexed_JSTYPE(unsigned int index, AccessorInfo const &ai) {');
     f('HandleScope scope;');
