@@ -124,6 +124,14 @@ SymbolicContext.prototype.V = function(type, name) {
   return c.dedup(new SymbolicVar(c, type, name));
 };
 
+// Conveniences for most common types
+SymbolicContext.prototype.Vi = function(name) { return this.V('int', name); }
+SymbolicContext.prototype.Vd = function(name) { return this.V('double', name); }
+SymbolicContext.prototype.Vm33 = function(name) { return this.V('arma::mat33', name); }
+SymbolicContext.prototype.Vm44 = function(name) { return this.V('arma::mat44', name); }
+SymbolicContext.prototype.Vv3 = function(name) { return this.V('arma::vec3', name); }
+SymbolicContext.prototype.Vv4 = function(name) { return this.V('arma::vec4', name); }
+
 SymbolicContext.prototype.A = function(name, value) {
   var c = this;
   if (0) value.printName = name;
@@ -140,11 +148,19 @@ SymbolicContext.prototype.C = function(type, value) {
   return c.dedup(new SymbolicConst(c, type, value));
 };
 
+SymbolicContext.prototype.Ci = function(value) { return this.C('int', value); }
+SymbolicContext.prototype.Cd = function(value) { return this.C('double', value); }
+SymbolicContext.prototype.Cm33 = function(value) { return this.C('arma::mat33', value); }
+SymbolicContext.prototype.Cm44 = function(value) { return this.C('arma::mat44', value); }
+SymbolicContext.prototype.Cv3 = function(value) { return this.C('arma::vec3', value); }
+SymbolicContext.prototype.Cv4 = function(value) { return this.C('arma::vec4', value); }
+
+
 SymbolicContext.prototype.E = function(op /*, args... */) {
   var c = this;
   var args = [];
   for (var argi=1; argi < arguments.length; argi++) args.push(arguments[argi]);
-  args = _.map(args, function(arg) {
+  args = _.map(args, function(arg, argi) {
     if (_.isObject(arg)) {
       assert.strictEqual(arg.c, c);
       return arg;
@@ -153,7 +169,8 @@ SymbolicContext.prototype.E = function(op /*, args... */) {
       return c.C('double', arg);
     }
     else {
-      throw new Error('Unknown arg type' + util.inspect(arg));
+      debugger;
+      throw new Error('Unknown arg type for op ' + op + ', args[' + argi + '] in ' + util.inspect(args));
     }
   });
   return c.dedup(new SymbolicExpr(c, op, args));
@@ -186,6 +203,17 @@ SymbolicContext.prototype.D = function(wrt, e) {
   }
   else {
     throw new Error('Unknown expression type ' + e.toString());
+  }
+};
+
+SymbolicContext.prototype.matrixElem = function(matrix, rowi, coli) {
+  var c = this;
+  assert.strictEqual(matrix.c, c);
+  if (matrix instanceof SymbolicExpr && matrix.op === 'arma::mat44') {
+    return matrix.args[rowi + coli*4];
+  }
+  else {
+    return c.E('(' + rowi + ',' + coli + ')', matrix);
   }
 };
 
@@ -474,6 +502,10 @@ defop('double',  '+',       	'double', 'double', {
     var c = this.c;
     return c.E('+', c.D(wrt, a), c.D(wrt, b));
   },
+  replace: function() {
+    if (this.args[0].isZero()) return this.args[1];
+    if (this.args[1].isZero()) return this.args[0];
+  },
 });
 defop('double',  '-',       	'double', 'double', {
   imm: function(a, b) { return a - b; },
@@ -539,19 +571,6 @@ defop('double',  'sigmoid_22',  'double')
 defop('double',  'sqrt',        'double', {
   imm: function(a) { return Math.sqrt(a); },
   c: function(a) { return 'sqrt(' + a + ')'; },
-});
-
-defop('double',  'jointRange',        'double', 'double', 'double', {
-  imm: function(a, lo, hi) { return ((lo+hi)*0.5 + a*(hi-lo)*0.5) * (Math.PI/180.0); },
-  c: function(a, lo, hi) { return '(((' + lo + ' + ' + hi + ') + ' + a + ' * ' + '(' + hi + ' - ' + lo + '))*0.5*M_PI/180.0)'; },
-  deriv: function(wrt, a, lo, hi) {
-    var c = this.c;
-    return c.E('*', 
-               c.D(wrt, a),
-               c.E('*', 
-		   c.E('-', hi, lo),
-		   c.C('double', 0.5*Math.PI/180)));
-  }
 });
 
 defop('arma::mat33',    'mat33RotationZ',   'double', {
@@ -710,6 +729,22 @@ defop('arma::mat44',        'mat44Translation',   'double', 'double', 'double', 
   }
 });
 
+_.each([0,1,2,3], function(rowi) {
+  _.each([0,1,2,3], function(coli) {
+    defop('double',    '(' + rowi + ',' + coli + ')',           'arma::mat44', {
+      c: function(a) {
+	return '(' + a + '(' + rowi + ',' + coli + '))';
+      },
+      deriv: function(wrt, a) {
+	var c = this.c;
+	return c.Cd(0);
+      }
+    });
+  });
+});
+
+
+
 defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
   c: function(a, b) {
     return '(' + a + ' * ' + b + ')';
@@ -720,6 +755,26 @@ defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
 	       c.E('*', a, c.D(wrt, b)),
 	       c.E('*', c.D(wrt, a), b));
   },
+  replace_tooExpensive: function(wrt) {
+    var c = this.c;
+    var a = this.args[0];
+    var b = this.args[1];
+    var args = ['arma::mat44'];
+
+    _.each([0,1,2,3], function(coli) {
+      _.each([0,1,2,3], function(rowi) {
+	args.push(c.E('+',
+		      c.E('+',
+			  c.E('*', c.matrixElem(a,rowi,0), c.matrixElem(b,0,coli)),
+			  c.E('*', c.matrixElem(a,rowi,1), c.matrixElem(b,1,coli))),
+		      c.E('+',
+			  c.E('*', c.matrixElem(a,rowi,2), c.matrixElem(b,2,coli)),
+			  c.E('*', c.matrixElem(a,rowi,3), c.matrixElem(b,3,coli)))));
+      });
+    });
+    
+    return c.E.apply(c, args);
+  },
   print: true,
 });
 
@@ -727,6 +782,22 @@ defop('arma::mat44',    '+',           'arma::mat44', 'arma::mat44', {
   c: function(a, b) {
     return '(' + a + ' + ' + b + ')';
   },
+
+  replace_tooExpensive: function(wrt) {
+    var c = this.c;
+    var a = this.args[0];
+    var b = this.args[1];
+    var args = ['arma::mat44'];
+
+    _.each([0,1,2,3], function(coli) {
+      _.each([0,1,2,3], function(rowi) {
+	args.push(c.E('+', c.matrixElem(a,rowi,coli), c.matrixElem(b,rowi,coli)));
+      });
+    });
+    
+    return c.E.apply(c, args);
+  },
+
 });
 
 

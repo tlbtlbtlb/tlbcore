@@ -2,6 +2,7 @@
 #include "./geom_math.h"
 #include "./solid_geometry.h"
 #include "../numerical/haltonseq.h"
+#include "../common/jsonio.h"
 
 using namespace arma;
 
@@ -151,9 +152,9 @@ StlFace::rayIntersects(vec3 const &p, vec3 const &d, double &t) const
 void
 StlFace::transform(mat44 const &m)
 {
-  v0 = m * v0;
-  v1 = m * v1;
-  v2 = m * v2;
+  v0 = vecFromHomo(m * vecToHomo(v0));
+  v1 = vecFromHomo(m * vecToHomo(v1));
+  v2 = vecFromHomo(m * vecToHomo(v2));
 
   normal = justRotation(m) * normal;
 }
@@ -226,7 +227,7 @@ StlSolid::readBinaryFile(FILE *fp, double scale)
   uint32_t nTriangles=0;
   if (fread(&nTriangles, sizeof(uint32_t), 1, fp) != 1) throw runtime_error("reading n_triangles");
 
-  faces.reserve(nTriangles);
+  faces.reserve(faces.size() + nTriangles);
   
   for (uint32_t ti=0; ti<nTriangles; ti++) {
 
@@ -251,6 +252,53 @@ StlSolid::readBinaryFile(FILE *fp, double scale)
   calcBbox();
 
   if (0) eprintf("Read %d faces\n", nTriangles);
+}
+
+void
+StlSolid::writeBinaryFile(FILE *fp, double scale)
+{
+  char dummyline[80];
+  memset(dummyline, 0, 80);
+  if (fwrite(dummyline, 1, 80, fp) != 80) throw runtime_error("writing header");
+
+  uint32_t nTriangles = (uint32_t)faces.size();
+  if (fwrite(&nTriangles, sizeof(uint32_t), 1, fp) != 1) throw runtime_error("writing n_triangles");
+
+  for (uint32_t ti=0; ti<nTriangles; ti++) {
+    StlFace const &face = faces[ti];
+
+    float data[12];
+
+    data[0] = face.normal[0];
+    data[1] = face.normal[1];
+    data[2] = face.normal[2];
+
+    data[3] = face.v0[0] / scale;
+    data[4] = face.v0[1] / scale;
+    data[5] = face.v0[2] / scale;
+    data[6] = face.v1[0] / scale;
+    data[7] = face.v1[1] / scale;
+    data[8] = face.v1[2] / scale;
+    data[9] = face.v2[0] / scale;
+    data[10] = face.v2[1] / scale;
+    data[11] = face.v2[2] / scale;
+
+    if (fwrite(&data, sizeof(float), 12, fp) != 12) throw runtime_error("writing 12 floats");
+
+    uint16_t attrByteCount = 0;
+    if (fwrite(&attrByteCount, sizeof(uint16_t), 1, fp) != 1) throw runtime_error("writing attrByteCount");
+  }
+
+  if (0) eprintf("Wrote %d faces\n", nTriangles);
+}
+
+void
+StlSolid::merge(StlSolid const *other)
+{
+  for (auto &face : other->faces) {
+    faces.push_back(face);
+  }
+  calcBbox();
 }
 
 
@@ -665,17 +713,32 @@ StlWebglMesh StlSolid::exportWebglMesh(double eps) const
   If you need another direction, transform the StlSolid first.
 */
 
-arma::vec3 StlSolid::analyzeHole()
+arma::vec3 StlSolid::analyzeHole(int axisi)
 {
   const int itercount = 300;
   arma::vec3 fudge {0.001, 0.001, 0.001};
   arma::vec3 corner = bboxLo - fudge;
   arma::vec3 diagonal = bboxHi + fudge - corner;
 
-  vector<arma::vec3> directions;
-  arma::vec3 avec {0, 0, 1};
+  arma::vec3 avec(arma::fill::zeros);
+  if (axisi == 0) {
+    avec[0] = 1;
+  }
+  else if (axisi == 1) {
+    avec[1] = 1;
+  }
+  else if (axisi == 2) {
+    avec[2] = 1;
+  }
+  else {
+    throw runtime_error("analyzeHole: bad axis");
+  }
 
-  for (int testi = 0; testi < itercount; testi++) {
+  if (0) eprintf("analyzeHole(%d) corner=%s diagonal=%s\n", axisi, asJson(corner).it.c_str(), asJson(diagonal).it.c_str());
+
+  vector<arma::vec3> directions;
+
+  for (int testi = 0; testi < itercount && directions.size() < 20; testi++) {
     /* 
        Choose random points along the Z axis
        and a vector of unit length in a random direction in the XY plane.
@@ -684,8 +747,26 @@ arma::vec3 StlSolid::analyzeHole()
     double th = unipolarHaltonAxis(testi, 3) * (M_PI*2.0);
     double height = unipolarHaltonAxis(testi, 5);
     
-    arma::vec3 pt {0, 0, corner[2] + avec[2] * height};
-    arma::vec3 d {cos(th), sin(th), 0};
+    arma::vec3 pt(arma::fill::zeros);
+    arma::vec3 d(arma::fill::zeros);
+    if (axisi == 0) {
+      pt[0] = corner[0] + height * diagonal[0];
+      d[1] = cos(th);
+      d[2] = sin(th);
+    }
+    else if (axisi == 1) {
+      pt[1] = corner[1] + height * diagonal[1];
+      d[0] = cos(th);
+      d[2] = sin(th);
+    }
+    else if (axisi == 2) {
+      pt[2] = corner[2] + height * diagonal[2];
+      d[0] = cos(th);
+      d[1] = sin(th);
+    }
+    else {
+      throw runtime_error("analyzeHole: bad axis");
+    }
     
     auto intersections = getIntersections(pt, d);
     for (size_t intersectioni=0; intersectioni < 2 && intersectioni < intersections.size(); intersectioni++) {
@@ -705,8 +786,15 @@ arma::vec3 StlSolid::analyzeHole()
   if (directions.size() < 10) return arma::vec3 {0, 0, 0};
   
   sort(directions.begin(), directions.end(), [&](arma::vec3 const &a, arma::vec3 const &b) {
-      return dot(avec, a) < dot(avec, b);
+      return dot(avec, b) < dot(avec, a);
     });
+
+  if (0) {
+    for (auto ax : directions) {
+      eprintf("sorted     +%0.3f +%0.3f %+0.3f\n", ax[0], ax[1], ax[2]);
+    }
+  }
+
 
   // Keep only best 70%
   directions.resize(directions.size() * 7 / 10);

@@ -3,6 +3,7 @@
 #include "build.src/vec_jsWrap.h"
 #include "build.src/ivec_jsWrap.h"
 #include "build.src/mat_jsWrap.h"
+#include "build.src/mat44_jsWrap.h"
 #include "./solid_geometry_jswrap.h"
 
 using namespace arma;
@@ -81,6 +82,40 @@ static Handle<Value> jsWrap_StlSolid_readBinaryFile(const Arguments& args)
     }
     thisObj->it->readBinaryFile(fp, a1);
     fclose(fp);
+    return scope.Close(Undefined());
+  }
+  else {
+    return ThrowInvalidArgs();
+  }
+}
+
+static Handle<Value> jsWrap_StlSolid_writeBinaryFile(const Arguments& args)
+{
+  HandleScope scope;
+  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
+  if (args.Length() == 2 && canConvJsToString(args[0]) && args[1]->IsNumber()) {
+    string a0 = convJsToString(args[0]);
+    double a1 = args[1]->NumberValue();
+    FILE *fp = fopen(a0.c_str(), "wb");
+    if (!fp) {
+      return ThrowRuntimeError(stringprintf("Can't write %s", a0.c_str()).c_str());
+    }
+    thisObj->it->writeBinaryFile(fp, a1);
+    fclose(fp);
+    return scope.Close(Undefined());
+  }
+  else {
+    return ThrowInvalidArgs();
+  }
+}
+
+static Handle<Value> jsWrap_StlSolid_transform(const Arguments& args)
+{
+  HandleScope scope;
+  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
+  if (args.Length() == 1 && JsWrap_mat44::Extract(args[0]) != nullptr) {
+    arma::mat44 a0 = *JsWrap_mat44::Extract(args[0]);
+    thisObj->it->transform(a0);
     return scope.Close(Undefined());
   }
   else {
@@ -167,8 +202,9 @@ static Handle<Value> jsWrap_StlSolid_analyzeHole(const Arguments& args)
 {
   HandleScope scope;
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
-  if (args.Length() == 0) {
-    arma::vec3 ret = thisObj->it->analyzeHole();
+  if (args.Length() == 1 && args[0]->IsNumber()) {
+    double a0 = args[0]->NumberValue();
+    arma::vec3 ret = thisObj->it->analyzeHole((int)a0);
     return scope.Close(JsWrap_vec::NewInstance(ret));
   }
   else {
@@ -209,6 +245,8 @@ void jsInit_StlSolid(Handle<Object> exports) {
   tpl->PrototypeTemplate()->Set(String::NewSymbol("inspect"), FunctionTemplate::New(jsWrap_StlSolid_inspect)->GetFunction());
 
   tpl->PrototypeTemplate()->Set(String::NewSymbol("readBinaryFile"), FunctionTemplate::New(jsWrap_StlSolid_readBinaryFile)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("writeBinaryFile"), FunctionTemplate::New(jsWrap_StlSolid_writeBinaryFile)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewSymbol("transform"), FunctionTemplate::New(jsWrap_StlSolid_transform)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getStlMassProperties"), FunctionTemplate::New(jsWrap_StlSolid_getStlMassProperties)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("getIntersections"), FunctionTemplate::New(jsWrap_StlSolid_getIntersections)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewSymbol("removeTinyFaces"), FunctionTemplate::New(jsWrap_StlSolid_removeTinyFaces)->GetFunction());

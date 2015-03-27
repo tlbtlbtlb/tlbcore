@@ -16,6 +16,7 @@ function mkWebSocketRpc(wsc, handlers) {
   var callbacks = {};
   var rxBinaries = [];
   var shutdownRequested = false;
+  var interactivePending = null;
 
   setupWsc();
   setupHandlers();
@@ -102,6 +103,12 @@ function mkWebSocketRpc(wsc, handlers) {
         return;
       }
       rspFunc.call(handlers, msg.rsp);
+
+      if (interactivePending && pending.pendingCount < 3) {
+	var tip = interactivePending;
+	interactivePending = null;
+	handlers.rpc(tip.rpcReq, tip.args, tip.rspFunc);
+      }
     }
 
 
@@ -122,6 +129,13 @@ function mkWebSocketRpc(wsc, handlers) {
       var rpcId = pending.getNewId();
       pending.add(rpcId, rspFunc);
       handlers.tx({rpcReq: rpcReq, rpcId: rpcId, args: args});
+    };
+    handlers.interactiveRpc = function(rpcReq, args, rspFunc) {
+      if (pending.pendingCount < 3) {
+	return handlers.rpc(rpcReq, args, rspFunc);
+      }
+      // overwrite any previous one
+      interactivePending = {rpcReq: rpcReq, args: args, rspFunc: rspFunc};
     };
     handlers.callback = function(rpcReq, args, rspFunc) {
       var rpcId = pending.getNewId();

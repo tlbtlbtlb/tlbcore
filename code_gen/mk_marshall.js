@@ -4,7 +4,6 @@ var util                = require('util');
 var _                   = require('underscore');
 var cgen                = require('./cgen');
 var gen_marshall        = require('./gen_marshall');
-var gen_functions       = require('./gen_functions');
 var symbolic_math       = require('./symbolic_math');
 
 

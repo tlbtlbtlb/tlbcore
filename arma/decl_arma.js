@@ -69,6 +69,11 @@ module.exports = function(typereg) {
 
         var isInteger = (et === 'int' || et === 'u_int');
         var isComplex = (et === 'arma::cx_double');
+
+	if (!isInteger) {
+          typereg.scanCFunctions(mTypename + ' inv(' + mTypename + ' a);');
+	}
+
         if (!rowFixed && !colFixed) {
           typereg.scanCFunctions(['ET accu(arma::Col<ET> a);',
                                   'ET accu(arma::Mat<ET> a);',
