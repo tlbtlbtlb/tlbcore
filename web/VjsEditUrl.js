@@ -8,18 +8,14 @@ $.startEditUrl = function() {
       var eu = $('#popupEditUrl');
       if (eu.length) return undefined; // already doing it, let key event propagate
 
-      eu = $('<div id="popupEditUrl">').appendTo(document.body);
-      if (0) eu.on('keydown', function(ev) {
-        console.log('ate', ev);
-        return false;
-      });
+      eu = $('<div id="popupEditBlock"></div><div id="popupEditUrl"></div>').appendTo(document.body);
 
       var state = history.state;
       var pageid = history.state.pageid;
       var options = history.state.o;
       var optionsStr = JSON.stringify(options, false, 2);
 
-      var cm = CodeMirror(eu[0], {
+      var cm = CodeMirror(eu[1], {
         value: optionsStr,
         mode:  {name: 'javascript', json: true},
         keyMap: 'emacs',
@@ -30,6 +26,10 @@ $.startEditUrl = function() {
           'Ctrl-S': function() { saveOptions(); }
         },
       });
+      if (0) {
+	window.cm0 = cm;
+	console.log('CodeMirror stored in window.cm0 for your convenience');
+      }
       return false;
 
       function saveOptions() {

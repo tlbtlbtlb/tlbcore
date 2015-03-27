@@ -157,3 +157,14 @@ blockquote {
     background-color: #ffffff;
     border: 1px solid #555555;
 }
+
+#popupEditBlock {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    opacity: 0.20;
+    z-index: 1099; // high
+    background-color: #ffffff;
+}

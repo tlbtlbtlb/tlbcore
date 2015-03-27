@@ -188,12 +188,17 @@ $.event.special.destroyed = {
 $.fn.bogartWindowEvents = function(evMap) {
   var top = this;
   _.each(evMap, function(fn, name) {
-    $(window).on(name, fn);
-  });
-  top.bind('destroyed', function() {
-    if (0) console.log(top, 'destroyed, removing window events');
-    _.each(evMap, function(fn, name) {
-      $(window).off(name, fn);
+
+    var handler = function(ev) {
+      // But don't work when there's a popupEditUrl dialog going. See VjsEditUrl.js
+      if ($('#popupEditUrl').length) return;
+      fn.call(this, ev);
+    };
+
+    $(window).on(name, handler);
+    top.bind('destroyed', function() {
+      if (0) console.log(top, 'destroyed, removing window events');
+      $(window).off(name, handler);
     });
   });
   return this;
@@ -201,13 +206,19 @@ $.fn.bogartWindowEvents = function(evMap) {
 
 $.fn.bogartBodyEvents = function(evMap) {
   var top = this;
+
   _.each(evMap, function(fn, name) {
-    $(document.body).on(name, fn);
-  });
-  top.bind('destroyed', function() {
-    if (0) console.log(top, 'destroyed, removing body events');
-    _.each(evMap, function(fn, name) {
-      $(document.body).off(name, fn);
+
+    var handler = function(ev) {
+      // But don't work when there's a popupEditUrl dialog going. See VjsEditUrl.js
+      if ($('#popupEditUrl').length) return;
+      fn.call(this, ev);
+    };
+
+    $(document.body).on(name, handler);
+    top.bind('destroyed', function() {
+      if (0) console.log(top, 'destroyed, removing window events');
+      $(document.body).off(name, handler);
     });
   });
   return this;
