@@ -4,7 +4,6 @@ var fs = require('fs');
 var util = require('util');
 var crypto = require('crypto');
 
-exports.passwdHash = passwdHash;
 exports.tokenHash = tokenHash;
 exports.generateToken = generateToken;
 exports.parseToken = parseToken;
@@ -15,15 +14,7 @@ exports.generateCookie = generateCookie;
 
 var verbose    = 1;
 
-function passwdHash(userName, passwd, salt) {
-  var h = crypto.createHmac('sha1', 'very obscure key');
-  h.update(salt + ' ' + userName + ' ' + passwd);
-  var mac = h.digest('hex');
-  return mac;
-}
-
 function tokenHash(userName, timestamp, flags) {
-
   var h = crypto.createHmac('sha1', 'surprising key');
   h.update(userName + ' ' + flags + timestamp.toString(), 'ASCII');
   var mac = h.digest('hex');
