@@ -298,9 +298,10 @@ AnyProvider.prototype.getStats = function() {
 AnyProvider.prototype.getHtmlSize = function() {
   var l = 0;
   if (this.asHtmlHead) l += this.asHtmlHead.length;
-  if (this.asCssHead) l += this.asHtmlHead.length;
+  if (this.asCssHead) l += this.asCssHead.length;
   if (this.asHtmlBody) l += this.asHtmlBody.length;
   if (this.asScriptBody) l += this.asScriptBody.length;
+  if (l === 0) return undefined;
   return l;
 };
 
@@ -566,6 +567,8 @@ function KeyValueProvider(key, value) {
   this.value = value;
 }
 KeyValueProvider.prototype = Object.create(AnyProvider.prototype);
+
+KeyValueProvider.prototype.getDesc = function() { return this.key; }
 
 KeyValueProvider.prototype.equals = function(other) {
   return (this.constructor === other.constructor && this.key === other.key && this.value === other.value);
@@ -956,6 +959,9 @@ ProviderSet.prototype.copy = function() {
 
 ProviderSet.prototype.getStats = function() {
   var ret = AnyProvider.prototype.getStats.apply(this);
+  if (this.asHtml && this.asHtml.length) {
+    ret.htmlSize = this.asHtml.length;
+  }
   ret.components = _.map(this.providers, function(p) { return p.getStats(); } );
   return ret;
 };

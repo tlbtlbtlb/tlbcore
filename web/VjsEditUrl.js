@@ -23,7 +23,8 @@ $.startEditUrl = function() {
         lineNumbers: false,
         autofocus: true,
         extraKeys: {
-          'Ctrl-S': function() { saveOptions(); }
+          'Ctrl-S': function() { saveOptions(); },
+          'Esc': function() { closeEdit(); }
         },
       });
       if (0) {
@@ -44,6 +45,9 @@ $.startEditUrl = function() {
         eu.remove();
         replaceLocationHash(pageid, options2);
         gotoCurrentState();
+      }
+      function closeEdit() {
+        eu.remove();
       }
     }
   });

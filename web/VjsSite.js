@@ -291,14 +291,14 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
 
 WebServer.prototype.getSiteHits = function(cb) {
   var webServer = this;
-  cb(_.map(_.sortBy(_.keys(webServer.serverAccessCounts), _.identity), function(k) {
+  cb(null, _.map(_.sortBy(_.keys(webServer.serverAccessCounts), _.identity), function(k) {
     return {desc: 'http.' + k, hits: webServer.serverAccessCounts[k]};
   }));
 };
 
 WebServer.prototype.getContentStats = function(cb) {
   var webServer = this;
-  cb(_.map(_.sortBy(_.keys(webServer.urlProviders), _.identity), function(k) { 
+  cb(null, _.map(_.sortBy(_.keys(webServer.urlProviders), _.identity), function(k) { 
     return _.extend({}, webServer.urlProviders[k].getStats(), {desc: k});
   }));
 };
