@@ -1,6 +1,10 @@
 #include "./std_headers.h"
 #include "./jsonio.h"
 
+/*
+  Consider basing on https://github.com/esnme/ultrajson instead
+*/
+
 
 jsonstr::jsonstr()
   :it("null")

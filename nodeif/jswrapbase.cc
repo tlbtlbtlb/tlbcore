@@ -205,7 +205,17 @@ map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
 // ----------------------------------------------------------------------
 
 template<typename T>
-bool canConvJsToArmaVec(Handle<Value> itv) {
+bool canConvJsToArmaCol(Handle<Value> itv) {
+  if (itv->IsObject()) {
+    Handle<Object> it = itv->ToObject();
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) return true;
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) return true;
+    if (it->IsArray()) return true;
+  }
+  return false;
+}
+template<typename T>
+bool canConvJsToArmaRow(Handle<Value> itv) {
   if (itv->IsObject()) {
     Handle<Object> it = itv->ToObject();
     if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) return true;
@@ -216,7 +226,7 @@ bool canConvJsToArmaVec(Handle<Value> itv) {
 }
 
 template<typename T>
-arma::Col<T> convJsToArmaVec(Handle<Value> itv) {
+arma::Col<T> convJsToArmaCol(Handle<Value> itv) {
   if (itv->IsObject()) {
     Handle<Object> it = itv->ToObject();
 
@@ -250,11 +260,73 @@ arma::Col<T> convJsToArmaVec(Handle<Value> itv) {
       return ret;
     }
   }
-  throw runtime_error("convJsToArmaVec: not an array");
+  throw runtime_error("convJsToArmaCol: not an array");
+}
+template<typename T>
+arma::Row<T> convJsToArmaRow(Handle<Value> itv) {
+  if (itv->IsObject()) {
+    Handle<Object> it = itv->ToObject();
+
+    // Sort of wrong for T = cx_double. I believe it only sets the real part.
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) {
+      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
+      double* itData = static_cast<double*>(it->GetIndexedPropertiesExternalArrayData());
+
+      arma::Row<T> ret(itLen);
+      for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
+      return ret;
+    }
+
+    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) {
+      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
+      float* itData = static_cast<float*>(it->GetIndexedPropertiesExternalArrayData());
+
+      arma::Row<T> ret(itLen);
+      for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
+      return ret;
+    }
+
+    // Also handle regular JS arrays
+    if (it->IsArray()) {
+      Handle<Array> itArr = Handle<Array>::Cast(it);
+      size_t itArrLen = itArr->Length();
+      arma::Row<T> ret(itArrLen);
+      for (size_t i=0; i<itArrLen; i++) {
+        ret(i) = itArr->Get(i)->NumberValue();
+      }
+      return ret;
+    }
+  }
+  throw runtime_error("convJsToArmaRow: not an array");
 }
 
 template<typename T>
-Handle<Object> convArmaVecToJs(arma::Col<T> const &it) {
+Handle<Object> convArmaColToJs(arma::Col<T> const &it) {
+  static Persistent<Function> float64_array_constructor;
+
+  if (float64_array_constructor.IsEmpty()) {
+    Local<Object> global = Context::GetCurrent()->Global();
+    Local<Value> val = global->Get(String::New("Float64Array"));
+    assert(!val.IsEmpty() && "type not found: Float64Array");
+    assert(val->IsFunction() && "not a constructor: Float64Array");
+    float64_array_constructor = Persistent<Function>::New(val.As<Function>());
+  }
+
+  Local<Value> itSize = Integer::NewFromUnsigned((u_int)it.n_elem);
+  Local<Object> ret = float64_array_constructor->NewInstance(1, &itSize);
+  assert(ret->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray);
+  assert((size_t)ret->GetIndexedPropertiesExternalArrayDataLength() == it.n_elem);
+
+  double* retData = static_cast<double*>(ret->GetIndexedPropertiesExternalArrayData());
+  for (size_t i=0; i<it.n_elem; i++) {
+    retData[i] = it(i);
+  }
+  
+  return ret;
+}
+
+template<typename T>
+Handle<Object> convArmaRowToJs(arma::Row<T> const &it) {
   static Persistent<Function> float64_array_constructor;
 
   if (float64_array_constructor.IsEmpty()) {
@@ -336,39 +408,53 @@ Handle<Object> convArmaMatToJs(arma::Mat<T> const &it)
 
 
 
-template bool canConvJsToArmaVec<double>(Handle<Value> itv);
-template arma::Col<double> convJsToArmaVec<double>(Handle<Value> itv);
-template Handle<Object> convArmaVecToJs<double>(arma::Col<double> const &it);
+template bool canConvJsToArmaCol<double>(Handle<Value> itv);
+template arma::Col<double> convJsToArmaCol<double>(Handle<Value> itv);
+template Handle<Object> convArmaColToJs<double>(arma::Col<double> const &it);
+template bool canConvJsToArmaRow<double>(Handle<Value> itv);
+template arma::Row<double> convJsToArmaRow<double>(Handle<Value> itv);
+template Handle<Object> convArmaRowToJs<double>(arma::Row<double> const &it);
 template bool canConvJsToArmaMat<double>(Handle<Value> it);
 template arma::Mat<double> convJsToArmaMat<double>(Handle<Value> it, size_t nRows, size_t nCols);
 template Handle<Object> convArmaMatToJs<double>(arma::Mat<double> const &it);
 
-template bool canConvJsToArmaVec<float>(Handle<Value> itv);
-template arma::Col<float> convJsToArmaVec<float>(Handle<Value> itv);
-template Handle<Object> convArmaVecToJs<float>(arma::Col<float> const &it);
+template bool canConvJsToArmaCol<float>(Handle<Value> itv);
+template arma::Col<float> convJsToArmaCol<float>(Handle<Value> itv);
+template Handle<Object> convArmaColToJs<float>(arma::Col<float> const &it);
+template bool canConvJsToArmaRow<float>(Handle<Value> itv);
+template arma::Row<float> convJsToArmaRow<float>(Handle<Value> itv);
+template Handle<Object> convArmaRowToJs<float>(arma::Row<float> const &it);
 template bool canConvJsToArmaMat<float>(Handle<Value> it);
 template arma::Mat<float> convJsToArmaMat<float>(Handle<Value> it, size_t nRows, size_t nCols);
 template Handle<Object> convArmaMatToJs<float>(arma::Mat<float> const &it);
 
-template bool canConvJsToArmaVec<int>(Handle<Value> itv);
-template arma::Col<int> convJsToArmaVec<int>(Handle<Value> itv);
-template Handle<Object> convArmaVecToJs<int>(arma::Col<int> const &it);
+template bool canConvJsToArmaCol<int>(Handle<Value> itv);
+template arma::Col<int> convJsToArmaCol<int>(Handle<Value> itv);
+template Handle<Object> convArmaColToJs<int>(arma::Col<int> const &it);
+template bool canConvJsToArmaRow<int>(Handle<Value> itv);
+template arma::Row<int> convJsToArmaRow<int>(Handle<Value> itv);
+template Handle<Object> convArmaRowToJs<int>(arma::Row<int> const &it);
 template bool canConvJsToArmaMat<int>(Handle<Value> it);
 template arma::Mat<int> convJsToArmaMat<int>(Handle<Value> it, size_t nRows, size_t nCols);
 template Handle<Object> convArmaMatToJs<int>(arma::Mat<int> const &it);
 
-template bool canConvJsToArmaVec<u_int>(Handle<Value> itv);
-template arma::Col<u_int> convJsToArmaVec<u_int>(Handle<Value> itv);
-template Handle<Object> convArmaVecToJs<u_int>(arma::Col<u_int> const &it);
+template bool canConvJsToArmaCol<u_int>(Handle<Value> itv);
+template arma::Col<u_int> convJsToArmaCol<u_int>(Handle<Value> itv);
+template Handle<Object> convArmaColToJs<u_int>(arma::Col<u_int> const &it);
+template bool canConvJsToArmaRow<u_int>(Handle<Value> itv);
+template arma::Row<u_int> convJsToArmaRow<u_int>(Handle<Value> itv);
+template Handle<Object> convArmaRowToJs<u_int>(arma::Row<u_int> const &it);
 template bool canConvJsToArmaMat<u_int>(Handle<Value> it);
 template arma::Mat<u_int> convJsToArmaMat<u_int>(Handle<Value> it, size_t nRows, size_t nCols);
 template Handle<Object> convArmaMatToJs<u_int>(arma::Mat<u_int> const &it);
 
-#if 0
-template bool canConvJsToArmaVec<arma::cx_double>(Handle<Value> itv);
-template arma::Col<arma::cx_double> convJsToArmaVec<arma::cx_double>(Handle<Value> itv);
-template Handle<Object> convArmaVecToJs<arma::cx_double>(arma::Col<arma::cx_double> const &it);
+template bool canConvJsToArmaCol<arma::cx_double>(Handle<Value> itv);
+//template arma::Col<arma::cx_double> convJsToArmaCol<arma::cx_double>(Handle<Value> itv);
+//template Handle<Object> convArmaColToJs<arma::cx_double>(arma::Col<arma::cx_double> const &it);
+template bool canConvJsToArmaRow<arma::cx_double>(Handle<Value> itv);
+//template arma::Row<arma::cx_double> convJsToArmaRow<arma::cx_double>(Handle<Value> itv);
+//template Handle<Object> convArmaRowToJs<arma::cx_double>(arma::Row<arma::cx_double> const &it);
 template bool canConvJsToArmaMat<arma::cx_double>(Handle<Value> it);
-template arma::Mat<arma::cx_double> convJsToArmaMat<arma::cx_double>(Handle<Value> it, size_t nRows, size_t nCols);
-template Handle<Object> convArmaMatToJs<arma::cx_double>(arma::Mat<arma::cx_double> const &it);
-#endif
+//template arma::Mat<arma::cx_double> convJsToArmaMat<arma::cx_double>(Handle<Value> it, size_t nRows, size_t nCols);
+//template Handle<Object> convArmaMatToJs<arma::cx_double>(arma::Mat<arma::cx_double> const &it);
+

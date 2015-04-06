@@ -16,10 +16,10 @@ describe('symbolic_math', function() {
     assert.strictEqual(rExpr, '(a1 * a2)');
 
     var rWrtA1Expr = c.D(a1, r);
-    assert.strictEqual(c.getCExpr(rWrtA1Expr), '((a1 * 0) + (a2 * 1))');
+    assert.strictEqual(c.getCExpr(rWrtA1Expr), 'a2');
 
     var rWrtA2Expr = c.D(c.V('double', 'a2'), r);
-    assert.strictEqual(c.getCExpr(rWrtA2Expr), '((a1 * 1) + (a2 * 0))');
+    assert.strictEqual(c.getCExpr(rWrtA2Expr), 'a1');
 
     var rImm = c.getImm(r, {a1: 2, a2: 3});
     assert.strictEqual(rImm, 6);
@@ -32,7 +32,7 @@ describe('symbolic_math', function() {
     var c = new symbolic_math.SymbolicContext(null);
     
     var a = c.V('double', 'a');
-    var az = c.E('mat4RotationZ', a);
+    var az = c.E('mat44RotationZ', a);
     console.log(c.getCExpr(az));
     var b = c.V('arma::mat44', [1, 0, 0, 0,
 				0, 1, 0, 0, 
@@ -49,7 +49,7 @@ describe('symbolic_math', function() {
     var c = new symbolic_math.SymbolicContext(null);
     
     var a = c.V('double', 'body.joints.rht');
-    var az = c.E('mat4RotationZ', a);
+    var az = c.E('mat44RotationZ', a);
     var x = c.C('arma::mat44', [1, 0, 0, 0,
 				0, 1, 0, 0, 
 				0, 0, 1, 0, 

@@ -30,6 +30,9 @@ function mkCodeGen(filename, subs) {
   var subsPattern = new RegExp('(' + _.map(_.keys(subs), _.requote).join('|') + ')', 'g');
 
   function line(code) {
+    if (_.isFunction(code)) {
+      return code(line);
+    }
     if (/(WARNING|ERROR)/.test(code)) {
       util.puts(code);
     }

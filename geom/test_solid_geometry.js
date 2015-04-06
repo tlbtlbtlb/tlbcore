@@ -54,7 +54,7 @@ describe('solid_geometry', function() {
     var s = new ur.StlSolid();
     s.readBinaryFile(require.resolve('./test_pelvis.stl'), 0.001);
     console.log('bbox=', s.bboxLo.toString(), s.bboxHi.toString());
-    var hole = s.analyzeHole();
+    var hole = s.analyzeHole(2);
     console.log('Hole=', hole);
     assert.ok(ur.norm(ur.sub(hole, new ur.vec([0,0,1])), 2) < 1e-6);
   });

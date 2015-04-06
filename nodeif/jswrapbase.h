@@ -44,9 +44,13 @@ Handle<Value> convStringToJsBuffer(string const &it);
 
 // arma::Col conversion
 
-template<typename T> bool canConvJsToArmaVec(Handle<Value> itv);
-template<typename T> arma::Col<T> convJsToArmaVec(Handle<Value> itv);
-template<typename T> Handle<Object> convArmaVecToJs(arma::Col<T> const &it);
+template<typename T> bool canConvJsToArmaCol(Handle<Value> itv);
+template<typename T> arma::Col<T> convJsToArmaCol(Handle<Value> itv);
+template<typename T> Handle<Object> convArmaColToJs(arma::Col<T> const &it);
+
+template<typename T> bool canConvJsToArmaRow(Handle<Value> itv);
+template<typename T> arma::Row<T> convJsToArmaRow(Handle<Value> itv);
+template<typename T> Handle<Object> convArmaRowToJs(arma::Row<T> const &it);
 
 template<typename T> bool canConvJsToArmaMat(Handle<Value> it);
 template<typename T> arma::Mat<T> convJsToArmaMat(Handle<Value> it, size_t nRows=0, size_t nCols=0);

@@ -43,7 +43,9 @@ function SymbolicContext(typereg, name, inargs, outargs) {
   c.outargs = outargs;
   c.cses = {};
   c.assigns = [];
-  c.registerWrapper();
+  if (c.typereg) {
+    c.registerWrapper();
+  }
 }
 
 SymbolicContext.prototype.checkArgs = function() {
@@ -228,11 +230,14 @@ SymbolicContext.prototype.getCExpr = function(e, availCses) {
     if (e.type === 'double' || e.type === 'int') {
       return e.value.toString();
     }
-    else if (e.type == 'arma::mat44' && e.value === 0) {
+    else if (e.type === 'arma::mat44' && e.value === 0) {
       return e.type + '(arma::fill::zeros)';
     }
-    else if (e.type == 'arma::mat44' && e.value === 1) {
+    else if (e.type === 'arma::mat44' && e.value === 1) {
       return e.type + '(arma::fill::eye)';
+    }
+    else if (e.type === 'arma::mat44' && e.value.length === 16) {
+      return e.type + '{' + _.map(e.value, function(v) { return v.toString(); }).join(', ') + '}';
     }
     else {
       throw new Error('Cannot generate constant of type ' + e.type + ' and value ' + e.value);

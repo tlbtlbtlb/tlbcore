@@ -30,8 +30,6 @@ var symbolic_math       = require('./symbolic_math');
 var debugJson = false;
 
 exports.TypeRegistry = TypeRegistry;
-exports.emitJsWrap = emitJsWrap;
-exports.emitArgSwitch = emitArgSwitch;
 
 function getTypename(t) {
   if (t.hasOwnProperty('typename')) {
@@ -512,94 +510,267 @@ TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs) {
 
 // ----------------------------------------------------------------------
 
+function withJsWrapUtils(f, typereg) {
 
-function emitArgSwitch(f, typereg, thisType, argSets) {
+  f.jsBindings = [];
+  f.jsConstructorBindings = [];
 
-  if (thisType) {
-    f('JsWrap_' + thisType.jsTypename + '* thisObj = node::ObjectWrap::Unwrap<JsWrap_' + thisType.jsTypename + '>(args.This());');
+  f.emitArgSwitch = function(thisType, argSets) {
+
+    if (thisType) {
+      f('JsWrap_' + thisType.jsTypename + '* thisObj = node::ObjectWrap::Unwrap<JsWrap_' + thisType.jsTypename + '>(args.This());');
+    }
+
+    var ifSep = '';
+    _.each(argSets, function(argSet) {
+      
+      f(ifSep + 'if (args.Length() ' + (argSet.ignoreExtra ? '>=' : '==') + ' ' + argSet.args.length +
+        _.map(argSet.args, function(argTypename, argi) {
+	  if (argTypename === 'Object') {
+	    return ' && args[' + argi + ']->IsObject()';
+	  }
+	  else {
+            var argType = typereg.getType(argTypename);
+	    if (!argType) {
+	      throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
+	    }
+            return ' && ' + argType.getJsToCppTest('args[' + argi + ']');
+/*
+      f('else if (args.Length() == 1 && canConvJsToArmaVec<' + type.templateArgs[0] + '>(args[0])) {');
+      f('thisObj->assignConstruct(convJsToArmaVec<' + type.templateArgs[0] + '>(args[0]));');
+      f('}');
+
+      } else {
+        f('thisObj->assignDefault();');
+      }
+      f('}');
+      if (!/.*::fixed$/.test(type.templateName)) {
+        f('else if (args.Length() == 2 && args[0]->IsNumber() && args[1]->IsNumber()) {');
+        f('thisObj->assignConstruct((size_t)args[0]->NumberValue(), (size_t)args[1]->NumberValue(), arma::fill::zeros);');
+        f('}');
+      }
+      f('else if (args.Length() == 1 && canConvJsToArmaMat<' + type.templateArgs[0] + '>(args[0])) {');
+      f('try {');
+      if (/.*::fixed$/.test(type.templateName)) {
+	f('thisObj->assignConstruct(convJsToArmaMat<' + type.templateArgs[0] + '>(args[0], ' + type.templateArgs[1] + ', ' + type.templateArgs[2] + '));');
+      } else {
+	f('thisObj->assignConstruct(convJsToArmaMat<' + type.templateArgs[0] + '>(args[0]));');
+      }
+      f('} catch (exception &ex) {');
+      f('return ThrowTypeError(ex.what());');
+      f('}');
+      f('}');
+
+      f('}');
+      f('else if (args.Length() == 1 && canConvJsToMapStringJsonstr(args[0])) {');
+          f('thisObj->assignConstruct(convJsToMapStringJsonstr(args[0]));');
+
   }
 
-  var ifSep = '';
-  _.each(argSets, function(argSet) {
-    
-    f(ifSep + 'if (args.Length() ' + (argSet.ignoreExtra ? '>=' : '==') + ' ' + argSet.args.length +
-      _.map(argSet.args, function(argTypename, argi) {
-	if (argTypename === 'Object') {
-	  return ' && args[' + argi + ']->IsObject()';
-	}
-	else {
-          var argType = typereg.getType(argTypename);
-	  if (!argType) {
-	    throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
+*/
 	  }
-          return ' && ' + argType.getJsToCppTest('args[' + argi + ']');
-	}
-      }).join('') +
-      ') {');
-    
-    _.each(argSet.args, function(argTypename, argi) {
-      if (argTypename === 'Object') {
-	f('Local<Object> a' + argi + ' = args[' + argi + ']->ToObject();');
+        }).join('') +
+        ') {');
+      
+      _.each(argSet.args, function(argTypename, argi) {
+        if (argTypename === 'Object') {
+	  f('Local<Object> a' + argi + ' = args[' + argi + ']->ToObject();');
+        }
+        else {
+	  var argType = typereg.getType(argTypename);
+	  f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']') + ';');
+        }
+      });
+
+      if (argSet.returnType) {
+        if (argSet.returnType === 'buffer') {
+          f('string ret;');
+          argSet.code();
+          f('return scope.Close(convStringToJsBuffer(ret));');
+        } else {
+          var returnType = typereg.getType(argSet.returnType);
+	  if (returnType.isStruct() || returnType.isCollection()) {
+            f('shared_ptr<' + returnType.typename + '> ret_ptr = make_shared<' + returnType.typename + '>();');
+	    f(returnType.typename + ' &ret = *ret_ptr;');
+            argSet.code();
+            f('return scope.Close(' + returnType.getCppToJsExpr('ret_ptr') + ');');
+	  }
+	  else {
+            f(returnType.typename + ' ret;');
+            argSet.code();
+            f('return scope.Close(' + returnType.getCppToJsExpr('ret') + ');');
+	  }
+        }
+      } else {
+        argSet.code();
       }
-      else {
-	var argType = typereg.getType(argTypename);
-	f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']') + ';');
-      }
+      
+      f('}');
+      ifSep = 'else ';
     });
 
-    if (argSet.returnType) {
-      if (argSet.returnType === 'buffer') {
-        f('string ret;');
-        argSet.code();
-        f('return scope.Close(convStringToJsBuffer(ret));');
-      } else {
-        var returnType = typereg.getType(argSet.returnType);
-	if (returnType.isStruct || returnType.isCollection) {
-          f('shared_ptr<' + returnType.typename + '> ret_ptr = make_shared<' + returnType.typename + '>();');
-	  f(returnType.typename + ' &ret = *ret_ptr;');
-          argSet.code();
-          f('return scope.Close(' + returnType.getCppToJsExpr('ret_ptr') + ');');
-	}
-	else {
-          f(returnType.typename + ' ret;');
-          argSet.code();
-          f('return scope.Close(' + returnType.getCppToJsExpr('ret') + ');');
-	}
-      }
-    } else {
-      argSet.code();
+    f(ifSep + ' {');
+    
+    if (0) {
+      f('eprintf("No matching args:\\n");');
+      _.each(argSets, function(argSet) {
+        f('eprintf("  argSet: ");');
+        _.each(argSet.args, function(argInfo, argi) {
+          var argType = typereg.getType(argInfo);
+          f('eprintf("  %s' +  argType.typename + '", (' + argType.getJsToCppTest('args[' + argi + ']') + ') ? "" : "!");')
+        });
+        f('eprintf("\\n");');
+      });
     }
     
+    f('return ThrowInvalidArgs();');
     f('}');
-    ifSep = 'else ';
-  });
+  };
 
-  f(ifSep + ' {');
+  f.emitJsWrap = function(fn, contents) {
+    f('static Handle<Value> jsWrap_' + fn + '(Arguments const &args) {');
+    f('HandleScope scope;');
+    f(contents);
+    f('}');
+  };
 
-  if (0) {
-    f('eprintf("No matching args:\\n");');
-    _.each(argSets, function(argSet) {
-      f('eprintf("  argSet: ");');
-      _.each(argSet.args, function(argInfo, argi) {
-        var argType = typereg.getType(argInfo);
-        f('eprintf("  %s' +  argType.typename + '", (' + argType.getJsToCppTest('args[' + argi + ']') + ') ? "" : "!");')
-      });
-      f('eprintf("\\n");');
+  f.emitJsNew = function() {
+    f('static Handle<Value> jsNew_JSTYPE(const Arguments& args) {');
+    f('HandleScope scope;');
+    f('if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();');
+    f('JsWrap_JSTYPE* thisObj = new JsWrap_JSTYPE();');
+    f('return jsConstructor_JSTYPE(thisObj, args);');
+    f('}');
+    f('');
+  };
+
+  f.emitJsConstructor = function(contents) {
+    f('Handle<Value> jsConstructor_JSTYPE(JsWrap_JSTYPE *thisObj, const Arguments& args) {');
+    f('HandleScope scope;');
+    f(contents);
+    f('thisObj->Wrap2(args.This());');
+    f('return args.This();');
+    f('}');
+  };
+
+  f.emitJsMethod = function(name, contents) {
+    f.emitJsWrap('JSTYPE_' + name, contents);
+
+    f.jsBindings.push(function(f) {
+      f('tpl->PrototypeTemplate()->Set(String::NewSymbol("' + name + '"), FunctionTemplate::New(jsWrap_JSTYPE_' + name + ')->GetFunction());');
+    });
+  };
+
+  f.emitJsMethodAlias = function(jsName, cName) {
+    f.jsBindings.push(function(f) {
+      f('tpl->PrototypeTemplate()->Set(String::NewSymbol("' + jsName + '"), FunctionTemplate::New(jsWrap_JSTYPE_' + cName + ')->GetFunction());');
+    });
+  };
+
+  f.emitJsFactory = function(name, contents) {
+    f.emitJsWrap('JSTYPE_' + name, contents);
+    f.jsConstructorBindings.push(function(f) {
+      f('JsWrap_JSTYPE::constructor->Set(String::NewSymbol("' + name + '"), FunctionTemplate::New(jsWrap_JSTYPE_' + name + ')->GetFunction());');
     });
   }
 
-  f('return ThrowInvalidArgs();');
-  f('}');
-}
+  f.emitJsAccessors = function(name, o) {
+    if (o.get) {
+      f('static Handle<Value> jsGet_JSTYPE_' + name + '(Local<String> name, AccessorInfo const &ai) {');
+      f('HandleScope scope;');
+      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+      f(o.get);
+      f('}');
+    }
+    if (o.set) {
+      f('static void jsSet_JSTYPE_' + name + '(Local<String> name, Local<Value> value, AccessorInfo const &ai) {');
+      f('HandleScope scope;');
+      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+      f(o.set);
+      f('}');
+    }
+    f('');
 
-function emitJsWrap(f, fn, contents) {
-  f('Handle<Value> jsWrap_' + fn + '(Arguments const &args) {');
-  f('HandleScope scope;');
-  contents();
-  f('}');
-}
+    f.jsBindings.push(function(f) {
+      if (o.get && o.set) {
+        f('tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("' + name + '"), ' +
+          '&jsGet_JSTYPE_' + name + ', ' +
+          '&jsSet_JSTYPE_' + name + ');');
+      }
+      else if (o.get) {
+        f('tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("' + name + '"), ' +
+          '&jsGet_JSTYPE_' + name + ');');
+      }
+    });
+  };
 
-function emitJsAccessors(f, getContents, setContents) {
+  f.emitJsNamedAccessors = function(o) {
+    if (o.get) {
+      f('static Handle<Value> jsGetNamed_JSTYPE(Local<String> name, AccessorInfo const &ai) {');
+      f('HandleScope scope;');
+      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+      f('string key = convJsToString(name);');
+      f(o.get);
+      f('}');
+    }
+    if (o.set) {
+      f('static Handle<Value> jsSetNamed_JSTYPE(Local<String> name, Local<Value> value, AccessorInfo const &ai) {');
+      f('HandleScope scope;');
+      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+      f('string key = convJsToString(name);');
+      f(o.set);
+      f('}');
+    }
+    f('');
+
+    f.jsBindings.push(function(f) {
+      if (o.get && o.set) {
+        f('tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE, jsSetNamed_JSTYPE);');
+      }
+      else if (o.get) {
+        f('tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE);');
+      }
+    });
+  };
+
+  f.emitJsIndexedAccessors = function(o) {
+    if (o.get) {
+      f('static Handle<Value> jsGetIndexed_JSTYPE(unsigned int index, AccessorInfo const &ai) {');
+      f('HandleScope scope;');
+      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+      f(o.get);
+      f('}');
+    }
+    if (o.set) {
+      f('static Handle<Value> jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, AccessorInfo const &ai) {');
+      f('HandleScope scope;');
+      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
+      f(o.set);
+      f('}');
+    }
+    f.jsBindings.push(function(f) {
+      if (o.get && o.set) {
+        f('tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_JSTYPE, jsSetIndexed_JSTYPE);');
+      }
+      else if (o.get) {
+        f('tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_JSTYPE);');
+      }
+    });
+    f('');
+  }
+
+  f.emitJsBindings = function() {
+    _.each(f.jsBindings, function(binding) {
+      binding(f);
+    });
+    f('JsWrap_JSTYPE::constructor = Persistent<Function>::New(tpl->GetFunction());');
+    f('exports->Set(String::NewSymbol("JSTYPE"), JsWrap_JSTYPE::constructor);');
+    _.each(f.jsConstructorBindings, function(binding) {
+      binding(f);
+    });
+  };
+
+  return f;
 }
 
 
@@ -625,32 +796,24 @@ function CType(reg, typename) {
   type.arrayConversions = [];
 }
 
-CType.prototype.getConstructorArgs = function() {
-  return this.extraConstructorArgs;
-};
+CType.prototype.isStruct = function() { return false; };
+CType.prototype.isObject = function() { return false; };
+CType.prototype.isCollection = function() { return false; };
+CType.prototype.isPrimitive = function() { return false; };
+CType.prototype.isObject = function() { return false; };
+CType.prototype.isPtr = function() { return false; };
+CType.prototype.isDsp = function() { return false; };
+CType.prototype.isPod = function() { return false; };
+CType.prototype.isCopyConstructable = function() { return true; };
+CType.prototype.hasArrayNature = function() { return false; };
+CType.prototype.hasJsWrapper = function() { return false; };
 
 CType.prototype.nonPtrType = function() {
   return this;
 };
 
-CType.prototype.isPod = function() {
-  return false;
-};
-
-CType.prototype.isPtr = function() {
-  return false;
-};
-
-CType.prototype.isCopyConstructable = function() {
-  return true;
-};
-
-CType.prototype.hasArrayNature = function() {
-  return false;
-};
-
-CType.prototype.hasJsWrapper = function() {
-  return false;
+CType.prototype.getConstructorArgs = function() {
+  return this.extraConstructorArgs;
 };
 
 CType.prototype.getSchema = function() {
@@ -697,7 +860,7 @@ CType.prototype.emitAll = function(files) {
     type.emitJsWrapHeader(files.getFile(fns.jsWrapHeader).child({TYPENAME: type.typename, JSTYPE: type.jsTypename}));
   }
   if (fns.jsWrapCode) {
-    type.emitJsWrapCode(files.getFile(fns.jsWrapCode).child({TYPENAME: type.typename, JSTYPE: type.jsTypename}));
+    type.emitJsWrapCode(withJsWrapUtils(files.getFile(fns.jsWrapCode).child({TYPENAME: type.typename, JSTYPE: type.jsTypename}), type.reg));
   }
 };
 
@@ -890,8 +1053,7 @@ function PrimitiveCType(reg, typename) {
   CType.call(this, reg, typename);
 }
 PrimitiveCType.prototype = Object.create(CType.prototype);
-
-PrimitiveCType.prototype.isPrimitive = true;
+PrimitiveCType.prototype.isPrimitive = function() { return true; };
 
 PrimitiveCType.prototype.getFns = function() {
   return {};
@@ -1080,8 +1242,7 @@ function ObjectCType(reg, typename) {
   CType.call(this, reg, typename);
 }
 ObjectCType.prototype = Object.create(CType.prototype);
-
-ObjectCType.prototype.isObject = true;
+ObjectCType.prototype.isObject = function() { return true; };
 
 ObjectCType.prototype.getFns = function() {
   return {};
@@ -1193,7 +1354,7 @@ function CollectionCType(reg, typename) {
   if (0) console.log('template', typename, type.templateName, type.templateArgs);
 }
 CollectionCType.prototype = Object.create(CType.prototype);
-CollectionCType.prototype.isCollection = true;
+CollectionCType.prototype.isCollection = function() { return true; };
 
 CollectionCType.prototype.hasJsWrapper = function() {
   return true;
@@ -1239,7 +1400,7 @@ CollectionCType.prototype.getFormalParameter = function(varname) {
 
 CollectionCType.prototype.getArgTempDecl = function(varname) {
   var type = this;
-  return type.typename + ' &' + varname;
+  return type.typename + ' ' + varname;
 };
 
 CollectionCType.prototype.getVarDecl = function(varname) {
@@ -1249,12 +1410,48 @@ CollectionCType.prototype.getVarDecl = function(varname) {
 
 CollectionCType.prototype.getJsToCppTest = function(valueExpr) {
   var type = this;
-  return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr)';
+  var ret = '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr)';
+  if (type.templateName === 'arma::Col' || type.templateName === 'arma::Col::fixed') {
+    ret = '(' + ret + ' || canConvJsToArmaCol<' + type.templateArgs[0] + '>(' + valueExpr + '))';
+  }
+  else if (type.templateName === 'arma::Row' || type.templateName === 'arma::Row::fixed') {
+    ret = '(' + ret + ' || canConvJsToArmaRow<' + type.templateArgs[0] + '>(' + valueExpr + '))';
+  }
+  else if (type.templateName === 'arma::Mat' || type.templateName === 'arma::Mat::fixed') {
+    ret = '(' + ret + ' || canConvJsToArmaMat<' + type.templateArgs[0] + '>(' + valueExpr + '))';
+  }
+  else if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
+    ret = '((JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
+      'canConvJsToMapStringJsonstr(' + valueExpr + '))';
+  }
+  return ret;
 };
 
 CollectionCType.prototype.getJsToCppExpr = function(valueExpr) {
   var type = this;
-  return '(*JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + '))';
+  var ret = '(*JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + '))';
+
+  if (type.templateName === 'arma::Col' || type.templateName === 'arma::Col::fixed') {
+    ret = '((JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
+      'convJsToArmaCol<' + type.templateArgs[0] + '>(' + valueExpr + '))';
+  }
+  else if (type.templateName === 'arma::Row' || type.templateName === 'arma::Row::fixed') {
+    ret = '((JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
+      'convJsToArmaRow<' + type.templateArgs[0] + '>(' + valueExpr + '))';
+  }
+  else if (type.templateName === 'arma::Mat') {
+    ret = '((JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
+      'convJsToArmaMat<' + type.templateArgs[0] + '>(' + valueExpr + '))';
+  }
+  else if (type.templateName === 'arma::Mat::fixed') {
+    ret = '((JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
+      'convJsToArmaMat<' + type.templateArgs[0] + '>(' + valueExpr + ', ' + type.templateArgs[1] + ', ' + type.templateArgs[2] + '))';
+  }
+  else if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
+    ret = '((JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
+      'convJsToMapStringJsonstr(' + valueExpr + '))';
+  }
+  return ret;
 };
 
 CollectionCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerExpr) {
@@ -1283,7 +1480,7 @@ CollectionCType.prototype.getMemberTypes = function() {
 
 CollectionCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
-  if (0 && type.isRef) {
+  if (0 && type.isRef()) {
     f('typedef JsWrapGenericRef< TYPENAME > JsWrap_JSTYPE;');
   } else {
     f('typedef JsWrapGeneric< TYPENAME > JsWrap_JSTYPE;');
@@ -1294,115 +1491,120 @@ CollectionCType.prototype.emitJsWrapDecl = function(f) {
 
 CollectionCType.prototype.emitJsWrapImpl = function(f) {
   var type = this;
-  var methods = [];
-  var factories = [];
-  var accessors = [];
-  var accessorsRo = [];
 
   f('/*\ntemplateName = "' + type.templateName + '"' + '\n' +
     'templateArgs = "' + util.inspect(type.templateArgs) + '"\n' +
     '*/');
 
-  if (1) {
-    f('static Handle<Value> jsNew_JSTYPE(const Arguments& args) {');
-    f('HandleScope scope;');
-    f('if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();');
-    f('JsWrap_JSTYPE* thisObj = new JsWrap_JSTYPE();');
-    f('return jsConstructor_JSTYPE(thisObj, args);');
-    f('}');
-    f('');
+  f.emitJsNew();
+
+  if (type.templateName === 'vector') {
+    f.emitJsConstructor(function(f) {
+      f.emitArgSwitch(null, [{
+        args: ['double'], code: function() {
+          f('thisObj->assignConstruct(a0);');
+        },
+      }, {
+        args: [], code: function() {
+          f('thisObj->assignDefault();');
+        }
+      }]);
+    });
+  }
+  else if (type.templateName === 'arma::Col' || type.templateName === 'arma::Row') {
+    f.emitJsConstructor(function(f) {
+      f.emitArgSwitch(null, [{
+        args: [], code: function() {
+          f('thisObj->assignDefault();');
+        },
+      }, {
+        args: ['double'], code: function() {
+          f('thisObj->assignConstruct(a0, arma::fill::zeros);');
+        },
+      }, {
+        args: [type.typename], code: function() {
+          f('thisObj->assignConstruct(a0);');
+        }
+      }]);
+    });
+  }
+      
+  else if (type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
+    f.emitJsConstructor(function(f) {
+      f.emitArgSwitch(null, [{
+        args: [], code: function() {
+          f('thisObj->assignConstruct(arma::fill::zeros);');
+        },
+      }, {
+        args: [type.typename], code: function() {
+          f('thisObj->assignConstruct(a0);');
+        }
+      }]);
+    });
   }
 
-  if (1) {
-    f('Handle<Value> jsConstructor_JSTYPE(JsWrap_JSTYPE *it, const Arguments& args) {');
-    f('HandleScope scope;');
-    
-    f('if (0) {');
-    f('}');
-    // When creating a vector<double>, allow passing in various native JS arrays
-    if (type.templateName === 'vector') {
-      f('else if (args.Length() == 1 && args[0]->IsNumber()) {');
-      f('size_t a0 = args[0]->NumberValue();');
-      f('it->assignConstruct(a0);');
-      f('}');
-      f('else if (args.Length() == 0) {');
-      f('it->assignDefault();');
-      f('}');
-    }
-
-    else if (type.templateName === 'arma::Col' || type.templateName === 'arma::Row' || type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
-      f('else if (args.Length() == 0) {');
-      if (/.*::fixed$/.test(type.templateName)) {
-        f('it->assignConstruct(arma::fill::zeros);');
-      } else {
-        f('it->assignDefault();');
-      }
-      f('}');
-      if (!/.*::fixed$/.test(type.templateName)) {
-        f('else if (args.Length() == 1 && args[0]->IsNumber()) {');
-        f('it->assignConstruct((size_t)args[0]->NumberValue(), arma::fill::zeros);');
-        f('}');
-      }
-      f('else if (args.Length() == 1 && canConvJsToArmaVec<' + type.templateArgs[0] + '>(args[0])) {');
-      f('it->assignConstruct(convJsToArmaVec<' + type.templateArgs[0] + '>(args[0]));');
-      f('}');
-    }
-
-    else if (type.templateName === 'arma::Mat' || type.templateName === 'arma::Mat::fixed') {
-      f('else if (args.Length() == 0) {');
-      if (/.*::fixed$/.test(type.templateName)) {
-        f('it->assignConstruct(arma::fill::zeros);');
-      } else {
-        f('it->assignDefault();');
-      }
-      f('}');
-      if (!/.*::fixed$/.test(type.templateName)) {
-        f('else if (args.Length() == 2 && args[0]->IsNumber() && args[1]->IsNumber()) {');
-        f('it->assignConstruct((size_t)args[0]->NumberValue(), (size_t)args[1]->NumberValue(), arma::fill::zeros);');
-        f('}');
-      }
-      f('else if (args.Length() == 1 && canConvJsToArmaMat<' + type.templateArgs[0] + '>(args[0])) {');
-      f('try {');
-      if (/.*::fixed$/.test(type.templateName)) {
-	f('it->assignConstruct(convJsToArmaMat<' + type.templateArgs[0] + '>(args[0], ' + type.templateArgs[1] + ', ' + type.templateArgs[2] + '));');
-      } else {
-	f('it->assignConstruct(convJsToArmaMat<' + type.templateArgs[0] + '>(args[0]));');
-      }
-      f('} catch (exception &ex) {');
-      f('return ThrowTypeError(ex.what());');
-      f('}');
-      f('}');
-    }
-
-    // When creating a map<string, jsonstr>, allow passing in an object
-    else if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
-      f('else if (args.Length() == 0) {');
-      f('it->assignDefault();');
-      f('}');
-      f('else if (args.Length() == 1 && canConvJsToMapStringJsonstr(args[0])) {');
-      f('it->assignConstruct(convJsToMapStringJsonstr(args[0]));');
-      f('}');
-    }
-    else if (type.templateName === 'arma::subview_row') {
-      f('else if (args.Length() == 0) {');
-      f('}');
-    }
-    else if (type.templateName === 'arma::subview_col') {
-      f('else if (args.Length() == 0) {');
-      f('}');
-    }
-    _.each(type.constructorJswrapCases, function(it) {
-      it.call(type, f);
+  else if (type.templateName === 'arma::Mat') {
+    f.emitJsConstructor(function(f) {
+      f.emitArgSwitch(null, [{
+        args: [], code: function() {
+          f('thisObj->assignDefault();');
+        },
+      }, {
+        args: ['double', 'double'], code: function() {
+          f('thisObj->assignConstruct(a0, a1, arma::fill::zeros);');
+        },
+      }, {
+        args: [type.typename], code: function() {
+	  f('thisObj->assignConstruct(a0);');
+        }
+      }]);
     });
+  }
 
-    f('else {');
-    if (0) f('eprintf("JSTYPE: Invalid args, len=%d\\n", (int)args.Length());');
-    f('return ThrowInvalidArgs();');
-    f('}');
+  else if (type.templateName === 'arma::Mat::fixed') {
+    f.emitJsConstructor(function(f) {
+      f.emitArgSwitch(null, [{
+        args: [], code: function() {
+          f('thisObj->assignConstruct(arma::fill::zeros);');
+        },
+      }, {
+        args: [type.typename], code: function() {
+	  f('thisObj->assignConstruct(a0);');
+        }
+      }]);
+    });
+  }
 
-    f('it->Wrap2(args.This());');
-    f('return args.This();');
-    f('}');
+  // When creating a map<string, jsonstr>, allow passing in an object
+  else if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
+    f.emitJsConstructor(function(f) {
+      f.emitArgSwitch(null, [{
+        args: [], code: function() {
+          f('thisObj->assignDefault();');
+        }
+      }, {
+        args: [type.typename], code: function() {
+          f('thisObj->assignConstruct(a0);');
+        }
+      }]);
+    });
+  }
+  else if (type.templateName === 'arma::subview_row' || type.templateName === 'arma::subview_col') {
+    f.emitJsConstructor(function(f) {
+      f.emitArgSwitch(null, [{
+        args: [], code: function() {
+        }
+      }]);
+    });
+  }
+  else {
+    f.emitJsConstructor(function(f) {
+      f.emitArgSwitch(null, [{
+        args: [], code: function() {
+          f('thisObj->assignDefault();');
+        }
+      }]);
+    });
   }
 
   if (!type.noSerialize) {
@@ -1450,43 +1652,36 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     }
     f('}');
 
-    emitJsWrap(f, 'JSTYPE_toJSON', function() {
-      emitArgSwitch(f, type.reg, type, [{
+    f.emitJsMethod('toJSON', function() {
+      f.emitArgSwitch(type, [{
         args: [], ignoreExtra: true, code: function() {
           f('return scope.Close(jsToJSON_JSTYPE(*thisObj->it));');
         }
       }]);
     });
-    methods.push('toJSON');
   }
 
   if (type.templateName === 'map' && type.templateArgs[0] === 'string') {
     var valueType = type.reg.types[type.templateArgs[1]];
-    f('static Handle<Value> jsGetNamed_JSTYPE(Local<String> name, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('string key = convJsToString(name);');
-    f('TYPENAME::iterator iter = thisObj->it->find(key);');
-    // return an empty handle if not found, will be looked up on prototype chain
-    // It doesn't work if you return scope.Close(Undefined());
-    f('if (iter == thisObj->it->end()) return scope.Close(Handle<Value>());');
-    f('return scope.Close(' + type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisObj->it') + ');');
-    f('}');
-
-    f('static Handle<Value> jsSetNamed_JSTYPE(Local<String> name, Local<Value> value, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('string key = convJsToString(name);');
-    f('if (' + valueType.getJsToCppTest('value') + ') {');
-    f(type.templateArgs[1] + ' cvalue(' + valueType.getJsToCppExpr('value') + ');');
-    f('(*thisObj->it)[key] = cvalue;');
-    f('return scope.Close(value);');
-    f('}');
-    f('else {');
-    f('return scope.Close(ThrowTypeError("Expected ' + valueType.typename + '"));');
-    f('}');
-    f('}');
-    accessors.push({isNamed: true, get: true, set: true});
+    f.emitJsNamedAccessors({
+      get: function(f) {
+        f('TYPENAME::iterator iter = thisObj->it->find(key);');
+        // return an empty handle if not found, will be looked up on prototype chain
+        // It doesn't work if you return scope.Close(Undefined());
+        f('if (iter == thisObj->it->end()) return scope.Close(Handle<Value>());');
+        f('return scope.Close(' + type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisObj->it') + ');');
+      },
+      set: function(f) {
+        f('if (' + valueType.getJsToCppTest('value') + ') {');
+        f(type.templateArgs[1] + ' cvalue(' + valueType.getJsToCppExpr('value') + ');');
+        f('(*thisObj->it)[key] = cvalue;');
+        f('return scope.Close(value);');
+        f('}');
+        f('else {');
+        f('return scope.Close(ThrowTypeError("Expected ' + valueType.typename + '"));');
+        f('}');
+      }
+    });
   }
 
   if (type.templateName === 'arma::Col' || 
@@ -1496,200 +1691,155 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       type.templateName === 'arma::subview_row' || 
       type.templateName === 'arma::subview_col') {
     var elType = type.reg.types[type.templateArgs[0]];
-    f('static Handle<Value> jsGet_JSTYPE_n_rows(Local<String> name, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('return scope.Close(Number::New(thisObj->it->n_rows));');
-    f('}');
-    accessors.push({name: 'n_rows', get: true});
+    f.emitJsAccessors('n_rows', {
+      get: 'return scope.Close(Number::New(thisObj->it->n_rows));'
+    });
 
-    f('static Handle<Value> jsGet_JSTYPE_n_elem(Local<String> name, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('return scope.Close(Number::New(thisObj->it->n_elem));');
-    f('}');
-    accessors.push({name: 'n_elem', get: true});
+    f.emitJsAccessors('n_elem', {
+      get: 'return scope.Close(Number::New(thisObj->it->n_elem));'
+    });
 
-    f('static Handle<Value> jsGet_JSTYPE_length(Local<String> name, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('return scope.Close(Number::New(thisObj->it->n_elem));');
-    f('}');
-    accessors.push({name: 'length', get: true});
+    f.emitJsAccessors('length', {
+      get: 'return scope.Close(Number::New(thisObj->it->n_elem));'
+    });
 
-    f('static Handle<Value> jsGetIndexed_JSTYPE(unsigned int index, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('if (index >= thisObj->it->n_elem) return scope.Close(Undefined());');
-    f('return scope.Close(' + elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it') + ');');
-    f('}');
-
-    f('static Handle<Value> jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
-    f('if (' + elType.getJsToCppTest('value') + ') {');
-    f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value') + ');');
-    f('(*thisObj->it)(index) = cvalue;');
-    f('return scope.Close(value);');
-    f('}');
-    f('else {');
-    f('return scope.Close(ThrowTypeError("Expected ' + elType.typename + '"));');
-    f('}');
-    f('}');
-    accessors.push({isIndexed: true, get: true, set: true});
+    f.emitJsIndexedAccessors({
+      get: function(f) {
+        f('if (index >= thisObj->it->n_elem) return scope.Close(Undefined());');
+        f('return scope.Close(' + elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it') + ');');
+      },
+      set: function(f) {
+        f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
+        f('if (' + elType.getJsToCppTest('value') + ') {');
+        f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value') + ');');
+        f('(*thisObj->it)(index) = cvalue;');
+        f('return scope.Close(value);');
+        f('}');
+        f('else {');
+        f('return scope.Close(ThrowTypeError("Expected ' + elType.typename + '"));');
+        f('}');
+      }
+    });
   }
 
   if (type.templateName === 'arma::Mat' ||
       type.templateName === 'arma::Mat::fixed') {
-    f('static Handle<Value> jsGet_JSTYPE_n_rows(Local<String> name, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('return scope.Close(Number::New(thisObj->it->n_rows));');
-    f('}');
-    accessors.push({name: 'n_rows', get: true});
-    f('static Handle<Value> jsGet_JSTYPE_n_cols(Local<String> name, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('return scope.Close(Number::New(thisObj->it->n_cols));');
-    f('}');
-    accessors.push({name: 'n_cols', get: true});
-    f('static Handle<Value> jsGet_JSTYPE_n_elem(Local<String> name, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('return scope.Close(Number::New(thisObj->it->n_elem));');
-    f('}');
-    accessors.push({name: 'n_elem', get: true});
-    f('static Handle<Value> jsGet_JSTYPE_length(Local<String> name, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('return scope.Close(Number::New(thisObj->it->n_elem));');
-    f('}');
-    accessors.push({name: 'length', get: true});
+    f.emitJsAccessors('n_rows', {
+      get: 'return scope.Close(Number::New(thisObj->it->n_rows));'
+    });
+    f.emitJsAccessors('n_cols', {
+      get: 'return scope.Close(Number::New(thisObj->it->n_cols));'
+    });
+    f.emitJsAccessors('n_elem', {
+      get: 'return scope.Close(Number::New(thisObj->it->n_elem));'
+    });
+    f.emitJsAccessors('length', {
+      get: 'return scope.Close(Number::New(thisObj->it->n_elem));'
+    });
 
-
-    emitJsWrap(f, 'JSTYPE_row', function() {
-      emitArgSwitch(f, type.reg, type, [{
+    f.emitJsMethod('row', function() {
+      f.emitArgSwitch(type, [{
         args: ['u_int'], code: function() {
           f('return scope.Close(' + type.reg.getType('arma::subview_row<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->row(a0)', null, 'args.This()') + ');');
         }
       }]);
     });
-    methods.push('row');
 
-    emitJsWrap(f, 'JSTYPE_col', function() {
-      emitArgSwitch(f, type.reg, type, [{
+    f.emitJsMethod('col', function() {
+      f.emitArgSwitch(type, [{
         args: ['u_int'], code: function() {
           f('return scope.Close(' + type.reg.getType('arma::subview_col<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->col(a0)', null, 'args.This()') + ');');
         }
       }]);
     });
-    methods.push('col');
 
-    f('static Handle<Value> jsGetIndexed_JSTYPE(unsigned int index, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('if (index >= thisObj->it->n_rows) return scope.Close(Undefined());');
-    f('return scope.Close(' + type.reg.getType('arma::subview_row<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->row(index)', null, 'ai.This()') + ');');
-    f('}');
-
-    if (0) { // WRITEME
-      f('static Handle<Value> jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, AccessorInfo const &ai) {');
-      f('HandleScope scope;');
-      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-      f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
-      f(type.templateArgs[0] + ' cvalue(' + type.reg.types[type.templateArgs[0]].getJsToCppExpr('value') + ');');
-      f('(*thisObj->it)(index) = cvalue;');
-      f('return scope.Close(value);');
-      f('}');
-    }
-    accessors.push({isIndexed: true, get: true, set: false});
+    f.emitJsIndexedAccessors({
+      get: function(f) {
+        f('if (index >= thisObj->it->n_rows) return scope.Close(Undefined());');
+        f('return scope.Close(' + type.reg.getType('arma::subview_row<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->row(index)', null, 'ai.This()') + ');');
+      },
+      XXXset: function(f) { // WRITEME
+        f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
+        f(type.templateArgs[0] + ' cvalue(' + type.reg.types[type.templateArgs[0]].getJsToCppExpr('value') + ');');
+        f('(*thisObj->it)(index) = cvalue;');
+        f('return scope.Close(value);');
+      }
+    });
 
   }
 
 
   if (type.templateName === 'vector') {
+    f.emitJsAccessors('length', {
+      get: 'return scope.Close(Number::New(thisObj->it->size()));'
+    });
+    
+    f.emitJsIndexedAccessors({
+      get: function(f) {
+        f('if (index > thisObj->it->size()) scope.Close(Undefined());');
+        f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('(*thisObj->it)[index]', 'thisObj->it') + ');');
+      },
+      set: function(f) {
+        var elType = type.reg.types[type.templateArgs[0]];
+        f('if (' + elType.getJsToCppTest('value') + ') {');
+        f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value') + ');');
+        f('(*thisObj->it)[index] = cvalue;');
+        f('return scope.Close(value);');
+        f('}');
+        f('else {');
+        f('return scope.Close(ThrowTypeError("Expected ' + elType.typename + '"));');
+        f('}');
+      }
+    });
 
-    f('static Handle<Value> jsGet_JSTYPE_length(Local<String> name, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('return scope.Close(Number::New(thisObj->it->size()));');
-    f('}');
-    accessors.push({name: 'length', get: true});
-
-    f('static Handle<Value> jsGetIndexed_JSTYPE(unsigned int index, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('if (index > thisObj->it->size()) scope.Close(Undefined());');
-    f('return scope.Close(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('(*thisObj->it)[index]', 'thisObj->it') + ');');
-    f('}');
-
-    f('static Handle<Value> jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    var elType = type.reg.types[type.templateArgs[0]];
-    f('if (' + elType.getJsToCppTest('value') + ') {');
-    f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value') + ');');
-    f('(*thisObj->it)[index] = cvalue;');
-    f('return scope.Close(value);');
-    f('}');
-    f('else {');
-    f('return scope.Close(ThrowTypeError("Expected ' + elType.typename + '"));');
-    f('}');
-    f('}');
-    accessors.push({isIndexed: true, get: true, set: true});
-
-    emitJsWrap(f, 'JSTYPE_pushBack', function() {
-      emitArgSwitch(f, type.reg, type, [{
+    f.emitJsMethod('pushBack', function() {
+      f.emitArgSwitch(type, [{
         args: [type.templateArgTypes[0]], code: function() {
           f('thisObj->it->push_back(a0);');
           f('return scope.Close(Undefined());');
         }
       }]);
     });
-    methods.push('pushBack');
 
-    emitJsWrap(f, 'JSTYPE_clear', function() {
-      emitArgSwitch(f, type.reg, type, [{
+    f.emitJsMethod('clear', function() {
+      f.emitArgSwitch(type, [{
         args: [], code: function() {
           f('thisObj->it->clear();');
           f('return scope.Close(Undefined());');
         }
       }]);
     });
-    methods.push('clear');
   }
 
   _.each(type.extraJswrapMethods, function(it) {
-    it.call(type, f, methods);
+    it.call(type, f);
   });
   _.each(type.extraJswrapAccessors, function(it) {
-    it.call(type, f, accessors);
+    it.call(type, f);
   });
 
   if (!type.noSerialize) {
-    emitJsWrap(f, 'JSTYPE_toJsonString', function() {
-      emitArgSwitch(f, type.reg, type, [{
+    f.emitJsMethod('toJsonString', function() {
+      f.emitArgSwitch(type, [{
         args: [], returnType: 'string', code: function() {
           f('ret = asJson(*thisObj->it).it;');
         }
       }]);
     });
-    methods.push('toJsonString');
+    f.emitJsMethodAlias('toString', 'toJsonString');
 
-    emitJsWrap(f, 'JSTYPE_inspect', function() {
+    f.emitJsMethod('inspect', function() {
       // It's given an argument, recurseTimes, which we should decrement when recursing but we don't.
-      emitArgSwitch(f, type.reg, type, [{
+      f.emitArgSwitch(type, [{
         args: ['double'], returnType: 'string', code: function() {
           f('if (a0 >= 0) ret = asJson(*thisObj->it).it;');
         }
       }]);
     });
-    methods.push('inspect');
 
     if (type.isCopyConstructable()) {
-      emitJsWrap(f, 'JSTYPE_fromString', function() {
-	emitArgSwitch(f, type.reg, null, [
+      f.emitJsFactory('fromString', function() {
+	f.emitArgSwitch(null, [
           {args: ['string'], returnType: type, code: function() {
             f('const char *a0s = a0.c_str();');
             f('bool ok = rdJson(a0s, ret);');
@@ -1697,12 +1847,11 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
           }}
 	]);
       });
-      factories.push('fromString');
-      }
+    }
       
     if (!type.noPacket) {
-      emitJsWrap(f, 'JSTYPE_toPacket', function() {
-        emitArgSwitch(f, type.reg, type, [
+      f.emitJsMethod('toPacket', function() {
+        f.emitArgSwitch(type, [
           {args: [], code: function() {
             f('packet wr;');
             f('wr.add_checked(*thisObj->it);');
@@ -1711,11 +1860,10 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
           }}
         ]);
       });
-      methods.push('toPacket');
 
       if (type.isCopyConstructable()) {
-	emitJsWrap(f, 'JSTYPE_fromPacket', function() {
-          emitArgSwitch(f, type.reg, null, [{
+        f.emitJsFactory('fromPacket', function() {
+          f.emitArgSwitch(null, [{
             args: ['string'], returnType: type, code: function() {
               f('packet rd(a0);');
               f('try {');
@@ -1725,7 +1873,6 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
               f('};');
             }}]);
 	});
-	factories.push('fromPacket');
       }
     }
   }
@@ -1736,51 +1883,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('Local<FunctionTemplate> tpl = FunctionTemplate::New(jsNew_JSTYPE);');
     f('tpl->SetClassName(String::NewSymbol("JSTYPE"));');
     f('tpl->InstanceTemplate()->SetInternalFieldCount(1);');
-
-    _.each(methods, function(name) {
-      f('tpl->PrototypeTemplate()->Set(String::NewSymbol("' + name + '"), FunctionTemplate::New(jsWrap_JSTYPE_' + name + ')->GetFunction());');
-    });
-    if (!type.noSerialize) {
-      f('tpl->PrototypeTemplate()->Set(String::NewSymbol("toString"), FunctionTemplate::New(jsWrap_JSTYPE_toJsonString)->GetFunction());');
-    }
-
-    f('');
-
-    _.each(accessors, function(aInfo) {
-      if (aInfo.isNamed) {
-        if (aInfo.get && aInfo.set) {
-          f('tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE, jsSetNamed_JSTYPE);');
-        }
-        else if (aInfo.get) {
-          f('tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE);');
-        }
-      }
-      else if (aInfo.isIndexed) {
-        if (aInfo.get && aInfo.set) {
-          f('tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_JSTYPE, jsSetIndexed_JSTYPE);');
-        }
-        else if (aInfo.get) {
-          f('tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_JSTYPE);');
-        }
-      }
-      else {
-        if (aInfo.get && aInfo.set) {
-          f('tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("' + aInfo.name + '"), ' +
-            '&jsGet_JSTYPE_' + aInfo.name + ', ' +
-            '&jsSet_JSTYPE_' + aInfo.name + ');');
-        }
-        else if (aInfo.get) {
-          f('tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("' + aInfo.name + '"), ' +
-            '&jsGet_JSTYPE_' + aInfo.name + ');');
-        }
-      }
-    });
-    
-    f('JsWrap_JSTYPE::constructor = Persistent<Function>::New(tpl->GetFunction());');
-    f('exports->Set(String::NewSymbol("JSTYPE"), JsWrap_JSTYPE::constructor);');
-    _.each(factories, function(name) {
-      f('JsWrap_JSTYPE::constructor->Set(String::NewSymbol("' + name + '"), FunctionTemplate::New(jsWrap_JSTYPE_' + name + ')->GetFunction());');
-    });
+    f.emitJsBindings();
     f('}');
     f('');
   }
@@ -1867,7 +1970,7 @@ function StructCType(reg, typename) {
 }
 
 StructCType.prototype = Object.create(CType.prototype);
-StructCType.prototype.isStruct = true;
+StructCType.prototype.isStruct = function() { return true; };
 
 StructCType.prototype.addSuperType = function(superTypename) {
   var type = this;
@@ -1969,8 +2072,9 @@ StructCType.prototype.add = function(memberName, memberType) {
   if (_.isString(memberName)) {
     if (!memberType) memberType = type.reg.types['double'];
     if (memberName in type.nameToType) {
-      if (type.nameToType[memberName] !== memberType) throw new Error('Duplicate member ' + memberName + ' with different types');
-      return; // duplicate entry. Warn?
+      if (type.nameToType[memberName] !== memberType) throw new Error('Duplicate member ' + memberName + ' with different types in ' + type.typename);
+      console.log('Duplicate member ' + memberName + ' with same type in ' + type.typename);
+      return;
     }
     type.nameToType[memberName] = memberType;
     type.orderedNames.push(memberName);
@@ -2138,7 +2242,7 @@ StructCType.prototype.emitHostImpl = function(f) {
     f('if (!all["' + type.jsTypename + '"].isNull()) return;');
     f('all["' + type.jsTypename + '"] = jsonstr(schema);');
     _.each(type.getMemberTypes(), function(type) {
-      if (type.isStruct) {
+      if (type.isStruct()) {
         f(type.typename + '::addSchemas(all); /* ' + type.constructor.name + ' */');
       }
     });
@@ -2170,7 +2274,7 @@ StructCType.prototype.emitHostImpl = function(f) {
     f('ostream & operator<<(ostream &s, const TYPENAME &obj) {');
     f('s << "' + type.typename + '{";');
     _.each(type.orderedNames, function(name, namei) {
-      if (type.nameToType[name].isCollection) {
+      if (type.nameToType[name].isCollection()) {
         f('s << "' + (namei > 0 ? ', ' : '') + name + '=" << asJson(obj.' + name + ');');
       } else {
         f('s << "' + (namei > 0 ? ', ' : '') + name + '=" << obj.' + name + ';');
@@ -2384,26 +2488,11 @@ StructCType.prototype.emitJsWrapDecl = function(f) {
 
 StructCType.prototype.emitJsWrapImpl = function(f) {
   var type = this;
-  var methods = [];
-  var factories = [];
-  var accessors = [];
 
-  if (1) {
-    f('static Handle<Value> jsNew_JSTYPE(const Arguments& args) {');
-    f('HandleScope scope;');
-    f('if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();');
-    f('JsWrap_JSTYPE* thisObj = new JsWrap_JSTYPE();');
-    f('return jsConstructor_JSTYPE(thisObj, args);');
-    f('}');
-    f('');
-  }
-
-  if (1) {
-    f('Handle<Value> jsConstructor_JSTYPE(JsWrap_JSTYPE *thisObj, const Arguments& args) {');
-    f('HandleScope scope;');
-
+  f.emitJsNew();
+  f.emitJsConstructor(function(f) {
     var constructorArgs = type.getConstructorArgs();
-    emitArgSwitch(f, type.reg, null, [
+    f.emitArgSwitch(null, [
       {args: [], code: function() {
 	f('thisObj->assignDefault();');
       }},
@@ -2426,11 +2515,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 	}
       }},
     ]);
-
-    f('thisObj->Wrap2(args.This());');
-    f('return args.This();');
-    f('}');
-  }
+  });
 
   if (!type.noSerialize) {
     
@@ -2455,7 +2540,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 	case 'int': 
 	case 'u_int': 
 	case 'float': 
-	case 'double':
+ 	case 'double':
           f('ret->Set(String::NewSymbol("' + name + '"), Number::New(it.' + name + '));');
           break;
 	case 'bool':
@@ -2475,47 +2560,44 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f('return ret;');
     f('}');
 
-    emitJsWrap(f, 'JSTYPE_toJSON', function() {
-      emitArgSwitch(f, type.reg, type, [{
+    f.emitJsMethod('toJSON', function() {
+      f.emitArgSwitch(type, [{
         args: [], ignoreExtra: true, code: function() {
           f('return scope.Close(jsToJSON_JSTYPE(*thisObj->it));');
         }
       }]);
     });
-    methods.push('toJSON');
   }
 
   if (!type.noSerialize) {
-    emitJsWrap(f, 'JSTYPE_toJsonString', function() {
-      emitArgSwitch(f, type.reg, type, [{
+    f.emitJsMethod('toJsonString', function() {
+      f.emitArgSwitch(type, [{
         args: [], returnType: 'string', code: function() {
           f('ret = asJson(*thisObj->it).it;');
         }
       }]);
     });
-    methods.push('toJsonString');
+    f.emitJsMethodAlias('toString', 'toJsonString');
 
-    emitJsWrap(f, 'JSTYPE_inspect', function() {
-      emitArgSwitch(f, type.reg, type, [{
+    f.emitJsMethod('inspect', function() {
+      f.emitArgSwitch(type, [{
         // It's given an argument, recurseTimes, which we should decrement when recursing but we don't.
         args: ['double'], returnType: 'string', code: function() {
           f('if (a0 >= 0) ret = asJson(*thisObj->it).it;');
         }
       }]);
     });
-    methods.push('inspect');
 
-    emitJsWrap(f, 'JSTYPE_toJsonBuffer', function() {
-      emitArgSwitch(f, type.reg, type, [{
+    f.emitJsMethod('toJsonBuffer', function() {
+      f.emitArgSwitch(type, [{
         args: [], returnType: 'buffer', code: function() {
           f('ret = asJson(*thisObj->it).it;');
         }
       }]);
     });
-    methods.push('toJsonBuffer');
 
-    emitJsWrap(f, 'JSTYPE_fromString', function() {
-      emitArgSwitch(f, type.reg, null, [
+    f.emitJsFactory('fromString', function() {
+      f.emitArgSwitch(null, [
         {args: ['string'], returnType: type, code: function() {
           f('const char *a0s = a0.c_str();');
           f('bool ok = rdJson(a0s, ret);');
@@ -2523,12 +2605,11 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         }}
       ]);
     });
-    factories.push('fromString');
   }
 
   if (!type.noPacket) {
-    emitJsWrap(f, 'JSTYPE_toPacket', function() {
-      emitArgSwitch(f, type.reg, type, [
+    f.emitJsMethod('toPacket', function() {
+      f.emitArgSwitch(type, [
         {args: [], code: function() {
           f('packet wr;');
           f('wr.add_checked(*thisObj->it);');
@@ -2537,10 +2618,9 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         }}
       ]);
     });
-    methods.push('toPacket');
 
-    emitJsWrap(f, 'JSTYPE_fromPacket', function() {
-      emitArgSwitch(f, type.reg, null, [{
+    f.emitJsFactory('fromPacket', function() {
+      f.emitArgSwitch(null, [{
         args: ['string'], returnType: type, code: function() {
           f('packet rd(a0);');
           f('try {');
@@ -2550,39 +2630,31 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
           f('};');
         }}]);
     });
-    factories.push('fromPacket');
   }
 
   if (!type.noStdValues && type.isCopyConstructable()) {
     _.each(['allZero', 'allNan'], function(name) {
-      f('static Handle<Value> jsWrap_JSTYPE_' + name + '(const Arguments& args) {');
-      f('HandleScope scope;');
-      f('return scope.Close(JsWrap_JSTYPE::NewInstance(TYPENAME::' + name + '()));');
-      f('}');
-      factories.push(name);
+      f.emitJsFactory(name, function(f) {
+        f('return scope.Close(JsWrap_JSTYPE::NewInstance(TYPENAME::' + name + '()));');
+      });
     });
   }
 
   _.each(type.orderedNames, function(name) {
     var memberType = type.nameToType[name];
-    f('static Handle<Value> jsGet_JSTYPE_' + name + '(Local<String> name, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('return scope.Close(' + memberType.getCppToJsExpr((memberType.isPtr() ? '*' : '') + 'thisObj->it->' + name, 'thisObj->it') + ');');
-    f('}');
-
-    f('static void jsSet_JSTYPE_' + name + '(Local<String> name, Local<Value> value, AccessorInfo const &ai) {');
-    f('HandleScope scope;');
-    f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(ai.This());');
-    f('if (' + memberType.getJsToCppTest('value') + ') {');
-    f('thisObj->it->' + name + ' = ' + memberType.getJsToCppExpr('value') + ';');
-    f('}');
-    f('else {');
-    f('ThrowTypeError("Expected ' + memberType.typename + '");');
-    f('}');
-    f('}');
-    f('');
-    accessors.push(name);
+    f.emitJsAccessors(name, {
+      get: function(f) {
+        f('return scope.Close(' + memberType.getCppToJsExpr((memberType.isPtr() ? '*' : '') + 'thisObj->it->' + name, 'thisObj->it') + ');');
+      },
+      set: function(f) {
+        f('if (' + memberType.getJsToCppTest('value') + ') {');
+        f('thisObj->it->' + name + ' = ' + memberType.getJsToCppExpr('value') + ';');
+        f('}');
+        f('else {');
+        f('ThrowTypeError("Expected ' + memberType.typename + '");');
+        f('}');
+      }
+    });
   });
 
   if (1) { // Setup template and prototype
@@ -2590,27 +2662,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f('Local<FunctionTemplate> tpl = FunctionTemplate::New(jsNew_JSTYPE);');
     f('tpl->SetClassName(String::NewSymbol("JSTYPE"));');
     f('tpl->InstanceTemplate()->SetInternalFieldCount(1);');
-
-    _.each(methods, function(name) {
-      f('tpl->PrototypeTemplate()->Set(String::NewSymbol("' + name + '"), FunctionTemplate::New(jsWrap_JSTYPE_' + name + ')->GetFunction());');
-    });
-    if (!type.noSerialize) {
-      f('tpl->PrototypeTemplate()->Set(String::NewSymbol("toString"), FunctionTemplate::New(jsWrap_JSTYPE_toJsonString)->GetFunction());');
-    }
-
-    _.each(accessors, function(name) {
-      var memberType = type.nameToType[name];
-      f('tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("' + name + '"), ' +
-        '&jsGet_JSTYPE_' + name + ', ' +
-        '&jsSet_JSTYPE_' + name + ');');
-    });
-    f('');
-    
-    f('JsWrap_JSTYPE::constructor = Persistent<Function>::New(tpl->GetFunction());');
-    f('exports->Set(String::NewSymbol("JSTYPE"), JsWrap_JSTYPE::constructor);');
-    _.each(factories, function(name) {
-      f('JsWrap_JSTYPE::constructor->Set(String::NewSymbol("' + name + '"), FunctionTemplate::New(jsWrap_JSTYPE_' + name + ')->GetFunction());');
-    });
+    f.emitJsBindings();
     f('}');
     f('');
   }
@@ -2626,6 +2678,7 @@ function PtrCType(reg, baseType) {
   type.jsTypename = baseType.jsTypename;
 }
 PtrCType.prototype = Object.create(CType.prototype);
+PtrCType.prototype.isPtr = function() { return true; };
 
 PtrCType.prototype.nonPtrType = function() {
   return this.baseType;
@@ -2655,9 +2708,6 @@ PtrCType.prototype.getExampleValueJs = function() {
   return 'null';
 };
 
-PtrCType.prototype.isPtr = function() {
-  return true;
-};
 
 PtrCType.prototype.emitVarDecl = function(f, varname) {
   var type = this;
@@ -2711,6 +2761,7 @@ function CDspType(reg, lbits, rbits) {
   CType.call(type, reg, typename);
 }
 CDspType.prototype = Object.create(CType.prototype);
+CDspType.prototype.isDsp = function() { return true; }
 
 CDspType.prototype.getFns = function() {
   var type = this;
