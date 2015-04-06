@@ -8,9 +8,9 @@ describe('ur.arma', function() {
   it('mat should work', function() {
     var m = new ur.mat(3,3);
     assert.equal(m.toJsonString(), '[0,0,0,0,0,0,0,0,0]');
-    m[0][0] = 1;
-    m[0][1] = 2;
-    m[1][0] = 3;
+    m[0] = 1;
+    m[3] = 2;
+    m[1] = 3;
     assert.equal(m.toJsonString(), '[1,3,0,2,0,0,0,0,0]');
   });
   it('vec should work', function() {
@@ -183,28 +183,28 @@ describe('mat', function() {
     assert.equal(r0[1], 2);
     assert.equal(r0[2], 3);
     r0[1] *= 10;
-    assert.equal(m[0][1], 20);
+    assert.equal(m[3], 20);
 
     var r1 = m.row(1);
     assert.equal(r1[0], 4);
     assert.equal(r1[1], 5);
     assert.equal(r1[2], 6);
     r1[1] *= 10;
-    assert.equal(m[1][1], 50);
+    assert.equal(m[4], 50);
     
     var c0 = m.col(0);
     assert.equal(c0[0], 1);
     assert.equal(c0[1], 4);
     assert.equal(c0[2], 7);
     c0[1] *= 10;
-    assert.equal(m[1][0], 40);
+    assert.equal(m[1], 40);
 
     var c1 = m.col(1);
     assert.equal(c1[0], 20);
     assert.equal(c1[1], 50);
     assert.equal(c1[2], 8);
     c1[1] *= 10;
-    assert.equal(m[1][1], 500);
+    assert.equal(m[4], 500);
     
     
   });
