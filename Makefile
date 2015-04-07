@@ -29,6 +29,7 @@ DECL_TYPES := \
 
 # Manual machine setup
 # See https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager
+# Do curl -sL https://deb.nodesource.com/setup_0.12 | sudo bash -
 .PHONY: install.ubuntu install.npm install.brew
 install.ubuntu ::
 	sudo apt-get update

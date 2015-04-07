@@ -1,6 +1,5 @@
 'use strict';
 var _                   = require('underscore');
-var util                = require('util');
 var fs                  = require('fs');
 var parsejs             = require('./UglifyJS/lib/parse-js.js');
 
@@ -10,7 +9,7 @@ exports.loadAndParse = loadAndParse;
 function loadAndParse(modname, cb) {
   
   var filename = require.resolve(modname);
-  util.puts(filename);
+  console.log(filename);
   fs.readFile(filename, 'utf8', function(err, contents) {
     if (err) return cb(err);
     var parsed;

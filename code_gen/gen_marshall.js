@@ -2552,7 +2552,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsMethod('inspect', function() {
       f.emitArgSwitch([
         // It's given an argument, recurseTimes, which we should decrement when recursing but we don't.
-        {args: ['double'], returnType: 'string', code: function(f) {
+        {args: ['double'], ignoreExtra: true, returnType: 'string', code: function(f) {
           f('if (a0 >= 0) ret = asJson(*thisObj->it).it;');
         }}
       ]);

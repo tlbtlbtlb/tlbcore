@@ -36,20 +36,20 @@ function parseToken(token) {
   var timestamp = parseInt(m[3], 10);
   var mac = m[4];
   var expectMac = tokenHash(userName, timestamp, flags);
-  if (verbose>=5) util.puts("parseToken: userName=" + userName + ' timestamp=' + timestamp + ' mac=' + mac + ' expectMac=' + expectMac);
+  if (verbose>=5) console.log("parseToken: userName=" + userName + ' timestamp=' + timestamp + ' mac=' + mac + ' expectMac=' + expectMac);
   var expectTimestamp = Date.now();
   var tsdiff = expectTimestamp - timestamp;
   if (!(mac === expectMac)) {
-    if (verbose >= 1) util.puts('parseToken: incorrect mac=' + mac + ' expectMac=' + expectMac);
+    if (verbose >= 1) console.log('parseToken: incorrect mac=' + mac + ' expectMac=' + expectMac);
     return null;
   }
   if (tsdiff < 0) {
-    if (verbose >= 1) util.puts('parseToken: future tsdiff=' + tsdiff);
+    if (verbose >= 1) console.log('parseToken: future tsdiff=' + tsdiff);
     return null;
   }
   var lifetime = (flags === 'R') ? 7*86400*1000 : 8*3600*1000;
   if (tsdiff > lifetime) {
-    if (verbose >= 5) util.puts('parseToken: expired tsdiff=' + tsdiff + ' lifetime=' + lifetime);
+    if (verbose >= 5) console.log('parseToken: expired tsdiff=' + tsdiff + ' lifetime=' + lifetime);
     return null;
   }
   return userName;

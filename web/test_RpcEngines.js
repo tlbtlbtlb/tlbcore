@@ -1,4 +1,3 @@
-var util                = require('util');
 var url                 = require('url');
 var fs                  = require('fs');
 
@@ -7,7 +6,7 @@ describe('fs.writeStreamString binary', function() {
     var fn = '/tmp/wsbtest1';
     var ws = fs.createWriteStream(fn, {flags: 'w', encoding: 'binary', mode: 438});  // mode is octal 0666
     var binstr = '\u0089\u0050';  // same as first 2 bytes of PNG
-    if (0) util.puts('binstr: ', typeof binstr + ' ' + binstr.length + ' ' + binstr.charCodeAt(0).toString(16) + ' ' + binstr.charCodeAt(1).toString(16));
+    if (0) console.log('binstr: ', typeof binstr + ' ' + binstr.length + ' ' + binstr.charCodeAt(0).toString(16) + ' ' + binstr.charCodeAt(1).toString(16));
     ws.on('close', function() {
       fs.stat(fn, function(err, stats) {
         if (err) throw err;
@@ -22,7 +21,7 @@ describe('fs.writeStreamString binary', function() {
     var fn = '/tmp/wsbtest2';
     var ws = fs.createWriteStream(fn, {flags: 'w', encoding: 'binary', mode: 438}); // mode is octal 0666
     var binstr = new Buffer('\u0089\u0050', 'binary');
-    if (0) util.puts('binstr: ', typeof binstr + ' ' + binstr.length + ' ' + binstr[0].toString(16) + ' ' + binstr[1].toString(16));
+    if (0) console.log('binstr: ', typeof binstr + ' ' + binstr.length + ' ' + binstr[0].toString(16) + ' ' + binstr[1].toString(16));
     ws.on('close', function() {
       fs.stat(fn, function(err, stats) {
         if (err) throw err;

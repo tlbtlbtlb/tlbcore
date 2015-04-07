@@ -62,6 +62,6 @@ function setupReplServer() {
     var r = repl.start('node> ', socket);
     setupReplCommon(r);
   }).listen(5001, '127.0.0.1');
-  util.puts('Use "rlwrap nc 127.0.0.1 5001" for a repl');
+  console.log('Use "rlwrap nc 127.0.0.1 5001" for a repl');
 }
 

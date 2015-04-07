@@ -1,6 +1,5 @@
 'use strict';
 var _                   = require('underscore');
-var util                = require('util');
 var child_process       = require('child_process');
 require('../common/MoreUnderscore');
 
@@ -15,11 +14,11 @@ var verbose = 1;
 // ----------------------------------------------------------------------
 
 function vsystem(cmd, cb) {
-  util.puts('system(' + cmd + ')');
+  console.log('system(' + cmd + ')');
   child_process.exec(cmd, function (err, stdout, stderr) {
     if (err) throw err;
-    if (stdout.length) util.puts(stdout);
-    if (stderr.length) util.puts(stderr);
+    if (stdout.length) console.log(stdout);
+    if (stderr.length) console.log(stderr);
     if (cb) cb();
   });
 }
@@ -58,9 +57,9 @@ function logDataSep(remote, sep, args) {
     info = info.substr(0, 489) + ' ...[' + info.length.toString() + ' long]';
   }
   if (remote.length < 40) remote = remote + '                                        '.substr(0, 40-remote.length);
-  util.puts(remote + sep + info.replace(/\n/g, '\n                                         . '));
+  console.log(remote + sep + info.replace(/\n/g, '\n                                         . '));
   for (var sti = 0; sti < stacks.length; sti++) {
-    util.puts('                                         | ' + stacks[sti].replace(/\n/g, '\n                                         | '));
+    console.log('                                         | ' + stacks[sti].replace(/\n/g, '\n                                         | '));
   }
 }
 

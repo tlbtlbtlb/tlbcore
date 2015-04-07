@@ -29,7 +29,6 @@
     https://github.com/Worlize/WebSocket-Node/wiki/Documentation
 */
 var _                   = require('underscore');
-var util                = require('util');
 var logio               = require('./logio');
 var WebSocketHelper     = require('./WebSocketHelper');
 

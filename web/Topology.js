@@ -2,7 +2,6 @@
 var _                   = require('underscore');
 var os                  = require('os');
 var fs                  = require('fs');
-var util                = require('util');
 
 exports.getHostname = getHostname;
 exports.getServerInfo = getServerInfo;
@@ -32,13 +31,13 @@ var servers = {};
 
 function setup() {
   hostname = os.hostname().replace(/\..*$/, '');
-  util.puts('hostname=' + hostname);
+  console.log('hostname=' + hostname);
 
   try {
     var code = fs.readFileSync('servers.js', 'utf8');
     servers = eval('(' + code + ')');
   } catch(ex) {
-    util.puts('No servers.js');
+    console.log('No servers.js');
     servers = {};
     servers[hostname] = {
       roles: ['web', 'db', 'test', 'bounce'],
@@ -63,13 +62,13 @@ function setup() {
   servers[hostname].bestAddr = '127.0.0.1';
 
   if (servers[hostname].nodeRestartTime) {
-    util.puts('Scheduling restart in ' + servers[hostname].nodeRestartTime + ' seconds');
+    console.log('Scheduling restart in ' + servers[hostname].nodeRestartTime + ' seconds');
     setTimeout(function() {
       process.exit();
     }, servers[hostname].nodeRestartTime * 1000);
   }
 
-  if (verbose >= 1) util.puts(util.inspect(servers));
+  if (verbose >= 1) console.log(servers);
 }
 
 setup();

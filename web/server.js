@@ -1,7 +1,6 @@
 'use strict';
 var _                   = require('underscore');
 var net                 = require('net');
-var util                = require('util');
 
 require('./VjsDbs').defDb('redis0', 'redis', '127.0.0.1', 6379);
 
@@ -12,8 +11,8 @@ var VjsRepl             = require('./VjsRepl');
 
 function setupErrorHandling() {
   process.on('uncaughtException', function (err) {
-    util.puts(err.message);
-    util.puts(err.stack.toString());
+    console.log(err.message);
+    console.log(err.stack.toString());
   });
 }
 

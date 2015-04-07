@@ -1,6 +1,5 @@
 'use strict';
 var _                   = require('underscore');
-var util                = require('util');
 var child_process       = require('child_process');
 
 var logio               = require('./logio');
@@ -166,7 +165,7 @@ function startPeriodicSync() {
 
   Example:
   image.mkImageVersions('/tmp/qbPerson.jpg', function(versions) {
-  util.puts(util.inspect(versions));
+  console.log(versions);
   });
   Prints:
   {
@@ -192,7 +191,7 @@ function mkImageVersions(origFn, options, cb) {
 
   fillImageVersion(origFn, 'orig', {}, function(err, origFn, origWidth, origHeight) {
     if (err) {
-      util.puts('mkImageVersions: ' + err);
+      console.log('mkImageVersions: ' + err);
       syncPendingFiles();
       cb({});
       return;
@@ -204,7 +203,7 @@ function mkImageVersions(origFn, options, cb) {
     _.arrayMapPar(versions, function(sizetag, cb1) {
       fillImageVersion(origFn, sizetag, {origWidth: origWidth, origHeight: origHeight, fullName: options.fullName}, function(err, newFn, newWidth, newHeight) {
         if (err) {
-          util.puts(origFn + '(' + sizetag + '): ' + err);
+          console.log(origFn + '(' + sizetag + '): ' + err);
         } else {
           ii.tagsByVersion[sizetag] = '<img src="' + newFn + '" width="' + newWidth + '" height="' + newHeight + '">';
         }

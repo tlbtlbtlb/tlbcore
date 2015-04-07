@@ -148,7 +148,7 @@ WebServer.prototype.setupContent = function(dirs) {
   _.each(dirs, function(dir) {
     // Start with process.cwd, since these directory names are specified on the command line
     var fn = fs.realpathSync(path.join(dir, 'load.js'));
-    util.print('Load ' + fn + '\n');
+    console.log('Load ' + fn);
     require(fn).load(webServer);
   });
 
@@ -191,7 +191,7 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
   if (!bindHost) bindHost = '127.0.0.1';
   
   webServer.httpServer = http.createServer(httpHandler);
-  util.puts('Listening on ' + bindHost + ':' + bindPort);
+  console.log('Listening on ' + bindHost + ':' + bindPort);
   webServer.httpServer.listen(bindPort, bindHost);
 
   webServer.ws = new websocket.server({httpServer: webServer.httpServer});
@@ -332,7 +332,7 @@ WebServer.prototype.mkConsoleHandler = function() {
         if (_.isObject(err)) {
           err = util.inspect(err);
         }
-        util.puts(err.replace(/^/mg, '    '));
+        console.log(err.replace(/^/mg, '    '));
       }
     },
     cmd_reloadOn: function(msg) {

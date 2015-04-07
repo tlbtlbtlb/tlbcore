@@ -1,6 +1,5 @@
 var _                   = require('underscore');
 var assert              = require('assert');
-var util                = require('util');
 var VjsDbs              = require('./VjsDbs');
 
 VjsDbs.defDb('local', 'redis', '127.0.0.1', 6379);

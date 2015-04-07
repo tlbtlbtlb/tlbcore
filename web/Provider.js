@@ -10,7 +10,6 @@ var assert              = require('assert');
 var events              = require('events');
 var net                 = require('net');
 var fs                  = require('fs');
-var util                = require('util');
 var path                = require('path');
 var assert              = require('assert');
 var jsmin               = require('jsmin2');
@@ -64,20 +63,20 @@ function mkDataUrl(fn, maxLen) {
   try {
     data = fs.readFileSync(fn, 'binary');
   } catch(ex) {
-    util.puts('mkDataUrl: Failed to read ' + fn + ': ' + ex.toString());
+    console.log('mkDataUrl: Failed to read ' + fn + ': ' + ex.toString());
     return null;
   }
   if (!data || !data.length) {
-    if (0) util.puts('mkDataUrl: Failed to read ' + fn + ': empty');
+    if (0) console.log('mkDataUrl: Failed to read ' + fn + ': empty');
     return null;
   }
   if (maxLen && data.length > maxLen) {
-    if (1) util.puts('mkDataUrl: ' + fn + ' too large');
+    if (1) console.log('mkDataUrl: ' + fn + ' too large');
     return null;
   }
   var dataE = data.toString('base64');
   var ret = 'data:' + ct + ';base64,' + dataE;
-  if (0) util.puts('Encoded: ' + fn + ' as ' + ret);
+  if (0) console.log('Encoded: ' + fn + ' as ' + ret);
   return ret;
 }
 
@@ -134,7 +133,7 @@ function contentTypeFromFn(fn) {
     default: break;
     }
   }
-  if (verbose>=2) util.puts('Can\'t figure content type for ' + fn);
+  if (verbose>=2) console.log('Can\'t figure content type for ' + fn);
   return 'application/octet-stream';
 }
 
@@ -337,12 +336,12 @@ XmlContentProvider.prototype.start = function() {
     data = data.replace(/\n\s+/g, ' ');
     
     var doc = new xml.XMLDoc(data, function(err) {
-      util.puts('XML parse error in ' + self.fn + ': ' + err);
+      console.log('XML parse error in ' + self.fn + ': ' + err);
       if (errs.length < 10) errs.push(err);
       return false;
     });
     if (errs.length) {
-      util.puts("Failed to parse " + self.fn + util.inspect(errs));
+      console.log("Failed to parse " + self.fn, errs);
       return;
     }
     
@@ -358,14 +357,14 @@ XmlContentProvider.prototype.start = function() {
         var contentTxt = contentElem.getUnderlyingXMLText();
         contentStr += contentTxt;
       });
-      if (verbose>=2) util.puts('XmlContentProvider.start: ' + self.fn + '.' + name + ' ' + oldlen + ' to ' + contentStr.length);
+      if (verbose>=2) console.log('XmlContentProvider.start: ' + self.fn + '.' + name + ' ' + oldlen + ' to ' + contentStr.length);
       // <br/> in xml gets turned into <br></br>, but some browsers recognize the </br> as another line break
       contentStr = contentStr.replace(/<\/br>/, '');
       
       asScriptBody += '$.defContent(\'' + name + '\',\'' + contentStr.replace(/([\'\\])/g, '\\$1').replace(/<\/script>/ig, '\\x3c\\x2fscript\\x3e') + '\');\n';
     });
     
-    if (verbose>=2) util.puts('loadData: ' + self.basename + ' len=' + asScriptBody.length);
+    if (verbose>=2) console.log('loadData: ' + self.basename + ' len=' + asScriptBody.length);
 
     self.asScriptBody = asScriptBody;
     self.pending = false;
@@ -487,7 +486,7 @@ ScriptProvider.prototype.start = function() {
     }
     var m = /,s*\}(.{0,100})/.exec(data);
     if (m) {
-      util.puts('ScriptProvider ' + self.fn + ': suspicious ,} at ' + m[0]);
+      console.log('ScriptProvider ' + self.fn + ': suspicious ,} at ' + m[0]);
     }
     
     if (self.commonjsModule) {
@@ -496,7 +495,7 @@ ScriptProvider.prototype.start = function() {
       data = data + '\n';
     }
     
-    if (verbose>=2) util.puts('ScriptProvider ' + self.fn + ' ' + oldlen + ' to ' + data.length);
+    if (verbose>=2) console.log('ScriptProvider ' + self.fn + ' ' + oldlen + ' to ' + data.length);
     self.asScriptBody = data;
     self.pending = false;
     self.emit('changed');
@@ -541,7 +540,7 @@ JsonProvider.prototype.start = function() {
 
   persistentReadFile(self.fn, 'utf8', function(data) {
     self.asScriptBody = 'window.' + self.globalVarname + ' = (' + data + ');\n';
-    if (verbose>=2) util.puts('JsonProvider ' + self.fn + ' ' + data.length);
+    if (verbose>=2) console.log('JsonProvider ' + self.fn + ' ' + data.length);
     self.pending = false;
     self.emit('changed');
   });
@@ -651,7 +650,7 @@ CssProvider.prototype.start = function() {
       });
     }
     
-    if (verbose>=2) util.puts('CssProvider ' + self.fn + ' ' + oldlen + ' to ' + data.length);
+    if (verbose>=2) console.log('CssProvider ' + self.fn + ' ' + oldlen + ' to ' + data.length);
     
     self.asCssHead = data;
     self.pending = false;
@@ -694,12 +693,12 @@ SvgProvider.prototype.start = function() {
     data = data.replace(/\r?\n\s*/g, ' ');
     
     var doc = new xml.XMLDoc(data, function(err) {
-      util.puts('XML parse error in ' + self.fn + ': ' + err);
+      console.log('XML parse error in ' + self.fn + ': ' + err);
       errs.push(err);
       return false;
     });
     if (errs.length) {
-      util.puts("Failed to parse " + self.fn + util.inspect(errs));
+      console.log("Failed to parse " + self.fn, errs);
       return;
     }
     
@@ -707,7 +706,7 @@ SvgProvider.prototype.start = function() {
     var name = self.basename;
     self.asSvg = doc.docNode.getUnderlyingXMLText();
     
-    if (verbose>=2) util.puts('SvgProvider.loadData: ' + self.fn + ' ' + oldlen + ' to ' + self.asSvg.length);
+    if (verbose>=2) console.log('SvgProvider.loadData: ' + self.fn + ' ' + oldlen + ' to ' + self.asSvg.length);
     self.asScriptBody = '$.defContent(\'' + name + '\',\'' + self.asSvg.replace(/([\'\\])/g, '\\$1').replace(/<\/script>/ig, '\\x3c\\x2fscript\\x3e') + '\');\n';
     self.pending = false;
     self.emit('changed');
