@@ -46,31 +46,31 @@ Handle<Value> convStringToJsBuffer(string const &it);
 
 template<typename T> bool canConvJsToArmaCol(Handle<Value> itv);
 template<typename T> arma::Col<T> convJsToArmaCol(Handle<Value> itv);
-template<typename T> Handle<Object> convArmaColToJs(arma::Col<T> const &it);
+template<typename T> Local<Object> convArmaColToJs(arma::Col<T> const &it);
 
 template<typename T> bool canConvJsToArmaRow(Handle<Value> itv);
 template<typename T> arma::Row<T> convJsToArmaRow(Handle<Value> itv);
-template<typename T> Handle<Object> convArmaRowToJs(arma::Row<T> const &it);
+template<typename T> Local<Object> convArmaRowToJs(arma::Row<T> const &it);
 
 template<typename T> bool canConvJsToArmaMat(Handle<Value> it);
 template<typename T> arma::Mat<T> convJsToArmaMat(Handle<Value> it, size_t nRows=0, size_t nCols=0);
-template<typename T> Handle<Object> convArmaMatToJs(arma::Mat<T> const &it);
+template<typename T> Local<Object> convArmaMatToJs(arma::Mat<T> const &it);
 
 
 // arma::cx_double conversion
 bool canConvJsToCxDouble(Handle<Value> it);
 arma::cx_double convJsToCxDouble(Handle<Value> it);
-Handle<Object> convCxDoubleToJs(arma::cx_double const &it);
+Local<Object> convCxDoubleToJs(arma::cx_double const &it);
 
 // map<string, jsonstr> conversion
 bool canConvJsToMapStringJsonstr(Handle<Value> itv);
 map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv);
-Handle<Value> convJsonstrToJs(map<string, jsonstr> const &it);
+Local<Value> convJsonstrToJs(map<string, jsonstr> const &it);
 
 // jsonstr conversion
 bool canConvJsToJsonstr(Handle<Value> value);
 jsonstr convJsToJsonstr(Handle<Value> value);
-Handle<Value> convJsonstrToJs(jsonstr const &it);
+Local<Value> convJsonstrToJs(jsonstr const &it);
 
 /*
   A template for wrapping any kind of object

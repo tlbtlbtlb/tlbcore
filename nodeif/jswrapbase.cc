@@ -1,24 +1,3 @@
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 #include "../common/std_headers.h"
 #include "../common/jsonio.h"
 #include "./jswrapbase.h"
@@ -83,8 +62,8 @@ bool canConvJsToCxDouble(Handle<Value> itv)
 {
   if (itv->IsObject()) {
     Handle<Object> it = itv->ToObject();
-    Handle<Value> realv = it->Get(String::NewSymbol("real"));
-    Handle<Value> imagv = it->Get(String::NewSymbol("imag"));
+    Local<Value> realv = it->Get(String::NewSymbol("real"));
+    Local<Value> imagv = it->Get(String::NewSymbol("imag"));
     if (realv->IsNumber() && imagv->IsNumber()) {
       return true;
     }
@@ -95,15 +74,15 @@ arma::cx_double convJsToCxDouble(Handle<Value> itv)
 {
   if (itv->IsObject()) {
     Handle<Object> it = itv->ToObject();
-    Handle<Value> realv = it->Get(String::NewSymbol("real"));
-    Handle<Value> imagv = it->Get(String::NewSymbol("imag"));
+    Local<Value> realv = it->Get(String::NewSymbol("real"));
+    Local<Value> imagv = it->Get(String::NewSymbol("imag"));
     if (realv->IsNumber() && imagv->IsNumber()) {
       return arma::cx_double(realv->NumberValue(), imagv->NumberValue());
     }
   }
   throw runtime_error("convJsToCxDouble: conversion failed");
 }
-Handle<Object> convCxDoubleToJs(arma::cx_double const &it)
+Local<Object> convCxDoubleToJs(arma::cx_double const &it)
 {
   Local<Object> ret = Object::New();
   ret->Set(String::NewSymbol("real"), Number::New(it.real()));
@@ -149,21 +128,21 @@ jsonstr convJsToJsonstr(Handle<Value> value) {
   setupJSON();
 
   if (value->IsObject()) {
-    Handle<Value> toJsonString = value->ToObject()->Get(String::New("toJsonString")); // defined on all generated stubs
+    Local<Value> toJsonString = value->ToObject()->Get(String::New("toJsonString")); // defined on all generated stubs
     if (!toJsonString.IsEmpty() && toJsonString->IsFunction()) {
-      Handle<Value> ret = toJsonString.As<Function>()->Call(value->ToObject(), 0, NULL);
+      Local<Value> ret = toJsonString.As<Function>()->Call(value->ToObject(), 0, NULL);
       return jsonstr(convJsToString(ret->ToString()));
     }
   }
-    
+  
   return jsonstr(convJsToString(JSON_stringify->Call(JSON, 1, &value)->ToString()));
 }
 
-Handle<Value> convJsonstrToJs(jsonstr const &it)
+Local<Value> convJsonstrToJs(jsonstr const &it)
 {
   setupJSON();
   Handle<Value> itJs = convStringToJs(it.it);
-  Handle<Value> ret = JSON_parse->Call(JSON, 1, &itJs);
+  Local<Value> ret = JSON_parse->Call(JSON, 1, &itJs);
   return ret;
 }
 
@@ -182,13 +161,13 @@ map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
   if (itv->IsObject()) {
     map < string, jsonstr > ret;
 
-    Handle<Object> it = itv->ToObject();
-    Handle<Array> itKeys = it->GetOwnPropertyNames();
+    Local<Object> it = itv->ToObject();
+    Local<Array> itKeys = it->GetOwnPropertyNames();
     
     size_t itKeysLen = itKeys->Length();
     for (size_t i=0; i<itKeysLen; i++) {
-      Handle<Value> itKey = itKeys->Get(i);
-      Handle<Value> itVal = it->Get(itKey);
+      Local<Value> itKey = itKeys->Get(i);
+      Local<Value> itVal = it->Get(itKey);
 
       string cKey = convJsToString(itKey->ToString());
       jsonstr cVal = convJsToJsonstr(itVal);
@@ -300,24 +279,34 @@ arma::Row<T> convJsToArmaRow(Handle<Value> itv) {
   throw runtime_error("convJsToArmaRow: not an array");
 }
 
-template<typename T>
-Handle<Object> convArmaColToJs(arma::Col<T> const &it) {
+static double * mkFloat64Array(size_t size, Handle<Object> &ret)
+{
   static Persistent<Function> float64_array_constructor;
 
   if (float64_array_constructor.IsEmpty()) {
     Local<Object> global = Context::GetCurrent()->Global();
     Local<Value> val = global->Get(String::New("Float64Array"));
-    assert(!val.IsEmpty() && "type not found: Float64Array");
-    assert(val->IsFunction() && "not a constructor: Float64Array");
+    if (val.IsEmpty()) throw runtime_error("Type not found: Float64Array");
+    if (!val->IsFunction()) throw runtime_error("Not a constructor: Float64Array");
     float64_array_constructor = Persistent<Function>::New(val.As<Function>());
   }
+  
+  if (size > 1000000000) throw runtime_error("mkFloat64Array: unreasonable size");
 
-  Local<Value> itSize = Integer::NewFromUnsigned((u_int)it.n_elem);
-  Local<Object> ret = float64_array_constructor->NewInstance(1, &itSize);
-  assert(ret->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray);
-  assert((size_t)ret->GetIndexedPropertiesExternalArrayDataLength() == it.n_elem);
+  Local<Value> jsSize = Integer::NewFromUnsigned((u_int)size);
+  ret = float64_array_constructor->NewInstance(1, &jsSize);
+
+  if (ret->GetIndexedPropertiesExternalArrayDataType() != kExternalDoubleArray) throw runtime_error("Failed to get Float64Array");
+  if ((size_t)ret->GetIndexedPropertiesExternalArrayDataLength() != size) throw runtime_error("Got Float64Array of wrong size");
 
   double* retData = static_cast<double*>(ret->GetIndexedPropertiesExternalArrayData());
+  return retData;
+}
+
+template<typename T>
+Handle<Object> convArmaColToJs(arma::Col<T> const &it) {
+  Local<Object> ret;
+  double *retData = mkFloat64Array(it.n_elem, ret);
   for (size_t i=0; i<it.n_elem; i++) {
     retData[i] = it(i);
   }
@@ -327,22 +316,8 @@ Handle<Object> convArmaColToJs(arma::Col<T> const &it) {
 
 template<typename T>
 Handle<Object> convArmaRowToJs(arma::Row<T> const &it) {
-  static Persistent<Function> float64_array_constructor;
-
-  if (float64_array_constructor.IsEmpty()) {
-    Local<Object> global = Context::GetCurrent()->Global();
-    Local<Value> val = global->Get(String::New("Float64Array"));
-    assert(!val.IsEmpty() && "type not found: Float64Array");
-    assert(val->IsFunction() && "not a constructor: Float64Array");
-    float64_array_constructor = Persistent<Function>::New(val.As<Function>());
-  }
-
-  Local<Value> itSize = Integer::NewFromUnsigned((u_int)it.n_elem);
-  Local<Object> ret = float64_array_constructor->NewInstance(1, &itSize);
-  assert(ret->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray);
-  assert((size_t)ret->GetIndexedPropertiesExternalArrayDataLength() == it.n_elem);
-
-  double* retData = static_cast<double*>(ret->GetIndexedPropertiesExternalArrayData());
+  Local<Object> ret;
+  double *retData = mkFloat64Array(it.n_elem, ret);
   for (size_t i=0; i<it.n_elem; i++) {
     retData[i] = it(i);
   }
@@ -399,9 +374,10 @@ arma::Mat<T> convJsToArmaMat(Handle<Value> it, size_t nRows, size_t nCols)
 template<typename T>
 Handle<Object> convArmaMatToJs(arma::Mat<T> const &it) 
 {
-  Local<Array> ret = Array::New(it.n_elem);
+  Local<Object> ret;
+  double *retData = mkFloat64Array(it.n_elem, ret);
   for (size_t ei = 0; ei < it.n_elem; ei++) {
-    ret->Set(ei, Number::New(it(ei)));
+    retData[ei] = it(ei);
   }
   return ret;
 }
