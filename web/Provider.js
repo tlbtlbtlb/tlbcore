@@ -14,7 +14,6 @@ var util                = require('util');
 var path                = require('path');
 var assert              = require('assert');
 var jsmin               = require('jsmin2');
-var base64              = require('base64');
 var xml                 = require('xmldom');
 var marked              = require('marked');
 var logio               = require('./logio');
@@ -61,7 +60,7 @@ function mkDataUrl(fn, maxLen) {
   if (!ct || ct === 'application/octet-stream') {
     return null;
   }
-  var data, dataE;
+  var data;
   try {
     data = fs.readFileSync(fn, 'binary');
   } catch(ex) {
@@ -76,7 +75,7 @@ function mkDataUrl(fn, maxLen) {
     if (1) util.puts('mkDataUrl: ' + fn + ' too large');
     return null;
   }
-  dataE = base64.encode(data);
+  var dataE = data.toString('base64');
   var ret = 'data:' + ct + ';base64,' + dataE;
   if (0) util.puts('Encoded: ' + fn + ' as ' + ret);
   return ret;

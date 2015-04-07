@@ -12,134 +12,135 @@ using namespace arma;
    StlSolid
 */
 
-static Handle<Value> jsNew_StlSolid(const Arguments& args) {
-  HandleScope scope;
-  if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();
-  JsWrap_StlSolid* thisObj = new JsWrap_StlSolid();
-  return jsConstructor_StlSolid(thisObj, args);
+static void jsNew_StlSolid(FunctionCallbackInfo<Value> const &args) {
+  NanScope();
+  if (!(args.Holder()->InternalFieldCount() > 0)) {
+    return NanThrowError("Invalid this");;
+  }
+  JsWrap_StlSolid* thisObj = new JsWrap_StlSolid(args.GetIsolate());
+  jsConstructor_StlSolid(thisObj, args);
 }
 
 
-Handle<Value> jsConstructor_StlSolid(JsWrap_StlSolid *thisObj, const Arguments& args) {
-  HandleScope scope;
+void jsConstructor_StlSolid(JsWrap_StlSolid *thisObj, FunctionCallbackInfo<Value> const &args) {
+  NanScope();
   if (args.Length() == 0) {
     thisObj->assignDefault();
   }
   else  {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
   thisObj->Wrap2(args.This());
-  return args.This();
+  NanReturnValue(args.This());
 }
 
-static Handle<Value> jsGet_StlSolid_bboxLo(Local<String> name, AccessorInfo const &ai) {
-  HandleScope scope;
-  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(ai.This());
-  return scope.Close(JsWrap_vec::MemberInstance(thisObj->it, &(thisObj->it->bboxLo)));
+static void jsGet_StlSolid_bboxLo(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+  NanScope();
+  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
+  NanReturnValue(JsWrap_vec::MemberInstance(thisObj->it, &(thisObj->it->bboxLo)));
 }
 
-static Handle<Value> jsGet_StlSolid_bboxHi(Local<String> name, AccessorInfo const &ai) {
-  HandleScope scope;
-  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(ai.This());
-  return scope.Close(JsWrap_vec::MemberInstance(thisObj->it, &(thisObj->it->bboxHi)));
+static void jsGet_StlSolid_bboxHi(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+  NanScope();
+  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
+  NanReturnValue(JsWrap_vec::MemberInstance(thisObj->it, &(thisObj->it->bboxHi)));
 }
 
-static Handle<Value> jsGet_StlSolid_numFaces(Local<String> name, AccessorInfo const &ai) {
-  HandleScope scope;
-  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(ai.This());
-  return scope.Close(Number::New(thisObj->it->faces.size()));
+static void jsGet_StlSolid_numFaces(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+  NanScope();
+  JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
+  NanReturnValue(NanNew<Number>(thisObj->it->faces.size()));
 }
 
-static Handle<Value> jsWrap_StlSolid_toString(const Arguments& args)
+static void jsWrap_StlSolid_toString(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   ostringstream oss;
   oss << *thisObj->it;
-  return scope.Close(convStringToJs(oss.str()));
+  NanReturnValue(convStringToJs(oss.str()));
 }
 
-static Handle<Value> jsWrap_StlSolid_inspect(const Arguments& args)
+static void jsWrap_StlSolid_inspect(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   ostringstream oss;
   oss << *thisObj->it;
-  return scope.Close(convStringToJs(oss.str()));
+  NanReturnValue(convStringToJs(oss.str()));
 }
 
 
-static Handle<Value> jsWrap_StlSolid_readBinaryFile(const Arguments& args)
+static void jsWrap_StlSolid_readBinaryFile(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   if (args.Length() == 2 && canConvJsToString(args[0]) && args[1]->IsNumber()) {
     string a0 = convJsToString(args[0]);
     double a1 = args[1]->NumberValue();
     FILE *fp = fopen(a0.c_str(), "rb");
     if (!fp) {
-      return ThrowRuntimeError(stringprintf("Can't read %s", a0.c_str()).c_str());
+      ThrowRuntimeError(stringprintf("Can't read %s", a0.c_str()).c_str());
+      return;
     }
     thisObj->it->readBinaryFile(fp, a1);
     fclose(fp);
-    return scope.Close(Undefined());
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
-static Handle<Value> jsWrap_StlSolid_writeBinaryFile(const Arguments& args)
+static void jsWrap_StlSolid_writeBinaryFile(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   if (args.Length() == 2 && canConvJsToString(args[0]) && args[1]->IsNumber()) {
     string a0 = convJsToString(args[0]);
     double a1 = args[1]->NumberValue();
     FILE *fp = fopen(a0.c_str(), "wb");
     if (!fp) {
-      return ThrowRuntimeError(stringprintf("Can't write %s", a0.c_str()).c_str());
+      ThrowRuntimeError(stringprintf("Can't write %s", a0.c_str()).c_str());
+      return;
     }
     thisObj->it->writeBinaryFile(fp, a1);
     fclose(fp);
-    return scope.Close(Undefined());
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
-static Handle<Value> jsWrap_StlSolid_transform(const Arguments& args)
+static void jsWrap_StlSolid_transform(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   if (args.Length() == 1 && JsWrap_mat44::Extract(args[0]) != nullptr) {
     arma::mat44 a0 = *JsWrap_mat44::Extract(args[0]);
     thisObj->it->transform(a0);
-    return scope.Close(Undefined());
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
-static Handle<Value> jsWrap_StlSolid_getStlMassProperties(const Arguments& args)
+static void jsWrap_StlSolid_getStlMassProperties(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   if (args.Length() == 1 && args[0]->IsNumber()) {
     double a0 = args[0]->NumberValue();
     StlMassProperties ret = thisObj->it->getStlMassProperties(a0);
-    return scope.Close(JsWrap_StlMassProperties::NewInstance(ret));
+    NanReturnValue(JsWrap_StlMassProperties::NewInstance(ret));
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");
   }
 }
 
-static Handle<Value> jsWrap_StlSolid_getIntersections(const Arguments& args)
+static void jsWrap_StlSolid_getIntersections(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   if (args.Length() == 2 && 
       JsWrap_vec::Extract(args[0]) != NULL &&
@@ -148,31 +149,30 @@ static Handle<Value> jsWrap_StlSolid_getIntersections(const Arguments& args)
     vec a1 = *JsWrap_vec::Extract(args[1]);
     vector<StlIntersection> ret = thisObj->it->getIntersections(a0, a1);
 
-    Local<Array> retJs = Array::New(ret.size());
+    Local<Array> retJs = Array::New(args.GetIsolate(), ret.size());
     for (size_t ri = 0; ri < ret.size(); ri++) {
-      Local<Object> interJs = Object::New();
-      interJs->Set(String::NewSymbol("t"), Number::New(ret[ri].t));
-      interJs->Set(String::NewSymbol("face"), JsWrap_StlFace::NewInstance(ret[ri].face));
+      Local<Object> interJs = Object::New(args.GetIsolate());
+      interJs->Set(NanNew<String>("t"), Number::New(args.GetIsolate(), ret[ri].t));
+      interJs->Set(NanNew<String>("face"), JsWrap_StlFace::NewInstance(ret[ri].face));
       retJs->Set(ri, interJs);
     }
-    return scope.Close(retJs);
+    NanReturnValue(retJs);
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
-static Handle<Value> jsWrap_StlSolid_removeTinyFaces(const Arguments& args)
+static void jsWrap_StlSolid_removeTinyFaces(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   if (args.Length() == 1 && args[0]->IsNumber()) {
     double a0 = args[0]->NumberValue();
     thisObj->it->removeTinyFaces(a0);
-    return scope.Close(Undefined());
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
@@ -180,98 +180,99 @@ struct vecsortwrap {
   
 };
 
-static Handle<Value> jsWrap_StlSolid_exportWebglMesh(const Arguments& args)
+static void jsWrap_StlSolid_exportWebglMesh(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   if (args.Length() == 1 && args[0]->IsNumber()) {
     double a0 = args[0]->NumberValue();
     StlWebglMesh ret = thisObj->it->exportWebglMesh(a0);
-    Local<Object> retJs = Object::New();
-    retJs->Set(String::NewSymbol("coords"), JsWrap_vec::NewInstance(ret.coords));
-    retJs->Set(String::NewSymbol("normals"), JsWrap_vec::NewInstance(ret.normals));
-    retJs->Set(String::NewSymbol("indexes"), JsWrap_ivec::NewInstance(ret.indexes));
-    return scope.Close(retJs);
+    Local<Object> retJs = Object::New(args.GetIsolate());
+    retJs->Set(NanNew<String>("coords"), JsWrap_vec::NewInstance(ret.coords));
+    retJs->Set(NanNew<String>("normals"), JsWrap_vec::NewInstance(ret.normals));
+    retJs->Set(NanNew<String>("indexes"), JsWrap_ivec::NewInstance(ret.indexes));
+    NanReturnValue(retJs);
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
-static Handle<Value> jsWrap_StlSolid_analyzeHole(const Arguments& args)
+static void jsWrap_StlSolid_analyzeHole(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
+  eprintf("StlSolid_analyzeHole thisObj=%p args.Length=%d a0.isNumber=%d\n", thisObj, (int)args.Length(), args[0]->IsNumber());
   if (args.Length() == 1 && args[0]->IsNumber()) {
     double a0 = args[0]->NumberValue();
     arma::vec3 ret = thisObj->it->analyzeHole((int)a0);
-    return scope.Close(JsWrap_vec::NewInstance(ret));
+    NanReturnValue(JsWrap_vec::NewInstance(ret));
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
-static Handle<Value> jsWrap_StlSolid_estimateVolume(const Arguments& args)
+static void jsWrap_StlSolid_estimateVolume(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   if (args.Length() == 0) {
     auto ret = thisObj->it->estimateVolume();
     
-    Local<Object> retJs = Object::New();
-    retJs->Set(String::NewSymbol("volume"), Number::New(ret.first));
-    retJs->Set(String::NewSymbol("center"), JsWrap_vec::NewInstance(ret.second));
+    Local<Object> retJs = Object::New(args.GetIsolate());
+    retJs->Set(NanNew<String>("volume"), Number::New(args.GetIsolate(), ret.first));
+    retJs->Set(NanNew<String>("center"), JsWrap_vec::NewInstance(ret.second));
     
-    return scope.Close(retJs);
+    NanReturnValue(retJs);
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
 
 
 void jsInit_StlSolid(Handle<Object> exports) {
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(jsNew_StlSolid);
-  tpl->SetClassName(String::NewSymbol("StlSolid"));
+  Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(jsNew_StlSolid);
+  tpl->SetClassName(NanNew<String>("StlSolid"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("bboxLo"), &jsGet_StlSolid_bboxLo);
-  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("bboxHi"), &jsGet_StlSolid_bboxHi);
-  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("numFaces"), &jsGet_StlSolid_numFaces);
+  tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("bboxLo"), &jsGet_StlSolid_bboxLo);
+  tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("bboxHi"), &jsGet_StlSolid_bboxHi);
+  tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("numFaces"), &jsGet_StlSolid_numFaces);
 
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("toString"), FunctionTemplate::New(jsWrap_StlSolid_toString)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("inspect"), FunctionTemplate::New(jsWrap_StlSolid_inspect)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("toString"), NanNew<FunctionTemplate>(jsWrap_StlSolid_toString)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("inspect"), NanNew<FunctionTemplate>(jsWrap_StlSolid_inspect)->GetFunction());
 
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("readBinaryFile"), FunctionTemplate::New(jsWrap_StlSolid_readBinaryFile)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("writeBinaryFile"), FunctionTemplate::New(jsWrap_StlSolid_writeBinaryFile)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("transform"), FunctionTemplate::New(jsWrap_StlSolid_transform)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("getStlMassProperties"), FunctionTemplate::New(jsWrap_StlSolid_getStlMassProperties)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("getIntersections"), FunctionTemplate::New(jsWrap_StlSolid_getIntersections)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("removeTinyFaces"), FunctionTemplate::New(jsWrap_StlSolid_removeTinyFaces)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("exportWebglMesh"), FunctionTemplate::New(jsWrap_StlSolid_exportWebglMesh)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("analyzeHole"), FunctionTemplate::New(jsWrap_StlSolid_analyzeHole)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("estimateVolume"), FunctionTemplate::New(jsWrap_StlSolid_estimateVolume)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("readBinaryFile"), NanNew<FunctionTemplate>(jsWrap_StlSolid_readBinaryFile)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("writeBinaryFile"), NanNew<FunctionTemplate>(jsWrap_StlSolid_writeBinaryFile)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("transform"), NanNew<FunctionTemplate>(jsWrap_StlSolid_transform)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("getStlMassProperties"), NanNew<FunctionTemplate>(jsWrap_StlSolid_getStlMassProperties)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("getIntersections"), NanNew<FunctionTemplate>(jsWrap_StlSolid_getIntersections)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("removeTinyFaces"), NanNew<FunctionTemplate>(jsWrap_StlSolid_removeTinyFaces)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("exportWebglMesh"), NanNew<FunctionTemplate>(jsWrap_StlSolid_exportWebglMesh)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("analyzeHole"), NanNew<FunctionTemplate>(jsWrap_StlSolid_analyzeHole)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("estimateVolume"), NanNew<FunctionTemplate>(jsWrap_StlSolid_estimateVolume)->GetFunction());
   
-  JsWrap_StlSolid::constructor = Persistent<Function>::New(tpl->GetFunction());
-  exports->Set(String::NewSymbol("StlSolid"), JsWrap_StlSolid::constructor);
+  NanAssignPersistent(JsWrap_StlSolid::constructor, tpl->GetFunction());
+  exports->Set(NanNew<String>("StlSolid"), tpl->GetFunction());
 }
 
 /* ----------------------------------------------------------------------
    StlFace
 */
 
-static Handle<Value> jsNew_StlFace(const Arguments& args) {
-  HandleScope scope;
-  if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();
-  JsWrap_StlFace* thisObj = new JsWrap_StlFace();
-  return jsConstructor_StlFace(thisObj, args);
+static void jsNew_StlFace(FunctionCallbackInfo<Value> const &args) {
+  NanScope();
+  if (!(args.Holder()->InternalFieldCount() > 0)) return ThrowInvalidThis();
+  JsWrap_StlFace* thisObj = new JsWrap_StlFace(args.GetIsolate());
+  jsConstructor_StlFace(thisObj, args);
 }
 
 
-Handle<Value> jsConstructor_StlFace(JsWrap_StlFace *thisObj, const Arguments& args) {
-  HandleScope scope;
+void jsConstructor_StlFace(JsWrap_StlFace *thisObj, FunctionCallbackInfo<Value> const &args) {
+  NanScope();
   if (args.Length() == 0) {
     thisObj->assignDefault();
   }
@@ -285,209 +286,209 @@ Handle<Value> jsConstructor_StlFace(JsWrap_StlFace *thisObj, const Arguments& ar
     thisObj->assignConstruct(a0, a1, a2);
   }
   else  {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
   thisObj->Wrap2(args.This());
-  return args.This();
+  NanReturnValue(args.This());
 }
 
-static Handle<Value> jsWrap_StlFace_getArea(const Arguments& args)
+static void jsWrap_StlFace_getArea(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlFace* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlFace>(args.This());
   if (args.Length() == 0) {
     double ret = thisObj->it->getArea();
-    return scope.Close(Number::New(ret));
+    NanReturnValue(NanNew<Number>(ret));
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
-static Handle<Value> jsWrap_StlFace_getE1(const Arguments& args)
+static void jsWrap_StlFace_getE1(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlFace* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlFace>(args.This());
   if (args.Length() == 0) {
     vec ret = thisObj->it->getE1();
-    return scope.Close(JsWrap_vec::NewInstance(ret));
+    NanReturnValue(JsWrap_vec::NewInstance(ret));
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
-static Handle<Value> jsWrap_StlFace_getE2(const Arguments& args)
+static void jsWrap_StlFace_getE2(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlFace* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlFace>(args.This());
   if (args.Length() == 0) {
     vec ret = thisObj->it->getE2();
-    return scope.Close(JsWrap_vec::NewInstance(ret));
+    NanReturnValue(JsWrap_vec::NewInstance(ret));
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
-static Handle<Value> jsWrap_StlFace_isDegenerate(const Arguments& args)
+static void jsWrap_StlFace_isDegenerate(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlFace* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlFace>(args.This());
   if (args.Length() == 0) {
     bool ret = thisObj->it->isDegenerate();
-    return scope.Close(Boolean::New(ret));
+    NanReturnValue(NanNew<Boolean>(ret));
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
-static Handle<Value> jsWrap_StlFace_getCentroid(const Arguments& args)
+static void jsWrap_StlFace_getCentroid(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlFace* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlFace>(args.This());
   if (args.Length() == 0) {
     vec ret = thisObj->it->getCentroid();
-    return scope.Close(JsWrap_vec::NewInstance(ret));
+    NanReturnValue(JsWrap_vec::NewInstance(ret));
   }
   else {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
 }
 
 void jsInit_StlFace(Handle<Object> exports) {
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(jsNew_StlFace);
-  tpl->SetClassName(String::NewSymbol("StlFace"));
+  Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(jsNew_StlFace);
+  tpl->SetClassName(NanNew<String>("StlFace"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("getArea"), FunctionTemplate::New(jsWrap_StlFace_getArea)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("getE1"), FunctionTemplate::New(jsWrap_StlFace_getE1)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("getE2"), FunctionTemplate::New(jsWrap_StlFace_getE2)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("isDegenerate"), FunctionTemplate::New(jsWrap_StlFace_isDegenerate)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("getCentroid"), FunctionTemplate::New(jsWrap_StlFace_getCentroid)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("getArea"), NanNew<FunctionTemplate>(jsWrap_StlFace_getArea)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("getE1"), NanNew<FunctionTemplate>(jsWrap_StlFace_getE1)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("getE2"), NanNew<FunctionTemplate>(jsWrap_StlFace_getE2)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("isDegenerate"), NanNew<FunctionTemplate>(jsWrap_StlFace_isDegenerate)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("getCentroid"), NanNew<FunctionTemplate>(jsWrap_StlFace_getCentroid)->GetFunction());
   
-  JsWrap_StlFace::constructor = Persistent<Function>::New(tpl->GetFunction());
-  exports->Set(String::NewSymbol("StlFace"), JsWrap_StlFace::constructor);
+  NanAssignPersistent(JsWrap_StlFace::constructor, tpl->GetFunction());
+  exports->Set(NanNew<String>("StlFace"), tpl->GetFunction());
 }
 
 /* ----------------------------------------------------------------------
    StlMassProperties
  */
 
-static Handle<Value> jsNew_StlMassProperties(const Arguments& args) {
-  HandleScope scope;
-  if (!(args.This()->InternalFieldCount() > 0)) return ThrowInvalidThis();
-  JsWrap_StlMassProperties* thisObj = new JsWrap_StlMassProperties();
-  return jsConstructor_StlMassProperties(thisObj, args);
+static void jsNew_StlMassProperties(FunctionCallbackInfo<Value> const &args) {
+  NanScope();
+  if (!(args.Holder()->InternalFieldCount() > 0)) return ThrowInvalidThis();
+  JsWrap_StlMassProperties* thisObj = new JsWrap_StlMassProperties(args.GetIsolate());
+  jsConstructor_StlMassProperties(thisObj, args);
 }
 
 
-Handle<Value> jsConstructor_StlMassProperties(JsWrap_StlMassProperties *thisObj, const Arguments& args) {
-  HandleScope scope;
+void jsConstructor_StlMassProperties(JsWrap_StlMassProperties *thisObj, FunctionCallbackInfo<Value> const &args) {
+  NanScope();
   if (args.Length() == 0) {
     thisObj->assignDefault();
   }
   else  {
-    return ThrowInvalidArgs();
+    return NanThrowError("Invalid args");;
   }
   thisObj->Wrap2(args.This());
-  return args.This();
+  NanReturnValue(args.This());
 }
 
-static Handle<Value> jsWrap_StlMassProperties_toString(const Arguments& args)
+static void jsWrap_StlMassProperties_toString(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
   ostringstream oss;
   oss << *thisObj->it;
-  return scope.Close(convStringToJs(oss.str()));
+  NanReturnValue(convStringToJs(oss.str()));
 }
 
-static Handle<Value> jsWrap_StlMassProperties_inspect(const Arguments& args)
+static void jsWrap_StlMassProperties_inspect(FunctionCallbackInfo<Value> const &args)
 {
-  HandleScope scope;
+  NanScope();
   JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
   ostringstream oss;
   oss << *thisObj->it;
-  return scope.Close(convStringToJs(oss.str()));
+  NanReturnValue(convStringToJs(oss.str()));
 }
 
 
-static Handle<Value> jsGet_StlMassProperties_density(Local<String> name, AccessorInfo const &ai) {
-  HandleScope scope;
-  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(Number::New(thisObj->it->density));
+static void jsGet_StlMassProperties_density(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+  NanScope();
+  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
+  NanReturnValue(NanNew<Number>(thisObj->it->density));
 }
 
-static Handle<Value> jsGet_StlMassProperties_volume(Local<String> name, AccessorInfo const &ai) {
-  HandleScope scope;
-  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(Number::New(thisObj->it->volume));
+static void jsGet_StlMassProperties_volume(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+  NanScope();
+  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
+  NanReturnValue(NanNew<Number>(thisObj->it->volume));
 }
 
-static Handle<Value> jsGet_StlMassProperties_mass(Local<String> name, AccessorInfo const &ai) {
-  HandleScope scope;
-  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(Number::New(thisObj->it->mass));
+static void jsGet_StlMassProperties_mass(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+  NanScope();
+  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
+  NanReturnValue(NanNew<Number>(thisObj->it->mass));
 }
 
-static Handle<Value> jsGet_StlMassProperties_area(Local<String> name, AccessorInfo const &ai) {
-  HandleScope scope;
-  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(Number::New(thisObj->it->area));
+static void jsGet_StlMassProperties_area(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+  NanScope();
+  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
+  NanReturnValue(NanNew<Number>(thisObj->it->area));
 }
 
-static Handle<Value> jsGet_StlMassProperties_cm(Local<String> name, AccessorInfo const &ai) {
-  HandleScope scope;
-  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(JsWrap_vec::MemberInstance(thisObj->it, &(thisObj->it->cm)));
+static void jsGet_StlMassProperties_cm(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+  NanScope();
+  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
+  NanReturnValue(JsWrap_vec::MemberInstance(thisObj->it, &(thisObj->it->cm)));
 }
 
-static Handle<Value> jsGet_StlMassProperties_inertiaOrigin(Local<String> name, AccessorInfo const &ai) {
-  HandleScope scope;
-  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(JsWrap_mat::MemberInstance(thisObj->it, &(thisObj->it->inertiaOrigin)));
+static void jsGet_StlMassProperties_inertiaOrigin(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+  NanScope();
+  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
+  NanReturnValue(JsWrap_mat::MemberInstance(thisObj->it, &(thisObj->it->inertiaOrigin)));
 }
 
-static Handle<Value> jsGet_StlMassProperties_inertiaCm(Local<String> name, AccessorInfo const &ai) {
-  HandleScope scope;
-  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(JsWrap_mat::MemberInstance(thisObj->it, &(thisObj->it->inertiaCm)));
+static void jsGet_StlMassProperties_inertiaCm(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+  NanScope();
+  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
+  NanReturnValue(JsWrap_mat::MemberInstance(thisObj->it, &(thisObj->it->inertiaCm)));
 }
 
-static Handle<Value> jsGet_StlMassProperties_rogOrigin(Local<String> name, AccessorInfo const &ai) {
-  HandleScope scope;
-  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(JsWrap_mat::MemberInstance(thisObj->it, &(thisObj->it->rogOrigin)));
+static void jsGet_StlMassProperties_rogOrigin(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+  NanScope();
+  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
+  NanReturnValue(JsWrap_mat::MemberInstance(thisObj->it, &(thisObj->it->rogOrigin)));
 }
 
-static Handle<Value> jsGet_StlMassProperties_rogCm(Local<String> name, AccessorInfo const &ai) {
-  HandleScope scope;
-  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(ai.This());
-  return scope.Close(JsWrap_mat::MemberInstance(thisObj->it, &(thisObj->it->rogCm)));
+static void jsGet_StlMassProperties_rogCm(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+  NanScope();
+  JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
+  NanReturnValue(JsWrap_mat::MemberInstance(thisObj->it, &(thisObj->it->rogCm)));
 }
 
 void jsInit_StlMassProperties(Handle<Object> exports) {
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(jsNew_StlMassProperties);
-  tpl->SetClassName(String::NewSymbol("StlMassProperties"));
+  Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(jsNew_StlMassProperties);
+  tpl->SetClassName(NanNew<String>("StlMassProperties"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("toString"), FunctionTemplate::New(jsWrap_StlMassProperties_toString)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewSymbol("inspect"), FunctionTemplate::New(jsWrap_StlMassProperties_inspect)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("toString"), NanNew<FunctionTemplate>(jsWrap_StlMassProperties_toString)->GetFunction());
+  tpl->PrototypeTemplate()->Set(NanNew<String>("inspect"), NanNew<FunctionTemplate>(jsWrap_StlMassProperties_inspect)->GetFunction());
 
-  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("density"), &jsGet_StlMassProperties_density);
-  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("volume"), &jsGet_StlMassProperties_volume);
-  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("mass"), &jsGet_StlMassProperties_mass);
-  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("area"), &jsGet_StlMassProperties_area);
-  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("cm"), &jsGet_StlMassProperties_cm);
-  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("inertiaOrigin"), &jsGet_StlMassProperties_inertiaOrigin);
-  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("inertiaCm"), &jsGet_StlMassProperties_inertiaCm);
-  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("rogOrigin"), &jsGet_StlMassProperties_rogOrigin);
-  tpl->PrototypeTemplate()->SetAccessor(String::NewSymbol("rogCm"), &jsGet_StlMassProperties_rogCm);
+  tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("density"), &jsGet_StlMassProperties_density);
+  tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("volume"), &jsGet_StlMassProperties_volume);
+  tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("mass"), &jsGet_StlMassProperties_mass);
+  tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("area"), &jsGet_StlMassProperties_area);
+  tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("cm"), &jsGet_StlMassProperties_cm);
+  tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("inertiaOrigin"), &jsGet_StlMassProperties_inertiaOrigin);
+  tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("inertiaCm"), &jsGet_StlMassProperties_inertiaCm);
+  tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("rogOrigin"), &jsGet_StlMassProperties_rogOrigin);
+  tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("rogCm"), &jsGet_StlMassProperties_rogCm);
 
-  JsWrap_StlMassProperties::constructor = Persistent<Function>::New(tpl->GetFunction());
-  exports->Set(String::NewSymbol("StlMassProperties"), JsWrap_StlMassProperties::constructor);
+  NanAssignPersistent(JsWrap_StlMassProperties::constructor, tpl->GetFunction());
+  exports->Set(NanNew<String>("StlMassProperties"), tpl->GetFunction());
 }
 
 

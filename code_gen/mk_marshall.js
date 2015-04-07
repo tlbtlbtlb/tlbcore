@@ -1,6 +1,5 @@
 'use strict';
 var fs                  = require('fs');
-var util                = require('util');
 var _                   = require('underscore');
 var cgen                = require('./cgen');
 var gen_marshall        = require('./gen_marshall');
@@ -55,7 +54,7 @@ function main() {
     }
 
     _.each(files, function(fn) {
-      util.puts('Load ' + fn);
+      console.log('Load ' + fn);
       if (/\.h$/.test(fn)) {
         typereg.scanCHeader(fn);
       }

@@ -1,7 +1,6 @@
 'use strict';
 var os                  = require('os');
 var fs                  = require('fs');
-var util                = require('util');
 var assert              = require('assert');
 var _                   = require('underscore');
 require('../common/MoreUnderscore');
@@ -34,7 +33,7 @@ function mkCodeGen(filename, subs) {
       return code(line);
     }
     if (/(WARNING|ERROR)/.test(code)) {
-      util.puts(code);
+      console.log(code);
     }
 
     code = code.replace(subsPattern, function(m) {
@@ -85,7 +84,7 @@ function mkCodeGen(filename, subs) {
     }
     
     fs.writeFileSync(filename, fullContentsStr, 'utf8');
-    util.puts('Wrote ' + filename);
+    console.log('Wrote ' + filename);
   }
   
   function hProtect(expContents) {

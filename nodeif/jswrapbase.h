@@ -25,16 +25,18 @@
 
 #include <node.h>
 #include <node_buffer.h>
+#include <nan.h>
+#include <node_object_wrap.h>
 #include <armadillo>
 using namespace node;
 using namespace v8;
 
 extern bool fastJsonFlag;
 
-Handle<Value> ThrowInvalidArgs();
-Handle<Value> ThrowInvalidThis();
-Handle<Value> ThrowTypeError(char const *s);
-Handle<Value> ThrowRuntimeError(char const *s);
+void ThrowInvalidArgs();
+void ThrowInvalidThis();
+void ThrowTypeError(char const *s);
+void ThrowRuntimeError(char const *s);
 
 // stl::string conversion
 bool canConvJsToString(Handle<Value> it);
@@ -77,18 +79,21 @@ Local<Value> convJsonstrToJs(jsonstr const &it);
 */
 template <typename CONTENTS>
 struct JsWrapGeneric : node::ObjectWrap {
-  JsWrapGeneric()
+  JsWrapGeneric(Isolate *_isolate)
+  :isolate(_isolate)
   {
   }
 
   template<typename... Args>
-  JsWrapGeneric(Args &&... _args)
-    :it(make_shared<CONTENTS>(std::forward<Args>(_args)...))
+  JsWrapGeneric(Isolate *_isolate, Args &&... _args)
+    :isolate(_isolate),
+     it(make_shared<CONTENTS>(std::forward<Args>(_args)...))
   {
   }
   
-  JsWrapGeneric(shared_ptr<CONTENTS> _it)
-    :it(_it)
+  JsWrapGeneric(Isolate *_isolate, shared_ptr<CONTENTS> _it)
+    :isolate(_isolate),
+     it(_it)
   {
   }
 
@@ -117,44 +122,55 @@ struct JsWrapGeneric : node::ObjectWrap {
 
   template<typename... Args>
   static Handle<Value> NewInstance(Args &&... _args) {
-    HandleScope scope;
-    Local<Object> instance = constructor->NewInstance(0, nullptr);
+    Isolate* isolate = Isolate::GetCurrent();
+    EscapableHandleScope scope(isolate);
+
+    Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
+    Local<Object> instance = localConstructor->NewInstance(0, nullptr);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assignConstruct(std::forward<Args>(_args)...);
-    return scope.Close(instance);
+    return scope.Escape(instance);
   }
 
   static Handle<Value> NewInstance(shared_ptr<CONTENTS> _it) {
-    HandleScope scope;
-    Local<Object> instance = constructor->NewInstance(0, nullptr);
+    Isolate* isolate = Isolate::GetCurrent();
+    EscapableHandleScope scope(isolate);
+    Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
+    Local<Object> instance = localConstructor->NewInstance(0, nullptr);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assign(_it);
-    return scope.Close(instance);
+    return scope.Escape(instance);
   }
 
   template<class OWNER>
   static Handle<Value> MemberInstance(shared_ptr<OWNER> _parent, CONTENTS *_ptr) {
-    HandleScope scope;
-    Local<Object> instance = constructor->NewInstance(0, nullptr);
+    Isolate* isolate = Isolate::GetCurrent();
+    EscapableHandleScope scope(isolate);
+    Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
+    Local<Object> instance = localConstructor->NewInstance(0, nullptr);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assign(shared_ptr<CONTENTS>(_parent, _ptr));
-    return scope.Close(instance);
+    return scope.Escape(instance);
   }
 
   static Handle<Value> DependentInstance(Handle<Value> _owner, CONTENTS const &_contents) {
-    HandleScope scope;
-    Local<Object> instance = constructor->NewInstance(0, nullptr);
+    Isolate* isolate = Isolate::GetCurrent();
+    EscapableHandleScope scope(isolate);
+    Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
+    Local<Object> instance = localConstructor->NewInstance(0, nullptr);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assignConstruct(_contents);
-    w->owner = Persistent<Value>::New(_owner);
-    return scope.Close(instance);
+    NanAssignPersistent(w->owner, _owner);
+    return scope.Escape(instance);
   }
 
   static shared_ptr<CONTENTS> Extract(Handle<Value> value) {
+    Isolate* isolate = Isolate::GetCurrent();
+    Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     if (value->IsObject()) {
       Handle<Object> valueObject = value->ToObject();
       Local<String> valueTypeName = valueObject->GetConstructorName();
-      if (valueTypeName == constructor->GetName()) {
+      if (valueTypeName == localConstructor->GetName()) {
         return node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(valueObject)->it;
       }
     }
@@ -166,7 +182,11 @@ struct JsWrapGeneric : node::ObjectWrap {
     return Wrap(handle);
   }
 
+  Isolate *GetIsolate() {
+    return isolate;
+  }
 
+  Isolate *isolate;
   static Persistent<Function> constructor;
 };
 

@@ -6,20 +6,24 @@ using namespace arma;
 
 bool fastJsonFlag;
 
-Handle<Value> ThrowInvalidArgs() {
-  return ThrowException(Exception::TypeError(String::New("Invalid arguments")));
+void ThrowInvalidArgs() {
+  Isolate *isolate = Isolate::GetCurrent();
+  isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid arguments")));
 }
 
-Handle<Value> ThrowInvalidThis() {
-  return ThrowException(Exception::TypeError(String::New("Invalid this, did you forget to call new?")));
+void ThrowInvalidThis() {
+  Isolate *isolate = Isolate::GetCurrent();
+  isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid this, did you forget to call new?")));
 }
 
-Handle<Value> ThrowTypeError(char const *s) {
-  return ThrowException(Exception::TypeError(String::New(s)));
+void ThrowTypeError(char const *s) {
+  Isolate *isolate = Isolate::GetCurrent();
+  isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, s)));
 }
 
-Handle<Value> ThrowRuntimeError(char const *s) {
-  return ThrowException(Exception::Error(String::New(s)));
+void ThrowRuntimeError(char const *s) {
+  Isolate *isolate = Isolate::GetCurrent();
+  isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, s)));
 }
 
 /* ----------------------------------------------------------------------
@@ -44,11 +48,12 @@ string convJsToString(Handle<Value> it) {
   }
 }
 Handle<Value> convStringToJs(string const &it) {
-  return String::New(it.data(), it.size());
+  Isolate *isolate = Isolate::GetCurrent();
+  return String::NewFromUtf8(isolate, it.data(), String::kNormalString, it.size());
 }
 Handle<Value> convStringToJsBuffer(string const &it) {
-  node::Buffer *buf = node::Buffer::New(it.data(), it.size());
-  return Handle<Value>(buf->handle_);
+  Isolate *isolate = Isolate::GetCurrent();
+  return node::Buffer::New(isolate, it.data(), it.size());
 }
 
 
@@ -62,8 +67,8 @@ bool canConvJsToCxDouble(Handle<Value> itv)
 {
   if (itv->IsObject()) {
     Handle<Object> it = itv->ToObject();
-    Local<Value> realv = it->Get(String::NewSymbol("real"));
-    Local<Value> imagv = it->Get(String::NewSymbol("imag"));
+    Local<Value> realv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "real"));
+    Local<Value> imagv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "imag"));
     if (realv->IsNumber() && imagv->IsNumber()) {
       return true;
     }
@@ -74,8 +79,8 @@ arma::cx_double convJsToCxDouble(Handle<Value> itv)
 {
   if (itv->IsObject()) {
     Handle<Object> it = itv->ToObject();
-    Local<Value> realv = it->Get(String::NewSymbol("real"));
-    Local<Value> imagv = it->Get(String::NewSymbol("imag"));
+    Local<Value> realv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "real"));
+    Local<Value> imagv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "imag"));
     if (realv->IsNumber() && imagv->IsNumber()) {
       return arma::cx_double(realv->NumberValue(), imagv->NumberValue());
     }
@@ -84,38 +89,16 @@ arma::cx_double convJsToCxDouble(Handle<Value> itv)
 }
 Local<Object> convCxDoubleToJs(arma::cx_double const &it)
 {
-  Local<Object> ret = Object::New();
-  ret->Set(String::NewSymbol("real"), Number::New(it.real()));
-  ret->Set(String::NewSymbol("imag"), Number::New(it.imag()));
+  Isolate *isolate = Isolate::GetCurrent();
+  Local<Object> ret = Object::New(isolate);
+  ret->Set(String::NewFromUtf8(isolate, "real"), Number::New(isolate, it.real()));
+  ret->Set(String::NewFromUtf8(isolate, "imag"), Number::New(isolate, it.imag()));
   return ret;
 }
 
 /* ----------------------------------------------------------------------
   Enhancements to the JSON module
 */
-
-static Persistent<Object> JSON;
-static Persistent<Function> JSON_stringify;
-static Persistent<Function> JSON_parse;
-
-static void setupJSON() {
-  if (JSON.IsEmpty()) {
-    Local<Object> global = Context::GetCurrent()->Global();
-    Local<Value> tmpJSON = global->Get(String::New("JSON"));
-    assert(tmpJSON->IsObject());
-    JSON = Persistent<Object>::New(tmpJSON->ToObject());
-    
-    Local<Value> tmpStringify = tmpJSON->ToObject()->Get(String::New("stringify"));
-    assert(!tmpStringify.IsEmpty() && "function not found: JSON.stringify");
-    assert(tmpStringify->IsFunction() && "not a function: JSON.stringify");
-    JSON_stringify = Persistent<Function>::New(tmpStringify.As<Function>());
-    
-    Local<Value> tmpParse = tmpJSON->ToObject()->Get(String::New("parse"));
-    assert(!tmpParse.IsEmpty() && "function not found: JSON.parse");
-    assert(tmpParse->IsFunction() && "not a function: JSON.parse");
-    JSON_parse = Persistent<Function>::New(tmpParse.As<Function>());
-  }
-}
 
 /* ----------------------------------------------------------------------
   jsonstr I/O
@@ -124,25 +107,43 @@ bool canConvJsToJsonstr(Handle<Value> value) {
   return true;
 }
 
-jsonstr convJsToJsonstr(Handle<Value> value) {
-  setupJSON();
-
+jsonstr convJsToJsonstr(Handle<Value> value)
+{
+  Isolate *isolate = Isolate::GetCurrent();
   if (value->IsObject()) {
-    Local<Value> toJsonString = value->ToObject()->Get(String::New("toJsonString")); // defined on all generated stubs
+    Local<Value> toJsonString = value->ToObject()->Get(String::NewFromUtf8(isolate, "toJsonString")); // defined on all generated stubs
     if (!toJsonString.IsEmpty() && toJsonString->IsFunction()) {
       Local<Value> ret = toJsonString.As<Function>()->Call(value->ToObject(), 0, NULL);
       return jsonstr(convJsToString(ret->ToString()));
     }
   }
   
-  return jsonstr(convJsToString(JSON_stringify->Call(JSON, 1, &value)->ToString()));
+  Local<Object> global = NanGetCurrentContext()->Global();
+  Local<Value> gJSON = global->Get(String::NewFromUtf8(isolate, "JSON"));
+  assert(gJSON->IsObject());
+    
+  Local<Value> gStringify = gJSON->ToObject()->Get(String::NewFromUtf8(isolate, "stringify"));
+  assert(!gStringify.IsEmpty() && "function not found: JSON.stringify");
+  assert(gStringify->IsFunction() && "not a function: JSON.stringify");
+  Local<Function> gJSON_stringify = gStringify.As<Function>();
+  
+  return jsonstr(convJsToString(gJSON_stringify->Call(gJSON, 1, &value)->ToString()));
 }
 
 Local<Value> convJsonstrToJs(jsonstr const &it)
 {
-  setupJSON();
+  Isolate *isolate = Isolate::GetCurrent();
+  Local<Object> global = NanGetCurrentContext()->Global();
+  Local<Value> gJSON = global->Get(String::NewFromUtf8(isolate, "JSON"));
+  assert(gJSON->IsObject());
+    
+  Local<Value> gParse = gJSON->ToObject()->Get(String::NewFromUtf8(isolate, "parse"));
+  assert(!gParse.IsEmpty() && "function not found: JSON.parse");
+  assert(gParse->IsFunction() && "not a function: JSON.parse");
+  Local<Function> gJSON_parse = gParse.As<Function>();
+
   Handle<Value> itJs = convStringToJs(it.it);
-  Local<Value> ret = JSON_parse->Call(JSON, 1, &itJs);
+  Local<Value> ret = gJSON_parse->Call(gJSON, 1, &itJs);
   return ret;
 }
 
@@ -281,20 +282,17 @@ arma::Row<T> convJsToArmaRow(Handle<Value> itv) {
 
 static double * mkFloat64Array(size_t size, Handle<Object> &ret)
 {
-  static Persistent<Function> float64_array_constructor;
-
-  if (float64_array_constructor.IsEmpty()) {
-    Local<Object> global = Context::GetCurrent()->Global();
-    Local<Value> val = global->Get(String::New("Float64Array"));
-    if (val.IsEmpty()) throw runtime_error("Type not found: Float64Array");
-    if (!val->IsFunction()) throw runtime_error("Not a constructor: Float64Array");
-    float64_array_constructor = Persistent<Function>::New(val.As<Function>());
-  }
+  Isolate *isolate = Isolate::GetCurrent();
+  Local<Object> global = NanGetCurrentContext()->Global();
+  Local<Value> float64Array = global->Get(String::NewFromUtf8(isolate, "Float64Array"));
+  if (float64Array.IsEmpty()) throw runtime_error("Type not found: Float64Array");
+  if (!float64Array->IsFunction()) throw runtime_error("Not a constructor: Float64Array");
+  Local<Function> float64ArrayConstructor = float64Array.As<Function>();
   
   if (size > 1000000000) throw runtime_error("mkFloat64Array: unreasonable size");
 
-  Local<Value> jsSize = Integer::NewFromUnsigned((u_int)size);
-  ret = float64_array_constructor->NewInstance(1, &jsSize);
+  Local<Value> jsSize = Integer::NewFromUnsigned(isolate, (u_int)size);
+  ret = float64ArrayConstructor->NewInstance(1, &jsSize);
 
   if (ret->GetIndexedPropertiesExternalArrayDataType() != kExternalDoubleArray) throw runtime_error("Failed to get Float64Array");
   if ((size_t)ret->GetIndexedPropertiesExternalArrayDataLength() != size) throw runtime_error("Got Float64Array of wrong size");

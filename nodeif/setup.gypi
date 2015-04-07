@@ -14,6 +14,7 @@
       },
       'include_dirs+': [
         '/usr/local/include',
+        "<!(node -e \"require('nan')\")"
       ],
       'libraries+': [
         '-L/usr/local/lib', '-larmadillo',

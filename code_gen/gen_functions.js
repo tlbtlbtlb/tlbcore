@@ -1,6 +1,5 @@
 'use strict';
 var _                   = require('underscore');
-var util                = require('util');
 var cgen                = require('./cgen');
 var assert              = require('assert');
 var fs                  = require('fs');

@@ -4,15 +4,15 @@
 #include "./solid_geometry.h"
 
 typedef JsWrapGeneric< StlSolid > JsWrap_StlSolid;
-Handle<Value> jsConstructor_StlSolid(JsWrap_StlSolid *it, const Arguments &args);
+void jsConstructor_StlSolid(JsWrap_StlSolid *it, FunctionCallbackInfo<Value> const &args);
 Handle<Value> jsToJSON_StlSolid(StlSolid const &it);
 
 typedef JsWrapGeneric< StlFace > JsWrap_StlFace;
-Handle<Value> jsConstructor_StlFace(JsWrap_StlFace *it, const Arguments &args);
+void jsConstructor_StlFace(JsWrap_StlFace *it, FunctionCallbackInfo<Value> const &args);
 Handle<Value> jsToJSON_StlFace(StlFace const &it);
 
 typedef JsWrapGeneric< StlMassProperties > JsWrap_StlMassProperties;
-Handle<Value> jsConstructor_StlMassProperties(JsWrap_StlMassProperties *it, const Arguments &args);
+void jsConstructor_StlMassProperties(JsWrap_StlMassProperties *it, FunctionCallbackInfo<Value> const &args);
 Handle<Value> jsToJSON_StlMassProperties(StlMassProperties const &it);
 
 
