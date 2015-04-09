@@ -66,7 +66,8 @@ clean ::
 build :: build.nodeif
 build.nodeif :: 
 	cd nodeif && node-gyp build --jobs 8
-	ln -sf build/Release nodeif/bin
+	mkdir -p node_modules
+	cp nodeif/build/Release/ur.node node_modules/ur.node
 
 test :: build
 	env NODE_PATH=$(NODE_PATH):$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js)) build.src/test_*.js

@@ -1,7 +1,6 @@
 'use strict';
 var _ = require('underscore');
 var fs = require('fs');
-var util = require('util');
 var crypto = require('crypto');
 
 exports.tokenHash = tokenHash;

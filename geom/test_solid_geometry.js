@@ -43,7 +43,10 @@ describe('solid_geometry', function() {
     var mesh = s.exportWebglMesh(0.000001);
     console.log('coords:', mesh.coords.n_elem, 'indexes:', mesh.indexes.n_elem);
     console.log('Write mesh to /tmp/test_solid_geometry_mesh.json');
-    fs.writeFileSync('/tmp/test_solid_geometry_mesh.json', JSON.stringify(mesh, true, 2));
+    var meshJson = JSON.stringify(mesh, true, 2);
+    console.log('Done 1');
+    fs.writeFileSync('/tmp/test_solid_geometry_mesh.json', meshJson);
+    console.log('Done 2');
     
   });
 });

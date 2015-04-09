@@ -47,15 +47,18 @@ string convJsToString(Handle<Value> it) {
     throw runtime_error("Can't convert to string");
   }
 }
-Handle<Value> convStringToJs(string const &it) {
-  Isolate *isolate = Isolate::GetCurrent();
+Handle<Value> convStringToJs(Isolate *isolate, string const &it) {
   return String::NewFromUtf8(isolate, it.data(), String::kNormalString, it.size());
 }
-Handle<Value> convStringToJsBuffer(string const &it) {
-  Isolate *isolate = Isolate::GetCurrent();
+Handle<Value> convStringToJs(string const &it) {
+  return convStringToJs(Isolate::GetCurrent(), it);
+}
+Handle<Value> convStringToJsBuffer(Isolate *isolate, string const &it) {
   return node::Buffer::New(isolate, it.data(), it.size());
 }
-
+Handle<Value> convStringToJsBuffer(string const &it) {
+  return convStringToJsBuffer(Isolate::GetCurrent(), it);
+}
 
 /* ----------------------------------------------------------------------
   arma::cx_double I/O

@@ -42,7 +42,9 @@ void ThrowRuntimeError(char const *s);
 bool canConvJsToString(Handle<Value> it);
 string convJsToString(Handle<Value> it);
 Handle<Value> convStringToJs(string const &it);
+Handle<Value> convStringToJs(Isolate *isolate, string const &it);
 Handle<Value> convStringToJsBuffer(string const &it);
+Handle<Value> convStringToJsBuffer(Isolate *isolate, string const &it);
 
 // arma::Col conversion
 
@@ -121,8 +123,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   Persistent<Value> owner;
 
   template<typename... Args>
-  static Handle<Value> NewInstance(Args &&... _args) {
-    Isolate* isolate = Isolate::GetCurrent();
+  static Handle<Value> NewInstance(Isolate *isolate, Args &&... _args) {
     EscapableHandleScope scope(isolate);
 
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
@@ -132,8 +133,7 @@ struct JsWrapGeneric : node::ObjectWrap {
     return scope.Escape(instance);
   }
 
-  static Handle<Value> NewInstance(shared_ptr<CONTENTS> _it) {
-    Isolate* isolate = Isolate::GetCurrent();
+  static Handle<Value> NewInstance(Isolate *isolate, shared_ptr<CONTENTS> _it) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     Local<Object> instance = localConstructor->NewInstance(0, nullptr);
@@ -143,8 +143,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   }
 
   template<class OWNER>
-  static Handle<Value> MemberInstance(shared_ptr<OWNER> _parent, CONTENTS *_ptr) {
-    Isolate* isolate = Isolate::GetCurrent();
+  static Handle<Value> MemberInstance(Isolate *isolate, shared_ptr<OWNER> _parent, CONTENTS *_ptr) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     Local<Object> instance = localConstructor->NewInstance(0, nullptr);
@@ -153,8 +152,7 @@ struct JsWrapGeneric : node::ObjectWrap {
     return scope.Escape(instance);
   }
 
-  static Handle<Value> DependentInstance(Handle<Value> _owner, CONTENTS const &_contents) {
-    Isolate* isolate = Isolate::GetCurrent();
+  static Handle<Value> DependentInstance(Isolate *isolate, Handle<Value> _owner, CONTENTS const &_contents) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     Local<Object> instance = localConstructor->NewInstance(0, nullptr);
@@ -164,8 +162,7 @@ struct JsWrapGeneric : node::ObjectWrap {
     return scope.Escape(instance);
   }
 
-  static shared_ptr<CONTENTS> Extract(Handle<Value> value) {
-    Isolate* isolate = Isolate::GetCurrent();
+  static shared_ptr<CONTENTS> Extract(Isolate *isolate, Handle<Value> value) {
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     if (value->IsObject()) {
       Handle<Object> valueObject = value->ToObject();
@@ -176,6 +173,10 @@ struct JsWrapGeneric : node::ObjectWrap {
     }
     return shared_ptr<CONTENTS>();
   }
+  static shared_ptr<CONTENTS> Extract(Handle<Value> value) {
+    return Extract(Isolate::GetCurrent(), value);
+  }
+
 
   // Because node::ObjectWrap::Wrap is protected
   inline void Wrap2 (Handle<Object> handle) {

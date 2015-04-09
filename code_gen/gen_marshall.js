@@ -309,14 +309,15 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
       var jsScopedFuncname = jsFuncname + (funcTemplateType ? '_' + funcTemplateType.jsTypename : '');
 
       f('void jsWrap_' + jsScopedFuncname + '(FunctionCallbackInfo<Value> const &args) {');
-      f('NanScope();');
+      f('Isolate *isolate = args.GetIsolate();');
+      f('HandleScope scope(isolate);');
       _.each(funcInfosThisTemplate, function(funcInfo) {
         f('// ' + funcInfo.desc);
 
         f('if (args.Length() == ' + funcInfo.args.length +
           _.map(funcInfo.args, function(argInfo, argi) {
             var argType = typereg.types[argInfo.typename];
-            return ' && ' + argType.getJsToCppTest('args[' + argi + ']');
+            return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {});
           }).join('') +
           ') {');
 
@@ -324,7 +325,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
 
         _.each(funcInfo.args, function(argInfo, argi) {
           var argType = typereg.types[argInfo.typename];
-          f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']') + ';');
+          f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']', {}) + ';');
           callargs.push('a' + argi);
         });
 
@@ -522,26 +523,42 @@ function withJsWrapUtils(f, typereg) {
       if (argSet === undefined) return;
       f(ifSep + 'if (args.Length() ' + (argSet.ignoreExtra ? '>=' : '==') + ' ' + argSet.args.length +
         _.map(argSet.args, function(argTypename, argi) {
+          var m;
 	  if (argTypename === 'Object') {
-	    return ' && args[' + argi + ']->IsObject()';
+	    return '&& args[' + argi + ']->IsObject()';
 	  }
+          else if (m = /^conv:(.*)$/.exec(argTypename)) {
+            var argType = typereg.getType(m[1]);
+	    if (!argType) {
+              throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
+	    }
+            return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {conv: true});
+          }
 	  else {
             var argType = typereg.getType(argTypename);
 	    if (!argType) {
-	      throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
+              throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
 	    }
-            return ' && ' + argType.getJsToCppTest('args[' + argi + ']');
+            return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {});
 	  }
         }).join('') +
         ') {');
       
       _.each(argSet.args, function(argTypename, argi) {
+        var m;
         if (argTypename === 'Object') {
 	  f('Local<Object> a' + argi + ' = args[' + argi + ']->ToObject();');
         }
+        else if (m = /^conv:(.*)$/.exec(argTypename)) {
+          var argType = typereg.getType(m[1]);
+	  if (!argType) {
+            throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
+	  }
+	  f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']', {conv: true}) + ';');
+        }
         else {
 	  var argType = typereg.getType(argTypename);
-	  f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']') + ';');
+	  f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']', {}) + ';');
         }
       });
 
@@ -583,7 +600,7 @@ function withJsWrapUtils(f, typereg) {
         f('eprintf("  argSet: ");');
         _.each(argSet.args, function(argInfo, argi) {
           var argType = typereg.getType(argInfo);
-          f('eprintf("  %s' +  argType.typename + '", (' + argType.getJsToCppTest('args[' + argi + ']') + ') ? "" : "!");')
+          f('eprintf("  %s' +  argType.typename + '", (' + argType.getJsToCppTest('args[' + argi + ']', {}) + ') ? "" : "!");')
         });
         f('eprintf("\\n");');
       });
@@ -595,14 +612,16 @@ function withJsWrapUtils(f, typereg) {
 
   f.emitJsWrap = function(fn, contents) {
     f('static void jsWrap_' + fn + '(FunctionCallbackInfo<Value> const &args) {');
-    f('NanScope();');
+    f('Isolate *isolate = args.GetIsolate();');
+    f('HandleScope scope(isolate);');
     f(contents);
     f('}');
   };
 
   f.emitJsNew = function() {
     f('void jsNew_JSTYPE(FunctionCallbackInfo<Value> const &args) {');
-    f('NanScope();');
+    f('Isolate *isolate = args.GetIsolate();');
+    f('HandleScope scope(isolate);');
     f('if (!(args.Holder()->InternalFieldCount() > 0)) return ThrowInvalidThis();');
     f('JsWrap_JSTYPE* thisObj = new JsWrap_JSTYPE(args.GetIsolate());');
     f('jsConstructor_JSTYPE(thisObj, args);');
@@ -612,10 +631,11 @@ function withJsWrapUtils(f, typereg) {
 
   f.emitJsConstructor = function(contents) {
     f('void jsConstructor_JSTYPE(JsWrap_JSTYPE *thisObj, FunctionCallbackInfo<Value> const &args) {');
-    f('NanScope();');
+    f('Isolate *isolate = args.GetIsolate();');
+    f('HandleScope scope(isolate);');
     f(contents);
-    f('thisObj->Wrap2(args.Holder());');
-    f('NanReturnValue(args.Holder());');
+    f('thisObj->Wrap2(args.This());');
+    f('NanReturnValue(args.This());');
     f('}');
   };
 
@@ -646,14 +666,16 @@ function withJsWrapUtils(f, typereg) {
   f.emitJsAccessors = function(name, o) {
     if (o.get) {
       f('static void jsGet_JSTYPE_' + name + '(Local<String> name, PropertyCallbackInfo<Value> const &args) {');
-      f('NanScope();');
+      f('Isolate *isolate = args.GetIsolate();');
+      f('HandleScope scope(isolate);');
       f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
       f(o.get);
       f('}');
     }
     if (o.set) {
       f('static void jsSet_JSTYPE_' + name + '(Local<String> name, Local<Value> value, PropertyCallbackInfo<void> const &args) {');
-      f('NanScope();');
+      f('Isolate *isolate = args.GetIsolate();');
+      f('HandleScope scope(isolate);');
       f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
       f(o.set);
       f('}');
@@ -676,7 +698,8 @@ function withJsWrapUtils(f, typereg) {
   f.emitJsNamedAccessors = function(o) {
     if (o.get) {
       f('static void jsGetNamed_JSTYPE(Local<String> name, PropertyCallbackInfo<Value> const &args) {');
-      f('NanScope();');
+      f('Isolate *isolate = args.GetIsolate();');
+      f('HandleScope scope(isolate);');
       f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
       f('string key = convJsToString(name);');
       f(o.get);
@@ -684,7 +707,8 @@ function withJsWrapUtils(f, typereg) {
     }
     if (o.set) {
       f('static void jsSetNamed_JSTYPE(Local<String> name, Local<Value> value, PropertyCallbackInfo<Value> const &args) {');
-      f('NanScope();');
+      f('Isolate *isolate = args.GetIsolate();');
+      f('HandleScope scope(isolate);');
       f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
       f('string key = convJsToString(name);');
       f(o.set);
@@ -705,14 +729,16 @@ function withJsWrapUtils(f, typereg) {
   f.emitJsIndexedAccessors = function(o) {
     if (o.get) {
       f('static void jsGetIndexed_JSTYPE(unsigned int index, PropertyCallbackInfo<Value> const &args) {');
-      f('NanScope();');
+      f('Isolate *isolate = args.GetIsolate();');
+      f('HandleScope scope(isolate);');
       f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
       f(o.get);
       f('}');
     }
     if (o.set) {
       f('static void jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, PropertyCallbackInfo<Value> const &args) {');
-      f('NanScope();');
+      f('Isolate *isolate = args.GetIsolate();');
+      f('HandleScope scope(isolate);');
       f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
       f(o.set);
       f('}');
@@ -1138,7 +1164,7 @@ PrimitiveCType.prototype.getVarDecl = function(varname) {
   return type.typename + ' ' + varname;
 };
 
-PrimitiveCType.prototype.getJsToCppTest = function(valueExpr) {
+PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
   var type = this;
   switch (type.typename) {
   case 'int':
@@ -1155,12 +1181,12 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr) {
   case 'jsonstr':
     return 'true';
   default:
-    return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr)';
+    return '(JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr)';
     //throw new Error('Unknown primitive type');
   }
 };
 
-PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr) {
+PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   var type = this;
   switch (type.typename) {
   case 'int':
@@ -1177,7 +1203,7 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr) {
   case 'arma::cx_double':
     return 'convJsToCxDouble(' + valueExpr + ')';
   default:
-    return 'JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ')';
+    return 'JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ')';
     //throw new Error('Unknown primitive type');
   }
 };
@@ -1189,9 +1215,9 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerE
   case 'u_int': 
   case 'float': 
   case 'double':
-    return 'NanNew<Number>(' + valueExpr + ')';
+    return 'Number::New(isolate, ' + valueExpr + ')';
   case 'bool':
-    return 'NanNew<Boolean>(' + valueExpr + ')';
+    return 'Boolean::New(isolate, ' + valueExpr + ')';
   case 'string':
     return 'convStringToJs(' + valueExpr + ')';
   case 'jsonstr':
@@ -1256,26 +1282,26 @@ ObjectCType.prototype.getVarDecl = function(varname) {
   return 'shared_ptr<' + type.baseType.typename + '> ' + varname;
 };
 
-ObjectCType.prototype.getJsToCppTest = function(valueExpr) {
+ObjectCType.prototype.getJsToCppTest = function(valueExpr, o) {
   var type = this;
-  return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr)';
+  return '(JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr)';
 };
 
-ObjectCType.prototype.getJsToCppExpr = function(valueExpr) {
+ObjectCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   var type = this;
-  return 'JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ')';
+  return 'JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ')';
 };
 
 ObjectCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerExpr) {
   var type = this;
   if (parentExpr) {
-    return 'JsWrap_' + type.jsTypename + '::MemberInstance(' + parentExpr + ', &(' + valueExpr + '))';
+    return 'JsWrap_' + type.jsTypename + '::MemberInstance(isolate, ' + parentExpr + ', &(' + valueExpr + '))';
   }
   else if (ownerExpr) {
-    return 'JsWrap_' + type.jsTypename + '::DependentInstance(' + ownerExpr + ', &(' + valueExpr + '))';
+    return 'JsWrap_' + type.jsTypename + '::DependentInstance(isolate, ' + ownerExpr + ', &(' + valueExpr + '))';
   } 
   else {
-    return 'JsWrap_' + type.jsTypename + '::NewInstance(' + valueExpr + ')';
+    return 'JsWrap_' + type.jsTypename + '::NewInstance(isolate, ' + valueExpr + ')';
   }
 };
 
@@ -1377,48 +1403,52 @@ CollectionCType.prototype.getVarDecl = function(varname) {
   return type.typename + ' ' + varname;
 };
 
-CollectionCType.prototype.getJsToCppTest = function(valueExpr) {
+CollectionCType.prototype.getJsToCppTest = function(valueExpr, o) {
   var type = this;
-  var ret = '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr)';
-  if (type.templateName === 'arma::Col' || type.templateName === 'arma::Col::fixed') {
-    ret = '(' + ret + ' || canConvJsToArmaCol<' + type.templateArgs[0] + '>(' + valueExpr + '))';
-  }
-  else if (type.templateName === 'arma::Row' || type.templateName === 'arma::Row::fixed') {
-    ret = '(' + ret + ' || canConvJsToArmaRow<' + type.templateArgs[0] + '>(' + valueExpr + '))';
-  }
-  else if (type.templateName === 'arma::Mat' || type.templateName === 'arma::Mat::fixed') {
-    ret = '(' + ret + ' || canConvJsToArmaMat<' + type.templateArgs[0] + '>(' + valueExpr + '))';
-  }
-  else if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
-    ret = '((JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
-      'canConvJsToMapStringJsonstr(' + valueExpr + '))';
+  var ret = '(JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr)';
+  if (o.conv) {
+    if (type.templateName === 'arma::Col' || type.templateName === 'arma::Col::fixed') {
+      ret = '(' + ret + ' || canConvJsToArmaCol<' + type.templateArgs[0] + '>(' + valueExpr + '))';
+    }
+    else if (type.templateName === 'arma::Row' || type.templateName === 'arma::Row::fixed') {
+      ret = '(' + ret + ' || canConvJsToArmaRow<' + type.templateArgs[0] + '>(' + valueExpr + '))';
+    }
+    else if (type.templateName === 'arma::Mat' || type.templateName === 'arma::Mat::fixed') {
+      ret = '(' + ret + ' || canConvJsToArmaMat<' + type.templateArgs[0] + '>(' + valueExpr + '))';
+    }
+    else if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
+      ret = '((JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
+        'canConvJsToMapStringJsonstr(' + valueExpr + '))';
+    }
   }
   return ret;
 };
 
-CollectionCType.prototype.getJsToCppExpr = function(valueExpr) {
+CollectionCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   var type = this;
-  var ret = '(*JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + '))';
+  var ret = '(*JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + '))';
 
-  if (type.templateName === 'arma::Col' || type.templateName === 'arma::Col::fixed') {
-    ret = '((JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
-      'convJsToArmaCol<' + type.templateArgs[0] + '>(' + valueExpr + '))';
-  }
-  else if (type.templateName === 'arma::Row' || type.templateName === 'arma::Row::fixed') {
-    ret = '((JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
-      'convJsToArmaRow<' + type.templateArgs[0] + '>(' + valueExpr + '))';
-  }
-  else if (type.templateName === 'arma::Mat') {
-    ret = '((JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
-      'convJsToArmaMat<' + type.templateArgs[0] + '>(' + valueExpr + '))';
-  }
-  else if (type.templateName === 'arma::Mat::fixed') {
-    ret = '((JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
-      'convJsToArmaMat<' + type.templateArgs[0] + '>(' + valueExpr + ', ' + type.templateArgs[1] + ', ' + type.templateArgs[2] + '))';
-  }
-  else if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
-    ret = '((JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
-      'convJsToMapStringJsonstr(' + valueExpr + '))';
+  if (o.conv) {
+    if (type.templateName === 'arma::Col' || type.templateName === 'arma::Col::fixed') {
+      ret = '((JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
+        'convJsToArmaCol<' + type.templateArgs[0] + '>(' + valueExpr + '))';
+    }
+    else if (type.templateName === 'arma::Row' || type.templateName === 'arma::Row::fixed') {
+      ret = '((JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
+        'convJsToArmaRow<' + type.templateArgs[0] + '>(' + valueExpr + '))';
+    }
+    else if (type.templateName === 'arma::Mat') {
+      ret = '((JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
+        'convJsToArmaMat<' + type.templateArgs[0] + '>(' + valueExpr + '))';
+    }
+    else if (type.templateName === 'arma::Mat::fixed') {
+      ret = '((JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
+        'convJsToArmaMat<' + type.templateArgs[0] + '>(' + valueExpr + ', ' + type.templateArgs[1] + ', ' + type.templateArgs[2] + '))';
+    }
+    else if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
+      ret = '((JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr) ? ' + ret + ' : ' + 
+        'convJsToMapStringJsonstr(' + valueExpr + '))';
+    }
   }
   return ret;
 };
@@ -1427,13 +1457,13 @@ CollectionCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, owner
   var type = this;
   
   if (parentExpr) {
-    return 'JsWrap_' + type.jsTypename + '::MemberInstance(' + parentExpr + ', &(' + valueExpr + '))';
+    return 'JsWrap_' + type.jsTypename + '::MemberInstance(isolate, ' + parentExpr + ', &(' + valueExpr + '))';
   } 
   else if (ownerExpr) {
-    return 'JsWrap_' + type.jsTypename + '::DependentInstance(' + ownerExpr + ', ' + valueExpr + ')';
+    return 'JsWrap_' + type.jsTypename + '::DependentInstance(isolate, ' + ownerExpr + ', ' + valueExpr + ')';
   } 
   else {
-    return 'JsWrap_' + type.jsTypename + '::NewInstance(' + valueExpr + ')';
+    return 'JsWrap_' + type.jsTypename + '::NewInstance(isolate, ' + valueExpr + ')';
   }
 };
 
@@ -1491,6 +1521,14 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         }},
         {args: [type.typename], code: function(f) {
           f('thisObj->assignConstruct(a0);');
+        }},
+        {args: ['Object'], code: function(f) {
+          if (type.templateName === 'arma::Row') {
+            f('thisObj->assignConstruct(convJsToArmaRow<' + type.templateArgs[0] + '>(a0));');
+          }
+          else if (type.templateName === 'arma::Col') {
+            f('thisObj->assignConstruct(convJsToArmaCol<' + type.templateArgs[0] + '>(a0));');
+          }
         }}
       ]);
     });
@@ -1505,6 +1543,14 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         }},
         {args: [type.typename], code: function(f) {
           f('thisObj->assignConstruct(a0);');
+        }},
+        {args: ['Object'], code: function(f) {
+          if (type.templateName === 'arma::Row::fixed') {
+            f('thisObj->assignConstruct(convJsToArmaRow<' + type.templateArgs[0] + '>(a0));');
+          }
+          else if (type.templateName === 'arma::Col::fixed') {
+            f('thisObj->assignConstruct(convJsToArmaCol<' + type.templateArgs[0] + '>(a0));');
+          }
         }}
       ]);
     });
@@ -1521,6 +1567,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         }},
         {args: [type.typename], code: function(f) {
 	  f('thisObj->assignConstruct(a0);');
+        }},
+        {args: ['Object'], code: function(f) {
+          f('thisObj->assignConstruct(convJsToArmaMat<' + type.templateArgs[0] + '>(a0));');
         }}
       ]);
     });
@@ -1534,6 +1583,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         }},
         {args: [type.typename], code: function(f) {
 	  f('thisObj->assignConstruct(a0);');
+        }},
+        {args: ['Object'], code: function(f) {
+          f('thisObj->assignConstruct(convJsToArmaMat<' + type.templateArgs[0] + '>(a0));');
         }}
       ]);
     });
@@ -1548,6 +1600,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         }},
         {args: [type.typename], code: function(f) {
           f('thisObj->assignConstruct(a0);');
+        }},
+        {args: ['Object'], code: function(f) {
+          f('thisObj->assignConstruct(convJsToMapStringJsonstr(a0));');
         }}
       ]);
     });
@@ -1573,50 +1628,52 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
   if (!type.noSerialize) {
     f('Handle<Value> jsToJSON_JSTYPE(const TYPENAME &it) {');
+    f('Isolate *isolate = Isolate::GetCurrent();');
+    f('EscapableHandleScope scope(isolate);');
     f('if (fastJsonFlag) {');
     f('string fjbItem = asJson(it).it;');
     f('if (fjbItem.size() > 20) {');
-    f('Local<Object> ret = NanNew<Object>();');
-    f('ret->Set(NanNew<String>("__wsType"), NanNew<String>("jsonString"));');
-    f('ret->Set(NanNew<String>("json"), convStringToJs(fjbItem));');
-    f('return ret;');
+    f('Local<Object> ret = Object::New(isolate);');
+    f('ret->Set(String::NewFromUtf8(isolate, "__wsType"), String::NewFromUtf8(isolate, "jsonString"));');
+    f('ret->Set(String::NewFromUtf8(isolate, "json"), convStringToJs(fjbItem));');
+    f('return scope.Escape(ret);');
     f('}');
     f('}');
 
     if (type.templateName === 'vector') {
-      f('Local<Array> ret = NanNew<Array>(it.size());');
+      f('Local<Array> ret = Array::New(isolate, it.size());');
       f('for (size_t i=0; i<it.size(); i++) {');
       f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
       f('}');
-      f('return ret;');
+      f('return scope.Escape(ret);');
     }
     else if (type.templateName === 'arma::Col' || 
              type.templateName === 'arma::Row' || 
              type.templateName === 'arma::Col::fixed' || 
              type.templateName === 'arma::Row::fixed') {
-      f('Local<Array> ret = NanNew<Array>(it.n_elem);');
+      f('Local<Array> ret = Array::New(isolate, it.n_elem);');
       f('for (size_t i=0; i<it.n_elem; i++) {');
       f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
       f('}');
-      f('return ret;');
+      f('return scope.Escape(ret);');
     }
     else if (type.templateName === 'arma::Mat' || 
              type.templateName === 'arma::Mat::fixed') {
-      f('Local<Array> ret = NanNew<Array>(it.n_elem);');
+      f('Local<Array> ret = Array::New(isolate, it.n_elem);');
       f('for (size_t i=0; i<it.n_elem; i++) {');
       f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
       f('}');
-      f('return ret;');
+      f('return scope.Escape(ret);');
     }
     else if (type.templateName === 'map' && type.templateArgs[0] === 'string') {
-      f('Local<Object> ret = NanNew<Object>();');
+      f('Local<Object> ret = Object::New(isolate);');
       f('for (TYPENAME::const_iterator i=it.begin(); i!=it.end(); i++) {');
       f('ret->Set(' + type.templateArgTypes[0].getCppToJsExpr('i->first') + ', ' + type.templateArgTypes[1].getCppToJsExpr('i->second') + ');');
       f('}');
-      f('return ret;');
+      f('return scope.Escape(ret);');
     }
     else {
-      f('return NanUndefined();');
+      f('return scope.Escape(Undefined::New(isolate));');
     }
     f('}');
 
@@ -1640,8 +1697,8 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         f('NanReturnValue(' + type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisObj->it') + ');');
       },
       set: function(f) {
-        f('if (' + valueType.getJsToCppTest('value') + ') {');
-        f(type.templateArgs[1] + ' cvalue(' + valueType.getJsToCppExpr('value') + ');');
+        f('if (' + valueType.getJsToCppTest('value', {conv: true}) + ') {');
+        f(type.templateArgs[1] + ' cvalue(' + valueType.getJsToCppExpr('value', {conv: true}) + ');');
         f('(*thisObj->it)[key] = cvalue;');
         f('NanReturnValue(value);');
         f('}');
@@ -1660,15 +1717,15 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       type.templateName === 'arma::subview_col') {
     var elType = type.reg.types[type.templateArgs[0]];
     f.emitJsAccessors('n_rows', {
-      get: 'NanReturnValue(NanNew<Number>(thisObj->it->n_rows));'
+      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_rows));'
     });
 
     f.emitJsAccessors('n_elem', {
-      get: 'NanReturnValue(NanNew<Number>(thisObj->it->n_elem));'
+      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_elem));'
     });
 
     f.emitJsAccessors('length', {
-      get: 'NanReturnValue(NanNew<Number>(thisObj->it->n_elem));'
+      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_elem));'
     });
 
     f.emitJsIndexedAccessors({
@@ -1678,8 +1735,8 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       },
       set: function(f) {
         f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
-        f('if (' + elType.getJsToCppTest('value') + ') {');
-        f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value') + ');');
+        f('if (' + elType.getJsToCppTest('value', {conv: true}) + ') {');
+        f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value', {conv: true}) + ');');
         f('(*thisObj->it)(index) = cvalue;');
         f('NanReturnValue(value);');
         f('}');
@@ -1694,16 +1751,16 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       type.templateName === 'arma::Mat::fixed') {
     var elType = type.reg.types[type.templateArgs[0]];
     f.emitJsAccessors('n_rows', {
-      get: 'NanReturnValue(NanNew<Number>(thisObj->it->n_rows));'
+      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_rows));'
     });
     f.emitJsAccessors('n_cols', {
-      get: 'NanReturnValue(NanNew<Number>(thisObj->it->n_cols));'
+      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_cols));'
     });
     f.emitJsAccessors('n_elem', {
-      get: 'NanReturnValue(NanNew<Number>(thisObj->it->n_elem));'
+      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_elem));'
     });
     f.emitJsAccessors('length', {
-      get: 'NanReturnValue(NanNew<Number>(thisObj->it->n_elem));'
+      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_elem));'
     });
 
     f.emitJsMethod('row', function() {
@@ -1729,8 +1786,8 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       },
       set: function(f) {
         f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
-        f('if (' + elType.getJsToCppTest('value') + ') {');
-        f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value') + ');');
+        f('if (' + elType.getJsToCppTest('value', {conv: true}) + ') {');
+        f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value', {conv: true}) + ');');
         f('(*thisObj->it)(index) = cvalue;');
         f('NanReturnValue(value);');
         f('}');
@@ -1745,7 +1802,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
   if (type.templateName === 'vector') {
     f.emitJsAccessors('length', {
-      get: 'NanReturnValue(NanNew<Number>(thisObj->it->size()));'
+      get: 'NanReturnValue(Number::New(isolate, thisObj->it->size()));'
     });
     
     f.emitJsIndexedAccessors({
@@ -1755,8 +1812,8 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       },
       set: function(f) {
         var elType = type.reg.types[type.templateArgs[0]];
-        f('if (' + elType.getJsToCppTest('value') + ') {');
-        f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value') + ');');
+        f('if (' + elType.getJsToCppTest('value', {conv: true}) + ') {');
+        f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value', {conv: true}) + ');');
         f('(*thisObj->it)[index] = cvalue;');
         f('NanReturnValue(value);');
         f('}');
@@ -1986,23 +2043,23 @@ StructCType.prototype.getVarDecl = function(varname) {
   return type.typename + ' ' + varname;
 };
 
-StructCType.prototype.getJsToCppTest = function(valueExpr) {
+StructCType.prototype.getJsToCppTest = function(valueExpr, o) {
   var type = this;
-  return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr)';
+  return '(JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr)';
 };
 
-StructCType.prototype.getJsToCppExpr = function(valueExpr) {
+StructCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   var type = this;
-  return '(*JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + '))';
+  return '(*JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + '))';
 };
 
 StructCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
   
   if (ownerExpr) {
-    return 'JsWrap_' + type.jsTypename + '::MemberInstance(' + ownerExpr + ', &(' + valueExpr + '))';
+    return 'JsWrap_' + type.jsTypename + '::MemberInstance(isolate, ' + ownerExpr + ', &(' + valueExpr + '))';
   } else {
-    return 'JsWrap_' + type.jsTypename + '::NewInstance((' + valueExpr + '))';
+    return 'JsWrap_' + type.jsTypename + '::NewInstance(isolate, ' + valueExpr + ')';
   }
 };
 
@@ -2480,7 +2537,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 	    if (!memberType) {
 	      throw new Error('No type found for ' + util.inspect(memberName));
 	    }
-            return memberType.getJsToCppExpr('a0->Get(NanNew<String>("' + memberName + '"))');
+            return memberType.getJsToCppExpr('a0->Get(NanNew<String>("' + memberName + '"))', {});
 	  }) + ');');
         }}
       : undefined
@@ -2490,19 +2547,21 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   if (!type.noSerialize) {
     
     f('Handle<Value> jsToJSON_JSTYPE(const TYPENAME &it) {');
+    f('Isolate *isolate = Isolate::GetCurrent();');
+    f('EscapableHandleScope scope(isolate);');
     f('if (fastJsonFlag) {');
     f('string fjbItem = asJson(it).it;');
     f('if (fjbItem.size() > 20) {');
-    f('Local<Object> ret = NanNew<Object>();');
-    f('ret->Set(NanNew<String>("__wsType"), NanNew<String>("jsonString"));');
-    f('ret->Set(NanNew<String>("json"), convStringToJs(fjbItem));');
-    f('return ret;');
+    f('Local<Object> ret = Object::New(isolate);');
+    f('ret->Set(String::NewFromUtf8(isolate, "__wsType"), String::NewFromUtf8(isolate, "jsonString"));');
+    f('ret->Set(String::NewFromUtf8(isolate, "json"), convStringToJs(fjbItem));');
+    f('return scope.Escape(ret);');
     f('}');
     f('}');
 
     f('Local<Object> ret = NanNew<Object>();');
     
-    f('ret->Set(NanNew<String>("__type"), NanNew<String>("JSTYPE"));');
+    f('ret->Set(String::NewFromUtf8(isolate, "__type"), String::NewFromUtf8(isolate, "JSTYPE"));');
     _.each(type.orderedNames, function(name) {
       var memberType = type.nameToType[name];
       if (!memberType.isPtr()) {
@@ -2511,23 +2570,23 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 	case 'u_int': 
 	case 'float': 
  	case 'double':
-          f('ret->Set(NanNew<String>("' + name + '"), NanNew<Number>(it.' + name + '));');
+          f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), NanNew<Number>(it.' + name + '));');
           break;
 	case 'bool':
-          f('ret->Set(NanNew<String>("' + name + '"), NanNew<Boolean>(it.' + name + '));');
+          f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), NanNew<Boolean>(it.' + name + '));');
           break;
 	case 'string':
-          f('ret->Set(NanNew<String>("' + name + '"), convStringToJs(it.' + name + '));');
+          f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), convStringToJs(it.' + name + '));');
           break;
 	case 'jsonstr':
-          f('ret->Set(NanNew<String>("' + name + '"), convJsonstrToJs(it.' + name + '));');
+          f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), convJsonstrToJs(it.' + name + '));');
           break;
 	default:
-          f('ret->Set(NanNew<String>("' + name + '"), jsToJSON_' + memberType.jsTypename + '(it.' + name + '));');
+          f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), jsToJSON_' + memberType.jsTypename + '(it.' + name + '));');
 	}
       }
     });
-    f('return ret;');
+    f('return scope.Escape(ret);');
     f('}');
 
     f.emitJsMethod('toJSON', function() {
@@ -2604,7 +2663,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   if (!type.noStdValues && type.isCopyConstructable()) {
     _.each(['allZero', 'allNan'], function(name) {
       f.emitJsFactory(name, function(f) {
-        f('NanReturnValue(JsWrap_JSTYPE::NewInstance(TYPENAME::' + name + '()));');
+        f('NanReturnValue(JsWrap_JSTYPE::NewInstance(isolate, TYPENAME::' + name + '()));');
       });
     });
   }
@@ -2616,8 +2675,8 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         f('NanReturnValue(' + memberType.getCppToJsExpr((memberType.isPtr() ? '*' : '') + 'thisObj->it->' + name, 'thisObj->it') + ');');
       },
       set: function(f) {
-        f('if (' + memberType.getJsToCppTest('value') + ') {');
-        f('thisObj->it->' + name + ' = ' + memberType.getJsToCppExpr('value') + ';');
+        f('if (' + memberType.getJsToCppTest('value', {conv: true}) + ') {');
+        f('thisObj->it->' + name + ' = ' + memberType.getJsToCppExpr('value', {conv: true}) + ';');
         f('}');
         f('else {');
         f('return ThrowTypeError("Expected ' + memberType.typename + '");');
@@ -2698,22 +2757,22 @@ PtrCType.prototype.getVarDecl = function(varname) {
   return 'shared_ptr<' + type.baseType.typename + '> ' + varname;
 };
 
-PtrCType.prototype.getJsToCppTest = function(valueExpr) {
+PtrCType.prototype.getJsToCppTest = function(valueExpr, o) {
   var type = this;
-  return '(JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ') != nullptr)';
+  return '(JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr)';
 };
 
-PtrCType.prototype.getJsToCppExpr = function(valueExpr) {
+PtrCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   var type = this;
-  return 'JsWrap_' + type.jsTypename + '::Extract(' + valueExpr + ')';
+  return 'JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ')';
 };
 
 PtrCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
   if (ownerExpr) {
-    return 'JsWrap_' + type.jsTypename + '::MemberInstance(' + ownerExpr + ', &(' + valueExpr + '))';
+    return 'JsWrap_' + type.jsTypename + '::MemberInstance(isolate, ' + ownerExpr + ', &(' + valueExpr + '))';
   } else {
-    return 'JsWrap_' + type.jsTypename + '::NewInstance(' + valueExpr + ')';
+    return 'JsWrap_' + type.jsTypename + '::NewInstance(isolate, ' + valueExpr + ')';
   }
 };
 
