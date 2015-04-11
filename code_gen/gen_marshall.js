@@ -224,6 +224,7 @@ TypeRegistry.prototype.emitGypFile = function(files) {
   var f = files.getFile('sources_' + typereg.groupname + '.gypi');
   f('{');
   f('"sources": [');
+  f('\"' + 'functions_' + typereg.groupname + '_jsWrap.cc' + '\",'); // put first since compilation is slowest
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
     var fns = type.getFns();
@@ -236,7 +237,6 @@ TypeRegistry.prototype.emitGypFile = function(files) {
   });
   f('\"' + 'jsboot_' + typereg.groupname + '.cc' + '\",');
   f('\"' + 'symbolics_' + typereg.groupname + '.cc' + '\",');
-  f('\"' + 'functions_' + typereg.groupname + '_jsWrap.cc' + '\",');
   f(']');
   f('}');
 
