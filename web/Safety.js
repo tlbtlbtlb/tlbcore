@@ -33,7 +33,7 @@ function isValidRobotName(robotName) {
 
 function isValidLogName(logName) {
   if (!(typeof logName === 'string')) return false;
-  if (!(/^[\w\.]+$/.test(logName))) return false;
+  if (!(/^[-\w\.]+$/.test(logName))) return false;
   return true;
 }
 
