@@ -8,7 +8,7 @@ exports.BogoCache = BogoCache;
 function BogoCache(timeout) {
   this.timeout = timeout;
   this.cache = {};
-};
+}
 
 BogoCache.prototype.get = function(key) {
   var cKey = '*' + key;
@@ -24,5 +24,5 @@ BogoCache.prototype.set = function(key, value) {
   this.cache[cKey] = {
     ts: Date.now(),
     value: value
-  }
-}
+  };
+};

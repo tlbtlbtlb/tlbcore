@@ -32,6 +32,7 @@ exports.ProviderSet = ProviderSet;
 exports.emitBinaryDoc = emitBinaryDoc;
 exports.emitHtmlDoc = emitHtmlDoc;
 exports.emit404 = emit404;
+exports.emit500 = emit500;
 exports.emit301 = emit301;
 exports.emit302 = emit302;
 
@@ -96,6 +97,18 @@ function emit404(res, comment) {
               },
               function(dst) { 
                 dst.write('<h1>404 Not Found</h1><p>\n' + comment + '\n</p>');
+              });
+  res.end();
+}
+
+function emit500(res) {
+  res.writeHead(500, {'Content-Type': 'text/html'});
+  emitHtmlDoc(res, 
+              function(dst) { 
+                dst.write('<title>Internal Error</title>'); 
+              },
+              function(dst) { 
+                dst.write('<h1>500 Internal Error</h1><p>Something is wrong</p>');
               });
   res.end();
 }
@@ -566,7 +579,7 @@ function KeyValueProvider(key, value) {
 }
 KeyValueProvider.prototype = Object.create(AnyProvider.prototype);
 
-KeyValueProvider.prototype.getDesc = function() { return this.key; }
+KeyValueProvider.prototype.getDesc = function() { return this.key; };
 
 KeyValueProvider.prototype.equals = function(other) {
   return (this.constructor === other.constructor && this.key === other.key && this.value === other.value);

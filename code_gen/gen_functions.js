@@ -84,8 +84,7 @@ RtFunction.prototype.emitDecl = function(l) {
 RtFunction.prototype.emitDefn = function(l) {
   var self = this;
   l(self.getSignature() + ' {');
-  _.each(self.assigns, 
-  emitAssigns(l, this.assigns);
+  // WRITEME
   l('}');
   l('');
 };

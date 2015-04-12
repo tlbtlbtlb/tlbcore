@@ -200,8 +200,13 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
   function httpHandler(req, res) {
 
     req.remoteLabel = req.connection.remoteAddress + '!http';
-    
-    annotateReq(req);
+
+    try {
+      annotateReq(req);
+    } catch(ex) {
+      logio.E(req.remoteLabel, ex);
+      Provider.emit500(res);
+    }
     if (0) logio.I(req.remoteLabel, req.url, req.urlParsed, req.headers);
 
     var hostPrefix = webServer.hostPrefixes[req.urlParsed.hostname];
@@ -239,7 +244,13 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
     var callid = wsr.resource;
 
     wsr.remoteLabel = wsr.httpRequest.connection.remoteAddress + '!ws' + wsr.resource;
-    annotateReq(wsr.httpRequest);
+    try {
+      annotateReq(wsr.httpRequest);
+    } catch(ex) {
+      logio.E(wsr.remoteLabel, ex);
+      wsr.reject();
+      return;
+    }
     
     var handlersFunc = webServer.wsHandlers[callid];
     if (!handlersFunc) {
@@ -270,14 +281,14 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
       up = url.parse(decodeURIComponent(req.url), true);
     } catch (ex) {
       logio.E(req.remoteLabel, 'Error parsing', req.url, ex);
-      return Provider.emit404(res, 'Invalid url');
+      throw ex;
     }
 
     if (!up.hostname) up.hostname = delPort(req.headers.host);
     if (!up.hostname) up.hostname = 'localhost';
     if (up.hostname.match(/[^-\w\.]/)) {
       logio.E(req.remoteLabel, 'Invalid host header', up.hostname);
-      return Provider.emit404(res, 'Invalid host header');
+      throw new Error('Invalid host header');
     }
     if (!up.port) up.port = bindPort;
     if (!up.host) up.host = up.hostname + (up.port === 80 ? '' : ':' + up.port);
