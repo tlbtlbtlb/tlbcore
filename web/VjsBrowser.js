@@ -149,7 +149,7 @@ function fmtHashOptions(pageid, o) {
     return '#' + pageid;
   }
   var encoded = btoa(JSON.stringify(o));
-  return '#' + pageid + '_.' + encoded
+  return '#' + pageid + '_.' + encoded;
 }
 
 function pushLocationHash(pageid, o) {
@@ -396,8 +396,8 @@ $.fn.fmtBullets = function(items) {
 */
 
 function escapeHtml(text) {
-  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-};
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 $.fn.fmtText = function(text) {  
   this.html(String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
@@ -846,12 +846,12 @@ function BoxLayout(t, r, b, l, pixelRatio) {
     this.lrgFont = '20px Arial';
     this.medFont = '10px Arial';
     this.smlFont = '9px Arial';
-    this.tinyFont = '7px Arial'
+    this.tinyFont = '7px Arial';
   } else {
     this.lrgFont = '25px Arial';
     this.medFont = '12px Arial';
-    this.smlFont = '10px Arial'
-    this.tinyFont = '8px Arial'
+    this.smlFont = '10px Arial';
+    this.tinyFont = '8px Arial';
   }
 }
 

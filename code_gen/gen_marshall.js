@@ -224,6 +224,7 @@ TypeRegistry.prototype.emitGypFile = function(files) {
   var f = files.getFile('sources_' + typereg.groupname + '.gypi');
   f('{');
   f('"sources": [');
+  f('\"' + 'functions_' + typereg.groupname + '_jsWrap.cc' + '\",'); // put first since compilation is slowest
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
     var fns = type.getFns();
@@ -236,7 +237,6 @@ TypeRegistry.prototype.emitGypFile = function(files) {
   });
   f('\"' + 'jsboot_' + typereg.groupname + '.cc' + '\",');
   f('\"' + 'symbolics_' + typereg.groupname + '.cc' + '\",');
-  f('\"' + 'functions_' + typereg.groupname + '_jsWrap.cc' + '\",');
   f(']');
   f('}');
 
@@ -337,7 +337,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         else if (funcInfo.returnType === 'buffer') {
           f('string ret = ' + funcInfo.funcInvocation + '(' + callargs.join(', ') + ');');
           f('args.GetReturnValue().Set(convStringToJsBuffer(ret));');
-          f('return;')
+          f('return;');
         }
         else if (funcInfo.returnType === undefined) {
           f('// No return type');
@@ -600,7 +600,7 @@ function withJsWrapUtils(f, typereg) {
         f('eprintf("  argSet: ");');
         _.each(argSet.args, function(argInfo, argi) {
           var argType = typereg.getType(argInfo);
-          f('eprintf("  %s' +  argType.typename + '", (' + argType.getJsToCppTest('args[' + argi + ']', {}) + ') ? "" : "!");')
+          f('eprintf("  %s' +  argType.typename + '", (' + argType.getJsToCppTest('args[' + argi + ']', {}) + ') ? "" : "!");');
         });
         f('eprintf("\\n");');
       });
@@ -661,7 +661,7 @@ function withJsWrapUtils(f, typereg) {
     f.jsConstructorBindings.push(function(f) {
       f('tpl->GetFunction()->Set(NanNew<String>("' + name + '"), NanNew<FunctionTemplate>(jsWrap_JSTYPE_' + name + ')->GetFunction());');
     });
-  }
+  };
 
   f.emitJsAccessors = function(name, o) {
     if (o.get) {
@@ -752,7 +752,7 @@ function withJsWrapUtils(f, typereg) {
       }
     });
     f('');
-  }
+  };
 
   f.emitJsBindings = function() {
     _.each(f.jsBindings, function(binding) {
@@ -1039,7 +1039,7 @@ CType.prototype.getFormalParameter = function(varname) {
 
 CType.prototype.getInitExpr = function() {
   return this.getAllZeroExpr();
-}
+};
 
 
 // ----------------------------------------------------------------------
@@ -1366,7 +1366,7 @@ CollectionCType.prototype.getInitExpr = function() {
   } else {
     return '';
   }
-}
+};
 
 CollectionCType.prototype.getAllOneExpr = function() {
   return this.typename + '()';
@@ -2081,7 +2081,7 @@ StructCType.prototype.getMemberTypes = function() {
   var type = this;
   var subtypes = sortTypes(_.values(type.nameToType).concat(type.superTypes));
   if (0) console.log('StructCType.getMemberTypes', type.typename, _.map(subtypes, function(type) { return type.typename; }));
-  return subtypes
+  return subtypes;
 };
 
 StructCType.prototype.getAllZeroExpr = function() {
@@ -2442,7 +2442,7 @@ StructCType.prototype.emitRdJson = function(f) {
 	f('if (c == \'}\') return typeOk;');
 	f('}');
       };
-    };
+    }
   });
   actions['"__type":"' + type.jsTypename + '"'] = function() {
     f('typeOk = true;');
@@ -2789,7 +2789,7 @@ function CDspType(reg, lbits, rbits) {
   CType.call(type, reg, typename);
 }
 CDspType.prototype = Object.create(CType.prototype);
-CDspType.prototype.isDsp = function() { return true; }
+CDspType.prototype.isDsp = function() { return true; };
 
 CDspType.prototype.getFns = function() {
   var type = this;

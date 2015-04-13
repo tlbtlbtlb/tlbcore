@@ -12,7 +12,7 @@ var haltonAxes  = [
 */
 function unipolarHaltonAxis(i, radix)
 {
-  if (i == 0) return 0.0;
+  if (i === 0) return 0.0;
   var digit = i % radix;
   
   var digitValue = digit;
@@ -40,7 +40,7 @@ function unipolarHaltonRow(i, nCols)
 */
 function bipolarHaltonAxis(i, radix)
 {
-  if (i == 0) return 0.0;
+  if (i === 0) return 0.0;
   var digit = i % radix;
     
   var digitValue = (1 - (digit%2) * 2) * ((digit + 1) / 2) * 2.0;

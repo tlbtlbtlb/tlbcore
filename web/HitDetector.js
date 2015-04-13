@@ -74,7 +74,7 @@ HitDetector.prototype.addScroll = function(t, r, b, l, actions) {
 HitDetector.prototype.addDefault = function(actions) {
   var hd = this;
   hd.defaultActions = actions;
-}
+};
 
 /*
   Find the smallest area enclosing x,y.

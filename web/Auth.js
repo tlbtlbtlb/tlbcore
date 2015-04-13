@@ -2,6 +2,7 @@
 var _ = require('underscore');
 var fs = require('fs');
 var crypto = require('crypto');
+var util = require('util');
 
 exports.tokenHash = tokenHash;
 exports.generateToken = generateToken;
@@ -62,28 +63,26 @@ function mkRandomStream() {
   var fd = fs.openSync('/dev/urandom', 'r', 511); // mode is octal 0777
 
   function nextChunk() {
-    fs.read(fd, 64, readPos, 'ascii', function(err, data, nr) {
-      if (err) throw err;
-      randChunk = data;
-      readPos += nr;
-      counter = 0;
-    });
+    var readAns = fs.readSync(fd, 64, readPos, 'ascii');
+    randChunk = readAns[0];
+    readPos += readAns[1];
+    counter = 0;
   }
 
   nextChunk();
 
   return function() {
-    var t = +new Date();
+    var t = Date.now();
+    if (randChunk.length !== 64) throw new Error('No randomness yet, randChunk=' + util.inspect(randChunk));
     while (1) {
-
       var h = crypto.createHmac('sha1', 'argh');
-      h.update(randChunk + ' ' + t + ' ' + counter, 'ASCII');
+      h.update(randChunk + ' ' + t + ' ' + counter, 'ascii');
       if (counter === 100) nextChunk();
       counter++;
       var mac = h.digest('base64');
       // remove non-alphanumerics
       mac = mac.replace(/[^a-zA-Z0-9]/g, '');
-      if (mac.length >= 24) return mac;
+      if (mac.length >= 24) return mac.substr(0, 24);
     }
   };
 }

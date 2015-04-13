@@ -28,6 +28,7 @@ describe('Safety.isValidLogName', function() {
   }
   it('should work', function() {
     cgood('run_147');
+    cgood('run_2015-04-04_12-34-56');
     cbad('');
     cbad('../../etc/passwd');
   });
