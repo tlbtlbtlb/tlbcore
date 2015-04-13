@@ -17,7 +17,7 @@
         "<!(node -e \"require('nan')\")"
       ],
       'libraries+': [
-        '-L/usr/local/lib', '-larmadillo',
+        '-L/usr/local/lib', '-larmadillo', '-lz'
       ]
     }, {
       'make_global_settings': [
@@ -28,7 +28,7 @@
         "<!(node -e \"require('nan')\")"
       ],
       'libraries+': [
-        '-larmadillo',
+        '-larmadillo', '-lz'
       ],
       'cflags_cc!': [
         '-fno-rtti', '-fno-exceptions', '-fno-tree-vrp'

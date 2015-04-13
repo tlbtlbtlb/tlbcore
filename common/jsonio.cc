@@ -60,30 +60,26 @@ bool jsonstr::isNull()
   return it == string("null") || it.size() == 0;
 }
 
-static bool isGzipFilename(string const &fn)
-{
-  if (fn.size() < 3) return false;
-  size_t gzPos = fn.rfind(".gz");
-  if (gzPos == string::npos) return false;
-  return (gzPos + 3 == fn.size());
-}
-
-void jsonstr::writeToFile(string const &fn)
+/*
+  writeToFile uses gzip by default. 
+*/
+void jsonstr::writeToFile(string const &fn, bool enableGzip)
 {
   int rc;
-  if (isGzipFilename(fn)) {
-    gzFile fp = gzopen(fn.c_str(), "wb");
-    if (!fp) {
-      throw runtime_error(fn + string(": ") + string(strerror(errno)));
+  if (enableGzip) {
+    string gzfn = fn + ".gz";
+    gzFile gzfp = gzopen(gzfn.c_str(), "wb");
+    if (!gzfp) {
+      throw runtime_error(gzfn + string(": ") + string(strerror(errno)));
     }
-    rc = gzwrite(fp, (void *)&it[0], (u_int)it.size());
+    rc = gzwrite(gzfp, (void *)&it[0], (u_int)it.size());
     if (rc <= 0) {
       int errnum = 0;
-      throw runtime_error(fn + string(": write failed: ") + string(gzerror(fp, &errnum)));
+      throw runtime_error(gzfn + string(": write failed: ") + string(gzerror(gzfp, &errnum)));
     }
-    rc = gzclose(fp);
+    rc = gzclose(gzfp);
     if (rc != Z_OK) {
-      throw runtime_error(fn + string(": close failed: ") + to_string(rc));
+      throw runtime_error(gzfn + string(": close failed: ") + to_string(rc));
     }
   } else {
     FILE *fp = fopen(fn.c_str(), "w");
@@ -101,22 +97,44 @@ void jsonstr::writeToFile(string const &fn)
   }
 }
 
+/*
+  readFromFile first checks for a plain file, then looks for a .gz version
+ */
 void jsonstr::readFromFile(string const &fn)
 {
   int rc;
-  if (isGzipFilename(fn)) {
-    gzFile fp = gzopen(fn.c_str(), "rb");
-    if (!fp) {
+  FILE *fp = fopen(fn.c_str(), "r");
+  if (fp) {
+    if (fseek(fp, 0, SEEK_END) < 0) {
       throw runtime_error(fn + string(": ") + string(strerror(errno)));
     }
+    size_t fileSize = (size_t)ftello(fp);
+    if (fileSize > 1000000000) {
+      throw runtime_error(fn + string(": Unreasonable file size ") + to_string(fileSize));
+    }
     
+    fseek(fp, 0, SEEK_SET);
+    char *p = startWrite(fileSize);
+    int nr = fread(p, fileSize, 1, fp);
+    if (nr != 1) {
+      throw runtime_error(fn + string(": partial read ") + to_string(nr) + "/" + to_string(fileSize));
+    }
+    endWrite(p + fileSize);
+    
+    if (fclose(fp) < 0) {
+      throw runtime_error(fn + string(": ") + string(strerror(errno)));
+    }
+  }
+  string gzfn = fn + ".gz";
+  gzFile gzfp = gzopen(gzfn.c_str(), "rb");
+  if (gzfp) {
     it.clear();
     while (true) {
       char buf[8192];
-      int nr = gzread(fp, buf, sizeof(buf));
+      int nr = gzread(gzfp, buf, sizeof(buf));
       if (nr < 0) {
         int errnum;
-        throw runtime_error(fn + string(": read failed: ") + string(gzerror(fp, &errnum)));
+        throw runtime_error(gzfn + string(": read failed: ") + string(gzerror(fp, &errnum)));
       }
       else if (nr == 0) {
         break;
@@ -126,36 +144,14 @@ void jsonstr::readFromFile(string const &fn)
       }
     }
     
-    rc = gzclose(fp);
+    rc = gzclose(gzfp);
     if (rc != Z_OK) {
-      throw runtime_error(fn + string(": close failed: ") + to_string(rc));
+      throw runtime_error(gzfn + string(": close failed: ") + to_string(rc));
     }
-
-  } else {
-    FILE *fp = fopen(fn.c_str(), "r");
-    if (!fp) {
-      throw runtime_error(fn + string(": ") + string(strerror(errno)));
-    }
-    if (fseek(fp, 0, SEEK_END) < 0) {
-      throw runtime_error(fn + string(": ") + string(strerror(errno)));
-    }
-    size_t fileSize = (size_t)ftello(fp);
-    if (fileSize > 1000000000) {
-      throw runtime_error(fn + string(": Unreasonable file size ") + to_string(fileSize));
-    }
-
-    fseek(fp, 0, SEEK_SET);
-    char *p = startWrite(fileSize);
-    int nr = fread(p, fileSize, 1, fp);
-    if (nr != 1) {
-      throw runtime_error(fn + string(": partial read ") + to_string(nr) + "/" + to_string(fileSize));
-    }
-    endWrite(p + fileSize);
-
-    if (fclose(fp) < 0) {
-      throw runtime_error(fn + string(": ") + string(strerror(errno)));
-    }
+    return;
   }
+
+  throw runtime_error(fn + string(": ") + string(strerror(errno)));
 }
 
 
