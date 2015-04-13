@@ -24,6 +24,9 @@
         ['CXX','/usr/bin/clang++'],
         ['LINK','/usr/bin/clang++'],
       ],
+      'include_dirs+': [
+        "<!(node -e \"require('nan')\")"
+      ],
       'libraries+': [
         '-larmadillo',
       ],
