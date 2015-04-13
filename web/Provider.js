@@ -15,6 +15,7 @@ var assert              = require('assert');
 var jsmin               = require('jsmin2');
 var xml                 = require('xmldom');
 var marked              = require('marked');
+var zlib                = require('zlib');
 var logio               = require('./logio');
 var Safety              = require('./Safety');
 
@@ -849,11 +850,30 @@ ProviderSet.prototype.addProvider = function(p) {
 };
 
 ProviderSet.prototype.handleRequest = function(req, res, suffix) {
+  var self = this;
   var contentType = 'text/html';
   var remote = res.connection.remoteAddress + '!http';
-  res.writeHead(200, {'Content-Type': contentType});
-  res.write(this.asHtml, 'utf8');
-  logio.O(remote, this.toString() + ' (200 ' + contentType + ' len=' + this.asHtml.length + ')'); // actually the unicode length, not utf8 length
+
+  var acceptEncoding = req.headers['accept-encoding'];
+  if (!acceptEncoding) acceptEncoding = '';
+  var useGzip = !!acceptEncoding.match(/\bgzip\b/);
+
+  if (useGzip && self.asHtmlGzBuf) {
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Content-Length': self.asHtmlGzBuf.length.toString(),
+      'Content-Encoding': 'gzip',
+    });
+    res.write(self.asHtmlGzBuf, 'binary');
+    logio.O(remote, self.toString() + ' (200 ' + contentType + ' len=' + this.asHtmlGzBuf.length + ' compressed)');
+  } else {
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Content-Length': self.asHtmlBuf.length.toString(),
+    });
+    res.write(self.asHtmlBuf, 'binary');
+    logio.O(remote, self.toString() + ' (200 ' + contentType + ' len=' + this.asHtmlBuf.length + ')');
+  }
   res.end();
 };
 
@@ -905,9 +925,19 @@ ProviderSet.prototype.start = function() {
                '</script>\n');
       cat.push('</body>\n</html>\n');
 
-      self.asHtml = new Buffer(cat.join(''), 'utf8');
-      self.pending = false;
-      self.emit('changed');
+      var asHtmlBuf = new Buffer(cat.join(''), 'utf8');
+      zlib.gzip(asHtmlBuf, function(err, asHtmlGzBuf) {
+        self.asHtmlBuf = asHtmlBuf;
+        if (err) {
+          logio.E(self.getDesc(), err);
+          self.asHtmlGzBuf = undefined;
+          return;
+        }
+        self.asHtmlGzBuf = asHtmlGzBuf;
+        logio.O(self.toString(), 'Compressed ' + asHtmlBuf.length.toString() + ' => ' + asHtmlGzBuf.length.toString());
+        self.pending = false;
+        self.emit('changed');
+      });
     });
   });
 };
@@ -935,7 +965,7 @@ ProviderSet.prototype.mirrorTo = function(dst) {
     writeLost = false;
 
     var tmpDst = dst + '.tmp';
-    fs.writeFile(tmpDst, self.asHtml, 'utf8', function(err) {
+    fs.writeFile(tmpDst, self.asHtmlBuf, 'binary', function(err) {
       if (err) {
         logio.E(tmpDst, err);
         writeActive = false;
@@ -949,7 +979,7 @@ ProviderSet.prototype.mirrorTo = function(dst) {
           if (writeLost) doWrite();
           return;
         }
-        logio.O(dst, 'Updated len=' + self.asHtml.length);
+        logio.O(dst, 'Updated len=' + self.asHtmlBuf.length);
         writeActive = false;
         if (writeLost) doWrite();
       });
@@ -970,8 +1000,8 @@ ProviderSet.prototype.copy = function() {
 
 ProviderSet.prototype.getStats = function() {
   var ret = AnyProvider.prototype.getStats.apply(this);
-  if (this.asHtml && this.asHtml.length) {
-    ret.htmlSize = this.asHtml.length;
+  if (this.asHtmlBuf && this.asHtmlBuf.length) {
+    ret.htmlSize = this.asHtmlBuf.length;
   }
   ret.components = _.map(this.providers, function(p) { return p.getStats(); } );
   return ret;
