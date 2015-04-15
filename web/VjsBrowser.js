@@ -73,6 +73,10 @@ $.fn.page_notFound = function(o) {
   this.html('<h3>Not Found</h3>');
 };
 
+$.setPageTitle = function(title) {
+  document.title = title;
+};
+
 
 /*
   Poll history to notice when the fragment changes and switch pages. Before window.onpopstate worked, this was the only way to make the back button work.
