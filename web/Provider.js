@@ -36,6 +36,7 @@ exports.emit404 = emit404;
 exports.emit500 = emit500;
 exports.emit301 = emit301;
 exports.emit302 = emit302;
+exports.reqClientAcceptsGzip = reqClientAcceptsGzip;
 
 // ======================================================================
 
@@ -272,6 +273,14 @@ function persistentReadFile(fn, encoding, cb) {
 function getBasename(fn) {
   return fn.replace(/^.*\/([-\w]+)\.\w+$/, '$1');
 }
+
+function reqClientAcceptsGzip(req) {
+  var acceptEncoding = req.headers['accept-encoding'];
+  if (!acceptEncoding) return false;
+  // WRITEME: do this correctly. Split on commas, scan for gzip
+  return !!acceptEncoding.match(/\bgzip\b/);
+}
+
 
 /* ----------------------------------------------------------------------
    AnyProvider() -- Superclass of all Providers
@@ -855,9 +864,7 @@ ProviderSet.prototype.handleRequest = function(req, res, suffix) {
   var contentType = 'text/html';
   var remote = res.connection.remoteAddress + '!http';
 
-  var acceptEncoding = req.headers['accept-encoding'];
-  if (!acceptEncoding) acceptEncoding = '';
-  var useGzip = !!acceptEncoding.match(/\bgzip\b/);
+  var useGzip = reqClientAcceptsGzip(req);
 
   if (useGzip && self.asHtmlGzBuf) {
     res.writeHead(200, {
