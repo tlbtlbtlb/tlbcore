@@ -134,7 +134,7 @@ void jsonstr::readFromFile(string const &fn)
       int nr = gzread(gzfp, buf, sizeof(buf));
       if (nr < 0) {
         int errnum;
-        throw runtime_error(gzfn + string(": read failed: ") + string(gzerror(fp, &errnum)));
+        throw runtime_error(gzfn + string(": read failed: ") + string(gzerror(gzfp, &errnum)));
       }
       else if (nr == 0) {
         break;
