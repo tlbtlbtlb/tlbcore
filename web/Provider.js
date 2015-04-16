@@ -491,7 +491,7 @@ ScriptProvider.prototype.start = function() {
     // 'foo' + 'bar' => 'foobar'
     data = data.replace(/\'\s*\+\n\s+\'/g, '');
     
-    if (self.minifyLevel) {
+    if (self.minifyLevel >= 1) {
       data = jsmin(data).code;
     } else {
       // Just minimal mininification: cut leading whitespace and blank lines
@@ -520,7 +520,8 @@ ScriptProvider.prototype.toString = function() {
   return "ScriptProvider(" + JSON.stringify(this.fn) + ")"; 
 };
 
-ScriptProvider.prototype.minifyLevel = 0;
+// Use --noMin option to server.js instead of changing this
+ScriptProvider.prototype.minifyLevel = 1;
 
 ScriptProvider.prototype.loadData = function(data) {
 };
@@ -643,7 +644,7 @@ CssProvider.prototype.start = function() {
     data = data.replace(/^\s*border-radius:\s*(\w+);$/mg, 'border-radius: $1; -moz-border-radius: $1; -webkit-border-radius: $1;');
     data = data.replace(/^\s*box-shadow:\s*(\w+);$/mg, 'box-shadow: $1; -moz-box-shadow: $1; -webkit-box-shadow: $1;');
     data = data.replace(/^\s*opacity:\s*0\.(\w+);/mg, 'opacity: 0.$1; filter: alpha(opacity=$1); -moz-opacity: 0.$1; -khtml-opacity: 0.$1;');
-    if (self.minifyLevel) {
+    if (self.minifyLevel >= 1) {
       data = removeComments(data);
       data = data.replace(/(;|\x7b) *\n+/g, '$1');
       data = data.replace(/:\s+/g, ':');
@@ -675,7 +676,7 @@ CssProvider.prototype.start = function() {
 CssProvider.prototype.toString = function() { 
   return "CssProvider(" + JSON.stringify(this.fn) + ")"; 
 };
-CssProvider.prototype.minifyLevel = 2;
+CssProvider.prototype.minifyLevel = 1;
 
 CssProvider.prototype.getType = function() {
   return 'css';

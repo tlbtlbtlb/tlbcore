@@ -36,6 +36,7 @@ function WebServer() {
   webServer.serverAccessCounts = {};
   webServer.wwwRoot = null;
   webServer.allConsoleHandlers = [];
+  webServer.servers = [];
 }
 
 WebServer.prototype.setUrl = function(url, p) {
@@ -185,17 +186,27 @@ function delPort(hn) {
   return parts[0];
 }
 
-WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
+WebServer.prototype.startHttpServer = function(serverInfo) {
   var webServer = this;
-  if (!bindPort) bindPort = 8000;
-  if (!bindHost) bindHost = '127.0.0.1';
   
-  webServer.httpServer = http.createServer(httpHandler);
-  console.log('Listening on ' + bindHost + ':' + bindPort);
-  webServer.httpServer.listen(bindPort, bindHost);
+  var httpServer = null;
+  if (serverInfo.proto === 'https') {
+    httpServer = https.createServer(serverInfo, httpHandler);
+  }
+  else if (serverInfo.proto === 'http') {
+    httpServer = http.createServer(httpHandler);
+  }
+  else {
+    throw new Error('Unknown proto ' + serverInfo.proto);
+  }
+  console.log('Listening on ' + serverInfo.host + ':' + serverInfo.port + ' (' + serverInfo.proto + ')');
+  httpServer.listen(serverInfo.port, serverInfo.host);
 
-  webServer.ws = new websocket.server({httpServer: webServer.httpServer});
-  webServer.ws.on('request', wsRequestHandler);
+  webServer.servers.push(httpServer);
+
+  var ws = new websocket.server({httpServer: httpServer});
+  ws.on('request', wsRequestHandler);
+  webServer.servers.push(ws);
 
   function httpHandler(req, res) {
 
@@ -290,7 +301,7 @@ WebServer.prototype.startHttpServer = function(bindPort, bindHost) {
       logio.E(req.remoteLabel, 'Invalid host header', up.hostname);
       throw new Error('Invalid host header');
     }
-    if (!up.port) up.port = bindPort;
+    if (!up.port) up.port = serverInfo.port;
     if (!up.host) up.host = up.hostname + (up.port === 80 ? '' : ':' + up.port);
     up.protocol = 'http:';
 
