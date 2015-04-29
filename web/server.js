@@ -1,4 +1,5 @@
 'use strict';
+// process.env.UV_THREADPOOL_SIZE = 10;
 var _                   = require('underscore');
 var net                 = require('net');
 var fs                  = require('fs');
