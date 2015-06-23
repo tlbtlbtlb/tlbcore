@@ -217,7 +217,7 @@ static void jsWrap_StlSolid_analyzeHole(FunctionCallbackInfo<Value> const &args)
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
-  eprintf("StlSolid_analyzeHole thisObj=%p args.Length=%d a0.isNumber=%d\n", thisObj, (int)args.Length(), args[0]->IsNumber());
+  if (0) eprintf("StlSolid_analyzeHole thisObj=%p args.Length=%d a0.isNumber=%d\n", thisObj, (int)args.Length(), args[0]->IsNumber());
   if (args.Length() == 1 && args[0]->IsNumber()) {
     double a0 = args[0]->NumberValue();
     arma::vec3 ret = thisObj->it->analyzeHole((int)a0);

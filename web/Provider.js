@@ -934,6 +934,7 @@ ProviderSet.prototype.start = function() {
       cat.push('</body>\n</html>\n');
 
       var asHtmlBuf = new Buffer(cat.join(''), 'utf8');
+      var zlibT0 = Date.now();
       zlib.gzip(asHtmlBuf, function(err, asHtmlGzBuf) {
         self.asHtmlBuf = asHtmlBuf;
         if (err) {
@@ -942,7 +943,8 @@ ProviderSet.prototype.start = function() {
           return;
         }
         self.asHtmlGzBuf = asHtmlGzBuf;
-        logio.O(self.toString(), 'Compressed ' + asHtmlBuf.length.toString() + ' => ' + asHtmlGzBuf.length.toString());
+        var zlibT1 = Date.now();
+        logio.O(self.toString(), 'Compressed ' + asHtmlBuf.length.toString() + ' => ' + asHtmlGzBuf.length.toString() + ' (' + (zlibT1-zlibT0) + ' mS)');
         self.pending = false;
         self.emit('changed');
       });
