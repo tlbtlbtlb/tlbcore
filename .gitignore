@@ -12,3 +12,4 @@ tags
 /o3d-read-only/
 /webgl-loader-read-only/
 /dump.rdb
+/node_modules
