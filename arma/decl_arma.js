@@ -154,6 +154,16 @@ module.exports = function(typereg) {
 
                                   'arma::Mat<u_int> operator == (arma::Mat<ET> a, arma::Mat<ET> b);',
                                   'arma::Col<u_int> operator == (arma::Col<ET> a, arma::Col<ET> b);',
+                                  isComplex ? '' : 'arma::Mat<u_int> operator >= (arma::Mat<ET> a, arma::Mat<ET> b);',
+                                  isComplex ? '' : 'arma::Col<u_int> operator >= (arma::Col<ET> a, arma::Col<ET> b);',
+                                  isComplex ? '' : 'arma::Mat<u_int> operator <= (arma::Mat<ET> a, arma::Mat<ET> b);',
+                                  isComplex ? '' : 'arma::Col<u_int> operator <= (arma::Col<ET> a, arma::Col<ET> b);',
+                                  'arma::Mat<u_int> operator != (arma::Mat<ET> a, arma::Mat<ET> b);',
+                                  'arma::Col<u_int> operator != (arma::Col<ET> a, arma::Col<ET> b);',
+                                  isComplex ? '' : 'arma::Mat<u_int> operator < (arma::Mat<ET> a, arma::Mat<ET> b);',
+                                  isComplex ? '' : 'arma::Col<u_int> operator < (arma::Col<ET> a, arma::Col<ET> b);',
+                                  isComplex ? '' : 'arma::Mat<u_int> operator > (arma::Mat<ET> a, arma::Mat<ET> b);',
+                                  isComplex ? '' : 'arma::Col<u_int> operator > (arma::Col<ET> a, arma::Col<ET> b);',
                                   //'bool operator == (ET a, ET b);',
 
                                   'arma::Row<u_int> any(arma::Mat<u_int> a);',

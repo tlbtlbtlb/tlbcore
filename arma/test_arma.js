@@ -80,7 +80,7 @@ describe('matrix math', function() {
     var t2 = new ur.vec([2,3]);
     var t3 = ur.mul(t1, t2);
     var t4 = new ur.vec([8, 18]);
-    assert.ok(ur.equals(t3, t4));
+    assert.ok(ur.eq(t3, t4));
   });
 
   it('mat33 * mat33 should work', function() {
@@ -88,7 +88,7 @@ describe('matrix math', function() {
     var t2 = new ur.mat([2,5,8,3,6,9,4,7,10]);
     var t3 = ur.mul(t1, t2);
     var t4 = new ur.mat([36,81,126,42,96,150,48,111,174]);
-    assert.ok(ur.equals(t3, t4));
+    assert.ok(ur.eq(t3, t4));
   });
 
   it('mat33 * vec3 should work', function() {
@@ -96,7 +96,7 @@ describe('matrix math', function() {
     var t2 = new ur.vec([2,3,4]);
     var t3 = ur.mul(t1, t2);
     var t4 = new ur.vec([20, 47, 74]);
-    assert.ok(ur.equals(t3, t4));
+    assert.ok(ur.eq(t3, t4));
   });
 
   it('vec2 * mat33 should fail', function() {
@@ -139,11 +139,11 @@ describe('vec3', function() {
     var t3 = new ur.vec([1, 2, 3]);
 
     if (0) {
-      console.log('t1=t2: ' + ur.equals(t1, t2).toString());
-      console.log('t1=t3: ' + ur.equals(t1, t3).toString());
+      console.log('t1=t2: ' + ur.eq(t1, t2).toString());
+      console.log('t1=t3: ' + ur.eq(t1, t3).toString());
     }
-    assert.equal(ur.all(ur.equals(t1, t2)), 0);
-    assert.equal(ur.all(ur.equals(t1, t3)), 1);
+    assert.equal(ur.all(ur.eq(t1, t2)), 0);
+    assert.equal(ur.all(ur.eq(t1, t3)), 1);
   });
 });
 
@@ -153,8 +153,8 @@ describe('mat33', function() {
     var t2 = new ur.mat([2,5,8, 3,6,9, 4,7,10]);
     var t3 = new ur.mat([1,4,7, 2,5,8, 3,6,9]);
 
-    assert.equal(ur.all(ur.all(ur.equals(t1, t2))), 0);
-    assert.equal(ur.all(ur.all(ur.equals(t1, t3))), 1);
+    assert.equal(ur.all(ur.all(ur.eq(t1, t2))), 0);
+    assert.equal(ur.all(ur.all(ur.eq(t1, t3))), 1);
   });
 
   it('toString should be fast (5000x)', function() {
