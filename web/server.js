@@ -41,37 +41,43 @@ function main() {
       break;
       
     case '--http':
-      var argHost = process.argv[++argi];
-      var argPort = parseInt(process.argv[++argi]);
-      curServer = {
-        proto: 'http',
-        host: argHost,
-        port: argPort
-      };
-      servers.push(curServer);
+      {
+        var argHost = process.argv[++argi];
+        var argPort = parseInt(process.argv[++argi]);
+        curServer = {
+          proto: 'http',
+          host: argHost,
+          port: argPort
+        };
+        servers.push(curServer);
+      }
       break;
 
     case '--https':
-      var argHost = process.argv[++argi];
-      var argPort = parseInt(process.argv[++argi]);
-      curServer = {
-        proto: 'https',
-        host: argHost,
-        port: argPort,
-        cert: [],
-        key: []
-      };
-      servers.push(curServer);
+      {
+        var argHost = process.argv[++argi];
+        var argPort = parseInt(process.argv[++argi]);
+        curServer = {
+          proto: 'https',
+          host: argHost,
+          port: argPort,
+          cert: [],
+          key: []
+        };
+        servers.push(curServer);
+      }
       break;
 
     case '--cert':
-      var argCert = process.argv[++argi];
-      var argKey = process.argv[++argi];
-      if (!curServer || curServer.proto !== 'https') {
-        throw new Error('--cert: no curServer');
+      {
+        var argCert = process.argv[++argi];
+        var argKey = process.argv[++argi];
+        if (!curServer || curServer.proto !== 'https') {
+          throw new Error('--cert: no curServer');
+        }
+        curServer.cert.push(fs.readFileSync(argCert).toString());
+        curServer.key.push(fs.readFileSync(argKey).toString());
       }
-      curServer.cert.push(fs.readFileSync(argCert).toString());
-      curServer.key.push(fs.readFileSync(argKey).toString());
       break;
 
     default:

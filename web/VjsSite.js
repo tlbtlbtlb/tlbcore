@@ -193,7 +193,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
   if (serverInfo.proto === 'https') {
     httpServer = https.createServer({
       key: serverInfo.key,
-      cert: certInfo.cert,
+      cert: serverInfo.cert,
       honorCipherOrder: true,
     }, httpHandler);
   }
