@@ -166,6 +166,12 @@ var Geom3D = {
 	    m[6], m[7], m[8],
 	    0, 0, 0];
   },
+  fromOrientation44: function(m) {
+    return [m[0], m[1], m[2],
+	    m[4], m[5], m[6],
+	    m[8], m[9], m[10],
+	    0, 0, 0];
+  },
   toScreen: function(t, xc, yc, zc) {
     var persp = zc/(zc + t[10]);
     // X is right, Y is away from viewer, Z is up
