@@ -170,7 +170,7 @@ var Geom3D = {
     return [m[0], m[1], m[2],
 	    m[4], m[5], m[6],
 	    m[8], m[9], m[10],
-	    0, 0, 0];
+	    m[12], m[13], m[14]];
   },
   toScreen: function(t, xc, yc, zc) {
     var persp = zc/(zc + t[10]);
