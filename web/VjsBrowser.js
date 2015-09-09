@@ -726,6 +726,15 @@ $.fn.onEventsFrom = function(m, eventName, handler) {
   });
 };
 
+$.fn.nowAndOnEventsFrom = function(m, eventName, handler) {
+  m.addListener(eventName, handler);
+  handler.call(m);
+  this.on('destroyed', function() {
+    m.removeListener(eventName, handler);
+  });
+};
+
+
 /*
   Arrange for a function to be called to animate the DOM.
   The function should be called about once per deltat (in milliseconds).
