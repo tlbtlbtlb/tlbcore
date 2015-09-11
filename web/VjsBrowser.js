@@ -122,7 +122,7 @@ function gotoCurrentHash() {
         options = humanUrl.parse(optionsEnc);
         var optionsEnc2 = humanUrl.fmt(options);
         if (optionsEnc !== optionsEnc2) {
-          errlog('gotoCurrentHash', 'Mismatch:', optionsEnc, optionsEnc2);
+          console.log('gotoCurrentHash mismatch', optionsEnc, optionsEnc2);
         }
       } catch(ex) {
         errlog('gotoCurrentHash', 'Error parsing', optionsEnc, ex);
