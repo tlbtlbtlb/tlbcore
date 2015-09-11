@@ -1073,19 +1073,6 @@ PrimitiveCType.prototype.getSynopsis = function() {
   return '(' + this.typename + ')';
 };
 
-PrimitiveCType.prototype.getAllOneExpr = function() {
-  switch (this.typename) {
-  case 'float': return '1.0f';
-  case 'double': return '1.0';
-  case 'int': return '1';
-  case 'u_int': return '1u';
-  case 'bool': return 'true';
-  case 'string': return 'string("1")';
-  case 'jsonstr': return 'jsonstr("1")';
-  default: return '***ALL_ONE***';
-  }
-};
-
 PrimitiveCType.prototype.getAllZeroExpr = function() {
   switch (this.typename) {
   case 'float': return '0.0f';
@@ -1254,9 +1241,6 @@ ObjectCType.prototype.getSynopsis = function() {
   return '(' + this.typename + ')';
 };
 
-ObjectCType.prototype.getAllOneExpr = function() {
-  return 'nullptr';
-};
 
 ObjectCType.prototype.getAllZeroExpr = function() {
   return 'nullptr';
@@ -1368,19 +1352,21 @@ CollectionCType.prototype.getSynopsis = function() {
 
 CollectionCType.prototype.getInitExpr = function() {
   var type = this;
-  if (/arma::.*::fixed/.test(type.templateName)) {
+  if (/^arma::.*::fixed$/.test(type.templateName)) {
     return 'arma::fill::zeros';
   } else {
     return '';
   }
 };
 
-CollectionCType.prototype.getAllOneExpr = function() {
-  return this.typename + '()';
-};
-
 CollectionCType.prototype.getAllZeroExpr = function() {
-  return this.typename + '()';
+  var type = this;
+  if (/^arma::.*::fixed$/.test(type.templateName)) {
+    return type.typename + '(arma::fill::zeros)';
+  }
+  else {
+    return type.typename + '()';
+  }
 };
 
 CollectionCType.prototype.getAllNanExpr = function() {
@@ -2729,10 +2715,6 @@ PtrCType.prototype.getSynopsis = function() {
   return '(' + this.typename + ')';
 };
 
-PtrCType.prototype.getAllOneExpr = function() {
-  return 'nullptr';
-};
-
 PtrCType.prototype.getAllZeroExpr = function() {
   return 'nullptr';
 };
@@ -2813,19 +2795,6 @@ CDspType.prototype.getSynopsis = function() {
 CDspType.prototype.getHeaderIncludes = function() {
   var type = this;
   return ['#include "tlbcore/common/dspcore.h"'].concat(CType.prototype.getHeaderIncludes.call(type));
-};
-
-CDspType.prototype.getAllOneExpr = function() {
-  var type = this;
-  switch (type.tbits) {
-  case 16:
-  case 32:
-    return '(1<<' + type.rbits + ')';
-  case 64:
-    return '(1LL<<' + type.rbits + ')';
-  default:
-    return '***ALL_ONE***';
-  }
 };
 
 CDspType.prototype.getAllZeroExpr = function() {
