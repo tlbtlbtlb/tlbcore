@@ -424,13 +424,16 @@ bool rdJson(const char *&s, float &value) {
 // json - double
 
 size_t wrJsonSize(double const &value) { 
-  if (value == 0.0) return 1;
+  if (value == 0.0 || value == 1.0) return 1;
   return 25;
 }
 void wrJson(char *&s, double const &value) {
   if (value == 0.0) {
     // Surprisingly powerful optimization, since zero is so common
     *s++ = '0';
+  }
+  else if (value == 1.0) {
+    *s++ = '1';
   }
   else {
     // We spend most of our time while writing big structures right here.
