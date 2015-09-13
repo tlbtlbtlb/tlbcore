@@ -12,9 +12,9 @@ void jsWrap_gene_t1(FunctionCallbackInfo<Value> const &args) {
   gene_t1();
 }
 
-void jsWrap_ur_toString(FunctionCallbackInfo<Value> const &args) {
+void jsWrap_tlbcore_toString(FunctionCallbackInfo<Value> const &args) {
   Isolate *isolate = args.GetIsolate();
-  args.GetReturnValue().Set(String::NewFromUtf8(isolate, "tlbcore: ur module"));
+  args.GetReturnValue().Set(String::NewFromUtf8(isolate, "tlbcore module"));
 }
 
 
@@ -25,7 +25,7 @@ void jsInit_solid_geometry(Handle<Object> exports);
 static void init(Handle<Object> exports) {
   Isolate *isolate = Isolate::GetCurrent();
   exports->Set(String::NewFromUtf8(isolate, "gene_t1"), FunctionTemplate::New(isolate, jsWrap_gene_t1)->GetFunction());
-  exports->Set(String::NewFromUtf8(isolate, "toString"), FunctionTemplate::New(isolate, jsWrap_ur_toString)->GetFunction());
+  exports->Set(String::NewFromUtf8(isolate, "toString"), FunctionTemplate::New(isolate, jsWrap_tlbcore_toString)->GetFunction());
   jsInit_fastJson(exports);
   jsBoot(exports);
   jsInit_solid_geometry(exports);
