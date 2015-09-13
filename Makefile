@@ -29,13 +29,12 @@ DECL_TYPES := \
 
 # Manual machine setup
 # See https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager
-# Do curl -sL https://deb.nodesource.com/setup_0.12 | sudo bash -
+# See https://github.com/nodesource/distributions
 .PHONY: install.ubuntu install.npm install.brew
 install.ubuntu ::
+	curl -sL https://deb.nodesource.com/setup_0.12 | sudo -E bash -
 	sudo apt-get update
 	sudo apt-get -y install git make python-software-properties python g++ make software-properties-common curl pwgen
-	sudo add-apt-repository -y ppa:chris-lea/node.js
-	sudo apt-get update
 	sudo apt-get -y install nodejs
 	sudo apt-get -y install liblapack-dev pkg-config cmake libarmadillo-dev
 
@@ -43,6 +42,7 @@ install.brew ::
 	brew install rename zopfli ffmpeg trash node tree ack hub git
 
 install.npm ::
+	node-gyp install 0.12
 	sudo npm install -g underscore node-gyp jshint mocha uglify-js
 	sudo npm install -g nan hiredis redis marked websocket xmldom  eventemitter jquery jsmin2 async codemirror mori cookie scrypt
 
@@ -85,3 +85,12 @@ deploy:
 
 run:
 	node web/server.js doc
+
+
+cross.paris: .gitfiles
+	rsync -a --from0 --relative --files-from .gitfiles . paris:tlbcore/.
+	ssh paris 'cd tlbcore && env NODE_PATH=/usr/lib/node_modules make'
+
+cross.nice: .gitfiles
+	rsync -a --from0 --relative --files-from .gitfiles . nice:tlbcore/.
+	ssh nice 'cd tlbcore && env NODE_PATH=/usr/lib/node_modules make'

@@ -177,11 +177,11 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
     }
   });
   f('void jsInit_functions(Handle<Object> exports);');
-  f('');
+  f('Isolate *isolate = Isolate::GetCurrent();');
   var schemas = typereg.getSchemas();
   f('static Handle<Value> getSchemas() {');
   // WRITEME: if this is a common thing, make a wrapper function
-  f('return Script::Compile(NanNew<String>("("' + cgen.escapeCJson(schemas) + '")"), NanNew<String>("binding:script"))->Run();');
+  f('return Script::Compile(String::NewFromUtf8(isolate, "("' + cgen.escapeCJson(schemas) + '")"), String::NewFromUtf8(isolate, "binding:script"))->Run();');
   f('}');
   f('');
 
@@ -193,7 +193,7 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
     }
   });
   f('jsInit_functions(exports);');
-  f('exports->Set(NanNew<String>("schemas"), getSchemas());');
+  f('exports->Set(String::NewFromUtf8(isolate, "schemas"), getSchemas());');
   f('}');
   f.end();
 };
@@ -316,7 +316,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
 
       f('void jsWrap_' + jsScopedFuncname + '(FunctionCallbackInfo<Value> const &args) {');
       f('Isolate *isolate = args.GetIsolate();');
-      f('HandleScope scope(isolate);');
+      f('EscapableHandleScope scope(isolate);');
       _.each(funcInfosThisTemplate, function(funcInfo) {
         f('// ' + funcInfo.desc);
 
@@ -367,14 +367,15 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
       f('}');
 
       if (funcTemplateType) { // make it a factory function
-        initFuncs.push('exports->Get(NanNew<String>("' + funcTemplateType.jsTypename + '"))->ToObject()->Set(NanNew<String>("' + jsFuncname + '"), NanNew<FunctionTemplate>(jsWrap_' + jsScopedFuncname + ')->GetFunction());');
+        initFuncs.push('exports->Get(String::NewFromUtf8(isolate, "' + funcTemplateType.jsTypename + '"))->ToObject()->Set(String::NewFromUtf8(isolate, "' + jsFuncname + '"), FunctionTemplate::New(isolate, &jsWrap_' + jsScopedFuncname + ')->GetFunction());');
       } else {
-        initFuncs.push('exports->Set(NanNew<String>("' + jsFuncname + '"), NanNew<FunctionTemplate>(jsWrap_' + jsScopedFuncname + ')->GetFunction());');
+        initFuncs.push('exports->Set(String::NewFromUtf8(isolate, "' + jsFuncname + '"), FunctionTemplate::New(isolate, &jsWrap_' + jsScopedFuncname + ')->GetFunction());');
       }
     });
   });
 
   f('void jsInit_functions(Handle<Object> exports) {');
+  f('Isolate *isolate = Isolate::GetCurrent();');
   _.each(initFuncs, function(s) {
     f(s);
   });
@@ -641,7 +642,7 @@ function withJsWrapUtils(f, typereg) {
     f('HandleScope scope(isolate);');
     f(contents);
     f('thisObj->Wrap2(args.This());');
-    f('NanReturnValue(args.This());');
+    f('args.GetReturnValue().Set(args.This());');
     f('}');
   };
 
@@ -652,20 +653,20 @@ function withJsWrapUtils(f, typereg) {
     });
 
     f.jsBindings.push(function(f) {
-      f('tpl->PrototypeTemplate()->Set(NanNew<String>("' + name + '"), NanNew<FunctionTemplate>(jsWrap_JSTYPE_' + name + ')->GetFunction());');
+      f('tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "' + name + '"), FunctionTemplate::New(isolate, jsWrap_JSTYPE_' + name + ')->GetFunction());');
     });
   };
 
   f.emitJsMethodAlias = function(jsName, cName) {
     f.jsBindings.push(function(f) {
-      f('tpl->PrototypeTemplate()->Set(NanNew<String>("' + jsName + '"), NanNew<FunctionTemplate>(jsWrap_JSTYPE_' + cName + ')->GetFunction());');
+      f('tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "' + jsName + '"), FunctionTemplate::New(isolate, jsWrap_JSTYPE_' + cName + ')->GetFunction());');
     });
   };
 
   f.emitJsFactory = function(name, contents) {
     f.emitJsWrap('JSTYPE_' + name, contents);
     f.jsConstructorBindings.push(function(f) {
-      f('tpl->GetFunction()->Set(NanNew<String>("' + name + '"), NanNew<FunctionTemplate>(jsWrap_JSTYPE_' + name + ')->GetFunction());');
+      f('tpl->GetFunction()->Set(String::NewFromUtf8(isolate, "' + name + '"), FunctionTemplate::New(isolate, jsWrap_JSTYPE_' + name + ')->GetFunction());');
     });
   };
 
@@ -690,12 +691,12 @@ function withJsWrapUtils(f, typereg) {
 
     f.jsBindings.push(function(f) {
       if (o.get && o.set) {
-        f('tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("' + name + '"), ' +
+        f('tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "' + name + '"), ' +
           '&jsGet_JSTYPE_' + name + ', ' +
           '&jsSet_JSTYPE_' + name + ');');
       }
       else if (o.get) {
-        f('tpl->PrototypeTemplate()->SetAccessor(NanNew<String>("' + name + '"), ' +
+        f('tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "' + name + '"), ' +
           '&jsGet_JSTYPE_' + name + ');');
       }
     });
@@ -764,8 +765,8 @@ function withJsWrapUtils(f, typereg) {
     _.each(f.jsBindings, function(binding) {
       binding(f);
     });
-    f('NanAssignPersistent(JsWrap_JSTYPE::constructor, tpl->GetFunction());');
-    f('exports->Set(NanNew<String>("JSTYPE"), tpl->GetFunction());');
+    f('JsWrap_JSTYPE::constructor.Reset(isolate, tpl->GetFunction());');
+    f('exports->Set(String::NewFromUtf8(isolate, "JSTYPE"), tpl->GetFunction());');
     _.each(f.jsConstructorBindings, function(binding) {
       binding(f);
     });
@@ -1219,7 +1220,7 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerE
   case 'arma::cx_double':
     return 'convCxDoubleToJs(' + valueExpr + ')';
   case 'void':
-    return 'NanUndefined()';
+    return 'Undefined(isolate)';
   default:
     throw new Error('Unknown primitive type');
   }
@@ -1666,14 +1667,14 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f('return scope.Escape(ret);');
     }
     else {
-      f('return scope.Escape(Undefined::New(isolate));');
+      f('return scope.Escape(Undefined(isolate));');
     }
     f('}');
 
     f.emitJsMethod('toJSON', function() {
       f.emitArgSwitch([
         {args: [], ignoreExtra: true, code: function(f) {
-          f('NanReturnValue(jsToJSON_JSTYPE(*thisObj->it));');
+          f('args.GetReturnValue().Set(Local<Value>(jsToJSON_JSTYPE(*thisObj->it)));');
         }}
       ]);
     });
@@ -1687,13 +1688,13 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         // return an empty handle if not found, will be looked up on prototype chain
         // It doesn't work if you return Undefined
         f('if (iter == thisObj->it->end()) return;');
-        f('NanReturnValue(' + type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisObj->it') + ');');
+        f('args.GetReturnValue().Set(Local<Value>(' + type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisObj->it') + '));');
       },
       set: function(f) {
         f('if (' + valueType.getJsToCppTest('value', {conv: true}) + ') {');
         f(type.templateArgs[1] + ' cvalue(' + valueType.getJsToCppExpr('value', {conv: true}) + ');');
         f('(*thisObj->it)[key] = cvalue;');
-        f('NanReturnValue(value);');
+        f('args.GetReturnValue().Set(value);');
         f('}');
         f('else {');
         f('return ThrowTypeError("Expected ' + valueType.typename + '");');
@@ -1710,28 +1711,28 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       type.templateName === 'arma::subview_col') {
     var elType = type.reg.types[type.templateArgs[0]];
     f.emitJsAccessors('n_rows', {
-      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_rows));'
+      get: 'args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_rows));'
     });
 
     f.emitJsAccessors('n_elem', {
-      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_elem));'
+      get: 'args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_elem));'
     });
 
     f.emitJsAccessors('length', {
-      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_elem));'
+      get: 'args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_elem));'
     });
 
     f.emitJsIndexedAccessors({
       get: function(f) {
-        f('if (index >= thisObj->it->n_elem) NanReturnValue(NanUndefined());');
-        f('NanReturnValue(' + elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it') + ');');
+        f('if (index >= thisObj->it->n_elem) args.GetReturnValue().Set(Undefined(isolate));');
+        f('args.GetReturnValue().Set(' + elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it') + ');');
       },
       set: function(f) {
         f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
         f('if (' + elType.getJsToCppTest('value', {conv: true}) + ') {');
         f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value', {conv: true}) + ');');
         f('(*thisObj->it)(index) = cvalue;');
-        f('NanReturnValue(value);');
+        f('args.GetReturnValue().Set(value);');
         f('}');
         f('else {');
         f('return ThrowTypeError("Expected ' + elType.typename + '");');
@@ -1744,22 +1745,22 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       type.templateName === 'arma::Mat::fixed') {
     var elType = type.reg.types[type.templateArgs[0]];
     f.emitJsAccessors('n_rows', {
-      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_rows));'
+      get: 'args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_rows));'
     });
     f.emitJsAccessors('n_cols', {
-      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_cols));'
+      get: 'args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_cols));'
     });
     f.emitJsAccessors('n_elem', {
-      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_elem));'
+      get: 'args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_elem));'
     });
     f.emitJsAccessors('length', {
-      get: 'NanReturnValue(Number::New(isolate, thisObj->it->n_elem));'
+      get: 'args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_elem));'
     });
 
     f.emitJsMethod('row', function() {
       f.emitArgSwitch([
         {args: ['u_int'], code: function(f) {
-          f('NanReturnValue(' + type.reg.getType('arma::subview_row<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->row(a0)', null, 'args.This()') + ');');
+          f('args.GetReturnValue().Set(' + type.reg.getType('arma::subview_row<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->row(a0)', null, 'args.This()') + ');');
         }}
       ]);
     });
@@ -1767,22 +1768,22 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsMethod('col', function() {
       f.emitArgSwitch([
         {args: ['u_int'], code: function(f) {
-          f('NanReturnValue(' + type.reg.getType('arma::subview_col<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->col(a0)', null, 'args.This()') + ');');
+          f('args.GetReturnValue().Set(' + type.reg.getType('arma::subview_col<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->col(a0)', null, 'args.This()') + ');');
         }}
       ]);
     });
 
     f.emitJsIndexedAccessors({
       get: function(f) {
-        f('if (index >= thisObj->it->n_elem) NanReturnValue(NanUndefined());');
-        f('NanReturnValue(' + elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it') + ');');
+        f('if (index >= thisObj->it->n_elem) args.GetReturnValue().Set(Undefined(isolate));');
+        f('args.GetReturnValue().Set(' + elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it') + ');');
       },
       set: function(f) {
         f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
         f('if (' + elType.getJsToCppTest('value', {conv: true}) + ') {');
         f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value', {conv: true}) + ');');
         f('(*thisObj->it)(index) = cvalue;');
-        f('NanReturnValue(value);');
+        f('args.GetReturnValue().Set(value);');
         f('}');
         f('else {');
         f('return ThrowTypeError("Expected ' + elType.typename + '");');
@@ -1795,20 +1796,20 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
   if (type.templateName === 'vector') {
     f.emitJsAccessors('length', {
-      get: 'NanReturnValue(Number::New(isolate, thisObj->it->size()));'
+      get: 'args.GetReturnValue().Set(Number::New(isolate, thisObj->it->size()));'
     });
     
     f.emitJsIndexedAccessors({
       get: function(f) {
-        f('if (index > thisObj->it->size()) NanReturnValue(NanUndefined());');
-        f('NanReturnValue(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('(*thisObj->it)[index]', 'thisObj->it') + ');');
+        f('if (index > thisObj->it->size()) args.GetReturnValue().Set(Undefined(isolate));');
+        f('args.GetReturnValue().Set(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('(*thisObj->it)[index]', 'thisObj->it') + ');');
       },
       set: function(f) {
         var elType = type.reg.types[type.templateArgs[0]];
         f('if (' + elType.getJsToCppTest('value', {conv: true}) + ') {');
         f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value', {conv: true}) + ');');
         f('(*thisObj->it)[index] = cvalue;');
-        f('NanReturnValue(value);');
+        f('args.GetReturnValue().Set(value);');
         f('}');
         f('else {');
         f('return ThrowTypeError("Expected ' + elType.typename + '");');
@@ -1877,7 +1878,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
           {args: [], code: function(f) {
             f('packet wr;');
             f('wr.add_checked(*thisObj->it);');
-            f('NanReturnValue(node::Buffer::New((const char *)wr.rd_ptr(), wr.size()));');
+            f('args.GetReturnValue().Set(node::Buffer::New((const char *)wr.rd_ptr(), wr.size()));');
           }}
         ]);
       });
@@ -1902,8 +1903,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
   if (1) { // Setup template and prototype
     f('void jsInit_JSTYPE(Handle<Object> exports) {');
-    f('Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(jsNew_JSTYPE);');
-    f('tpl->SetClassName(NanNew<String>("JSTYPE"));');
+    f('Isolate *isolate = Isolate::GetCurrent();');
+    f('Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, jsNew_JSTYPE);');
+    f('tpl->SetClassName(String::NewFromUtf8(isolate, "JSTYPE"));');
     f('tpl->InstanceTemplate()->SetInternalFieldCount(1);');
     f.emitJsBindings();
     f('}');
@@ -2532,7 +2534,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 	    if (!memberType) {
 	      throw new Error('No type found for ' + util.inspect(memberName));
 	    }
-            return memberType.getJsToCppExpr('a0->Get(NanNew<String>("' + memberName + '"))', {});
+            return memberType.getJsToCppExpr('a0->Get(String::NewFromUtf8(isolate, "' + memberName + '"))', {});
 	  }) + ');');
         }}
       : undefined
@@ -2554,7 +2556,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f('}');
     f('}');
 
-    f('Local<Object> ret = NanNew<Object>();');
+    f('Local<Object> ret = Object::New(isolate);');
     
     f('ret->Set(String::NewFromUtf8(isolate, "__type"), String::NewFromUtf8(isolate, "JSTYPE"));');
     _.each(type.orderedNames, function(name) {
@@ -2565,10 +2567,10 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 	case 'u_int': 
 	case 'float': 
  	case 'double':
-          f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), NanNew<Number>(it.' + name + '));');
+          f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), Number::New(isolate, it.' + name + '));');
           break;
 	case 'bool':
-          f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), NanNew<Boolean>(it.' + name + '));');
+          f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), Boolean::New(isolate, it.' + name + '));');
           break;
 	case 'string':
           f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), convStringToJs(it.' + name + '));');
@@ -2587,7 +2589,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsMethod('toJSON', function() {
       f.emitArgSwitch([
         {args: [], ignoreExtra: true, code: function(f) {
-          f('NanReturnValue(jsToJSON_JSTYPE(*thisObj->it));');
+          f('args.GetReturnValue().Set(Local<Value>(jsToJSON_JSTYPE(*thisObj->it)));');
         }}
       ]);
     });
@@ -2637,7 +2639,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         {args: [], code: function(f) {
           f('packet wr;');
           f('wr.add_checked(*thisObj->it);');
-          f('NanReturnValue(node::Buffer::New((const char *)wr.rd_ptr(), wr.size()));');
+          f('args.GetReturnValue().Set(Local<Value>(node::Buffer::New((const char *)wr.rd_ptr(), wr.size())));');
         }}
       ]);
     });
@@ -2658,7 +2660,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   if (!type.noStdValues && type.isCopyConstructable()) {
     _.each(['allZero', 'allNan'], function(name) {
       f.emitJsFactory(name, function(f) {
-        f('NanReturnValue(JsWrap_JSTYPE::NewInstance(isolate, TYPENAME::' + name + '()));');
+        f('args.GetReturnValue().Set(Local<Value>(JsWrap_JSTYPE::NewInstance(isolate, TYPENAME::' + name + '())));');
       });
     });
   }
@@ -2667,7 +2669,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     var memberType = type.nameToType[name];
     f.emitJsAccessors(name, {
       get: function(f) {
-        f('NanReturnValue(' + memberType.getCppToJsExpr((memberType.isPtr() ? '*' : '') + 'thisObj->it->' + name, 'thisObj->it') + ');');
+        f('args.GetReturnValue().Set(Local<Value>(' + memberType.getCppToJsExpr((memberType.isPtr() ? '*' : '') + 'thisObj->it->' + name, 'thisObj->it') + '));');
       },
       set: function(f) {
         f('if (' + memberType.getJsToCppTest('value', {conv: true}) + ') {');
@@ -2682,8 +2684,9 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
   if (1) { // Setup template and prototype
     f('void jsInit_JSTYPE(Handle<Object> exports) {');
-    f('Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(jsNew_JSTYPE);');
-    f('tpl->SetClassName(NanNew<String>("JSTYPE"));');
+    f('Isolate *isolate = Isolate::GetCurrent();');
+    f('Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, jsNew_JSTYPE);');
+    f('tpl->SetClassName(String::NewFromUtf8(isolate, "JSTYPE"));');
     f('tpl->InstanceTemplate()->SetInternalFieldCount(1);');
     f.emitJsBindings();
     f('}');

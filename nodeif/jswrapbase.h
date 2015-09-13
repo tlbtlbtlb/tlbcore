@@ -25,7 +25,6 @@
 
 #include <node.h>
 #include <node_buffer.h>
-#include <nan.h>
 #include <node_object_wrap.h>
 #include <armadillo>
 using namespace node;
@@ -33,9 +32,13 @@ using namespace v8;
 
 extern bool fastJsonFlag;
 
+void ThrowInvalidArgs(Isolate *isolate);
 void ThrowInvalidArgs();
+void ThrowInvalidThis(Isolate *isolate);
 void ThrowInvalidThis();
+void ThrowTypeError(Isolate *isolate, char const *s);
 void ThrowTypeError(char const *s);
+void ThrowRuntimeError(Isolate *isolate, char const *s);
 void ThrowRuntimeError(char const *s);
 
 // stl::string conversion
@@ -158,7 +161,7 @@ struct JsWrapGeneric : node::ObjectWrap {
     Local<Object> instance = localConstructor->NewInstance(0, nullptr);
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assignConstruct(_contents);
-    NanAssignPersistent(w->owner, _owner);
+    w->owner.Reset(isolate, _owner);
     return scope.Escape(instance);
   }
 

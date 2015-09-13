@@ -6,24 +6,36 @@ using namespace arma;
 
 bool fastJsonFlag;
 
-void ThrowInvalidArgs() {
-  Isolate *isolate = Isolate::GetCurrent();
+
+
+
+
+void ThrowInvalidArgs(Isolate *isolate) {
   isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid arguments")));
 }
+void ThrowInvalidArgs() {
+  ThrowInvalidArgs(Isolate::GetCurrent());
+}
 
-void ThrowInvalidThis() {
-  Isolate *isolate = Isolate::GetCurrent();
+void ThrowInvalidThis(Isolate *isolate) {
   isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid this, did you forget to call new?")));
 }
-
-void ThrowTypeError(char const *s) {
-  Isolate *isolate = Isolate::GetCurrent();
-  isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, s)));
+void ThrowInvalidThis() {
+  ThrowInvalidThis(Isolate::GetCurrent());
 }
 
-void ThrowRuntimeError(char const *s) {
-  Isolate *isolate = Isolate::GetCurrent();
+void ThrowTypeError(Isolate *isolate, char const *s) {
+  isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, s)));
+}
+void ThrowTypeError(char const *s) {
+  ThrowTypeError(Isolate::GetCurrent(), s);
+}
+
+void ThrowRuntimeError(Isolate *isolate, char const *s) {
   isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, s)));
+}
+void ThrowRuntimeError(char const *s) {
+  ThrowRuntimeError(Isolate::GetCurrent(), s);
 }
 
 /* ----------------------------------------------------------------------
@@ -121,7 +133,7 @@ jsonstr convJsToJsonstr(Handle<Value> value)
     }
   }
   
-  Local<Object> global = NanGetCurrentContext()->Global();
+  Local<Object> global = isolate->GetCurrentContext()->Global();
   Local<Value> gJSON = global->Get(String::NewFromUtf8(isolate, "JSON"));
   assert(gJSON->IsObject());
     
@@ -136,7 +148,7 @@ jsonstr convJsToJsonstr(Handle<Value> value)
 Local<Value> convJsonstrToJs(jsonstr const &it)
 {
   Isolate *isolate = Isolate::GetCurrent();
-  Local<Object> global = NanGetCurrentContext()->Global();
+  Local<Object> global = isolate->GetCurrentContext()->Global();
   Local<Value> gJSON = global->Get(String::NewFromUtf8(isolate, "JSON"));
   assert(gJSON->IsObject());
     
@@ -286,7 +298,7 @@ arma::Row<T> convJsToArmaRow(Handle<Value> itv) {
 static double * mkFloat64Array(size_t size, Handle<Object> &ret)
 {
   Isolate *isolate = Isolate::GetCurrent();
-  Local<Object> global = NanGetCurrentContext()->Global();
+  Local<Object> global = isolate->GetCurrentContext()->Global();
   Local<Value> float64Array = global->Get(String::NewFromUtf8(isolate, "Float64Array"));
   if (float64Array.IsEmpty()) throw runtime_error("Type not found: Float64Array");
   if (!float64Array->IsFunction()) throw runtime_error("Not a constructor: Float64Array");
