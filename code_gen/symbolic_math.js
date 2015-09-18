@@ -233,6 +233,9 @@ SymbolicContext.prototype.getCExpr = function(e, availCses) {
     else if (e.type === 'arma::mat44' && e.value.length === 16) {
       return e.type + '{' + _.map(e.value, function(v) { return v.toString(); }).join(', ') + '}';
     }
+    else if (e.type === 'arma::vec4' && e.value.length === 4) {
+      return e.type + '{' + _.map(e.value, function(v) { return v.toString(); }).join(', ') + '}';
+    }
     else {
       throw new Error('Cannot generate constant of type ' + e.type + ' and value ' + e.value);
     }
@@ -773,6 +776,19 @@ defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
     });
     
     return c.E.apply(c, args);
+  },
+  print: true,
+});
+
+defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4', {
+  c: function(a, b) {
+    return '(' + a + ' * ' + b + ')';
+  },
+  deriv: function(wrt, a, b) {
+    var c = this.c;
+    return c.E('+',
+	       c.E('*', a, c.D(wrt, b)),
+	       c.E('*', c.D(wrt, a), b));
   },
   print: true,
 });

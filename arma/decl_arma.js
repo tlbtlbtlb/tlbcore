@@ -175,6 +175,20 @@ module.exports = function(typereg) {
                                   'u_int all(arma::Col<u_int> a);',
 
                                  ].join('\n').replace(/ET/g,et));
+        } 
+        else if (rowFixed && colFixed) {
+          typereg.scanCFunctions([
+            cTypename + ' operator + (' + cTypename + ' a, ' + cTypename + ' b);',
+            cTypename + ' operator - (' + cTypename + ' a, ' + cTypename + ' b);',
+
+            rTypename + ' operator + (' + rTypename + ' a, ' + rTypename + ' b);',
+            rTypename + ' operator - (' + rTypename + ' a, ' + rTypename + ' b);',
+
+            mTypename + ' operator + (' + mTypename + ' a, ' + mTypename + ' b);',
+            mTypename + ' operator - (' + mTypename + ' a, ' + mTypename + ' b);',
+            isInteger ? '' : 'double norm(' + cTypename + ' a, int p);',
+            isInteger ? '' : 'double norm(' + mTypename + ' a, int p);',
+          ].join('\n'));
         }
       });
     });
