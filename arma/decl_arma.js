@@ -95,6 +95,11 @@ module.exports = function(typereg) {
                                   isComplex ? '' : 'arma::Col<ET> linspace< arma::Col<ET> >(ET a, ET b, int n);',
                                   isComplex ? '' : 'arma::Mat<ET> linspace< arma::Mat<ET> >(ET a, ET b, int n);',
 
+                                  // Algebra
+                                  isInteger ? '' : 'bool solve(arma::Mat<ET> &x, arma::Mat<ET> a, arma::Mat<ET> b);',
+                                  isInteger ? '' : 'arma::Col<ET> solve(arma::Mat<ET> a, arma::Col<ET> b);',
+
+                                  // simple
                                   'ET min(arma::Col<ET> a);',
                                   'ET max(arma::Col<ET> a);',
                                   'arma::Col<ET> min(arma::Mat<ET> a, int dim);',
