@@ -1724,7 +1724,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
     f.emitJsIndexedAccessors({
       get: function(f) {
-        f('if (index >= thisObj->it->n_elem) args.GetReturnValue().Set(Undefined(isolate));');
+        f('if (index >= thisObj->it->n_elem) return args.GetReturnValue().Set(Undefined(isolate));');
         f('args.GetReturnValue().Set(' + elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it') + ');');
       },
       set: function(f) {
@@ -2529,13 +2529,24 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       }},
       (constructorArgs.length > 0 && constructorArgs.length === type.orderedNames.length) ? 
         {args: ['Object'], code: function(f) {
-	  f('thisObj->assignConstruct(' + _.map(type.orderedNames, function(memberName, argi) {
-            var memberType = type.reg.getType(type.nameToType[memberName]);
-	    if (!memberType) {
-	      throw new Error('No type found for ' + util.inspect(memberName));
-	    }
-            return memberType.getJsToCppExpr('a0->Get(String::NewFromUtf8(isolate, "' + memberName + '"))', {});
-	  }) + ');');
+          if (1) {
+            f('thisObj->assignDefault();');
+            _.each(type.orderedNames, function(memberName, argi) {
+              var memberType = type.reg.getType(type.nameToType[memberName]);
+              f('Local<Value> a_' + memberName + '_js = a0->Get(String::NewFromUtf8(isolate, "' + memberName + '"));');
+              f('if (' + memberType.getJsToCppTest('a_'+memberName+'_js', {}) + ') {');
+              f('thisObj->it->' + memberName + ' = ' + memberType.getJsToCppExpr('a_'+memberName+'_js', {}) + ';');
+              f('}');
+            });
+          } else {
+	    f('thisObj->assignConstruct(' + _.map(type.orderedNames, function(memberName, argi) {
+              var memberType = type.reg.getType(type.nameToType[memberName]);
+	      if (!memberType) {
+	        throw new Error('No type found for ' + util.inspect(memberName));
+	      }
+              return memberType.getJsToCppExpr('a0->Get(String::NewFromUtf8(isolate, "' + memberName + '"))', {});
+            }));
+          }
         }}
       : undefined
     ]);
