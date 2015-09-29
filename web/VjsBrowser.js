@@ -1134,7 +1134,7 @@ $.fn.trackKeys = function(down, changed) {
   This converts it to device pixel resolution.
 */
 $.fn.maximizeCanvasResolution = function() {
-  this.find('canvas').each(function(index, canvas) {
+  this.each(function(index, canvas) {
     var ctx = canvas.getContext('2d');
     var devicePixelRatio = window.devicePixelRatio || 1;
     var backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
@@ -1320,6 +1320,7 @@ function setupClicks() {
   $(document.body).bind('click', function(e) {
     var closestA = $(e.target).closest('a');
     if (closestA.length) {
+      if (closestA.hasClass('ui-tabs-anchor')) return; // don't interfere with jquery-ui
       var href = closestA.attr('href');
       if (console) console.log('click a href ' + href);
       if (href && href.substr(0,1) === '#') {
