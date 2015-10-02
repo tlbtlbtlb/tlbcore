@@ -86,11 +86,15 @@ deploy:
 run:
 	node web/server.js doc
 
+.PHONY: force
+force :
 
-cross.paris: .gitfiles
-	rsync -a --from0 --relative --files-from .gitfiles . paris:tlbcore/.
-	ssh paris 'cd tlbcore && env NODE_PATH=/usr/lib/node_modules make'
+.gitfiles : force
+	git ls-files -z --exclude '.*' >$@
 
-cross.nice: .gitfiles
+.PHONY: push.nice cross.nice
+push.nice: .gitfiles
 	rsync -a --from0 --relative --files-from .gitfiles . nice:tlbcore/.
+
+cross.nice: push.nice
 	ssh nice 'cd tlbcore && env NODE_PATH=/usr/lib/node_modules make'
