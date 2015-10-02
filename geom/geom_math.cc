@@ -509,7 +509,7 @@ vec3 justTranslation(mat44 const &u)
 // ----------------------------------------------------------------------
 
 // for testing numerical stability of rotation
-mat33 twaddle(mat33 const &u, double rotsigma, int niter)
+mat33 randomTwaddle(mat33 const &u, double rotsigma, int niter)
 {
   mat33 tmp = u;
   for (int iter = 0; iter < niter; iter++) {

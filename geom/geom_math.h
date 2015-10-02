@@ -62,6 +62,6 @@ Quaternion grassmanProduct(const Quaternion &u, const Quaternion &v);
 arma::mat33 justRotation(arma::mat44 const &u);
 arma::vec3 justTranslation(arma::mat44 const &u);
 
-arma::mat33 twaddle(arma::mat33 const &u, double rotsigma, int niter);
+arma::mat33 randomTwaddle(arma::mat33 const &u, double rotsigma, int niter);
 
 #endif
