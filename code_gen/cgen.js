@@ -10,7 +10,7 @@ exports.escapeCString = escapeCString;
 exports.escapeCJson = escapeCJson;
 
 function escapeCString(s) {
-  return s.replace(/[\000-\040\\"\'|]/g, "\\$&");
+  return s.replace(/[\000-\037\\"\'|]/g, "\\$&");
 }
 
 function escapeCJson(o) {

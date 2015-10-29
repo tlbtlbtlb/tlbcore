@@ -6,7 +6,7 @@
         'GCC_ENABLE_CPP_RTTI': 'YES', 
         'MACOSX_DEPLOYMENT_TARGET': '10.7',
         'OTHER_CFLAGS': ['-stdlib=libc++', 
-                         '-std=c++11', '-DARMA_MAT_PREALLOC=3',
+                         '-std=c++11', '-DARMA_MAT_PREALLOC=16',
                          '-Wall', '-Wextra', 
                          '-Wno-format-nonliteral', '-Wno-missing-prototypes', '-Wno-unused-parameter', 
                          '-Wno-c++11-extensions',
@@ -34,7 +34,7 @@
         '-fno-rtti', '-fno-exceptions', '-fno-tree-vrp'
       ],
       'cflags_cc': [
-        '-std=c++11', '-DARMA_MAT_PREALLOC=3'
+        '-std=c++11', '-DARMA_MAT_PREALLOC=16'
       ]
     }],
   ]

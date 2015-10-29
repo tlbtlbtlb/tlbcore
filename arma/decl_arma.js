@@ -66,6 +66,16 @@ module.exports = function(typereg) {
         mType.addDeclDependency(srType);
         mType.addDeclDependency(scType);
 
+        // For row-col conversion
+        rType.addDeclDependency(cType);
+        cType.addDeclDependency(rType);
+
+        rType.addDeclDependency(srType);
+        rType.addDeclDependency(scType);
+
+        cType.addDeclDependency(srType);
+        cType.addDeclDependency(scType);
+
         var isInteger = (et === 'int' || et === 'u_int');
         var isComplex = (et === 'arma::cx_double');
 
@@ -128,6 +138,10 @@ module.exports = function(typereg) {
                                   'arma::Col<ET> cross(arma::Col<ET> a, arma::Col<ET> b);',
                                   'arma::Col<ET> cumsum(arma::Col<ET> a);',
                                   'arma::Mat<ET> diagmat(arma::Col<ET> a);',
+
+                                  'arma::Mat<ET> sort(arma::Mat<ET> a, char const* dir, int dim);',
+                                  'arma::Col<ET> sort(arma::Col<ET> a, char const* dir);',
+                                  'arma::Row<ET> sort(arma::Row<ET> a, char const* dir);',
 
                                   'arma::Col<ET> ones< arma::Col<ET> >(int ne);',
                                   'arma::Mat<ET> ones< arma::Mat<ET> >(int nr, int nc);',

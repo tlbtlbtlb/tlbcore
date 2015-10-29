@@ -79,6 +79,7 @@ TypeRegistry.prototype.setPrimitives = function() {
   typereg.types['int'] = new PrimitiveCType(typereg, 'int');
   typereg.types['u_int'] = new PrimitiveCType(typereg, 'u_int');
   typereg.types['string'] = new PrimitiveCType(typereg, 'string');
+  typereg.types['char const*'] = new PrimitiveCType(typereg, 'char const*');
   typereg.types['jsonstr'] = new PrimitiveCType(typereg, 'jsonstr');
   if (1) {
     typereg.types['vector<jsonstr>'] = new CollectionCType(typereg, 'vector<jsonstr>');
@@ -419,10 +420,14 @@ TypeRegistry.prototype.getNamedType = function(typename) {
 /* ----------------------------------------------------------------------
 */
 
+function escapeRegexp(s) {
+  return s.replace(/[*\.\+]/g, '\\$&');
+}
+
 TypeRegistry.prototype.scanCFunctions = function(text) {
   var typereg = this;
   var typenames = _.keys(typereg.types);
-  var typenameExpr = typenames.join('|');
+  var typenameExpr = _.map(typenames, escapeRegexp).join('|');
   var typeExpr = '(' + typenameExpr + ')\\s+' + '(|const\\s+&|&)';
   var argExpr = typeExpr + '\\s*(\\w+)';
   var funcnameExpr = '\\w+|operator\\s*[^\\s\\w]+';
@@ -439,6 +444,8 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
                     '(' + funcnameExpr + ')\\s*' +
                     '(<\\s*(' + typenameExpr + ')\\s*>)?' +
                     '\\(' + argsExpr + '\\)\\s*;');
+
+    if (0 && arity === 1) console.log(funcExpr);
 
     var re = new RegExp(funcExpr, 'g');
     
@@ -1082,6 +1089,7 @@ PrimitiveCType.prototype.getAllZeroExpr = function() {
   case 'u_int': return '0';
   case 'bool': return 'false';
   case 'string': return 'string()';
+  case 'char const*': return 'NULL';
   case 'jsonstr': return 'jsonstr()';
   default: return '***ALL_ZERO***';
   }
@@ -1095,6 +1103,7 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
   case 'u_int': return '0x80000000';
   case 'bool': return 'false';
   case 'string': return 'string(\"nan\")';
+  case 'char const*': return 'NULL';
   case 'jsonstr': return 'jsonstr(\"undefined\")';
   default: return '***ALL_NAN***';
   }
@@ -1113,6 +1122,8 @@ PrimitiveCType.prototype.getExampleValueJs = function() {
   case 'bool':
     return 'true';
   case 'string':
+    return '"foo"';
+  case 'char const*': 
     return '"foo"';
   case 'jsonstr':
     return '"{\\"foo\\":1}"';
@@ -1171,6 +1182,8 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
     return '((' + valueExpr + ')->IsBoolean())';
   case 'string':
     return 'canConvJsToString(' + valueExpr + ')';
+  case 'char const*':
+    return 'canConvJsToString(' + valueExpr + ')';
   case 'arma::cx_double':
     return 'canConvJsToCxDouble(' + valueExpr + ')';
   case 'jsonstr':
@@ -1193,6 +1206,8 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
     return '((' + valueExpr + ')->BooleanValue())';
   case 'string':
     return 'convJsToString(' + valueExpr + ')';
+  case 'char const*':
+    return 'convJsToString(' + valueExpr + ').c_str()';
   case 'jsonstr':
     return 'convJsToJsonstr(' + valueExpr + ')';
   case 'arma::cx_double':
@@ -1215,6 +1230,8 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerE
     return 'Boolean::New(isolate, ' + valueExpr + ')';
   case 'string':
     return 'convStringToJs(' + valueExpr + ')';
+  case 'char const*':
+    return 'convStringToJs(string(' + valueExpr + '))';
   case 'jsonstr':
     return 'convJsonstrToJs(' + valueExpr + ')';
   case 'arma::cx_double':
@@ -1516,6 +1533,15 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         {args: [type.typename], code: function(f) {
           f('thisObj->assignConstruct(a0);');
         }},
+        {args: [(type.templateName === 'arma::Col' ? 'arma::Row' : 'arma::Col') + '<' + type.templateArgs.join(', ') + '>' ], code: function(f) {
+          f('thisObj->assignConstruct(a0);');
+        }},
+        {args: ['arma::subview_row<' + type.templateArgs.join(', ') + '>' ], code: function(f) {
+          f('thisObj->assignConstruct(a0);');
+        }},
+        {args: ['arma::subview_col<' + type.templateArgs.join(', ') + '>' ], code: function(f) {
+          f('thisObj->assignConstruct(a0);');
+        }},
         {args: ['Object'], code: function(f) {
           if (type.templateName === 'arma::Row') {
             f('thisObj->assignConstruct(convJsToArmaRow< ' + type.templateArgs[0] + ' >(a0));');
@@ -1561,6 +1587,12 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         }},
         {args: [type.typename], code: function(f) {
 	  f('thisObj->assignConstruct(a0);');
+        }},
+        {args: ['arma::subview_row<' + type.templateArgs.join(', ') + '>' ], code: function(f) {
+          f('thisObj->assignConstruct(a0);');
+        }},
+        {args: ['arma::subview_col<' + type.templateArgs.join(', ') + '>' ], code: function(f) {
+          f('thisObj->assignConstruct(a0);');
         }},
         {args: ['Object'], code: function(f) {
           f('thisObj->assignConstruct(convJsToArmaMat< ' + type.templateArgs[0] + ' >(a0));');
