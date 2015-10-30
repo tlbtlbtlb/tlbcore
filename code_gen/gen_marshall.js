@@ -1910,7 +1910,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
           {args: [], code: function(f) {
             f('packet wr;');
             f('wr.add_checked(*thisObj->it);');
-            f('args.GetReturnValue().Set(node::Buffer::New((const char *)wr.rd_ptr(), wr.size()));');
+            f('Local<Value> retbuf = node::Buffer::New(isolate, wr.size()).ToLocalChecked();');
+            f('memcpy(node::Buffer::Data(retbuf), wr.rd_ptr(), wr.size());');
+            f('args.GetReturnValue().Set(retbuf);');
           }}
         ]);
       });
@@ -2682,7 +2684,9 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         {args: [], code: function(f) {
           f('packet wr;');
           f('wr.add_checked(*thisObj->it);');
-          f('args.GetReturnValue().Set(Local<Value>(node::Buffer::New((const char *)wr.rd_ptr(), wr.size())));');
+          f('Local<Value> retbuf = node::Buffer::New(isolate, wr.size()).ToLocalChecked();');
+          f('memcpy(node::Buffer::Data(retbuf), wr.rd_ptr(), wr.size());');
+          f('args.GetReturnValue().Set(retbuf);');
         }}
       ]);
     });

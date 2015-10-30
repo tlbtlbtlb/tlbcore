@@ -1,7 +1,6 @@
 #include "../common/std_headers.h"
 #include <node.h>
 #include <v8.h>
-#include <nan.h>
 #include <uv.h>
 
 using namespace v8;

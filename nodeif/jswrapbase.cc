@@ -42,10 +42,10 @@ void ThrowRuntimeError(char const *s) {
   string I/O
 */
 
-bool canConvJsToString(Handle<Value> it) {
+bool canConvJsToString(Local<Value> it) {
   return it->IsString() || node::Buffer::HasInstance(it);
 }
-string convJsToString(Handle<Value> it) {
+string convJsToString(Local<Value> it) {
   if (it->IsString()) {
     String::Utf8Value v8str(it);
     return string((char *) *v8str, v8str.length());
@@ -59,16 +59,18 @@ string convJsToString(Handle<Value> it) {
     throw runtime_error("Can't convert to string");
   }
 }
-Handle<Value> convStringToJs(Isolate *isolate, string const &it) {
+Local<Value> convStringToJs(Isolate *isolate, string const &it) {
   return String::NewFromUtf8(isolate, it.data(), String::kNormalString, it.size());
 }
-Handle<Value> convStringToJs(string const &it) {
+Local<Value> convStringToJs(string const &it) {
   return convStringToJs(Isolate::GetCurrent(), it);
 }
-Handle<Value> convStringToJsBuffer(Isolate *isolate, string const &it) {
-  return node::Buffer::New(isolate, it.data(), it.size());
+Local<Value> convStringToJsBuffer(Isolate *isolate, string const &it) {
+  Local<Value> nb = node::Buffer::New(isolate, it.size()).ToLocalChecked();
+  memcpy(node::Buffer::Data(nb), it.data(), it.size());
+  return nb;
 }
-Handle<Value> convStringToJsBuffer(string const &it) {
+Local<Value> convStringToJsBuffer(string const &it) {
   return convStringToJsBuffer(Isolate::GetCurrent(), it);
 }
 
@@ -78,10 +80,10 @@ Handle<Value> convStringToJsBuffer(string const &it) {
   arma::cx_double, the same as std::complex<double> is reflected into a simple {real:,imag:} object in JS. There's no binary wrapped type
   See also jsonio.cc: wrJson(..., arma::cx_double)
 */
-bool canConvJsToCxDouble(Handle<Value> itv)
+bool canConvJsToCxDouble(Local<Value> itv)
 {
   if (itv->IsObject()) {
-    Handle<Object> it = itv->ToObject();
+    Local<Object> it = itv->ToObject();
     Local<Value> realv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "real"));
     Local<Value> imagv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "imag"));
     if (realv->IsNumber() && imagv->IsNumber()) {
@@ -90,10 +92,10 @@ bool canConvJsToCxDouble(Handle<Value> itv)
   }
   return false;
 }
-arma::cx_double convJsToCxDouble(Handle<Value> itv)
+arma::cx_double convJsToCxDouble(Local<Value> itv)
 {
   if (itv->IsObject()) {
-    Handle<Object> it = itv->ToObject();
+    Local<Object> it = itv->ToObject();
     Local<Value> realv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "real"));
     Local<Value> imagv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "imag"));
     if (realv->IsNumber() && imagv->IsNumber()) {
@@ -118,11 +120,11 @@ Local<Object> convCxDoubleToJs(arma::cx_double const &it)
 /* ----------------------------------------------------------------------
   jsonstr I/O
 */
-bool canConvJsToJsonstr(Handle<Value> value) {
+bool canConvJsToJsonstr(Local<Value> value) {
   return true;
 }
 
-jsonstr convJsToJsonstr(Handle<Value> value)
+jsonstr convJsToJsonstr(Local<Value> value)
 {
   Isolate *isolate = Isolate::GetCurrent();
   if (value->IsObject()) {
@@ -157,7 +159,7 @@ Local<Value> convJsonstrToJs(jsonstr const &it)
   assert(gParse->IsFunction() && "not a function: JSON.parse");
   Local<Function> gJSON_parse = gParse.As<Function>();
 
-  Handle<Value> itJs = convStringToJs(it.it);
+  Local<Value> itJs = convStringToJs(it.it);
   Local<Value> ret = gJSON_parse->Call(gJSON, 1, &itJs);
   return ret;
 }
@@ -167,12 +169,12 @@ Local<Value> convJsonstrToJs(jsonstr const &it)
   map<string, jsonstr> I/O
 */
 
-bool canConvJsToMapStringJsonstr(Handle<Value> itv) {
+bool canConvJsToMapStringJsonstr(Local<Value> itv) {
   if (itv->IsObject()) return true;
   return false;
 }
 
-map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
+map<string, jsonstr> convJsToMapStringJsonstr(Local<Value> itv) {
 
   if (itv->IsObject()) {
     map < string, jsonstr > ret;
@@ -200,53 +202,59 @@ map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv) {
 // ----------------------------------------------------------------------
 
 template<typename T>
-bool canConvJsToArmaCol(Handle<Value> itv) {
+bool canConvJsToArmaCol(Local<Value> itv) {
   if (itv->IsObject()) {
-    Handle<Object> it = itv->ToObject();
-    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) return true;
-    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) return true;
+    Local<Object> it = itv->ToObject();
+    if (it->IsFloat32Array()) return true;
+    if (it->IsFloat64Array()) return true;
     if (it->IsArray()) return true;
   }
   return false;
 }
 template<typename T>
-bool canConvJsToArmaRow(Handle<Value> itv) {
+bool canConvJsToArmaRow(Local<Value> itv) {
   if (itv->IsObject()) {
-    Handle<Object> it = itv->ToObject();
-    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) return true;
-    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) return true;
+    Local<Object> it = itv->ToObject();
+    if (it->IsFloat32Array()) return true;
+    if (it->IsFloat64Array()) return true;
     if (it->IsArray()) return true;
   }
   return false;
 }
 
 template<typename T>
-arma::Col<T> convJsToArmaCol(Handle<Value> itv) {
+arma::Col<T> convJsToArmaCol(Local<Value> itv) {
   if (itv->IsObject()) {
-    Handle<Object> it = itv->ToObject();
+    Local<Object> it = itv->ToObject();
 
     // Sort of wrong for T = cx_double. I believe it only sets the real part.
-    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) {
-      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
-      double* itData = static_cast<double*>(it->GetIndexedPropertiesExternalArrayData());
+    if (it->IsFloat64Array()) {
+      Float64Array *ita = Float64Array::Cast(*it);
+      size_t itLen = ita->Length();
+      double* itData = new double[itLen];
+      ita->CopyContents(itData, itLen * sizeof(double));
 
       arma::Col<T> ret(itLen);
       for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
+      delete itData;
       return ret;
     }
 
-    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) {
-      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
-      float* itData = static_cast<float*>(it->GetIndexedPropertiesExternalArrayData());
+    if (it->IsFloat32Array()) {
+      Float32Array *ita = Float32Array::Cast(*it);
+      size_t itLen = ita->Length();
+      float* itData = new float[itLen];
+      ita->CopyContents(itData, itLen * sizeof(float));
 
       arma::Col<T> ret(itLen);
       for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
+      delete itData;
       return ret;
     }
 
     // Also handle regular JS arrays
     if (it->IsArray()) {
-      Handle<Array> itArr = Handle<Array>::Cast(it);
+      Local<Array> itArr = Local<Array>::Cast(it);
       size_t itArrLen = itArr->Length();
       arma::Col<T> ret(itArrLen);
       for (size_t i=0; i<itArrLen; i++) {
@@ -258,32 +266,38 @@ arma::Col<T> convJsToArmaCol(Handle<Value> itv) {
   throw runtime_error("convJsToArmaCol: not an array");
 }
 template<typename T>
-arma::Row<T> convJsToArmaRow(Handle<Value> itv) {
+arma::Row<T> convJsToArmaRow(Local<Value> itv) {
   if (itv->IsObject()) {
-    Handle<Object> it = itv->ToObject();
+    Local<Object> it = itv->ToObject();
 
     // Sort of wrong for T = cx_double. I believe it only sets the real part.
-    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalDoubleArray) {
-      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
-      double* itData = static_cast<double*>(it->GetIndexedPropertiesExternalArrayData());
+    if (it->IsFloat64Array()) {
+      Float64Array *ita = Float64Array::Cast(*it);
+      size_t itLen = ita->Length();
+      double* itData = new double[itLen];
+      ita->CopyContents(itData, itLen * sizeof(double));
 
       arma::Row<T> ret(itLen);
       for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
+      delete itData;
       return ret;
     }
 
-    if (it->GetIndexedPropertiesExternalArrayDataType() == kExternalFloatArray) {
-      size_t itLen = it->GetIndexedPropertiesExternalArrayDataLength();
-      float* itData = static_cast<float*>(it->GetIndexedPropertiesExternalArrayData());
+    if (it->IsFloat32Array()) {
+      Float32Array *ita = Float32Array::Cast(*it);
+      size_t itLen = ita->Length();
+      float* itData = new float[itLen];
+      ita->CopyContents(itData, itLen * sizeof(float));
 
       arma::Row<T> ret(itLen);
       for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
+      delete itData;
       return ret;
     }
 
     // Also handle regular JS arrays
     if (it->IsArray()) {
-      Handle<Array> itArr = Handle<Array>::Cast(it);
+      Local<Array> itArr = Local<Array>::Cast(it);
       size_t itArrLen = itArr->Length();
       arma::Row<T> ret(itArrLen);
       for (size_t i=0; i<itArrLen; i++) {
@@ -295,16 +309,24 @@ arma::Row<T> convJsToArmaRow(Handle<Value> itv) {
   throw runtime_error("convJsToArmaRow: not an array");
 }
 
-static double * mkFloat64Array(size_t size, Handle<Object> &ret)
+static double * mkFloat64Array(size_t size, Local<Object> &ret)
 {
   Isolate *isolate = Isolate::GetCurrent();
+
+  if (size > 100000000) throw runtime_error("mkFloat64Array: unreasonable size");
+
+  Local<ArrayBuffer> ab = ArrayBuffer::New(isolate, size*sizeof(double));
+  double *retData = (double *)ab->GetContents().Data();
+
+  ret = Float64Array::New(ab, 0, size);
+
+#if 0
   Local<Object> global = isolate->GetCurrentContext()->Global();
   Local<Value> float64Array = global->Get(String::NewFromUtf8(isolate, "Float64Array"));
   if (float64Array.IsEmpty()) throw runtime_error("Type not found: Float64Array");
   if (!float64Array->IsFunction()) throw runtime_error("Not a constructor: Float64Array");
   Local<Function> float64ArrayConstructor = float64Array.As<Function>();
   
-  if (size > 1000000000) throw runtime_error("mkFloat64Array: unreasonable size");
 
   Local<Value> jsSize = Integer::NewFromUnsigned(isolate, (u_int)size);
   ret = float64ArrayConstructor->NewInstance(1, &jsSize);
@@ -313,11 +335,13 @@ static double * mkFloat64Array(size_t size, Handle<Object> &ret)
   if ((size_t)ret->GetIndexedPropertiesExternalArrayDataLength() != size) throw runtime_error("Got Float64Array of wrong size");
 
   double* retData = static_cast<double*>(ret->GetIndexedPropertiesExternalArrayData());
+#endif
+
   return retData;
 }
 
 template<typename T>
-Handle<Object> convArmaColToJs(arma::Col<T> const &it) {
+Local<Object> convArmaColToJs(arma::Col<T> const &it) {
   Local<Object> ret;
   double *retData = mkFloat64Array(it.n_elem, ret);
   for (size_t i=0; i<it.n_elem; i++) {
@@ -328,7 +352,7 @@ Handle<Object> convArmaColToJs(arma::Col<T> const &it) {
 }
 
 template<typename T>
-Handle<Object> convArmaRowToJs(arma::Row<T> const &it) {
+Local<Object> convArmaRowToJs(arma::Row<T> const &it) {
   Local<Object> ret;
   double *retData = mkFloat64Array(it.n_elem, ret);
   for (size_t i=0; i<it.n_elem; i++) {
@@ -347,18 +371,18 @@ Handle<Object> convArmaRowToJs(arma::Row<T> const &it) {
  */
 
 template<typename T>
-bool canConvJsToArmaMat(Handle<Value> it)
+bool canConvJsToArmaMat(Local<Value> it)
 {
   if (it->IsArray()) return true;
   return false;
 }
 
 template<typename T>
-arma::Mat<T> convJsToArmaMat(Handle<Value> it, size_t nRows, size_t nCols)
+arma::Mat<T> convJsToArmaMat(Local<Value> it, size_t nRows, size_t nCols)
 {
   if (it->IsArray()) {
 
-    Handle<Array> itArr = Handle<Array>::Cast(it);
+    Local<Array> itArr = Local<Array>::Cast(it);
     size_t itArrLen = itArr->Length();
     
     if (nRows == 0 && nCols == 0) {
@@ -385,7 +409,7 @@ arma::Mat<T> convJsToArmaMat(Handle<Value> it, size_t nRows, size_t nCols)
 }
 
 template<typename T>
-Handle<Object> convArmaMatToJs(arma::Mat<T> const &it) 
+Local<Object> convArmaMatToJs(arma::Mat<T> const &it) 
 {
   Local<Object> ret;
   double *retData = mkFloat64Array(it.n_elem, ret);
@@ -397,53 +421,53 @@ Handle<Object> convArmaMatToJs(arma::Mat<T> const &it)
 
 
 
-template bool canConvJsToArmaCol<double>(Handle<Value> itv);
-template arma::Col<double> convJsToArmaCol<double>(Handle<Value> itv);
-template Handle<Object> convArmaColToJs<double>(arma::Col<double> const &it);
-template bool canConvJsToArmaRow<double>(Handle<Value> itv);
-template arma::Row<double> convJsToArmaRow<double>(Handle<Value> itv);
-template Handle<Object> convArmaRowToJs<double>(arma::Row<double> const &it);
-template bool canConvJsToArmaMat<double>(Handle<Value> it);
-template arma::Mat<double> convJsToArmaMat<double>(Handle<Value> it, size_t nRows, size_t nCols);
-template Handle<Object> convArmaMatToJs<double>(arma::Mat<double> const &it);
+template bool canConvJsToArmaCol<double>(Local<Value> itv);
+template arma::Col<double> convJsToArmaCol<double>(Local<Value> itv);
+template Local<Object> convArmaColToJs<double>(arma::Col<double> const &it);
+template bool canConvJsToArmaRow<double>(Local<Value> itv);
+template arma::Row<double> convJsToArmaRow<double>(Local<Value> itv);
+template Local<Object> convArmaRowToJs<double>(arma::Row<double> const &it);
+template bool canConvJsToArmaMat<double>(Local<Value> it);
+template arma::Mat<double> convJsToArmaMat<double>(Local<Value> it, size_t nRows, size_t nCols);
+template Local<Object> convArmaMatToJs<double>(arma::Mat<double> const &it);
 
-template bool canConvJsToArmaCol<float>(Handle<Value> itv);
-template arma::Col<float> convJsToArmaCol<float>(Handle<Value> itv);
-template Handle<Object> convArmaColToJs<float>(arma::Col<float> const &it);
-template bool canConvJsToArmaRow<float>(Handle<Value> itv);
-template arma::Row<float> convJsToArmaRow<float>(Handle<Value> itv);
-template Handle<Object> convArmaRowToJs<float>(arma::Row<float> const &it);
-template bool canConvJsToArmaMat<float>(Handle<Value> it);
-template arma::Mat<float> convJsToArmaMat<float>(Handle<Value> it, size_t nRows, size_t nCols);
-template Handle<Object> convArmaMatToJs<float>(arma::Mat<float> const &it);
+template bool canConvJsToArmaCol<float>(Local<Value> itv);
+template arma::Col<float> convJsToArmaCol<float>(Local<Value> itv);
+template Local<Object> convArmaColToJs<float>(arma::Col<float> const &it);
+template bool canConvJsToArmaRow<float>(Local<Value> itv);
+template arma::Row<float> convJsToArmaRow<float>(Local<Value> itv);
+template Local<Object> convArmaRowToJs<float>(arma::Row<float> const &it);
+template bool canConvJsToArmaMat<float>(Local<Value> it);
+template arma::Mat<float> convJsToArmaMat<float>(Local<Value> it, size_t nRows, size_t nCols);
+template Local<Object> convArmaMatToJs<float>(arma::Mat<float> const &it);
 
-template bool canConvJsToArmaCol<int>(Handle<Value> itv);
-template arma::Col<int> convJsToArmaCol<int>(Handle<Value> itv);
-template Handle<Object> convArmaColToJs<int>(arma::Col<int> const &it);
-template bool canConvJsToArmaRow<int>(Handle<Value> itv);
-template arma::Row<int> convJsToArmaRow<int>(Handle<Value> itv);
-template Handle<Object> convArmaRowToJs<int>(arma::Row<int> const &it);
-template bool canConvJsToArmaMat<int>(Handle<Value> it);
-template arma::Mat<int> convJsToArmaMat<int>(Handle<Value> it, size_t nRows, size_t nCols);
-template Handle<Object> convArmaMatToJs<int>(arma::Mat<int> const &it);
+template bool canConvJsToArmaCol<int>(Local<Value> itv);
+template arma::Col<int> convJsToArmaCol<int>(Local<Value> itv);
+template Local<Object> convArmaColToJs<int>(arma::Col<int> const &it);
+template bool canConvJsToArmaRow<int>(Local<Value> itv);
+template arma::Row<int> convJsToArmaRow<int>(Local<Value> itv);
+template Local<Object> convArmaRowToJs<int>(arma::Row<int> const &it);
+template bool canConvJsToArmaMat<int>(Local<Value> it);
+template arma::Mat<int> convJsToArmaMat<int>(Local<Value> it, size_t nRows, size_t nCols);
+template Local<Object> convArmaMatToJs<int>(arma::Mat<int> const &it);
 
-template bool canConvJsToArmaCol<u_int>(Handle<Value> itv);
-template arma::Col<u_int> convJsToArmaCol<u_int>(Handle<Value> itv);
-template Handle<Object> convArmaColToJs<u_int>(arma::Col<u_int> const &it);
-template bool canConvJsToArmaRow<u_int>(Handle<Value> itv);
-template arma::Row<u_int> convJsToArmaRow<u_int>(Handle<Value> itv);
-template Handle<Object> convArmaRowToJs<u_int>(arma::Row<u_int> const &it);
-template bool canConvJsToArmaMat<u_int>(Handle<Value> it);
-template arma::Mat<u_int> convJsToArmaMat<u_int>(Handle<Value> it, size_t nRows, size_t nCols);
-template Handle<Object> convArmaMatToJs<u_int>(arma::Mat<u_int> const &it);
+template bool canConvJsToArmaCol<u_int>(Local<Value> itv);
+template arma::Col<u_int> convJsToArmaCol<u_int>(Local<Value> itv);
+template Local<Object> convArmaColToJs<u_int>(arma::Col<u_int> const &it);
+template bool canConvJsToArmaRow<u_int>(Local<Value> itv);
+template arma::Row<u_int> convJsToArmaRow<u_int>(Local<Value> itv);
+template Local<Object> convArmaRowToJs<u_int>(arma::Row<u_int> const &it);
+template bool canConvJsToArmaMat<u_int>(Local<Value> it);
+template arma::Mat<u_int> convJsToArmaMat<u_int>(Local<Value> it, size_t nRows, size_t nCols);
+template Local<Object> convArmaMatToJs<u_int>(arma::Mat<u_int> const &it);
 
-template bool canConvJsToArmaCol<arma::cx_double>(Handle<Value> itv);
-//template arma::Col<arma::cx_double> convJsToArmaCol<arma::cx_double>(Handle<Value> itv);
-//template Handle<Object> convArmaColToJs<arma::cx_double>(arma::Col<arma::cx_double> const &it);
-template bool canConvJsToArmaRow<arma::cx_double>(Handle<Value> itv);
-//template arma::Row<arma::cx_double> convJsToArmaRow<arma::cx_double>(Handle<Value> itv);
-//template Handle<Object> convArmaRowToJs<arma::cx_double>(arma::Row<arma::cx_double> const &it);
-template bool canConvJsToArmaMat<arma::cx_double>(Handle<Value> it);
-//template arma::Mat<arma::cx_double> convJsToArmaMat<arma::cx_double>(Handle<Value> it, size_t nRows, size_t nCols);
-//template Handle<Object> convArmaMatToJs<arma::cx_double>(arma::Mat<arma::cx_double> const &it);
+template bool canConvJsToArmaCol<arma::cx_double>(Local<Value> itv);
+//template arma::Col<arma::cx_double> convJsToArmaCol<arma::cx_double>(Local<Value> itv);
+//template Local<Object> convArmaColToJs<arma::cx_double>(arma::Col<arma::cx_double> const &it);
+template bool canConvJsToArmaRow<arma::cx_double>(Local<Value> itv);
+//template arma::Row<arma::cx_double> convJsToArmaRow<arma::cx_double>(Local<Value> itv);
+//template Local<Object> convArmaRowToJs<arma::cx_double>(arma::Row<arma::cx_double> const &it);
+template bool canConvJsToArmaMat<arma::cx_double>(Local<Value> it);
+//template arma::Mat<arma::cx_double> convJsToArmaMat<arma::cx_double>(Local<Value> it, size_t nRows, size_t nCols);
+//template Local<Object> convArmaMatToJs<arma::cx_double>(arma::Mat<arma::cx_double> const &it);
 

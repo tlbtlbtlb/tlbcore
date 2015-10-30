@@ -93,8 +93,8 @@ force :
 	git ls-files -z --exclude '.*' >$@
 
 .PHONY: push.nice cross.nice
-push.nice: .gitfiles
-	rsync -a --from0 --relative --files-from .gitfiles . nice:tlbcore/.
+push.%: .gitfiles
+	rsync -a --from0 --relative --files-from .gitfiles . $*:tlbcore/.
 
-cross.nice: push.nice
-	ssh nice 'cd tlbcore && env NODE_PATH=/usr/lib/node_modules make'
+cross.%: push.%
+	ssh $* 'cd tlbcore && env NODE_PATH=/usr/lib/node_modules make'

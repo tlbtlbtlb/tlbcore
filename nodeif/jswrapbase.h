@@ -42,41 +42,41 @@ void ThrowRuntimeError(Isolate *isolate, char const *s);
 void ThrowRuntimeError(char const *s);
 
 // stl::string conversion
-bool canConvJsToString(Handle<Value> it);
-string convJsToString(Handle<Value> it);
-Handle<Value> convStringToJs(string const &it);
-Handle<Value> convStringToJs(Isolate *isolate, string const &it);
-Handle<Value> convStringToJsBuffer(string const &it);
-Handle<Value> convStringToJsBuffer(Isolate *isolate, string const &it);
+bool canConvJsToString(Local<Value> it);
+string convJsToString(Local<Value> it);
+Local<Value> convStringToJs(string const &it);
+Local<Value> convStringToJs(Isolate *isolate, string const &it);
+Local<Value> convStringToJsBuffer(string const &it);
+Local<Value> convStringToJsBuffer(Isolate *isolate, string const &it);
 
 // arma::Col conversion
 
-template<typename T> bool canConvJsToArmaCol(Handle<Value> itv);
-template<typename T> arma::Col<T> convJsToArmaCol(Handle<Value> itv);
+template<typename T> bool canConvJsToArmaCol(Local<Value> itv);
+template<typename T> arma::Col<T> convJsToArmaCol(Local<Value> itv);
 template<typename T> Local<Object> convArmaColToJs(arma::Col<T> const &it);
 
-template<typename T> bool canConvJsToArmaRow(Handle<Value> itv);
-template<typename T> arma::Row<T> convJsToArmaRow(Handle<Value> itv);
+template<typename T> bool canConvJsToArmaRow(Local<Value> itv);
+template<typename T> arma::Row<T> convJsToArmaRow(Local<Value> itv);
 template<typename T> Local<Object> convArmaRowToJs(arma::Row<T> const &it);
 
-template<typename T> bool canConvJsToArmaMat(Handle<Value> it);
-template<typename T> arma::Mat<T> convJsToArmaMat(Handle<Value> it, size_t nRows=0, size_t nCols=0);
+template<typename T> bool canConvJsToArmaMat(Local<Value> it);
+template<typename T> arma::Mat<T> convJsToArmaMat(Local<Value> it, size_t nRows=0, size_t nCols=0);
 template<typename T> Local<Object> convArmaMatToJs(arma::Mat<T> const &it);
 
 
 // arma::cx_double conversion
-bool canConvJsToCxDouble(Handle<Value> it);
-arma::cx_double convJsToCxDouble(Handle<Value> it);
+bool canConvJsToCxDouble(Local<Value> it);
+arma::cx_double convJsToCxDouble(Local<Value> it);
 Local<Object> convCxDoubleToJs(arma::cx_double const &it);
 
 // map<string, jsonstr> conversion
-bool canConvJsToMapStringJsonstr(Handle<Value> itv);
-map<string, jsonstr> convJsToMapStringJsonstr(Handle<Value> itv);
+bool canConvJsToMapStringJsonstr(Local<Value> itv);
+map<string, jsonstr> convJsToMapStringJsonstr(Local<Value> itv);
 Local<Value> convJsonstrToJs(map<string, jsonstr> const &it);
 
 // jsonstr conversion
-bool canConvJsToJsonstr(Handle<Value> value);
-jsonstr convJsToJsonstr(Handle<Value> value);
+bool canConvJsToJsonstr(Local<Value> value);
+jsonstr convJsToJsonstr(Local<Value> value);
 Local<Value> convJsonstrToJs(jsonstr const &it);
 
 /*
@@ -126,7 +126,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   Persistent<Value> owner;
 
   template<typename... Args>
-  static Handle<Value> NewInstance(Isolate *isolate, Args &&... _args) {
+  static Local<Value> NewInstance(Isolate *isolate, Args &&... _args) {
     EscapableHandleScope scope(isolate);
 
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
@@ -136,7 +136,7 @@ struct JsWrapGeneric : node::ObjectWrap {
     return scope.Escape(instance);
   }
 
-  static Handle<Value> NewInstance(Isolate *isolate, shared_ptr<CONTENTS> _it) {
+  static Local<Value> NewInstance(Isolate *isolate, shared_ptr<CONTENTS> _it) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     Local<Object> instance = localConstructor->NewInstance(0, nullptr);
@@ -146,7 +146,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   }
 
   template<class OWNER>
-  static Handle<Value> MemberInstance(Isolate *isolate, shared_ptr<OWNER> _parent, CONTENTS *_ptr) {
+  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr<OWNER> _parent, CONTENTS *_ptr) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     Local<Object> instance = localConstructor->NewInstance(0, nullptr);
@@ -155,7 +155,7 @@ struct JsWrapGeneric : node::ObjectWrap {
     return scope.Escape(instance);
   }
 
-  static Handle<Value> DependentInstance(Isolate *isolate, Handle<Value> _owner, CONTENTS const &_contents) {
+  static Local<Value> DependentInstance(Isolate *isolate, Local<Value> _owner, CONTENTS const &_contents) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     Local<Object> instance = localConstructor->NewInstance(0, nullptr);
@@ -165,10 +165,10 @@ struct JsWrapGeneric : node::ObjectWrap {
     return scope.Escape(instance);
   }
 
-  static shared_ptr<CONTENTS> Extract(Isolate *isolate, Handle<Value> value) {
+  static shared_ptr<CONTENTS> Extract(Isolate *isolate, Local<Value> value) {
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     if (value->IsObject()) {
-      Handle<Object> valueObject = value->ToObject();
+      Local<Object> valueObject = value->ToObject();
       Local<String> valueTypeName = valueObject->GetConstructorName();
       if (valueTypeName == localConstructor->GetName()) {
         return node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(valueObject)->it;
@@ -176,13 +176,13 @@ struct JsWrapGeneric : node::ObjectWrap {
     }
     return shared_ptr<CONTENTS>();
   }
-  static shared_ptr<CONTENTS> Extract(Handle<Value> value) {
+  static shared_ptr<CONTENTS> Extract(Local<Value> value) {
     return Extract(Isolate::GetCurrent(), value);
   }
 
 
   // Because node::ObjectWrap::Wrap is protected
-  inline void Wrap2 (Handle<Object> handle) {
+  inline void Wrap2 (Local<Object> handle) {
     return Wrap(handle);
   }
 

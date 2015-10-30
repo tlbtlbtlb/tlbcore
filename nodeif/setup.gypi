@@ -10,7 +10,7 @@
                          '-Wall', '-Wextra', 
                          '-Wno-format-nonliteral', '-Wno-missing-prototypes', '-Wno-unused-parameter', 
                          '-Wno-c++11-extensions',
-                         '-Winit-self', '-Wshadow', '-Wpointer-arith', '-Wcast-qual']
+                         '-Winit-self', '-Wno-shadow', '-Wpointer-arith', '-Wcast-qual']
       },
       'include_dirs+': [
         '/usr/local/include',
