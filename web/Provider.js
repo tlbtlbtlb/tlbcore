@@ -916,8 +916,15 @@ ProviderSet.prototype.start = function() {
       
       cat.push('<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n');
       // Maybe these could be providers?
-      cat.push('<title>' + self.title + '</title>\n');
-      cat.push('<link rel="shortcut icon" type="image/x-icon" href="' + self.faviconUrl + '" />\n');
+      if (self.title) {
+        cat.push('<title>' + self.title + '</title>\n');
+      }
+      if (self.faviconUrl) {
+        cat.push('<link rel="shortcut icon" type="image/x-icon" href="' + self.faviconUrl + '" />\n');
+      }
+      if (self.ogLogoUrl) {
+        cat.push('<meta property="og:logo" content="' + self.ogLogoUrl + '">');
+      }
       emitAll('asCssHead', '<style type="text/css">\n/* <![CDATA[ */\n', '\n/* ]]> */\n</style>\n');
       emitAll('asHtmlHead', '', '');
       cat.push('</head><body>');
