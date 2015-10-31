@@ -32,7 +32,7 @@ DECL_TYPES := \
 # See https://github.com/nodesource/distributions
 .PHONY: install.ubuntu install.npm install.brew
 install.ubuntu ::
-	curl -sL https://deb.nodesource.com/setup_0.12 | sudo -E bash -
+	curl -sL https://deb.nodesource.com/setup_5.x | sudo -E bash -
 	sudo apt-get update
 	sudo apt-get -y install git make python-software-properties python g++ make software-properties-common curl pwgen
 	sudo apt-get -y install nodejs
@@ -92,7 +92,6 @@ force :
 .gitfiles : force
 	git ls-files -z --exclude '.*' >$@
 
-.PHONY: push.nice cross.nice
 push.%: .gitfiles
 	rsync -a --from0 --relative --files-from .gitfiles . $*:tlbcore/.
 
