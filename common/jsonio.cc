@@ -438,6 +438,7 @@ void wrJson(char *&s, double const &value) {
   else {
     // We spend most of our time while writing big structures right here.
     // For a flavor of what goes on, see http://sourceware.org/git/?p=glibc.git;a=blob;f=stdio-common/printf_fp.c;h=f9ea379b042c871992d2f076a4185ab84b2ce7d9;hb=refs/heads/master
+    // It'd be ever so splendid if we could use %a, to print in hex, if only the browser could read it.
     s += snprintf(s, 25, "%.17g", value);
   }
 }
