@@ -34,9 +34,11 @@ struct jsonstr {
 
   bool isNull();
 
-  // Read and write to files. These throw runtime errors if the file isn't found or there's an IO error.
+  // Read and write to files. 
+  // Read returns -1 with errno=ENOENT if not found. 
+  // Otherwise, these throw runtime errors if anything else goes wrong.
   void writeToFile(string const &fn, bool enableGzip=true);
-  void readFromFile(string const &fn);
+  int readFromFile(string const &fn);
 
   string it;
 };

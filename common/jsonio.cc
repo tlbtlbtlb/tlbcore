@@ -100,7 +100,7 @@ void jsonstr::writeToFile(string const &fn, bool enableGzip)
 /*
   readFromFile first checks for a plain file, then looks for a .gz version
  */
-void jsonstr::readFromFile(string const &fn)
+int jsonstr::readFromFile(string const &fn)
 {
   int rc;
   FILE *fp = fopen(fn.c_str(), "r");
@@ -124,6 +124,7 @@ void jsonstr::readFromFile(string const &fn)
     if (fclose(fp) < 0) {
       throw runtime_error(fn + string(": ") + string(strerror(errno)));
     }
+    return 0;
   }
   string gzfn = fn + ".gz";
   gzFile gzfp = gzopen(gzfn.c_str(), "rb");
@@ -148,10 +149,10 @@ void jsonstr::readFromFile(string const &fn)
     if (rc != Z_OK) {
       throw runtime_error(gzfn + string(": close failed: ") + to_string(rc));
     }
-    return;
+    return 0;
   }
 
-  throw runtime_error(fn + string(": ") + string(strerror(errno)));
+  return -1;
 }
 
 
