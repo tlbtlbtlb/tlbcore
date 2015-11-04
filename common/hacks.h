@@ -159,8 +159,6 @@ struct exec_change_watcher {
   struct stat orig_st;
 };
 
-void utf8_backspace(std::string &s);
-
 std::string sockaddr_desc(struct sockaddr *sa);
 
 #endif
