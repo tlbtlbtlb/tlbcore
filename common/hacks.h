@@ -135,9 +135,6 @@ double frandom_normal();
 
 // C++ goodies
 #ifdef __cplusplus
-void subclass_responsibility();
-void subclass_responsibility(const char *name);
-
 bool same_type(std::type_info const &t1, std::type_info const &t2);
 
 #include <string>

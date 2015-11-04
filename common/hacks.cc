@@ -525,19 +525,6 @@ double frac(double x)
   return x-floor(x);
 }
 
-void subclass_responsibility()
-{
-  fprintf(stderr,"Subclass responsibility\n");
-  abort();
-}
-
-void subclass_responsibility(const char *name)
-{
-  fprintf(stderr,"%s: Subclass responsibility\n",name);
-  abort();
-}
-
-
 double realtime()
 {
 #if defined(WIN32)
