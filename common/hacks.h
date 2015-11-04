@@ -95,8 +95,6 @@ void warne(const char *format,...)  ATT_FORMAT(printf,1,2);
 int eprintf(const char *format,...)  ATT_FORMAT(printf,1,2);
 int fdprintf(int fd, const char *format,...)  ATT_FORMAT(printf,2,3);
 char *saprintf(const char *format,...)  ATT_FORMAT(printf,1,2);
-char *srprintf(const char *format,...)  ATT_FORMAT(printf,1,2);
-
 
 
 // Files

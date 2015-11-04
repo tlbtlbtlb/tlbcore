@@ -180,69 +180,6 @@ warne(const char *format,...)
   fprintf(stderr,": %s\n",strerror(errno));
 }
 
-static int pbuf_len=256;
-static char *pbuf;
-
-static void
-need_pbuf(int len)
-{
-  len+=5; // safety
-  if (len > pbuf_len) {
-    free(pbuf);
-    pbuf = nullptr;
-    pbuf_len = max(len, pbuf_len*2);
-  }
-  if (!pbuf) {
-    pbuf = (char *)malloc(pbuf_len);
-  }
-}
-
-static int 
-pb_printf(const char *format, va_list ap)
-{
-  int rc;
-#if defined(__bsdi__) || defined(__NetBSD)
-  need_pbuf(256);
- retry:
-  rc=vsnprintf(pbuf,pbuf_len,format,ap);
-  if (rc>=pbuf_len) {
-    need_pbuf(rc+10);
-    goto retry;
-  }
-#else
-  /*
-     For systems without snprintf, we just allocate 64K and hope
-     we don't overflow.
-  */
-  need_pbuf(65536);
-  rc=vsprintf(pbuf,format,ap);
-  if (rc>=pbuf_len) {
-    abort();
-  }
-#endif
-  return rc;
-}
-
-char *
-srprintf(const char *format,...)
-{
-  va_list ap;
-  va_start(ap,format);
-  pb_printf(format,ap);
-  va_end(ap);
-
-  const int N_RING=50;
-  static char *ring[N_RING];
-  static int ringi;
-  
-  char *ret=strdup(pbuf);
-  free(ring[ringi]);
-  ring[ringi]=ret;
-  ringi=(ringi+1)%N_RING;
-
-  return ret;
-}
-
 char *
 saprintf(const char *format,...)
 {
