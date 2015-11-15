@@ -14,10 +14,10 @@
       },
       'include_dirs+': [
         '/usr/local/include',
-        '/Users/tlb/tlbcore/double-conversion',
+        "<!(node -e \"require('nan')\")"
       ],
       'libraries+': [
-        '-L/usr/local/lib', '-larmadillo', '-lz', '-ldouble-conversion'
+        '-L/usr/local/lib', '-larmadillo', '-lz'
       ]
     }, {
       'make_global_settings': [
@@ -25,7 +25,7 @@
         ['LINK','/usr/bin/clang++'],
       ],
       'include_dirs+': [
-        'tlbcore/double-conversion',
+        "<!(node -e \"require('nan')\")"
       ],
       'libraries+': [
         '-larmadillo', '-lz'
