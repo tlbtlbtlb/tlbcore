@@ -69,6 +69,14 @@ build.nodeif ::
 	mkdir -p node_modules
 	cp nodeif/build/Release/ur.node node_modules/ur.node
 
+build :: build.double-conversion
+build.double-conversion ::
+	cd double-conversion && scons build
+
+install.libs :: install.double-conversion
+install.double-conversion ::
+	cd double-conversion && scons install
+
 test :: build
 	env NODE_PATH=$(NODE_PATH):$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js)) build.src/test_*.js
 

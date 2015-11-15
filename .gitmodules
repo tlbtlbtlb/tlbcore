@@ -1,3 +1,6 @@
 [submodule "web/jquery"]
 	path = web/jquery
 	url = https://github.com/jquery/jquery.git
+[submodule "double-conversion"]
+	path = double-conversion
+	url = git@github.com:google/double-conversion.git
