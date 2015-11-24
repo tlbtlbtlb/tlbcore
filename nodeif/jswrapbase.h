@@ -83,6 +83,13 @@ jsonstr convJsToJsonstr(Local<Value> value);
 Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it);
 Local<Value> convJsonstrToJs(jsonstr const &it);
 
+// dv conversion
+
+bool canConvJsToDv(Local<Value> it);
+dv convJsToDv(Local<Value> it);
+Local<Object> convDvToJs(Isolate *isolate, dv const &it);
+
+
 /*
   A template for wrapping any kind of object
 */

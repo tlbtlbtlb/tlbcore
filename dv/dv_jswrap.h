@@ -11,8 +11,4 @@ void jsConstructor_dv_wrt_scope(JsWrap_dv_wrt_scope *it, FunctionCallbackInfo<Va
 Handle<Value> jsToJSON_dv_wrt_scope(dv const &it);
 
 
-bool canConvJsToDv(Local<Value> it);
-dv convJsToDv(Local<Value> it);
-Local<Object> convDvToJs(Isolate *isolate, dv const &it);
-
 #endif

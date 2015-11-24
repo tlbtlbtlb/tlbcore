@@ -1,7 +1,7 @@
 #include "tlbcore/common/std_headers.h"
 #include "dv.h"
 
-
+// Sadly, thread_local doesn't seem to work on OSX/clang
 __thread dv_wrt_scope *dv::wrt_scope = nullptr;
 
 

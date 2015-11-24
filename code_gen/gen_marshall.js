@@ -1250,7 +1250,7 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerE
   case 'float': 
   case 'double':
     return 'Number::New(isolate, ' + valueExpr + ')';
-  case 'double':
+  case 'dv':
     return 'convDvToJs(isolate, ' + valueExpr + ')';
   case 'bool':
     return 'Boolean::New(isolate, ' + valueExpr + ')';
