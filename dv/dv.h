@@ -18,6 +18,8 @@ struct dv_wrt_scope {
   dv_wrt_scope(dv *_wrt, double _relu_neg_slope);
   ~dv_wrt_scope();
 
+  void end();
+
   dv *wrt;
   double relu_neg_slope;
 };
