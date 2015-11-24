@@ -5,12 +5,14 @@
         'GCC_ENABLE_CPP_EXCEPTIONS': 'YES', 
         'GCC_ENABLE_CPP_RTTI': 'YES', 
         'MACOSX_DEPLOYMENT_TARGET': '10.7',
-        'OTHER_CFLAGS': ['-stdlib=libc++', 
-                         '-std=c++11', '-DARMA_MAT_PREALLOC=16',
-                         '-Wall', '-Wextra', 
-                         '-Wno-format-nonliteral', '-Wno-missing-prototypes', '-Wno-unused-parameter', 
-                         '-Wno-c++11-extensions',
-                         '-Winit-self', '-Wno-shadow', '-Wpointer-arith', '-Wcast-qual']
+        'OTHER_CFLAGS': [
+          '-stdlib=libc++', 
+          '-std=c++14', '-DARMA_MAT_PREALLOC=16',
+          '-Wall', '-Wextra', 
+          '-Wno-format-nonliteral', '-Wno-missing-prototypes', '-Wno-unused-parameter', 
+          '-Wno-c++11-extensions',
+          '-Winit-self', '-Wno-shadow', '-Wpointer-arith', '-Wcast-qual'
+        ]
       },
       'include_dirs+': [
         '/usr/local/include',

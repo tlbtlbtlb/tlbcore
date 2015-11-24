@@ -104,13 +104,16 @@ arma::cx_double convJsToCxDouble(Local<Value> itv)
   }
   throw runtime_error("convJsToCxDouble: conversion failed");
 }
-Local<Object> convCxDoubleToJs(arma::cx_double const &it)
+Local<Object> convCxDoubleToJs(Isolate *isolate, arma::cx_double const &it)
 {
-  Isolate *isolate = Isolate::GetCurrent();
   Local<Object> ret = Object::New(isolate);
   ret->Set(String::NewFromUtf8(isolate, "real"), Number::New(isolate, it.real()));
   ret->Set(String::NewFromUtf8(isolate, "imag"), Number::New(isolate, it.imag()));
   return ret;
+}
+Local<Object> convCxDoubleToJs(arma::cx_double const &it)
+{
+  return convCxDoubleToJs(Isolate::GetCurrent(), it);
 }
 
 /* ----------------------------------------------------------------------
@@ -147,9 +150,8 @@ jsonstr convJsToJsonstr(Local<Value> value)
   return jsonstr(convJsToString(gJSON_stringify->Call(gJSON, 1, &value)->ToString()));
 }
 
-Local<Value> convJsonstrToJs(jsonstr const &it)
+Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it)
 {
-  Isolate *isolate = Isolate::GetCurrent();
   Local<Object> global = isolate->GetCurrentContext()->Global();
   Local<Value> gJSON = global->Get(String::NewFromUtf8(isolate, "JSON"));
   assert(gJSON->IsObject());
@@ -164,6 +166,10 @@ Local<Value> convJsonstrToJs(jsonstr const &it)
   return ret;
 }
 
+Local<Value> convJsonstrToJs(jsonstr const &it)
+{
+  return convJsonstrToJs(Isolate::GetCurrent(), it);
+}
 
 /* ----------------------------------------------------------------------
   map<string, jsonstr> I/O

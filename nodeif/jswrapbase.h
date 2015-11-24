@@ -27,6 +27,7 @@
 #include <node_buffer.h>
 #include <node_object_wrap.h>
 #include <armadillo>
+#include "tlbcore/dv/dv.h"
 using namespace node;
 using namespace v8;
 
@@ -67,16 +68,19 @@ template<typename T> Local<Object> convArmaMatToJs(arma::Mat<T> const &it);
 // arma::cx_double conversion
 bool canConvJsToCxDouble(Local<Value> it);
 arma::cx_double convJsToCxDouble(Local<Value> it);
+Local<Object> convCxDoubleToJs(Isolate *isolate, arma::cx_double const &it);
 Local<Object> convCxDoubleToJs(arma::cx_double const &it);
 
 // map<string, jsonstr> conversion
 bool canConvJsToMapStringJsonstr(Local<Value> itv);
 map<string, jsonstr> convJsToMapStringJsonstr(Local<Value> itv);
+Local<Value> convJsonstrToJs(Isolate *isolate, map<string, jsonstr> const &it);
 Local<Value> convJsonstrToJs(map<string, jsonstr> const &it);
 
 // jsonstr conversion
 bool canConvJsToJsonstr(Local<Value> value);
 jsonstr convJsToJsonstr(Local<Value> value);
+Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it);
 Local<Value> convJsonstrToJs(jsonstr const &it);
 
 /*
@@ -85,20 +89,17 @@ Local<Value> convJsonstrToJs(jsonstr const &it);
 template <typename CONTENTS>
 struct JsWrapGeneric : node::ObjectWrap {
   JsWrapGeneric(Isolate *_isolate)
-  :isolate(_isolate)
   {
   }
 
   template<typename... Args>
   JsWrapGeneric(Isolate *_isolate, Args &&... _args)
-    :isolate(_isolate),
-     it(make_shared<CONTENTS>(std::forward<Args>(_args)...))
+    :it(make_shared<CONTENTS>(std::forward<Args>(_args)...))
   {
   }
   
   JsWrapGeneric(Isolate *_isolate, shared_ptr<CONTENTS> _it)
-    :isolate(_isolate),
-     it(_it)
+    :it(_it)
   {
   }
 
@@ -186,11 +187,6 @@ struct JsWrapGeneric : node::ObjectWrap {
     return Wrap(handle);
   }
 
-  Isolate *GetIsolate() {
-    return isolate;
-  }
-
-  Isolate *isolate;
   static Persistent<Function> constructor;
 };
 

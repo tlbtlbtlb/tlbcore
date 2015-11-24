@@ -8,6 +8,7 @@
         './setup.gypi',
         './sources.gypi',
         '../geom/sources.gypi',
+        '../dv/sources.gypi',
         '../build.src/sources_root.gypi',
       ],
       'sources': [

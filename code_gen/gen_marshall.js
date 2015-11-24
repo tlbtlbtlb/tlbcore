@@ -75,6 +75,7 @@ TypeRegistry.prototype.setPrimitives = function() {
   typereg.types['bool'] = new PrimitiveCType(typereg, 'bool');
   typereg.types['float'] = new PrimitiveCType(typereg, 'float');
   typereg.types['double'] = new PrimitiveCType(typereg, 'double');
+  typereg.types['dv'] = new PrimitiveCType(typereg, 'dv');
   typereg.types['arma::cx_double'] = new PrimitiveCType(typereg, 'arma::cx_double');
   typereg.types['int'] = new PrimitiveCType(typereg, 'int');
   typereg.types['u_int'] = new PrimitiveCType(typereg, 'u_int');
@@ -1064,6 +1065,17 @@ function PrimitiveCType(reg, typename) {
 PrimitiveCType.prototype = Object.create(CType.prototype);
 PrimitiveCType.prototype.isPrimitive = function() { return true; };
 
+PrimitiveCType.prototype.getHeaderIncludes = function() {
+  var type = this;
+  if (type.typename === 'dv') {
+    return ['#include "tlbcore/dv/dv.h"'].concat(CType.prototype.getHeaderIncludes.call(type));
+  } else {
+    return CType.prototype.getHeaderIncludes.call(type);
+  }
+};
+
+
+
 PrimitiveCType.prototype.getFns = function() {
   return {};
 };
@@ -1078,13 +1090,16 @@ PrimitiveCType.prototype.emitJsWrapDecl = function(f) {
 
 
 PrimitiveCType.prototype.getSynopsis = function() {
-  return '(' + this.typename + ')';
+  var type = this;
+  return '(' + type.typename + ')';
 };
 
 PrimitiveCType.prototype.getAllZeroExpr = function() {
-  switch (this.typename) {
+  var type = this;
+  switch (type.typename) {
   case 'float': return '0.0f';
   case 'double': return '0.0';
+  case 'dv': return 'dv(0.0, 0.0)';
   case 'int': return '0';
   case 'u_int': return '0';
   case 'bool': return 'false';
@@ -1096,9 +1111,11 @@ PrimitiveCType.prototype.getAllZeroExpr = function() {
 };
 
 PrimitiveCType.prototype.getAllNanExpr = function() {
-  switch (this.typename) {
+  var type = this;
+  switch (type.typename) {
   case 'float': return 'numeric_limits<float>::quiet_NaN()';
   case 'double': return 'numeric_limits<double>::quiet_NaN()';
+  case 'dv': return 'dv(numeric_limits<double>::quiet_NaN(), 0.0)';
   case 'int': return '0x80000000';
   case 'u_int': return '0x80000000';
   case 'bool': return 'false';
@@ -1110,7 +1127,8 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
 };
 
 PrimitiveCType.prototype.getExampleValueJs = function() {
-  switch (this.typename) {
+  var type = this;
+  switch (type.typename) {
   case 'int':
     return '7';
   case 'u_int':
@@ -1119,6 +1137,8 @@ PrimitiveCType.prototype.getExampleValueJs = function() {
     return '5.5';
   case 'double':
     return '9.5';
+  case 'dv':
+    return 'new dv(9.5, 0.0)';
   case 'bool':
     return 'true';
   case 'string':
@@ -1128,7 +1148,7 @@ PrimitiveCType.prototype.getExampleValueJs = function() {
   case 'jsonstr':
     return '"{\\"foo\\":1}"';
   default:
-    throw new Error('PrimitiveCType.getExampleValue unimplemented for type ' + this.typename);
+    throw new Error('PrimitiveCType.getExampleValue unimplemented for type ' + type.typename);
   }
 };
 
@@ -1178,6 +1198,8 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
   case 'float':
   case 'double':
     return '((' + valueExpr + ')->IsNumber())';
+  case 'dv':
+    return 'canConvJsToDv(' + valueExpr + ')';
   case 'bool':
     return '((' + valueExpr + ')->IsBoolean())';
   case 'string':
@@ -1202,6 +1224,8 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   case 'float':
   case 'double':
     return '((' + valueExpr + ')->NumberValue())';
+  case 'dv':
+    return 'convJsToDv(' + valueExpr + ')';
   case 'bool':
     return '((' + valueExpr + ')->BooleanValue())';
   case 'string':
@@ -1226,16 +1250,18 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerE
   case 'float': 
   case 'double':
     return 'Number::New(isolate, ' + valueExpr + ')';
+  case 'double':
+    return 'convDvToJs(isolate, ' + valueExpr + ')';
   case 'bool':
     return 'Boolean::New(isolate, ' + valueExpr + ')';
   case 'string':
-    return 'convStringToJs(' + valueExpr + ')';
+    return 'convStringToJs(isolate, ' + valueExpr + ')';
   case 'char const*':
-    return 'convStringToJs(string(' + valueExpr + '))';
+    return 'convStringToJs(isolate, string(' + valueExpr + '))';
   case 'jsonstr':
-    return 'convJsonstrToJs(' + valueExpr + ')';
+    return 'convJsonstrToJs(isolate, ' + valueExpr + ')';
   case 'arma::cx_double':
-    return 'convCxDoubleToJs(' + valueExpr + ')';
+    return 'convCxDoubleToJs(isolate, ' + valueExpr + ')';
   case 'void':
     return 'Undefined(isolate)';
   default:

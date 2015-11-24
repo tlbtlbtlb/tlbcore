@@ -20,7 +20,8 @@ JS_SRCDIRS := \
 	geom \
 	nodeif \
 	genes \
-	web
+	web \
+	dv
 
 DECL_TYPES := \
 	arma/decl_arma.js \
@@ -42,7 +43,6 @@ install.brew ::
 	brew install rename zopfli ffmpeg trash node tree ack hub git
 
 install.npm ::
-	node-gyp install 0.12
 	sudo npm install -g underscore node-gyp jshint mocha uglify-js
 	sudo npm install -g hiredis redis marked websocket xmldom  eventemitter jquery jsmin2 async codemirror mori cookie scrypt
 
