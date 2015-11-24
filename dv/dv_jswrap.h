@@ -2,13 +2,13 @@
 #define INCLUDE_dv_jswrap_h
 #include "./dv.h"
 
-typedef JsWrapGeneric< dv > JsWrap_dv;
-void jsConstructor_dv(JsWrap_dv *it, FunctionCallbackInfo<Value> const &args);
-Handle<Value> jsToJSON_dv(dv const &it);
+typedef JsWrapGeneric< Dv > JsWrap_Dv;
+void jsConstructor_Dv(JsWrap_Dv *it, FunctionCallbackInfo<Value> const &args);
+Handle<Value> jsToJSON_Dv(Dv const &it);
 
-typedef JsWrapGeneric< dv_wrt_scope > JsWrap_dv_wrt_scope;
-void jsConstructor_dv_wrt_scope(JsWrap_dv_wrt_scope *it, FunctionCallbackInfo<Value> const &args);
-Handle<Value> jsToJSON_dv_wrt_scope(dv const &it);
+typedef JsWrapGeneric< DvWrtScope > JsWrap_DvWrtScope;
+void jsConstructor_DvWrtScope(JsWrap_DvWrtScope *it, FunctionCallbackInfo<Value> const &args);
+Handle<Value> jsToJSON_DvWrtScope(Dv const &it);
 
 
 #endif

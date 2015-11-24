@@ -3,6 +3,7 @@
 #define _TLBCORE_PACKETBUF_H
 
 #include <armadillo>
+#include "tlbcore/dv/dv.h"
 
 /*
   The packetbuf system is a convenient and high-performance way of
@@ -309,6 +310,7 @@ void packet_wr_value(packet &p, const timeval &x);
 void packet_wr_value(packet &p, const string &s);
 void packet_wr_value(packet &p, const jsonstr &s);
 void packet_wr_value(packet &p, const arma::cx_double &s);
+void packet_wr_value(packet &p, const Dv &s);
 
 void packet_wr_typetag(packet &p, const bool &x);
 void packet_wr_typetag(packet &p, const char &x);
@@ -328,6 +330,7 @@ void packet_wr_typetag(packet &p, const timeval &x);
 void packet_wr_typetag(packet &p, const string &s);
 void packet_wr_typetag(packet &p, const jsonstr &s);
 void packet_wr_typetag(packet &p, const arma::cx_double &s);
+void packet_wr_typetag(packet &p, const Dv &s);
 
 void packet_rd_value(packet &p, bool &x);
 void packet_rd_value(packet &p, char &x);
@@ -347,6 +350,7 @@ void packet_rd_value(packet &p, timeval &x);
 void packet_rd_value(packet &p, string &s);
 void packet_rd_value(packet &p, jsonstr &s);
 void packet_rd_value(packet &p, arma::cx_double &s);
+void packet_rd_value(packet &p, Dv &s);
 
 void packet_rd_typetag(packet &p, signed char const &x);
 void packet_rd_typetag(packet &p, char const &x);
@@ -366,6 +370,7 @@ void packet_rd_typetag(packet &p, bool const &x);
 void packet_rd_typetag(packet &p, string const &s);
 void packet_rd_typetag(packet &p, jsonstr const &s);
 void packet_rd_typetag(packet &p, arma::cx_double const &s);
+void packet_rd_typetag(packet &p, Dv const &s);
 
 /*
   Any vector is handled by writing a size followed by the items. Watch

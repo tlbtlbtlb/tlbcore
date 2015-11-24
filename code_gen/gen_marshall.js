@@ -60,7 +60,7 @@ function TypeRegistry(groupname) {
   typereg.symbolics = {};
   typereg.extraJsWrapFuncsHeaders = [];
 
-  typereg.setPrimitives();
+  typereg.setupBuiltins();
 }
 
 TypeRegistry.prototype.scanJsDefn = function(fn) {
@@ -69,28 +69,26 @@ TypeRegistry.prototype.scanJsDefn = function(fn) {
   scanModule(typereg);
 };
 
-TypeRegistry.prototype.setPrimitives = function() {
+TypeRegistry.prototype.setupBuiltins = function() {
   var typereg = this;
-  typereg.types['void'] = new PrimitiveCType(typereg, 'void');
-  typereg.types['bool'] = new PrimitiveCType(typereg, 'bool');
-  typereg.types['float'] = new PrimitiveCType(typereg, 'float');
-  typereg.types['double'] = new PrimitiveCType(typereg, 'double');
-  typereg.types['dv'] = new PrimitiveCType(typereg, 'dv');
-  typereg.types['arma::cx_double'] = new PrimitiveCType(typereg, 'arma::cx_double');
-  typereg.types['int'] = new PrimitiveCType(typereg, 'int');
-  typereg.types['u_int'] = new PrimitiveCType(typereg, 'u_int');
-  typereg.types['string'] = new PrimitiveCType(typereg, 'string');
-  typereg.types['char const*'] = new PrimitiveCType(typereg, 'char const*');
-  typereg.types['jsonstr'] = new PrimitiveCType(typereg, 'jsonstr');
-  if (1) {
-    typereg.types['vector<jsonstr>'] = new CollectionCType(typereg, 'vector<jsonstr>');
-    typereg.types['map<string,jsonstr>'] = new CollectionCType(typereg, 'map<string,jsonstr>');
-  }
+  typereg.primitive('void');
+  typereg.primitive('bool');
+  typereg.primitive('float');
+  typereg.primitive('double');
+  typereg.primitive('Dv');
+  typereg.primitive('arma::cx_double');
+  typereg.primitive('int');
+  typereg.primitive('u_int');
+  typereg.primitive('string');
+  typereg.primitive('char const *');
+  typereg.primitive('jsonstr');
+  typereg.template('vector<jsonstr>');
+  typereg.template('map<string,jsonstr>');
 };
 
 TypeRegistry.prototype.primitive = function(typename) {
   var typereg = this;
-  if (typename in typereg.types) throw 'Already defined';
+  if (typename in typereg.types) return typereg.types[typename];
   var t = new PrimitiveCType(typereg, typename);
   typereg.types[typename] = t;
   return t;
@@ -98,7 +96,7 @@ TypeRegistry.prototype.primitive = function(typename) {
 
 TypeRegistry.prototype.object = function(typename) {
   var typereg = this;
-  if (typename in typereg.types) throw 'Already defined';
+  if (typename in typereg.types) return typereg.types[typename];
   var t = new ObjectCType(typereg, typename);
   typereg.types[typename] = t;
   var ptrTypename = typename + '*';
@@ -817,6 +815,9 @@ CType.prototype.isPod = function() { return false; };
 CType.prototype.isCopyConstructable = function() { return true; };
 CType.prototype.hasArrayNature = function() { return false; };
 CType.prototype.hasJsWrapper = function() { return false; };
+CType.prototype.hasDvs = function() { return false; };
+
+CType.prototype.withDvs = function() { return this; }
 
 CType.prototype.nonPtrType = function() {
   return this;
@@ -1009,6 +1010,9 @@ CType.prototype.emitJsWrapCode = function(f) {
     if (fns && fns.jsWrapHeader) {
       f('#include "' + fns.jsWrapHeader + '"');
     }
+    if (othertype.typename === 'Dv') {
+      f('#include "tlbcore/dv/dv_jswrap.h"');
+    }
   });
   f('#include "' + type.getFns().jsWrapHeader + '"');
   type.emitJsWrapImpl(f);
@@ -1065,9 +1069,33 @@ function PrimitiveCType(reg, typename) {
 PrimitiveCType.prototype = Object.create(CType.prototype);
 PrimitiveCType.prototype.isPrimitive = function() { return true; };
 
+PrimitiveCType.prototype.hasDvs = function() { 
+  var type = this;
+  switch (type.typename) {
+  case 'Dv':
+    return true;
+  default:
+    return false;
+  }
+};
+
+PrimitiveCType.prototype.withDvs = function() { 
+  var type = this;
+  switch (type.typename) {
+  case 'float':
+  case 'double':
+    return type.reg.getType('Dv');
+  case 'Dv':
+    return type;
+  default:
+    return type; // not diffentiable, so use the base type
+  }
+};
+
+
 PrimitiveCType.prototype.getHeaderIncludes = function() {
   var type = this;
-  if (type.typename === 'dv') {
+  if (type.typename === 'Dv') {
     return ['#include "tlbcore/dv/dv.h"'].concat(CType.prototype.getHeaderIncludes.call(type));
   } else {
     return CType.prototype.getHeaderIncludes.call(type);
@@ -1099,7 +1127,7 @@ PrimitiveCType.prototype.getAllZeroExpr = function() {
   switch (type.typename) {
   case 'float': return '0.0f';
   case 'double': return '0.0';
-  case 'dv': return 'dv(0.0, 0.0)';
+  case 'Dv': return 'Dv(0.0, 0.0)';
   case 'int': return '0';
   case 'u_int': return '0';
   case 'bool': return 'false';
@@ -1115,7 +1143,7 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
   switch (type.typename) {
   case 'float': return 'numeric_limits<float>::quiet_NaN()';
   case 'double': return 'numeric_limits<double>::quiet_NaN()';
-  case 'dv': return 'dv(numeric_limits<double>::quiet_NaN(), 0.0)';
+  case 'Dv': return 'Dv(numeric_limits<double>::quiet_NaN(), 0.0)';
   case 'int': return '0x80000000';
   case 'u_int': return '0x80000000';
   case 'bool': return 'false';
@@ -1137,8 +1165,8 @@ PrimitiveCType.prototype.getExampleValueJs = function() {
     return '5.5';
   case 'double':
     return '9.5';
-  case 'dv':
-    return 'new dv(9.5, 0.0)';
+  case 'Dv':
+    return 'new ur.Dv(9.5, 0.0)';
   case 'bool':
     return 'true';
   case 'string':
@@ -1198,7 +1226,7 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
   case 'float':
   case 'double':
     return '((' + valueExpr + ')->IsNumber())';
-  case 'dv':
+  case 'Dv':
     return 'canConvJsToDv(' + valueExpr + ')';
   case 'bool':
     return '((' + valueExpr + ')->IsBoolean())';
@@ -1224,7 +1252,7 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   case 'float':
   case 'double':
     return '((' + valueExpr + ')->NumberValue())';
-  case 'dv':
+  case 'Dv':
     return 'convJsToDv(' + valueExpr + ')';
   case 'bool':
     return '((' + valueExpr + ')->BooleanValue())';
@@ -1250,7 +1278,7 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerE
   case 'float': 
   case 'double':
     return 'Number::New(isolate, ' + valueExpr + ')';
-  case 'dv':
+  case 'Dv':
     return 'convDvToJs(isolate, ' + valueExpr + ')';
   case 'bool':
     return 'Boolean::New(isolate, ' + valueExpr + ')';
@@ -1276,6 +1304,12 @@ function ObjectCType(reg, typename) {
 }
 ObjectCType.prototype = Object.create(CType.prototype);
 ObjectCType.prototype.isObject = function() { return true; };
+
+ObjectCType.prototype.withDvs = function() { 
+  var type = this;
+  return type; // can't make these differentiable
+};
+
 
 ObjectCType.prototype.getFns = function() {
   return {};
@@ -1385,6 +1419,36 @@ function CollectionCType(reg, typename) {
 }
 CollectionCType.prototype = Object.create(CType.prototype);
 CollectionCType.prototype.isCollection = function() { return true; };
+
+CollectionCType.prototype.hasDvs = function() { 
+  var type = this;
+  var ret = false;
+  _.each(type.templateArgTypes, function(at) {
+    if (at.hasDvs()) ret = true;
+  });
+  return ret;
+};
+
+CollectionCType.prototype.withDvs = function() { 
+  var type = this;
+
+  var typeMap = {};
+  var nontrivial = false;
+  _.each(type.templateArgTypes, function(at) {
+    var newAt = at.withDvs();
+    if (newAt !== at) {
+      typeMap[at.typename] = newAt.typename;
+      nontrivial = true;
+    }
+  });
+  if (!nontrivial) return type;
+  var newTypename = type.typename.replace(/\w+/g, function(oldTypename) {
+    return typeMap[oldTypename];
+  });
+  assert.notEqual(type.typename, newTypename);
+  return reg.template(newTypename);
+};
+
 
 CollectionCType.prototype.hasJsWrapper = function() {
   return true;
@@ -2055,6 +2119,41 @@ function StructCType(reg, typename) {
 
 StructCType.prototype = Object.create(CType.prototype);
 StructCType.prototype.isStruct = function() { return true; };
+
+StructCType.prototype.hasDvs = function() { 
+  var type = this;
+  var ret = false;
+  _.each(type.orderedNames, function(memberName) {
+    var memberType = type.nameToType[memberName];
+    if (memberType.hasDvs()) ret = true;
+  });
+  return ret;
+};
+
+StructCType.prototype.withDvs = function() { 
+  var type = this;
+  if (type.cachedWithDvs) return type.cachedWithDvs;
+
+  var typeMap = {};
+  var nontrivial = false;
+  var newMembers = [];
+  _.each(type.orderedNames, function(memberName) {
+    var memberType = type.nameToType[memberName];
+    var newMemberType = memberType.withDvs();
+    if (newMemberType !== memberType) {
+      nontrivial = true;
+    }
+    newMembers.push([memberName, newMemberType]);
+  });
+  if (!nontrivial) {
+    type.cachedWithDvs = type;
+    return type;
+  }
+  var newType = type.reg.struct.apply(type.reg, [type.typename + 'Dv'].concat(newMembers));
+  type.cachedWithDvs = newType;
+  return newType;
+};
+
 
 StructCType.prototype.addSuperType = function(superTypename) {
   var type = this;
@@ -2778,6 +2877,11 @@ function PtrCType(reg, baseType) {
 }
 PtrCType.prototype = Object.create(CType.prototype);
 PtrCType.prototype.isPtr = function() { return true; };
+
+PtrCType.prototype.withDvs = function() {
+  var type = this;
+  return type; // If I fixed ObjectCType to handle withDvs, this could too
+};
 
 PtrCType.prototype.nonPtrType = function() {
   return this.baseType;
