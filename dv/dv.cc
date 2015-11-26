@@ -33,3 +33,10 @@ void DvWrtScope::end()
   }
 }
 
+
+
+ostream & operator<<(ostream &s, Dv const &obj)
+{
+  s << obj.value << "+D" << obj.deriv;
+  return s;
+}

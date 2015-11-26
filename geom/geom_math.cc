@@ -5,10 +5,6 @@ using namespace arma;
 
 #define nan (numeric_limits<double>::quiet_NaN())
 
-double sqr(double x) {
-  return x*x;
-}
-
 double limit(double v, double lo, double hi) {
   if (v < lo) return lo;
   if (v > hi) return hi;

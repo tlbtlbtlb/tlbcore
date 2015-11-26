@@ -14,6 +14,9 @@ bool canConvJsToDv(Local<Value> itv)
       return true;
     }
   }
+  else if (itv->IsNumber()) {
+    return true;
+  }
   return false;
   
 }
@@ -26,6 +29,9 @@ Dv convJsToDv(Local<Value> itv)
     if (valuev->IsNumber() && derivv->IsNumber()) {
       return Dv(valuev->NumberValue(), derivv->NumberValue());
     }
+  }
+  else if (itv->IsNumber()) {
+    return Dv(itv->NumberValue());
   }
   throw runtime_error("convJsToDv: conversion failed");
 }

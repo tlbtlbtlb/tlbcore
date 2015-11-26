@@ -1,6 +1,17 @@
 // -*- C++ -*-
 #pragma once
 
+static inline double normangle(double x) { 
+  return fmod((x + M_PI), M_2PI) - M_PI; 
+}
+static inline double sqr(double x) { 
+  return x*x; 
+}
+static inline double cube(double x) { 
+  return x*x*x; 
+}
+
+
 struct DvWrtScope;
 
 struct Dv {
@@ -13,6 +24,8 @@ struct Dv {
 
   static __thread DvWrtScope *wrt_scope;
 };
+
+ostream & operator<<(ostream &s, Dv const &obj);
 
 struct DvWrtScope {
   DvWrtScope(Dv *_wrt, double _relu_neg_slope);
@@ -35,9 +48,20 @@ static inline Dv operator - (Dv const &a, Dv const &b)
   return Dv(a.value - b.value, a.deriv - b.deriv);
 }
 
+static inline Dv operator - (Dv const &a)
+{
+  return Dv(-a.value, -a.deriv);
+}
+
 static inline Dv operator * (Dv const &a, Dv const &b)
 {
   return Dv(a.value * b.value, a.value * b.deriv + a.deriv * b.value);
+}
+
+static inline Dv operator / (Dv const &a, Dv const &b)
+{
+  return Dv(a.value / b.value, 
+            (a.deriv * b.value - b.deriv * a.value) / sqr(b.value));
 }
 
 static inline Dv sin(Dv const &a)
@@ -49,6 +73,28 @@ static inline Dv cos(Dv const &a)
 {
   return Dv(cos(a.value), -a.deriv * sin(a.value));
 }
+
+static inline Dv max(Dv const &a, Dv const &b)
+{
+  if (a.value > b.value) return a; else return b;
+}
+
+static inline Dv min(Dv const &a, Dv const &b)
+{
+  if (a.value < b.value) return a; else return b;
+}
+
+static inline Dv normangle(Dv x) { 
+  return Dv(fmod((x.value + M_PI), M_2PI) - M_PI, x.deriv);
+}
+static inline Dv sqr(Dv x) {
+  return Dv(x.value*x.value, 2.0*x.value*x.deriv);
+}
+static inline Dv cube(Dv x) {
+  return Dv(x.value*x.value*x.value, 3.0*x.value*x.value*x.deriv);
+}
+
+
 
 static inline Dv relu(Dv const &a)
 {
