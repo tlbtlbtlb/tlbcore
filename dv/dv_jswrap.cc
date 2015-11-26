@@ -81,11 +81,34 @@ static void jsGet_Dv_value(Local<String> name, PropertyCallbackInfo<Value> const
   args.GetReturnValue().Set(Number::New(isolate, thisObj->it->value));
 }
 
+static void jsSet_Dv_value(Local<String> name, Local<Value> value, PropertyCallbackInfo<void> const &args) {
+  Isolate *isolate = args.GetIsolate();
+  EscapableHandleScope scope(isolate);
+  JsWrap_Dv* thisObj = node::ObjectWrap::Unwrap<JsWrap_Dv>(args.This());
+  if (value->IsNumber()) {
+    thisObj->it->value = value->NumberValue();
+  } else {
+    return ThrowTypeError("Expected double");
+  }
+}
+
 static void jsGet_Dv_deriv(Local<String> name, PropertyCallbackInfo<Value> const &args) {
   Isolate *isolate = args.GetIsolate();
   EscapableHandleScope scope(isolate);
   JsWrap_Dv* thisObj = node::ObjectWrap::Unwrap<JsWrap_Dv>(args.This());
   args.GetReturnValue().Set(Number::New(isolate, thisObj->it->deriv));
+}
+
+static void jsSet_Dv_deriv(Local<String> name, Local<Value> value, PropertyCallbackInfo<void> const &args) {
+  Isolate *isolate = args.GetIsolate();
+  EscapableHandleScope scope(isolate);
+  JsWrap_Dv* thisObj = node::ObjectWrap::Unwrap<JsWrap_Dv>(args.This());
+  if (value->IsNumber()) {
+    eprintf("Dv.deriv set %g\n", value->NumberValue());
+    thisObj->it->deriv = value->NumberValue();
+  } else {
+    return ThrowTypeError("Expected double");
+  }
 }
 
 // ----------------------------------------------------------------------
@@ -145,8 +168,8 @@ void jsInit_Dv(Handle<Object> exports) {
   tpl->SetClassName(String::NewFromUtf8(isolate, "Dv"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "value"), &jsGet_Dv_value);
-  tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "deriv"), &jsGet_Dv_deriv);
+  tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "value"), &jsGet_Dv_value, &jsSet_Dv_value);
+  tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "deriv"), &jsGet_Dv_deriv, &jsSet_Dv_deriv);
 
   JsWrap_Dv::constructor.Reset(isolate, tpl->GetFunction());
   exports->Set(String::NewFromUtf8(isolate, "Dv"), tpl->GetFunction());

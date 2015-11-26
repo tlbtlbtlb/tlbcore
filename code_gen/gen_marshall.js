@@ -100,7 +100,8 @@ TypeRegistry.prototype.object = function(typename) {
   var t = new ObjectCType(typereg, typename);
   typereg.types[typename] = t;
   var ptrTypename = typename + '*';
-  typereg.types[ptrTypename] = new PtrCType(typereg, t);
+  var sharedPtrTypename = 'shared_ptr< ' + typename + ' >';
+  typereg.types[sharedPtrTypename] = typereg.types[ptrTypename] = new PtrCType(typereg, t);
   return t;
 };
 
@@ -111,7 +112,8 @@ TypeRegistry.prototype.struct = function(typename /* varargs */) {
   var t = new StructCType(typereg, typename);
   typereg.types[typename] = t;
   var ptrTypename = typename + '*';
-  typereg.types[ptrTypename] = new PtrCType(typereg, t);
+  var sharedPtrTypename = 'shared_ptr< ' + typename + ' >';
+  typereg.types[sharedPtrTypename] = typereg.types[ptrTypename] = new PtrCType(typereg, t);
 
   for (var i=1; i<arguments.length; i++) {
     var name = arguments[i][0];
@@ -127,7 +129,8 @@ TypeRegistry.prototype.template = function(typename) {
   var t = new CollectionCType(typereg, typename);
   typereg.types[typename] = t;
   var ptrTypename = typename + '*';
-  typereg.types[ptrTypename] = new PtrCType(typereg, t);
+  var sharedPtrTypename = 'shared_ptr< ' + typename + ' >';
+  typereg.types[sharedPtrTypename] = typereg.types[ptrTypename] = new PtrCType(typereg, t);
   return t;
 };
 
@@ -205,6 +208,7 @@ TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
   f('#include "tlbcore/nodeif/jswrapbase.h"');
   f('#include "./symbolics_' + typereg.groupname + '.h"');
   _.each(typereg.extraJsWrapFuncsHeaders, f);
+  f('/* Types known about:\n  ' + _.keys(typereg.types).join('\n  ') + '\n*/');
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
     var fns = type.getFns();
@@ -426,6 +430,12 @@ function escapeRegexp(s) {
 TypeRegistry.prototype.scanCFunctions = function(text) {
   var typereg = this;
   var typenames = _.keys(typereg.types);
+  if (0 && !typereg.loggedCTypes) {
+    if (0) typereg.loggedCTypes = true;
+    _.each(typenames, function(tn) {
+      console.log(tn);
+    });
+  }
   var typenameExpr = _.map(typenames, escapeRegexp).join('|');
   var typeExpr = '(' + typenameExpr + ')\\s+' + '(|const\\s+&|&)';
   var argExpr = typeExpr + '\\s*(\\w+)';
@@ -434,7 +444,7 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
   // try to eliminate class-scoped functions.
   // text = text.replace(/struct.*{[.\n]*\n}/, '');
 
-  for (var arity=0; arity < 5; arity++) {
+  for (var arity=0; arity < 7; arity++) {
 
     var argsExpr = _.range(0, arity).map(function() { return argExpr; }).join('\\s*,\\s*');
     
