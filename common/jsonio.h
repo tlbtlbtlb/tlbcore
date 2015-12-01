@@ -29,7 +29,7 @@ struct jsonstr {
   explicit jsonstr(const char *begin, const char *end);
 
   jsonstr(jsonstr &&other) :it(std::move(other.it)) {}
-  jsonstr(jsonstr const &other) :it(other.it) {}
+  jsonstr(jsonstr const &other) = default;
   jsonstr & operator= (const jsonstr & other) = default;
   ~jsonstr();
 

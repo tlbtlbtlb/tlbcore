@@ -139,9 +139,19 @@ bool same_type(std::type_info const &t1, std::type_info const &t2);
 
 #include <string>
 #include <vector>
+#include <sstream>
 string stringprintf(const char *format,...)  ATT_FORMAT(printf,1,2);
 void stl_exec(vector<string> const &args);
 
+/*
+  I wish this is what std::to_string did.
+ */
+template<typename T>
+string as_string(T const &it) {
+  ostringstream oss;
+  oss << it;
+  return oss.str();
+}
 
 #ifndef WIN32
 string file_string(string const &fn);
