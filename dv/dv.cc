@@ -40,3 +40,35 @@ ostream & operator<<(ostream &s, Dv const &obj)
   s << obj.value << "+D" << obj.deriv;
   return s;
 }
+
+
+vector<Dv> softmax(vector<Dv> const &a)
+{
+  double inmax = a[0].value;
+  for (size_t i=1; i < a.size(); i++) {
+    inmax = max(inmax, a[i].value);
+  }
+  
+  vector<Dv> ret(a.size());
+
+  double rtot = 0.0;
+  for (size_t i=0; i < a.size(); i++) {
+    double v = exp(a[i].value - inmax);
+    ret[i] = Dv(v, v * a[i].deriv);
+    rtot += v;
+  }
+  if (rtot > 0.0) {
+    for (size_t i=0; i < a.size(); i++) {
+      ret[i].value /= rtot;
+      ret[i].deriv /= rtot;
+    }
+  }
+  return ret;
+}
+
+void extract_dvs(vector<Dv *> &accum, vector<Dv> &dvs)
+{
+  for (auto it : dvs) {
+    accum.push_back(&it);
+  }
+}

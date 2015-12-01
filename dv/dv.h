@@ -1,6 +1,8 @@
 // -*- C++ -*-
 #pragma once
 
+struct jsonstr;
+
 static inline double normangle(double x) { 
   return fmod((x + M_PI), M_2PI) - M_PI; 
 }
@@ -43,20 +45,28 @@ static inline Dv operator + (Dv const &a, Dv const &b)
   return Dv(a.value + b.value, a.deriv + b.deriv);
 }
 
+vector<Dv> operator +(vector<Dv> const &a, vector<Dv> const &b);
+
 static inline Dv operator - (Dv const &a, Dv const &b)
 {
   return Dv(a.value - b.value, a.deriv - b.deriv);
 }
+
+vector<Dv> operator -(vector<Dv> const &a, vector<Dv> const &b);
 
 static inline Dv operator - (Dv const &a)
 {
   return Dv(-a.value, -a.deriv);
 }
 
+inline vector<Dv> operator -(vector<Dv> const &a);
+
 static inline Dv operator * (Dv const &a, Dv const &b)
 {
   return Dv(a.value * b.value, a.value * b.deriv + a.deriv * b.value);
 }
+
+vector<Dv> operator *(vector<Dv> const &a, vector<Dv> const &b);
 
 static inline Dv operator / (Dv const &a, Dv const &b)
 {
@@ -64,25 +74,35 @@ static inline Dv operator / (Dv const &a, Dv const &b)
             (a.deriv * b.value - b.deriv * a.value) / sqr(b.value));
 }
 
+vector<Dv> operator /(vector<Dv> const &a, vector<Dv> const &b);
+
 static inline Dv sin(Dv const &a)
 {
   return Dv(sin(a.value), a.deriv * cos(a.value));
 }
+
+vector<Dv> sin(vector<Dv> const &a);
 
 static inline Dv cos(Dv const &a)
 {
   return Dv(cos(a.value), -a.deriv * sin(a.value));
 }
 
+vector<Dv> cos(vector<Dv> const &a);
+
 static inline Dv max(Dv const &a, Dv const &b)
 {
   if (a.value > b.value) return a; else return b;
 }
 
+vector<Dv> max(vector<Dv> const &a, vector<Dv> const &b);
+
 static inline Dv min(Dv const &a, Dv const &b)
 {
   if (a.value < b.value) return a; else return b;
 }
+
+vector<Dv> min(vector<Dv> const &a, vector<Dv> const &b);
 
 static inline Dv normangle(Dv x) { 
   return Dv(fmod((x.value + M_PI), M_2PI) - M_PI, x.deriv);
@@ -109,6 +129,8 @@ static inline Dv relu(Dv const &a)
   }
 }
 
+vector<Dv> relu(vector<Dv> const &a);
+
 static inline Dv tanh(Dv const &a)
 {
   if (a.value > 40.0) {
@@ -126,38 +148,48 @@ static inline Dv tanh(Dv const &a)
   }
 }
 
-static inline vector<Dv> softmax(vector<Dv> const &a)
-{
-  double inmax = a[0].value;
-  for (size_t i=1; i < a.size(); i++) {
-    inmax = max(inmax, a[i].value);
-  }
-  
-  vector<Dv> ret(a.size());
+vector<Dv> tanh(vector<Dv> const &a);
 
-  double rtot = 0.0;
-  for (size_t i=0; i < a.size(); i++) {
-    double v = exp(a[i].value - inmax);
-    ret[i] = Dv(v, v * a[i].deriv);
-    rtot += v;
-  }
-  if (rtot > 0.0) {
-    for (size_t i=0; i < a.size(); i++) {
-      ret[i].value /= rtot;
-      ret[i].deriv /= rtot;
-    }
-  }
-  return ret;
-}
-
-
+vector<Dv> softmax(vector<Dv> const &a);
 
 /*
   Implement extract_dvs for all types that can hold Dvs.
   tlbcore/code_gen/gen_marshall does this for generated types.
 */
 
-static inline void extract_dvs(vector<Dv *> &dvs, Dv &dv)
+static inline void extract_dvs(vector<Dv *> &accum, Dv &dv)
 {
-  dvs.push_back(&dv);
+  accum.push_back(&dv);
 }
+
+/*
+  Any type you want to use in a differentiable algorithm should implement extract_dvs.
+  If there aren't any, it should do nothing.
+  If there are, it should add pointers to them to accum.
+*/
+static inline void extract_dvs(vector<Dv *> &accum, double &dv) {}
+static inline void extract_dvs(vector<Dv *> &accum, float &dv) {}
+static inline void extract_dvs(vector<Dv *> &accum, int &dv) {}
+static inline void extract_dvs(vector<Dv *> &accum, u_int &dv) {}
+static inline void extract_dvs(vector<Dv *> &accum, arma::cx_double &dv) {}
+static inline void extract_dvs(vector<Dv *> &accum, bool &dv) {}
+static inline void extract_dvs(vector<Dv *> &accum, string &dv) {}
+static inline void extract_dvs(vector<Dv *> &accum, char const * &dv) {}
+static inline void extract_dvs(vector<Dv *> &accum, jsonstr &dv) {}
+
+template<typename ELEM>
+void extract_dvs(vector<Dv *> &accum, vector<ELEM> &dvs)
+{
+  for (auto it : dvs) {
+    extract_dvs(accum, it);
+  }
+}
+
+template<typename ELEM>
+void extract_dvs(vector<Dv *> &accum, map<string, ELEM> &dvs)
+{
+  for (auto it : dvs) {
+    extract_dvs(accum, it->second);
+  }
+}
+
