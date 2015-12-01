@@ -829,6 +829,9 @@ CType.prototype.hasDvs = function() { return false; };
 
 CType.prototype.withDvs = function() { return this; }
 
+CType.prototype.emitExtractDvsDecl = function(f) {}
+CType.prototype.emitExtractDvsImpl = function(f) {}
+
 CType.prototype.nonPtrType = function() {
   return this;
 };
@@ -1434,7 +1437,7 @@ CollectionCType.prototype.hasDvs = function() {
   var type = this;
   var ret = false;
   _.each(type.templateArgTypes, function(at) {
-    if (at.hasDvs()) ret = true;
+    if (at && at.hasDvs()) ret = true;
   });
   return ret;
 };
@@ -1458,7 +1461,6 @@ CollectionCType.prototype.withDvs = function() {
   assert.notEqual(type.typename, newTypename);
   return reg.template(newTypename);
 };
-
 
 CollectionCType.prototype.hasJsWrapper = function() {
   return true;
@@ -2165,6 +2167,25 @@ StructCType.prototype.withDvs = function() {
 };
 
 
+StructCType.prototype.emitExtractDvsDecl = function(f) {
+  var type = this;
+  f('void extract_dvs(vector<Dv *> &accum, ' + type.typename + ' &v);');
+};
+
+StructCType.prototype.emitExtractDvsImpl = function(f) {
+  var type = this;
+  f('void extract_dvs(vector<Dv *> &accum, ' + type.typename + ' &v) {');
+  _.each(type.orderedNames, function(memberName) {
+    var memberType = type.nameToType[memberName];
+    if (memberType.hasDvs()) {
+      f('extract_dvs(accum, v.' + memberName + ');');
+    }
+  });
+  f('}');
+};
+
+
+
 StructCType.prototype.addSuperType = function(superTypename) {
   var type = this;
   var superType = type.reg.getType(superTypename);
@@ -2349,6 +2370,7 @@ StructCType.prototype.emitTypeDecl = function(f) {
   f('char const * getSchema(TYPENAME const &);');
   f('void addSchemas(TYPENAME const &, map<string, jsonstr> &);');
 
+  type.emitExtractDvsDecl(f);
   f('');
   f('// IO');
   f('ostream & operator<<(ostream &s, const TYPENAME &obj);');
@@ -2488,6 +2510,9 @@ StructCType.prototype.emitHostImpl = function(f) {
     f('');
     type.emitPacketIo(f);
   }
+
+  type.emitExtractDvsImpl(f);
+
 };
 
 StructCType.prototype.getExampleValueJs = function() {
