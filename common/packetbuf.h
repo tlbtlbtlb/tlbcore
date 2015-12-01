@@ -113,6 +113,13 @@ struct packet {
   explicit packet(u_char const *data, size_t size);
   explicit packet(string const &data);
   packet(const packet &other);
+  packet(packet &&other) noexcept
+  :contents(std::move(other.contents)), annotations(std::move(other.annotations)), rd_pos(std::move(other.rd_pos)), wr_pos(std::move(other.wr_pos))
+  {
+    other.contents = nullptr;
+    other.annotations = nullptr;
+  }
+
   packet & operator= (packet const &other);
   ~packet();
 

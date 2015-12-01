@@ -5,7 +5,7 @@
 struct StlMassProperties;
 
 struct OctreeNode {
-  OctreeNode(arma::vec3 const &_center, double _scale);
+  explicit OctreeNode(arma::vec3 const &_center, double _scale);
   ~OctreeNode();
 
   OctreeNode *lookup(arma::vec3 const &pt, double maxScale);
@@ -19,8 +19,8 @@ struct OctreeNode {
 
 struct StlFace {
   StlFace();
-  StlFace(arma::vec3 _v0, arma::vec3 _v1, arma::vec3 _v2);
-  StlFace(arma::vec3 _v0, arma::vec3 _v1, arma::vec3 _v2, arma::vec3 _normal);
+  explicit StlFace(arma::vec3 _v0, arma::vec3 _v1, arma::vec3 _v2);
+  explicit StlFace(arma::vec3 _v0, arma::vec3 _v1, arma::vec3 _v2, arma::vec3 _normal);
   ~StlFace();
 
   void calcNormal();
@@ -91,7 +91,7 @@ void packet_wr_typetag(packet &p, StlSolid const &it);
 
 struct StlMassProperties {
   StlMassProperties();
-  StlMassProperties(double _volume, double _mass, double _area, arma::vec3 _cm, arma::mat33 _inertiaOrigin);
+  explicit StlMassProperties(double _volume, double _mass, double _area, arma::vec3 _cm, arma::mat33 _inertiaOrigin);
 
   StlMassProperties multiplyDensity(double factor);
 

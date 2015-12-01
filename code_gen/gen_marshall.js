@@ -2316,7 +2316,7 @@ StructCType.prototype.emitTypeDecl = function(f) {
   f('TYPENAME();'); // declare default constructor
   var constructorArgs = type.getConstructorArgs();
   if (constructorArgs.length) {
-    f('TYPENAME(' + _.map(constructorArgs, function(argInfo) {
+    f('explicit TYPENAME(' + _.map(constructorArgs, function(argInfo) {
       return argInfo.type.getFormalParameter('_' + argInfo.name);
     }).join(', ') + ');');
   }

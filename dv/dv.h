@@ -18,7 +18,7 @@ struct DvWrtScope;
 
 struct Dv {
   Dv() : value(0.0), deriv(0.0) {}
-  Dv(double _value) : value(_value), deriv(0.0) {}
+  Dv(double _value) : value(_value), deriv(0.0) {} // Danger, implicit conversion from double
   Dv(double _value, double _deriv) : value(_value), deriv(_deriv) {}
   
   double value;
