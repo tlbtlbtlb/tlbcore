@@ -77,6 +77,17 @@ static inline void linalgImport(int &a, double const *&p)
 {
 }
 
+static inline size_t linalgSize(const bool &a)
+{
+  return 0;
+}
+static inline void linalgExport(const bool &a, double *&p)
+{
+}
+static inline void linalgImport(bool &a, double const *&p)
+{
+}
+
 static inline size_t linalgSize(const u_int &a)
 {
   return 0;
