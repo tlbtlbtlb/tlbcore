@@ -168,6 +168,7 @@ typedef unsigned char bool;
 
 #ifdef __cplusplus
 #  include "./packetbuf.h"
+#  include "../numerical/numerical.h"
 #endif
 
 #  include "./host_debug.h"

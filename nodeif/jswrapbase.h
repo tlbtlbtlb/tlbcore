@@ -83,12 +83,12 @@ jsonstr convJsToJsonstr(Local<Value> value);
 Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it);
 Local<Value> convJsonstrToJs(jsonstr const &it);
 
-// Dv conversion
+// asLinalgJs
 
-bool canConvJsToDv(Local<Value> it);
-Dv convJsToDv(Local<Value> it);
-Local<Object> convDvToJs(Isolate *isolate, Dv const &it);
-
+template<typename T> 
+Local<Object> toLinalgJs(const T &a) {
+  return convArmaColToJs(toLinalg(a));
+}
 
 /*
   A template for wrapping any kind of object

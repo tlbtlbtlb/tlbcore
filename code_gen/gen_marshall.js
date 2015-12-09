@@ -825,12 +825,13 @@ CType.prototype.isPod = function() { return false; };
 CType.prototype.isCopyConstructable = function() { return true; };
 CType.prototype.hasArrayNature = function() { return false; };
 CType.prototype.hasJsWrapper = function() { return false; };
-CType.prototype.hasDvs = function() { return false; };
-
-CType.prototype.withDvs = function() { return this; }
-
-CType.prototype.emitExtractDvsDecl = function(f) {}
-CType.prototype.emitExtractDvsImpl = function(f) {}
+CType.prototype.emitLinalgDecl = function(f) {
+    f('static inline size_t linalgSize(const ' + type.typename + ' &a) { return 0; }');
+    f('static inline void linalgExport(const ' + type.typename + ' &a, double *&p) { }');
+    f('static inline void linalgImport(' + type.typename + ' &a, double const *&p) { }');
+}
+CType.prototype.emitLinalgImpl = function(f) {
+}
 
 CType.prototype.nonPtrType = function() {
   return this;
@@ -974,6 +975,7 @@ CType.prototype.emitHeader = function(f) {
   });
   type.emitForwardDecl(f);
   type.emitTypeDecl(f);
+  type.emitLinalgDecl(f);
   type.emitFunctionDecl(f);
 };
 
@@ -986,6 +988,7 @@ CType.prototype.emitHostCode = function(f) {
   }
   f('');
   type.emitHostImpl(f);
+  type.emitLinalgImpl(f);
   _.each(type.extraHostCode, function(l) {
     f(l);
   });
@@ -1023,11 +1026,9 @@ CType.prototype.emitJsWrapCode = function(f) {
     if (fns && fns.jsWrapHeader) {
       f('#include "' + fns.jsWrapHeader + '"');
     }
-    if (othertype.typename === 'Dv') {
-      f('#include "tlbcore/dv/dv_jswrap.h"');
-    }
   });
   f('#include "' + type.getFns().jsWrapHeader + '"');
+  f('#include "vec_jsWrap.h"');
   type.emitJsWrapImpl(f);
 };
 
@@ -1082,39 +1083,27 @@ function PrimitiveCType(reg, typename) {
 PrimitiveCType.prototype = Object.create(CType.prototype);
 PrimitiveCType.prototype.isPrimitive = function() { return true; };
 
-PrimitiveCType.prototype.hasDvs = function() { 
-  var type = this;
-  switch (type.typename) {
-  case 'Dv':
-    return true;
-  default:
-    return false;
-  }
-};
-
-PrimitiveCType.prototype.withDvs = function() { 
+PrimitiveCType.prototype.emitLinalgDecl = function(f) {
   var type = this;
   switch (type.typename) {
   case 'float':
   case 'double':
-    return type.reg.getType('Dv');
-  case 'Dv':
-    return type;
+    f('static inline size_t linalgSize(const ' + type.typename + ' &a) { return 1; }');
+    f('static inline void linalgExport(const ' + type.typename + ' &a, double *&p) { *p++ = a; }');
+    f('static inline void linalgImport(' + type.typename + ' &a, double const *&p) { a = *p++; }');
+    break;
   default:
-    return type; // not diffentiable, so use the base type
+    f('static inline size_t linalgSize(const ' + type.typename + ' &a) { return 0; }');
+    f('static inline void linalgExport(const ' + type.typename + ' &a, double *&p) { }');
+    f('static inline void linalgImport(' + type.typename + ' &a, double const *&p) { }');
+    break;
   }
 };
 
-
-PrimitiveCType.prototype.getHeaderIncludes = function() {
+PrimitiveCType.prototype.emitLinalgImpl = function(f) {
   var type = this;
-  if (type.typename === 'Dv') {
-    return ['#include "tlbcore/dv/dv.h"'].concat(CType.prototype.getHeaderIncludes.call(type));
-  } else {
-    return CType.prototype.getHeaderIncludes.call(type);
-  }
+  
 };
-
 
 
 PrimitiveCType.prototype.getFns = function() {
@@ -1318,12 +1307,6 @@ function ObjectCType(reg, typename) {
 ObjectCType.prototype = Object.create(CType.prototype);
 ObjectCType.prototype.isObject = function() { return true; };
 
-ObjectCType.prototype.withDvs = function() { 
-  var type = this;
-  return type; // can't make these differentiable
-};
-
-
 ObjectCType.prototype.getFns = function() {
   return {};
 };
@@ -1433,33 +1416,51 @@ function CollectionCType(reg, typename) {
 CollectionCType.prototype = Object.create(CType.prototype);
 CollectionCType.prototype.isCollection = function() { return true; };
 
-CollectionCType.prototype.hasDvs = function() { 
+CollectionCType.prototype.emitLinalgDecl = function(f) { 
   var type = this;
-  var ret = false;
-  _.each(type.templateArgTypes, function(at) {
-    if (at && at.hasDvs()) ret = true;
-  });
-  return ret;
+
+  f('size_t linalgSize(const ' + type.typename + ' &a);');
+  f('void linalgExport(const ' + type.typename + ' &a, double *&p);');
+  f('void linalgImport(' + type.typename + ' &a, double const *&p);');
 };
 
-CollectionCType.prototype.withDvs = function() { 
+CollectionCType.prototype.emitLinalgImpl = function(f) { 
   var type = this;
 
-  var typeMap = {};
-  var nontrivial = false;
-  _.each(type.templateArgTypes, function(at) {
-    var newAt = at.withDvs();
-    if (newAt !== at) {
-      typeMap[at.typename] = newAt.typename;
-      nontrivial = true;
-    }
-  });
-  if (!nontrivial) return type;
-  var newTypename = type.typename.replace(/\w+/g, function(oldTypename) {
-    return typeMap[oldTypename];
-  });
-  assert.notEqual(type.typename, newTypename);
-  return reg.template(newTypename);
+  f('size_t linalgSize(const ' + type.typename + ' &a) {');
+  f('size_t ret = 0;');
+  if (type.templateName === 'arma::subview_row' || type.templateName === 'arma::subview_col') {
+  }
+  else if (type.templateName === 'Timeseq') {
+    // WRITEME
+  }
+  else {
+    f('for (auto it : a) { ret += linalgSize(it); }');
+  }
+  f('return ret;');
+  f('}');
+
+  f('void linalgExport(const ' + type.typename + ' &a, double *&p) {');
+  if (type.templateName === 'arma::subview_row' || type.templateName === 'arma::subview_col') {
+  } 
+  else if (type.templateName === 'Timeseq') {
+    // WRITEME
+  }
+  else {
+    f('for (auto it : a) { linalgExport(it, p); }');
+  }
+  f('}');
+
+  f('void linalgImport(' + type.typename + ' &a, double const *&p) {');
+  if (type.templateName === 'arma::subview_row' || type.templateName === 'arma::subview_col') {
+  } 
+  else if (type.templateName === 'Timeseq') {
+    // WRITEME
+  }
+  else {
+    f('for (auto &it : a) { linalgImport(it, p); }');
+  }
+  f('}');
 };
 
 CollectionCType.prototype.hasJsWrapper = function() {
@@ -1812,6 +1813,20 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         }}
       ]);
     });
+    f.emitJsMethod('toLinalg', function() {
+      f.emitArgSwitch([
+        {args: [], code: function(f) {
+          f('args.GetReturnValue().Set(convArmaColToJs(toLinalg(*thisObj->it)));');
+        }}
+      ]);
+    });
+    f.emitJsMethod('fromLinalg', function() {
+      f.emitArgSwitch([
+        {args: ['arma::Col<double>'], code: function(f) {
+          f('linalgImport(*thisObj->it, a0);');
+        }}
+      ]);
+    });
   }
 
   if (type.templateName === 'map' && type.templateArgs[0] === 'string') {
@@ -2132,59 +2147,37 @@ function StructCType(reg, typename) {
 StructCType.prototype = Object.create(CType.prototype);
 StructCType.prototype.isStruct = function() { return true; };
 
-StructCType.prototype.hasDvs = function() { 
+StructCType.prototype.emitLinalgDecl = function(f) { 
   var type = this;
-  var ret = false;
+
+  f('size_t linalgSize(const ' + type.typename + ' &a);');
+  f('void linalgExport(const ' + type.typename + ' &a, double *&p);');
+  f('void linalgImport(' + type.typename + ' &a, double const *&p);');
+};
+
+StructCType.prototype.emitLinalgImpl = function(f) { 
+  var type = this;
+
+  f('size_t linalgSize(const ' + type.typename + ' &a) {');
+  f('size_t ret = 0;');
   _.each(type.orderedNames, function(memberName) {
-    var memberType = type.nameToType[memberName];
-    if (memberType.hasDvs()) ret = true;
+    f('ret += linalgSize(a.' + memberName + ');');
   });
-  return ret;
-};
-
-StructCType.prototype.withDvs = function() { 
-  var type = this;
-  if (type.cachedWithDvs) return type.cachedWithDvs;
-
-  var typeMap = {};
-  var nontrivial = false;
-  var newMembers = [];
+  f('return ret;');
+  f('}');
+  
+  f('void linalgExport(const ' + type.typename + ' &a, double *&p) {');
   _.each(type.orderedNames, function(memberName) {
-    var memberType = type.nameToType[memberName];
-    var newMemberType = memberType.withDvs();
-    if (newMemberType !== memberType) {
-      nontrivial = true;
-    }
-    newMembers.push([memberName, newMemberType]);
+    f('linalgExport(a.' + memberName + ', p);');
   });
-  if (!nontrivial) {
-    type.cachedWithDvs = type;
-    return type;
-  }
-  var newType = type.reg.struct.apply(type.reg, [type.typename + 'Dv'].concat(newMembers));
-  type.cachedWithDvs = newType;
-  return newType;
-};
+  f('}');
 
-
-StructCType.prototype.emitExtractDvsDecl = function(f) {
-  var type = this;
-  f('void extract_dvs(vector<Dv *> &accum, ' + type.typename + ' &v);');
-};
-
-StructCType.prototype.emitExtractDvsImpl = function(f) {
-  var type = this;
-  f('void extract_dvs(vector<Dv *> &accum, ' + type.typename + ' &v) {');
+  f('void linalgImport(' + type.typename + ' &a, double const *&p) {');
   _.each(type.orderedNames, function(memberName) {
-    var memberType = type.nameToType[memberName];
-    if (memberType.hasDvs()) {
-      f('extract_dvs(accum, v.' + memberName + ');');
-    }
+    f('linalgImport(a.' + memberName + ', p);');
   });
   f('}');
 };
-
-
 
 StructCType.prototype.addSuperType = function(superTypename) {
   var type = this;
@@ -2370,7 +2363,6 @@ StructCType.prototype.emitTypeDecl = function(f) {
   f('char const * getSchema(TYPENAME const &);');
   f('void addSchemas(TYPENAME const &, map<string, jsonstr> &);');
 
-  type.emitExtractDvsDecl(f);
   f('');
   f('// IO');
   f('ostream & operator<<(ostream &s, const TYPENAME &obj);');
@@ -2510,8 +2502,6 @@ StructCType.prototype.emitHostImpl = function(f) {
     f('');
     type.emitPacketIo(f);
   }
-
-  type.emitExtractDvsImpl(f);
 
 };
 
@@ -2798,6 +2788,21 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         }}
       ]);
     });
+
+    f.emitJsMethod('toLinalg', function() {
+      f.emitArgSwitch([
+        {args: [], code: function(f) {
+          f('args.GetReturnValue().Set(convArmaColToJs(toLinalg(*thisObj->it)));');
+        }}
+      ]);
+    });
+    f.emitJsMethod('fromLinalg', function() {
+      f.emitArgSwitch([
+        {args: ['arma::Col<double>'], code: function(f) {
+          f('linalgImport(*thisObj->it, a0);');
+        }}
+      ]);
+    });
   }
 
   if (!type.noSerialize) {
@@ -2912,11 +2917,6 @@ function PtrCType(reg, baseType) {
 }
 PtrCType.prototype = Object.create(CType.prototype);
 PtrCType.prototype.isPtr = function() { return true; };
-
-PtrCType.prototype.withDvs = function() {
-  var type = this;
-  return type; // If I fixed ObjectCType to handle withDvs, this could too
-};
 
 PtrCType.prototype.nonPtrType = function() {
   return this.baseType;
