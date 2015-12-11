@@ -14,13 +14,13 @@ template<typename T>
 struct Dv {
   explicit Dv() 
   :value(T()),
-   deriv(0.0)
+   deriv(0)
   {
   }
 
   explicit Dv(T const &_value)
   :value(_value),
-   deriv(((void const *)&_value == DvWrtScope::wrt) ? 1 : 0)
+   deriv(0)
   {
   }
   explicit Dv(T const &_value, T _deriv)
