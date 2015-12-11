@@ -738,6 +738,118 @@ bool rdJson(const char *&s, arma::cx_double &value)
   return false;
 }
 
+// Dv - json
+
+size_t wrJsonSize(Dv const &value)
+{
+  return 9 + wrJsonSize(value.value) + 9 + wrJsonSize(value.deriv) + 1;
+}
+void wrJson(char *&s, Dv const &value)
+{
+  *s++ = '{';
+  *s++ = '"';
+  *s++ = 'v';
+  *s++ = 'a';
+  *s++ = 'l';
+  *s++ = 'u';
+  *s++ = 'e';
+  *s++ = '"';
+  *s++ = ':';
+  wrJson(s, value.value);
+  *s++ = ',';
+  *s++ = '"';
+  *s++ = 'd';
+  *s++ = 'e';
+  *s++ = 'r';
+  *s++ = 'i';
+  *s++ = 'v';
+  *s++ = '"';
+  *s++ = ':';
+  wrJson(s, value.deriv);
+  *s++ = '}';
+}
+bool rdJson(const char *&s, Dv &value)
+{
+  double value_value = 0.0, value_deriv = 0.0;
+
+  char c;
+  jsonSkipSpace(s);
+  c = *s++;
+  if (c == '{') {
+    while(1) {
+      jsonSkipSpace(s);
+      c = *s++;
+      if (c == '}') {
+        value = Dv(value_value, value_deriv);
+        return true;
+      }
+      else if (c == '\"') {
+        c = *s++;
+        if (c == 'v') {
+          c = *s++;
+          if (c == 'a') {
+            c = *s++;
+            if (c == 'l') {
+              c = *s++;
+              if (c == 'u') {
+                c = *s++;
+                if (c == 'e') {
+                  c = *s++;
+                  if (c == '\"') {
+                    c = *s++;
+                    if (c == ':') {
+                      if (rdJson(s, value_value)) {
+                        jsonSkipSpace(s);
+                        c = *s++;
+                        if (c == ',') continue;
+                        if (c == '}') {
+                          value = Dv(value_value, value_deriv);
+                          return true;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (c == 'd') {
+          c = *s++;
+          if (c == 'e') {
+            c = *s++;
+            if (c == 'r') {
+              c = *s++;
+              if (c == 'i') {
+                c = *s++;
+                if (c == 'v') {
+                  c = *s++;
+                  if (c == '\"') {
+                    c = *s++;
+                    if (c == ':') {
+                      if (rdJson(s, value_deriv)) {
+                        jsonSkipSpace(s);
+                        c = *s++;
+                        if (c == ',') continue;
+                        if (c == '}') {
+                          value = Dv(value_value, value_deriv);
+                          return true;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+  s--;
+  return false;
+}
 
 ostream & operator<<(ostream &s, const jsonstr &obj)
 {

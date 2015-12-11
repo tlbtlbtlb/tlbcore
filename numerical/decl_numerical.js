@@ -12,7 +12,7 @@ module.exports = function(typereg) {
                  ['c2', 'double'],
                  ['c3', 'double'],
                  ['c4', 'double'],
-                 ['c5', 'double']);
+                 ['c5', 'double']).withDvs();
 
   typereg.scanCHeader(require.resolve('./polyfit.h'));
   typereg.scanCHeader(require.resolve('./haltonseq.h'));

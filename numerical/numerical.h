@@ -1,6 +1,7 @@
 // -*- C++ -*-
 #pragma once
 
+struct Dv;
 
 static inline double normangle(double x) { 
   return fmod((x + M_PI), M_2PI) - M_PI; 
@@ -40,9 +41,8 @@ static inline void linalgImport(double &a, double const *&p)
 {
   a = *p++;
 }
-static inline void foreachDv(double const &zero, function<void (double const &)> f)
+static inline void foreachDv(double &owner, function<void (Dv &)> f)
 {
-  f(1.0);
 }
 
 
@@ -58,8 +58,7 @@ static inline void linalgImport(float &a, double const *&p)
 {
   a = *p++;
 }
-static inline void foreachDv(float const &zero, function<void (float const &deriv)> f) {
-  f(1.0);
+static inline void foreachDv(float &owner, function<void (Dv &)> f) {
 }
 
 
@@ -73,7 +72,7 @@ static inline void linalgExport(string const &a, double *&p)
 static inline void linalgImport(string &a, double const *&p)
 {
 }
-static inline void foreachDv(string const &zero, function<void (string const &deriv)> f) {
+static inline void foreachDv(string &owner, function<void (Dv &)> f) {
 }
 
 static inline size_t linalgSize(int const &a)
@@ -86,7 +85,7 @@ static inline void linalgExport(int const &a, double *&p)
 static inline void linalgImport(int &a, double const *&p)
 {
 }
-static inline void foreachDv(int const &zero, function<void (int const &deriv)> f) {
+static inline void foreachDv(int &owner, function<void (Dv &)> f) {
 }
 
 static inline size_t linalgSize(bool const &a)
@@ -99,7 +98,7 @@ static inline void linalgExport(bool const &a, double *&p)
 static inline void linalgImport(bool &a, double const *&p)
 {
 }
-static inline void foreachDv(bool const &zero, function<void (bool const &deriv)> f) {
+static inline void foreachDv(bool &owner, function<void (Dv &)> f) {
 }
 
 static inline size_t linalgSize(u_int const &a)
@@ -112,7 +111,7 @@ static inline void linalgExport(u_int const &a, double *&p)
 static inline void linalgImport(u_int &a, double const *&p)
 {
 }
-static inline void foreachDv(u_int const &zero, function<void (u_int const &deriv)> f)
+static inline void foreachDv(u_int &owner, function<void (Dv &)> f)
 {
 }
 
@@ -137,10 +136,8 @@ static inline void linalgImport(arma::cx_double &a, double const *&p)
   linalgImport(a.imag(), p);
 #endif
 }
-static inline void foreachDv(arma::cx_double const &zero, function<void (arma::cx_double const &deriv)> f)
+static inline void foreachDv(arma::cx_double &owner, function<void (Dv &)> f)
 {
-  f(arma::cx_double(1.0, 0.0));
-  f(arma::cx_double(0.0, 1.0));
 }
 
 /*
@@ -179,7 +176,7 @@ static inline void linalgImport(shared_ptr<T> &a, double const *&p)
   linalgImport(*a, p);
 }
 template<typename T>
-static inline void foreachDv(shared_ptr<const T> &zero, function<void (shared_ptr<const T> &deriv)> f) {
+static inline void foreachDv(shared_ptr<T> &owner, function<void (Dv &)> f) {
   // don't bother
 }
 
@@ -208,14 +205,7 @@ static inline void linalgImport(arma::Col<T> &a, double const *&p)
   }
 }
 //template<typename T>
-static inline void foreachDv(const arma::Col<double> zero, function<void (arma::Col<double> const deriv)> f) {
-  for (size_t i=0; i<zero.n_elem; i++) {
-    foreachDv(zero[i], [&zero, f, i](double const elemDeriv) {
-        arma::Col<double> deriv1(zero);
-        deriv1(i) = elemDeriv;
-        f(deriv1);
-      });
-  }
+static inline void foreachDv(arma::Col<double> owner, function<void (Dv &)> f) {
 }
 
 template<typename T>
@@ -242,15 +232,7 @@ static inline void linalgImport(arma::Mat<T> &a, double const *&p)
     linalgImport(a(i), p);
   }
 }
-template<typename T>
-static inline void foreachDv(const arma::Mat<T> &zero, function<void (arma::Mat<T> const &deriv)> f) {
-  for (size_t i=0; i<zero.n_elem; i++) {
-    foreachDv(zero[i], [&zero, f, i](T const &elemDeriv) {
-        arma::Mat<T> deriv1(zero);
-        deriv1(i) = elemDeriv;
-        f(deriv1);
-      });
-  }
+static inline void foreachDv(arma::Mat<double> owner, function<void (Dv &)> f) {
 }
 
 template<typename T>
@@ -280,24 +262,16 @@ static inline void linalgImport(vector<T> &a, double const *&p)
 
 
 template<typename T>
-void foreachDv(vector<T> const &zero, function<void (vector<T> const &deriv)> f) {
-  for (size_t i=0; i<zero.size(); i++) {
-    foreachDv(zero[i], [&zero, f, i](T const &elemDeriv) {
-        vector<T> deriv1(zero);
-        deriv1[i] = elemDeriv;
-        f(deriv1);
-      });
+void foreachDv(vector<T> &owner, function<void (Dv &)> f) {
+  for (size_t i=0; i<owner.size(); i++) {
+    foreachDv(owner[i], f);
   }
 }
 
 template<typename KEY, typename VALUE>
-void foreachDv(map<KEY, VALUE> const &zero, function<void (map<KEY, VALUE> const &deriv)> f) {
-  for (typename map<KEY,VALUE>::const_iterator it = zero.begin(); it != zero.end(); it++) {
-    foreachDv(it->second, [&zero, f, &it](VALUE const &elemDeriv) {
-        map<KEY, VALUE> deriv1(zero);
-        deriv1[it->first] = elemDeriv;
-        f(deriv1);
-      });
+void foreachDv(map<KEY, VALUE> const &owner, function<void (map<KEY, VALUE> const &deriv)> f) {
+  for (typename map<KEY,VALUE>::const_iterator it = owner.begin(); it != owner.end(); it++) {
+    foreachDv(it->second, f);
   }
 }
 

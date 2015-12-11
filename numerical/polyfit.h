@@ -7,12 +7,15 @@
 #include <armadillo>
 #include "build.src/Polyfit3_decl.h"
 #include "build.src/Polyfit5_decl.h"
+#include "build.src/DvPolyfit5_decl.h"
 
 double getValue(Polyfit3 const &u, double t);
 double getDerivative(Polyfit3 const &u, double t);
 
 double getValue(Polyfit5 const &u, double t);
 double getDerivative(Polyfit5 const &u, double t);
+
+Dv getValue(DvPolyfit5 const &u, Dv t);
 
 Polyfit3 mkPolyfit3(arma::Col<double> xs, arma::Col<double> ys);
 Polyfit5 mkPolyfit5(arma::Col<double> xs, arma::Col<double> ys);

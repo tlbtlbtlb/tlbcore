@@ -99,6 +99,7 @@ size_t wrJsonSize(u_int const &value);
 size_t wrJsonSize(float const &value);
 size_t wrJsonSize(double const &value);
 size_t wrJsonSize(arma::cx_double const &value);
+size_t wrJsonSize(Dv const &value);
 size_t wrJsonSize(string const &value);
 size_t wrJsonSize(jsonstr const &value);
 
@@ -108,6 +109,7 @@ void wrJson(char *&s, u_int const &value);
 void wrJson(char *&s, float const &value);
 void wrJson(char *&s, double const &value);
 void wrJson(char *&s, arma::cx_double const &value);
+void wrJson(char *&s, Dv const &value);
 void wrJson(char *&s, string const &value);
 void wrJson(char *&s, jsonstr const &value);
 
@@ -123,6 +125,7 @@ bool rdJson(const char *&s, u_int &value);
 bool rdJson(const char *&s, float &value);
 bool rdJson(const char *&s, double &value);
 bool rdJson(const char *&s, arma::cx_double &value);
+bool rdJson(const char *&s, Dv &value);
 bool rdJson(const char *&s, string &value);
 bool rdJson(const char *&s, jsonstr &value);
 

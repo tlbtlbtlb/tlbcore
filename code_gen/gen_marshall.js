@@ -46,6 +46,9 @@ function sortTypes(types) {
 function nonPtrTypes(types) {
   return _.map(types, function(t) { return t.nonPtrType(); });
 }
+function nonDvTypes(types) {
+  return _.map(types, function(t) { return t.nonDvType(); });
+}
 
 
 function TypeRegistry(groupname) {
@@ -75,10 +78,10 @@ TypeRegistry.prototype.setupBuiltins = function() {
   typereg.primitive('bool');
   typereg.primitive('float');
   typereg.primitive('double');
-  typereg.primitive('Dv');
   typereg.primitive('arma::cx_double');
   typereg.primitive('int');
   typereg.primitive('u_int');
+  typereg.primitive('Dv');
   typereg.primitive('string');
   typereg.primitive('char const *');
   typereg.primitive('jsonstr');
@@ -111,15 +114,17 @@ TypeRegistry.prototype.struct = function(typename /* varargs */) {
   if (typename in typereg.types) throw 'Already defined';
   var t = new StructCType(typereg, typename);
   typereg.types[typename] = t;
-  var ptrTypename = typename + '*';
-  var sharedPtrTypename = 'shared_ptr< ' + typename + ' >';
-  typereg.types[sharedPtrTypename] = typereg.types[ptrTypename] = new PtrCType(typereg, t);
 
   for (var i=1; i<arguments.length; i++) {
     var name = arguments[i][0];
     var type = arguments[i][1];
     t.add(name, type);
   }
+
+  var ptrType = new PtrCType(typereg, t);
+  typereg.types[ptrType.typename] = ptrType;
+  typereg.types['shared_ptr< ' + typename + ' >'] = ptrType;
+  
   return t;
 };
 
@@ -825,15 +830,22 @@ CType.prototype.isPod = function() { return false; };
 CType.prototype.isCopyConstructable = function() { return true; };
 CType.prototype.hasArrayNature = function() { return false; };
 CType.prototype.hasJsWrapper = function() { return false; };
+
+CType.prototype.hasDvs = function() { return false; };
+CType.prototype.withDvs = function() { return this; }
+
 CType.prototype.emitLinalgDecl = function(f) {
     f('static inline size_t linalgSize(const ' + type.typename + ' &a) { return 0; }');
     f('static inline void linalgExport(const ' + type.typename + ' &a, double *&p) { }');
     f('static inline void linalgImport(' + type.typename + ' &a, double const *&p) { }');
-}
+};
 CType.prototype.emitLinalgImpl = function(f) {
-}
+};
 
 CType.prototype.nonPtrType = function() {
+  return this;
+};
+CType.prototype.nonDvType = function() {
   return this;
 };
 
@@ -1029,6 +1041,7 @@ CType.prototype.emitJsWrapCode = function(f) {
   });
   f('#include "' + type.getFns().jsWrapHeader + '"');
   f('#include "vec_jsWrap.h"');
+  f('#include "tlbcore/dv/dv_jswrap.h"');
   type.emitJsWrapImpl(f);
 };
 
@@ -1083,31 +1096,19 @@ function PrimitiveCType(reg, typename) {
 PrimitiveCType.prototype = Object.create(CType.prototype);
 PrimitiveCType.prototype.isPrimitive = function() { return true; };
 
-PrimitiveCType.prototype.emitLinalgDecl = function(f) {
-  var type = this;
-  switch (type.typename) {
-  case 'float':
-  case 'double':
-    f('static inline size_t linalgSize(const ' + type.typename + ' &a) { return 1; }');
-    f('static inline void linalgExport(const ' + type.typename + ' &a, double *&p) { *p++ = a; }');
-    f('static inline void linalgImport(' + type.typename + ' &a, double const *&p) { a = *p++; }');
-    break;
-  default:
-    f('static inline size_t linalgSize(const ' + type.typename + ' &a) { return 0; }');
-    f('static inline void linalgExport(const ' + type.typename + ' &a, double *&p) { }');
-    f('static inline void linalgImport(' + type.typename + ' &a, double const *&p) { }');
-    break;
-  }
-};
-
-PrimitiveCType.prototype.emitLinalgImpl = function(f) {
-  var type = this;
-  
-};
-
-
 PrimitiveCType.prototype.getFns = function() {
   return {};
+};
+
+PrimitiveCType.prototype.withDvs = function() {
+  var type = this;
+  switch (type.typename) {
+  case 'double': 
+  case 'float':
+    return type.reg.getType('Dv');
+  default:
+    return type;
+  }
 };
 
 PrimitiveCType.prototype.emitJsWrapDecl = function(f) {
@@ -1241,8 +1242,8 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
   case 'jsonstr':
     return 'true';
   default:
-    return '(JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr)';
-    //throw new Error('Unknown primitive type');
+    throw new Error('Unknown primitive type');
+    //return '(JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr)';
   }
 };
 
@@ -1267,8 +1268,8 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   case 'arma::cx_double':
     return 'convJsToCxDouble(' + valueExpr + ')';
   default:
-    return 'JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ')';
-    //throw new Error('Unknown primitive type');
+    throw new Error('Unknown primitive type');
+    //return 'JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ')';
   }
 };
 
@@ -2147,13 +2148,39 @@ function StructCType(reg, typename) {
 StructCType.prototype = Object.create(CType.prototype);
 StructCType.prototype.isStruct = function() { return true; };
 
+StructCType.prototype.withDvs = function() {
+  var type = this;
+  if (type.dvType) return type.dvType;
+
+  var dvTypename = 'Dv' + type.typename;
+  var typeMap = {};
+  var nontrivial = false;
+  var newMembers = [];
+
+  _.each(type.orderedNames, function(memberName) {
+    var memberType = type.nameToType[memberName];
+    var newMemberType = memberType.withDvs();
+    if (newMemberType !== memberType) {
+      nontrivial = true;
+    }
+    newMembers.push([memberName, newMemberType]);
+  });
+         
+  if (!nontrivial) {
+    type.dvType = type;
+    return type;
+  }
+  type.dvType = type.reg.struct.apply(type.reg, [dvTypename].concat(newMembers));
+  return type.dvType;
+};
+
 StructCType.prototype.emitLinalgDecl = function(f) { 
   var type = this;
 
   f('size_t linalgSize(const ' + type.typename + ' &a);');
   f('void linalgExport(const ' + type.typename + ' &a, double *&p);');
   f('void linalgImport(' + type.typename + ' &a, double const *&p);');
-  f('void foreachDv(const ' + type.typename + ' &zero, function<void (' + type.typename + ' const &deriv)> f);');
+  f('void foreachDv(' + type.typename + ' &owner, function<void (Dv &)> f);');
 };
 
 StructCType.prototype.emitLinalgImpl = function(f) { 
@@ -2179,19 +2206,12 @@ StructCType.prototype.emitLinalgImpl = function(f) {
   });
   f('}');
 
-  f('void foreachDv(const ' + type.typename + ' &zero, function<void (' + type.typename + ' const &deriv)> f) {');
+  f('void foreachDv(' + type.typename + ' &owner, function<void (Dv &)> f) {');
   if (!type.noSerialize) {
     _.each(type.orderedNames, function(memberName) {
       var memberType = type.nameToType[memberName];
       if (!memberType.isPtr() && !memberType.noSerialize) {
-
-        var genMemberTypename = memberType.typename.replace(/::fixed.*/, '');
-
-        f('foreachDv(zero.' + memberName + ', function<void (' + genMemberTypename + ' const &)>([&zero, f](' + genMemberTypename + ' const &memberDeriv) {');
-        f(type.typename + ' deriv1(zero);');
-        f('deriv1.' + memberName + ' = memberDeriv;');
-        f('f(deriv1);');
-        f('}));');
+        f('foreachDv(owner.' + memberName + ', f);');
       }
     });
   }
@@ -2827,8 +2847,8 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsMethod('foreachDv', function() {
       f.emitArgSwitch([
         {args: ['Object'], code: function(f) {
-          f('foreachDv(*thisObj->it, [isolate, &args, a0](' + type.typename + ' const &deriv) {');
-          f('Local<Value> argv[1] = {' + type.getCppToJsExpr('deriv') + '};');
+          f('foreachDv(*thisObj->it, [isolate, &args, a0, thisObj](Dv &dv) {');
+          f('Local<Value> argv[1] = {JsWrap_Dv::MemberInstance(isolate, thisObj->it, &dv)};');
           f('a0->CallAsFunction(args.This(), 1, argv);');
           f('});');
         }}
@@ -3014,6 +3034,8 @@ PtrCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   }
 };
 
+
+// ----------------------------------------------------------------------
 
 // ----------------------------------------------------------------------
 

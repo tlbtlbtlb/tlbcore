@@ -1,12 +1,12 @@
 
 module.exports = function(typereg) {
 
-  typereg.scanCFunctions('dv operator+ (dv a, dv b);\n' +
-                         'dv operator- (dv a, dv b);\n' +
-                         'dv operator* (dv a, dv b);\n' +
-                         //'dv operator/ (dv a, dv b);\n' +
-                         'dv sin (dv a);\n' +
-                         'dv cos (dv a);\n' +
-                         'dv tanh (dv a);\n' +
-                         'dv relu (dv a);\n');
+  typereg.scanCFunctions('Dv operator+ (Dv a, Dv b);\n' +
+                         'Dv operator- (Dv a, Dv b);\n' +
+                         'Dv operator* (Dv a, Dv b);\n' +
+                         'Dv operator/ (Dv a, Dv b);\n' +
+                         'Dv sin (Dv a);\n' +
+                         'Dv cos (Dv a);\n' +
+                         'Dv tanh (Dv a);\n' +
+                         'Dv relu (Dv a);\n');
 }
