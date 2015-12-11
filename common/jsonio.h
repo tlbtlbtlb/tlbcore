@@ -140,7 +140,7 @@ static inline void linalgExport(const jsonstr &a, double *&p)
 static inline void linalgImport(jsonstr &a, double const *&p)
 {
 }
-static inline void foreachDv(jsonstr const &value, jsonstr const &zero, function<void (jsonstr const &deriv)> f) {
+static inline void foreachDv(jsonstr const &zero, function<void (jsonstr const &deriv)> f) {
 }
 
 

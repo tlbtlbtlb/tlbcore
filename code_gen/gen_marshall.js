@@ -2153,7 +2153,7 @@ StructCType.prototype.emitLinalgDecl = function(f) {
   f('size_t linalgSize(const ' + type.typename + ' &a);');
   f('void linalgExport(const ' + type.typename + ' &a, double *&p);');
   f('void linalgImport(' + type.typename + ' &a, double const *&p);');
-  f('void foreachDv(const ' + type.typename + ' &value, const ' + type.typename + ' &zero, function<void (' + type.typename + ' const &deriv)> f);');
+  f('void foreachDv(const ' + type.typename + ' &zero, function<void (' + type.typename + ' const &deriv)> f);');
 };
 
 StructCType.prototype.emitLinalgImpl = function(f) { 
@@ -2179,7 +2179,7 @@ StructCType.prototype.emitLinalgImpl = function(f) {
   });
   f('}');
 
-  f('void foreachDv(const ' + type.typename + ' &value, const ' + type.typename + ' &zero, function<void (' + type.typename + ' const &deriv)> f) {');
+  f('void foreachDv(const ' + type.typename + ' &zero, function<void (' + type.typename + ' const &deriv)> f) {');
   if (!type.noSerialize) {
     _.each(type.orderedNames, function(memberName) {
       var memberType = type.nameToType[memberName];
@@ -2187,7 +2187,7 @@ StructCType.prototype.emitLinalgImpl = function(f) {
 
         var genMemberTypename = memberType.typename.replace(/::fixed.*/, '');
 
-        f('foreachDv(value.' + memberName + ', zero.' + memberName + ', function<void (' + genMemberTypename + ' const &)>([&zero, f](' + genMemberTypename + ' const &memberDeriv) {');
+        f('foreachDv(zero.' + memberName + ', function<void (' + genMemberTypename + ' const &)>([&zero, f](' + genMemberTypename + ' const &memberDeriv) {');
         f(type.typename + ' deriv1(zero);');
         f('deriv1.' + memberName + ' = memberDeriv;');
         f('f(deriv1);');
@@ -2827,9 +2827,9 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsMethod('foreachDv', function() {
       f.emitArgSwitch([
         {args: ['Object'], code: function(f) {
-          f('foreachDv(*thisObj->it, *thisObj->it, [isolate, a0](' + type.typename + ' const &deriv) {');
-          f('Local<Value> derivJs = ' + type.getCppToJsExpr('deriv') + ';');
-          f('a0->CallAsFunction(derivJs, 1, &derivJs);');
+          f('foreachDv(*thisObj->it, [isolate, &args, a0](' + type.typename + ' const &deriv) {');
+          f('Local<Value> argv[1] = {' + type.getCppToJsExpr('deriv') + '};');
+          f('a0->CallAsFunction(args.This(), 1, argv);');
           f('});');
         }}
       ]);
