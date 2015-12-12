@@ -7,10 +7,14 @@
 
 bool canConvJsToDv(Local<Value> itv)
 {
+  Isolate *isolate = Isolate::GetCurrent();
+  if (JsWrap_Dv::Extract(isolate, itv) != nullptr) {
+    return true;
+  }
   if (itv->IsObject()) {
     Local<Object> it = itv->ToObject();
-    Local<Value> valuev = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "value"));
-    Local<Value> derivv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "deriv"));
+    Local<Value> valuev = it->Get(String::NewFromUtf8(isolate, "value"));
+    Local<Value> derivv = it->Get(String::NewFromUtf8(isolate, "deriv"));
     if (valuev->IsNumber() && derivv->IsNumber()) {
       return true;
     }
@@ -23,10 +27,15 @@ bool canConvJsToDv(Local<Value> itv)
 }
 Dv convJsToDv(Local<Value> itv)
 {
+  Isolate *isolate = Isolate::GetCurrent();
+  shared_ptr<Dv> raw = JsWrap_Dv::Extract(isolate, itv);
+  if (raw != nullptr) {
+    return *raw;
+  }
   if (itv->IsObject()) {
     Local<Object> it = itv->ToObject();
-    Local<Value> valuev = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "value"));
-    Local<Value> derivv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "deriv"));
+    Local<Value> valuev = it->Get(String::NewFromUtf8(isolate, "value"));
+    Local<Value> derivv = it->Get(String::NewFromUtf8(isolate, "deriv"));
     if (valuev->IsNumber() && derivv->IsNumber()) {
       return Dv(valuev->NumberValue(), derivv->NumberValue());
     }
@@ -36,12 +45,9 @@ Dv convJsToDv(Local<Value> itv)
   }
   throw runtime_error("convJsToDv: conversion failed");
 }
-Local<Object> convDvToJs(Isolate *isolate, Dv const &it)
+Local<Value> convDvToJs(Isolate *isolate, Dv const &it)
 {
-  Local<Object> ret = Object::New(isolate);
-  ret->Set(String::NewFromUtf8(isolate, "value"), Number::New(isolate, it.value));
-  ret->Set(String::NewFromUtf8(isolate, "deriv"), Number::New(isolate, it.deriv));
-  return ret;
+  return JsWrap_Dv::NewInstance(isolate, it);
 }
 
 
@@ -112,13 +118,28 @@ static void jsSet_Dv_deriv(Local<String> name, Local<Value> value, PropertyCallb
   }
 }
 
-static void jsWrap_Dv_toString(FunctionCallbackInfo<Value> const &args) {
+static void jsWrap_Dv_toJsonString(FunctionCallbackInfo<Value> const &args) {
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   JsWrap_Dv* thisObj = node::ObjectWrap::Unwrap<JsWrap_Dv>(args.This());
   if (args.Length() == 0) {
     string ret;
     ret = asJson(*thisObj->it).it;
+    args.GetReturnValue().Set(convStringToJs(isolate, ret));
+    return;
+  }
+  else  {
+    return ThrowInvalidArgs();
+  }
+}
+
+static void jsWrap_Dv_toString(FunctionCallbackInfo<Value> const &args) {
+  Isolate *isolate = args.GetIsolate();
+  HandleScope scope(isolate);
+  JsWrap_Dv* thisObj = node::ObjectWrap::Unwrap<JsWrap_Dv>(args.This());
+  if (args.Length() == 0) {
+    string ret;
+    ret = as_string(*thisObj->it);
     args.GetReturnValue().Set(convStringToJs(isolate, ret));
     return;
   }
@@ -156,6 +177,7 @@ void jsInit_Dv(Handle<Object> exports) {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toString"), FunctionTemplate::New(isolate, jsWrap_Dv_toString)->GetFunction());
+  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toJsonString"), FunctionTemplate::New(isolate, jsWrap_Dv_toJsonString)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "inspect"), FunctionTemplate::New(isolate, jsWrap_Dv_inspect)->GetFunction());
 
   tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "value"), &jsGet_Dv_value, &jsSet_Dv_value);

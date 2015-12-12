@@ -50,11 +50,22 @@ describe('LearningProblem', function() {
       lp.addPair(i * 0.001, i*0.001);
     }
     var lr = 0.01;
+    var loss1;
     for (var i=0; i<5000; i++) {
-      var loss1 = lp.sgdStep(lr, 50, 1);
+      loss1 = lp.sgdStep(lr, 50, 0);
       lr *= 0.9998;
       if (0) console.log(loss1, lp.theta.c0.value, lp.theta.c1.value, lp.theta.c2.value, lp.theta.c3.value, lp.theta.c4.value, lp.theta.c5.value, lr);
       if (loss1 != loss1) break; // detect NaN
     }
+    if (loss1 > 0.5) {
+      throw new Error('Unacceptable loss value ' + loss1);
+    }
+
+    for (var i=0; i<10; i++) {
+      var input = Math.random()*2-1;
+      var output = lp.predict(input);
+      console.log('io', input, output.value);
+    }
+
   });
 });

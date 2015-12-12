@@ -86,7 +86,7 @@ Local<Value> convJsonstrToJs(jsonstr const &it);
 // Dv conversion
 bool canConvJsToDv(Local<Value> it);
 Dv convJsToDv(Local<Value> it);
-Local<Object> convDvToJs(Isolate *isolate, Dv const &it);
+Local<Value> convDvToJs(Isolate *isolate, Dv const &it);
 
 // asLinalgJs
 

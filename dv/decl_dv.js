@@ -19,6 +19,8 @@ module.exports = function(typereg) {
     if (!(outputTypename in typereg.types)) throw ('Type ' + outputTypename + ' not defined yet');
     
     var paramType = typereg.getType(paramTypename);
+    var inputType = typereg.getType(inputTypename);
+    var outputType = typereg.getType(outputTypename);
     var problemTypename = 'LearningProblem<' + paramTypename + ',' + inputTypename + ',' + outputTypename + '>';
 
     var type = typereg.template(problemTypename);
@@ -34,6 +36,24 @@ module.exports = function(typereg) {
         f.emitArgSwitch([{
           args: [inputTypename, outputTypename], code: function(f) {
             f('thisObj->it->addPair(a0, a1);');
+          }
+        }]);
+      });
+
+      f.emitJsMethod('predict', function() {
+        f.emitArgSwitch([{
+          args: [inputTypename], code: function(f) {
+            f('' + outputTypename + ' ret = thisObj->it->predict(a0);');
+            f('args.GetReturnValue().Set(' + outputType.getCppToJsExpr('ret') + ');');
+          }
+        }]);
+      });
+
+      f.emitJsMethod('loss', function() {
+        f.emitArgSwitch([{
+          args: [outputTypename, outputTypename], code: function(f) {
+            f('Dv ret = thisObj->it->loss(a0, a1);');
+            f('args.GetReturnValue().Set(convDvToJs(isolate, ret));');
           }
         }]);
       });
