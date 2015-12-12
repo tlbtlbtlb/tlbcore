@@ -55,6 +55,20 @@ module.exports = function(typereg) {
       });
     });
 
+    type.extraHostCode.push(function(f) {
+      f('#include "tlbcore/numerical/polyfit.h"');
+      f('template<>');
+      f('Dv LearningProblem<' + paramTypename + ',' + inputTypename + ',' + outputTypename + '>::loss(' + outputTypename + ' const &pred, ' + outputTypename + ' const &actual) {');
+      type.lossFunc(f);
+      f('}');
+      
+      f('template<>');
+      f('' + outputTypename + ' LearningProblem<' + paramTypename + ',' + inputTypename + ',' + outputTypename + '>::predict(' + inputTypename + ' const &input) {');
+      type.predictFunc(f);
+      f('}');
+    });
+    
+
     return type;
   };
 
