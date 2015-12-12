@@ -10,7 +10,9 @@ module.exports = function(typereg) {
                          'Dv tanh (Dv a);\n' +
                          'Dv relu (Dv a);\n');
 
-
+  /*
+    WRITEME: documentation
+  */
 
   typereg.learningProblem = function(paramTypename, inputTypename, outputTypename) {
     var typereg = this;
@@ -76,16 +78,22 @@ module.exports = function(typereg) {
     });
 
     type.extraHostCode.push(function(f) {
-      f('#include "tlbcore/numerical/polyfit.h"');
-      f('template<>');
-      f('Dv LearningProblem<' + paramTypename + ',' + inputTypename + ',' + outputTypename + '>::loss(' + outputTypename + ' const &pred, ' + outputTypename + ' const &actual) {');
-      type.lossFunc(f);
-      f('}');
+      if (type.preLossPredict) {
+        type.preLossPredict(f);
+      }
+      if (type.lossFunc) {
+        f('template<>');
+        f('Dv LearningProblem<' + paramTypename + ',' + inputTypename + ',' + outputTypename + '>::loss(' + outputTypename + ' const &pred, ' + outputTypename + ' const &actual) {');
+        type.lossFunc(f);
+        f('}');
+      }
       
-      f('template<>');
-      f('' + outputTypename + ' LearningProblem<' + paramTypename + ',' + inputTypename + ',' + outputTypename + '>::predict(' + inputTypename + ' const &input) {');
-      type.predictFunc(f);
-      f('}');
+      if (type.predictFunc) {
+        f('template<>');
+        f('' + outputTypename + ' LearningProblem<' + paramTypename + ',' + inputTypename + ',' + outputTypename + '>::predict(' + inputTypename + ' const &input) {');
+        type.predictFunc(f);
+        f('}');
+      }
     });
     
 
