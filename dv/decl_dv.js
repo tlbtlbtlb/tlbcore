@@ -11,7 +11,29 @@ module.exports = function(typereg) {
                          'Dv relu (Dv a);\n');
 
   /*
-    WRITEME: documentation
+    Define a standard learning problem. This bundles together the following:
+      - a vector of inputs and outputs
+      - parameters for a prediction function
+      - the prediction function
+      - the loss function
+
+    Call as
+      lp = typereg.learningProblem(paramTypename, inputTypename, outputTypename)
+    to define the types. It returns a type, which in addition to the usual things you can do with a type, allows you to set
+      lp.lossFunc = function(f) { f('return sqrt(actual - pred);'); }
+    and
+      lp.predictFunc = function(f) { f('return something(theta, input);'); }
+
+    Then when you instantiate the type, you can call
+      problem.sgdStep(learningRate, minibatchSize, verbose);
+
+    to improve the parameters. It does stochastic gradient descent, which means it takes the
+    gradient of the loss function WRT the parameters, evaluated over (minibatchSize) randomly selected
+    input-output pairs, and moves the parameters in the direction to minimize the loss (according to learningRate).
+
+    After a large number of steps, you can retrieve the parameters with
+      problem.theta
+    
   */
 
   typereg.learningProblem = function(paramTypename, inputTypename, outputTypename) {
