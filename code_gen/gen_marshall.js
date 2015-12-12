@@ -1430,35 +1430,20 @@ CollectionCType.prototype.emitLinalgImpl = function(f) {
 
   f('size_t linalgSize(const ' + type.typename + ' &a) {');
   f('size_t ret = 0;');
-  if (type.templateName === 'arma::subview_row' || type.templateName === 'arma::subview_col') {
-  }
-  else if (type.templateName === 'Timeseq') {
-    // WRITEME
-  }
-  else {
+  if (type.templateName === 'arma::Row' || type.templateName === 'arma::Col' || type.templateName === 'arma::Mat' || type.templateName === 'vector') {
     f('for (auto it : a) { ret += linalgSize(it); }');
   }
   f('return ret;');
   f('}');
 
   f('void linalgExport(const ' + type.typename + ' &a, double *&p) {');
-  if (type.templateName === 'arma::subview_row' || type.templateName === 'arma::subview_col') {
-  } 
-  else if (type.templateName === 'Timeseq') {
-    // WRITEME
-  }
-  else {
+  if (type.templateName === 'arma::Row' || type.templateName === 'arma::Col' || type.templateName === 'arma::Mat' || type.templateName === 'vector') {
     f('for (auto it : a) { linalgExport(it, p); }');
   }
   f('}');
 
   f('void linalgImport(' + type.typename + ' &a, double const *&p) {');
-  if (type.templateName === 'arma::subview_row' || type.templateName === 'arma::subview_col') {
-  } 
-  else if (type.templateName === 'Timeseq') {
-    // WRITEME
-  }
-  else {
+  if (type.templateName === 'arma::Row' || type.templateName === 'arma::Col' || type.templateName === 'arma::Mat' || type.templateName === 'vector') {
     f('for (auto &it : a) { linalgImport(it, p); }');
   }
   f('}');
@@ -2180,7 +2165,7 @@ StructCType.prototype.emitLinalgDecl = function(f) {
   f('size_t linalgSize(const ' + type.typename + ' &a);');
   f('void linalgExport(const ' + type.typename + ' &a, double *&p);');
   f('void linalgImport(' + type.typename + ' &a, double const *&p);');
-  f('void foreachDv(' + type.typename + ' &owner, function<void (Dv &)> f);');
+  f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (Dv &, string const &)> f);');
 };
 
 StructCType.prototype.emitLinalgImpl = function(f) { 
@@ -2206,12 +2191,12 @@ StructCType.prototype.emitLinalgImpl = function(f) {
   });
   f('}');
 
-  f('void foreachDv(' + type.typename + ' &owner, function<void (Dv &)> f) {');
+  f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (Dv &, string const &)> f) {');
   if (!type.noSerialize) {
     _.each(type.orderedNames, function(memberName) {
       var memberType = type.nameToType[memberName];
       if (!memberType.isPtr() && !memberType.noSerialize) {
-        f('foreachDv(owner.' + memberName + ', f);');
+        f('foreachDv(owner.' + memberName + ', name + ".' + memberName + '", f);');
       }
     });
   }
@@ -2846,10 +2831,13 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
     f.emitJsMethod('foreachDv', function() {
       f.emitArgSwitch([
-        {args: ['Object'], code: function(f) {
-          f('foreachDv(*thisObj->it, [isolate, &args, a0, thisObj](Dv &dv) {');
-          f('Local<Value> argv[1] = {JsWrap_Dv::MemberInstance(isolate, thisObj->it, &dv)};');
-          f('a0->CallAsFunction(args.This(), 1, argv);');
+        {args: ['string', 'Object'], code: function(f) {
+          f('foreachDv(*thisObj->it, a0, [isolate, &args, a0, a1, thisObj](Dv &dv, string const &name) {');
+          f('Local<Value> argv[2] = {');
+          f('JsWrap_Dv::MemberInstance(isolate, thisObj->it, &dv),');
+          f('convStringToJs(name)');
+          f('};');
+          f('a1->CallAsFunction(args.This(), 2, argv);');
           f('});');
         }}
       ]);

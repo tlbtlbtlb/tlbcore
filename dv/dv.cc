@@ -8,7 +8,7 @@ __thread double DvWrtScope::relu_neg_slope;
 
 ostream & operator<<(ostream &s, Dv const &obj)
 {
-  s << obj.value << "+D" << obj.deriv;
+  s << obj.value << "'" << obj.deriv;
   return s;
 }
 

@@ -41,7 +41,7 @@ static inline void linalgImport(double &a, double const *&p)
 {
   a = *p++;
 }
-static inline void foreachDv(double &owner, function<void (Dv &)> f)
+static inline void foreachDv(double &owner, string const &name, function<void (Dv &, string const &)> f)
 {
 }
 
@@ -58,7 +58,7 @@ static inline void linalgImport(float &a, double const *&p)
 {
   a = *p++;
 }
-static inline void foreachDv(float &owner, function<void (Dv &)> f) {
+static inline void foreachDv(float &owner, string const &name, function<void (Dv &, string const &)> f) {
 }
 
 
@@ -72,7 +72,7 @@ static inline void linalgExport(string const &a, double *&p)
 static inline void linalgImport(string &a, double const *&p)
 {
 }
-static inline void foreachDv(string &owner, function<void (Dv &)> f) {
+static inline void foreachDv(string &owner, string const &name, function<void (Dv &, string const &)> f) {
 }
 
 static inline size_t linalgSize(int const &a)
@@ -85,7 +85,7 @@ static inline void linalgExport(int const &a, double *&p)
 static inline void linalgImport(int &a, double const *&p)
 {
 }
-static inline void foreachDv(int &owner, function<void (Dv &)> f) {
+static inline void foreachDv(int &owner, string const &name, function<void (Dv &, string const &)> f) {
 }
 
 static inline size_t linalgSize(bool const &a)
@@ -98,7 +98,7 @@ static inline void linalgExport(bool const &a, double *&p)
 static inline void linalgImport(bool &a, double const *&p)
 {
 }
-static inline void foreachDv(bool &owner, function<void (Dv &)> f) {
+static inline void foreachDv(bool &owner, string const &name, function<void (Dv &, string const &)> f) {
 }
 
 static inline size_t linalgSize(u_int const &a)
@@ -111,7 +111,7 @@ static inline void linalgExport(u_int const &a, double *&p)
 static inline void linalgImport(u_int &a, double const *&p)
 {
 }
-static inline void foreachDv(u_int &owner, function<void (Dv &)> f)
+static inline void foreachDv(u_int &owner, string const &name, function<void (Dv &, string const &)> f)
 {
 }
 
@@ -136,7 +136,7 @@ static inline void linalgImport(arma::cx_double &a, double const *&p)
   linalgImport(a.imag(), p);
 #endif
 }
-static inline void foreachDv(arma::cx_double &owner, function<void (Dv &)> f)
+static inline void foreachDv(arma::cx_double &owner, string const &name, function<void (Dv &, string const &)> f)
 {
 }
 
@@ -176,7 +176,7 @@ static inline void linalgImport(shared_ptr<T> &a, double const *&p)
   linalgImport(*a, p);
 }
 template<typename T>
-static inline void foreachDv(shared_ptr<T> &owner, function<void (Dv &)> f) {
+static inline void foreachDv(shared_ptr<T> &owner, string const &name, function<void (Dv &, string const &)> f) {
   // don't bother
 }
 
@@ -205,7 +205,8 @@ static inline void linalgImport(arma::Col<T> &a, double const *&p)
   }
 }
 //template<typename T>
-static inline void foreachDv(arma::Col<double> owner, function<void (Dv &)> f) {
+static inline void foreachDv(arma::Col<double> owner, string const &name, function<void (Dv &, string const &)> f) 
+{
 }
 
 template<typename T>
@@ -232,7 +233,8 @@ static inline void linalgImport(arma::Mat<T> &a, double const *&p)
     linalgImport(a(i), p);
   }
 }
-static inline void foreachDv(arma::Mat<double> owner, function<void (Dv &)> f) {
+static inline void foreachDv(arma::Mat<double> owner, string const &name, function<void (Dv &, string const &)> f)
+{
 }
 
 template<typename T>
@@ -262,16 +264,16 @@ static inline void linalgImport(vector<T> &a, double const *&p)
 
 
 template<typename T>
-void foreachDv(vector<T> &owner, function<void (Dv &)> f) {
+void foreachDv(vector<T> &owner, string const &name, function<void (Dv &, string const &)> f) {
   for (size_t i=0; i<owner.size(); i++) {
-    foreachDv(owner[i], f);
+    foreachDv(owner[i], name + "[" + to_string(i) + "]", f);
   }
 }
 
-template<typename KEY, typename VALUE>
-void foreachDv(map<KEY, VALUE> const &owner, function<void (map<KEY, VALUE> const &deriv)> f) {
-  for (typename map<KEY,VALUE>::const_iterator it = owner.begin(); it != owner.end(); it++) {
-    foreachDv(it->second, f);
+template<typename VALUE>
+void foreachDv(map<string, VALUE> const &owner, string const &name, function<void (Dv &, string const &)> f) {
+  for (typename map<string, VALUE>::const_iterator it = owner.begin(); it != owner.end(); it++) {
+    foreachDv(it->second, name + "." + it->first, f);
   }
 }
 

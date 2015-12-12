@@ -32,11 +32,29 @@ describe('dv', function() {
 
   it('should find Dvs', function() {
     var a = new ur.DvPolyfit5();
-    a.foreachDv(function(dv) {
+    a.foreachDv('a', function(dv, name) {
       dv.deriv = 1;
       var ans = ur.getValue(a, 0.5);
-      console.log(dv, ans);
+      console.log(name, dv.toString(), ans.toString());
       dv.deriv = 0;
     });
+  });
+
+
+});
+
+describe('LearningProblem', function() {
+  it('should work', function() {
+    var lp = new ur.LearningProblem_DvPolyfit5_Dv_Dv();
+    for (var i=-1000; i<1000; i++) {
+      lp.addPair(i * 0.001, i*0.001);
+    }
+    var lr = 0.01;
+    for (var i=0; i<5000; i++) {
+      var loss1 = lp.sgdStep(lr, 50, 1);
+      lr *= 0.9998;
+      if (0) console.log(loss1, lp.theta.c0.value, lp.theta.c1.value, lp.theta.c2.value, lp.theta.c3.value, lp.theta.c4.value, lp.theta.c5.value, lr);
+      if (loss1 != loss1) break; // detect NaN
+    }
   });
 });

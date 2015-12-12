@@ -35,9 +35,9 @@ struct Dv {
 
 ostream & operator<<(ostream &s, Dv const &obj);
 
-static inline void foreachDv(Dv &owner, function<void (Dv &)> f)
+static inline void foreachDv(Dv &owner, string const &name, function<void (Dv &, string const &)> f)
 {
-  f(owner);
+  f(owner, name);
 }
 
 /*

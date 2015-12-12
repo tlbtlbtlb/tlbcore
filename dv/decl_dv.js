@@ -9,4 +9,53 @@ module.exports = function(typereg) {
                          'Dv cos (Dv a);\n' +
                          'Dv tanh (Dv a);\n' +
                          'Dv relu (Dv a);\n');
+
+
+
+  typereg.learningProblem = function(paramTypename, inputTypename, outputTypename) {
+    var typereg = this;
+    if (!(paramTypename in typereg.types)) throw ('Type ' + paramTypename + ' not defined yet');
+    if (!(inputTypename in typereg.types)) throw ('Type ' + inputTypename + ' not defined yet');
+    if (!(outputTypename in typereg.types)) throw ('Type ' + outputTypename + ' not defined yet');
+    
+    var paramType = typereg.getType(paramTypename);
+    var problemTypename = 'LearningProblem<' + paramTypename + ',' + inputTypename + ',' + outputTypename + '>';
+
+    var type = typereg.template(problemTypename);
+    
+    type.extraJsWrapHeaderIncludes.push('tlbcore/dv/dv_jsWrap.h');
+    type.extraHeaderIncludes.push('tlbcore/dv/sgd.h');
+    type.noSerialize = true;
+    type.noPacket = true;
+
+    type.extraJswrapMethods.push(function(f) {
+      var type = this;
+      f.emitJsMethod('addPair', function() {
+        f.emitArgSwitch([{
+          args: [inputTypename, outputTypename], code: function(f) {
+            f('thisObj->it->addPair(a0, a1);');
+          }
+        }]);
+      });
+
+
+      f.emitJsMethod('sgdStep', function() {
+        f.emitArgSwitch([{
+          args: ['double', 'double', 'int'], code: function(f) {
+            f('double loss = thisObj->it->sgdStep(a0, a1, a2);');
+            f('args.GetReturnValue().Set(Local<Value>(Number::New(isolate, loss)));');
+          }
+        }]);
+      });
+    });
+
+    type.extraJswrapAccessors.push(function(f) {
+      f.emitJsAccessors('theta', {
+        get: 'args.GetReturnValue().Set(' + paramType.getCppToJsExpr('thisObj->it->theta', 'thisObj->it') + ');'
+      });
+    });
+
+    return type;
+  };
+
 }
