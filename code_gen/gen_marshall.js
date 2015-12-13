@@ -74,6 +74,10 @@ TypeRegistry.prototype.scanJsDefn = function(fn) {
 
 TypeRegistry.prototype.setupBuiltins = function() {
   var typereg = this;
+  /*
+    When scanning headers files to find functions, we generate regexps to match types. So these types have to match exactly.
+    So make sure to use, eg, 'char cost *' to mean a string.
+   */
   typereg.primitive('void');
   typereg.primitive('bool');
   typereg.primitive('float');
@@ -442,12 +446,13 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
     });
   }
   var typenameExpr = _.map(typenames, escapeRegexp).join('|');
-  var typeExpr = '(' + typenameExpr + ')\\s+' + '(|const\\s+&|&)';
-  var argExpr = typeExpr + '\\s*(\\w+)';
+  var typeExpr = '(' + typenameExpr + ')' + '(\\s*|\\s+const\\s*&\\s*|\\s*&\\s*)';
+  var argExpr = typeExpr + '(\\w+)';
   var funcnameExpr = '\\w+|operator\\s*[^\\s\\w]+';
 
   // try to eliminate class-scoped functions.
   // text = text.replace(/struct.*{[.\n]*\n}/, '');
+  if (0) console.log(text);
 
   for (var arity=0; arity < 7; arity++) {
 
@@ -459,7 +464,7 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
                     '(<\\s*(' + typenameExpr + ')\\s*>)?' +
                     '\\(' + argsExpr + '\\)\\s*;');
 
-    if (0 && arity === 1) console.log(funcExpr);
+    if (0 && arity === 0) console.log(argExpr);
 
     var re = new RegExp(funcExpr, 'g');
     
@@ -475,6 +480,7 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
                 passing: m[7+i*3].replace(/\s+/g, ''),
                 argname: m[8+i*3]};
       });
+      if (0) console.log(desc);
 
       typereg.addWrapFunction(desc, funcScope, funcname, funcTemplate, returnType, args);
 
@@ -1235,7 +1241,7 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
     return '((' + valueExpr + ')->IsBoolean())';
   case 'string':
     return 'canConvJsToString(' + valueExpr + ')';
-  case 'char const*':
+  case 'char const *':
     return 'canConvJsToString(' + valueExpr + ')';
   case 'arma::cx_double':
     return 'canConvJsToCxDouble(' + valueExpr + ')';
@@ -1261,7 +1267,7 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
     return '((' + valueExpr + ')->BooleanValue())';
   case 'string':
     return 'convJsToString(' + valueExpr + ')';
-  case 'char const*':
+  case 'char const *':
     return 'convJsToString(' + valueExpr + ').c_str()';
   case 'jsonstr':
     return 'convJsToJsonstr(' + valueExpr + ')';
@@ -1287,7 +1293,7 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerE
     return 'Boolean::New(isolate, ' + valueExpr + ')';
   case 'string':
     return 'convStringToJs(isolate, ' + valueExpr + ')';
-  case 'char const*':
+  case 'char const *':
     return 'convStringToJs(isolate, string(' + valueExpr + '))';
   case 'jsonstr':
     return 'convJsonstrToJs(isolate, ' + valueExpr + ')';
