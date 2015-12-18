@@ -93,7 +93,7 @@ static void jsSet_Dv_value(Local<String> name, Local<Value> value, PropertyCallb
   if (value->IsNumber()) {
     thisObj->it->value = value->NumberValue();
   } else {
-    return ThrowTypeError("Expected double");
+    return ThrowTypeError(isolate, "Expected double");
   }
 }
 
@@ -112,7 +112,7 @@ static void jsSet_Dv_deriv(Local<String> name, Local<Value> value, PropertyCallb
     if (0) eprintf("Dv.deriv set %g\n", value->NumberValue());
     thisObj->it->deriv = value->NumberValue();
   } else {
-    return ThrowTypeError("Expected double");
+    return ThrowTypeError(isolate, "Expected double");
   }
 }
 
@@ -127,7 +127,7 @@ static void jsWrap_Dv_toJsonString(FunctionCallbackInfo<Value> const &args) {
     return;
   }
   else  {
-    return ThrowInvalidArgs();
+    return ThrowInvalidArgs(isolate);
   }
 }
 
@@ -142,7 +142,7 @@ static void jsWrap_Dv_toString(FunctionCallbackInfo<Value> const &args) {
     return;
   }
   else  {
-    return ThrowInvalidArgs();
+    return ThrowInvalidArgs(isolate);
   }
 }
 
@@ -158,7 +158,7 @@ static void jsWrap_Dv_inspect(FunctionCallbackInfo<Value> const &args) {
     return;
   }
   else  {
-    return ThrowInvalidArgs();
+    return ThrowInvalidArgs(isolate);
   }
 }
 

@@ -1591,7 +1591,7 @@ CollectionCType.prototype.emitJsWrapDecl = function(f) {
     f('typedef JsWrapGeneric< TYPENAME > JsWrap_JSTYPE;');
   }
   f('void jsConstructor_JSTYPE(JsWrap_JSTYPE *it, FunctionCallbackInfo<Value> const &args);');
-  f('Handle<Value> jsToJSON_JSTYPE(TYPENAME const &it);');
+  f('Handle<Value> jsToJSON_JSTYPE(Isolate *isolate, TYPENAME const &it);');
 };
 
 CollectionCType.prototype.emitJsWrapImpl = function(f) {
@@ -1748,8 +1748,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
   }
 
   if (!type.noSerialize) {
-    f('Handle<Value> jsToJSON_JSTYPE(const TYPENAME &it) {');
-    f('Isolate *isolate = Isolate::GetCurrent();');
+    f('Handle<Value> jsToJSON_JSTYPE(Isolate *isolate, const TYPENAME &it) {');
     f('EscapableHandleScope scope(isolate);');
     f('if (fastJsonFlag) {');
     f('string fjbItem = asJson(it).it;');
@@ -1801,7 +1800,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsMethod('toJSON', function() {
       f.emitArgSwitch([
         {args: [], ignoreExtra: true, code: function(f) {
-          f('args.GetReturnValue().Set(Local<Value>(jsToJSON_JSTYPE(*thisObj->it)));');
+          f('args.GetReturnValue().Set(Local<Value>(jsToJSON_JSTYPE(isolate, *thisObj->it)));');
         }}
       ]);
     });
@@ -2724,7 +2723,7 @@ StructCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
   f('typedef JsWrapGeneric< TYPENAME > JsWrap_JSTYPE;');
   f('void jsConstructor_JSTYPE(JsWrap_JSTYPE *it, FunctionCallbackInfo<Value> const &args);');
-  f('Handle<Value> jsToJSON_JSTYPE(TYPENAME const &it);');
+  f('Handle<Value> jsToJSON_JSTYPE(Isolate *isolate, TYPENAME const &it);');
 };
 
 StructCType.prototype.emitJsWrapImpl = function(f) {
@@ -2769,8 +2768,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
   if (!type.noSerialize) {
     
-    f('Handle<Value> jsToJSON_JSTYPE(const TYPENAME &it) {');
-    f('Isolate *isolate = Isolate::GetCurrent();');
+    f('Handle<Value> jsToJSON_JSTYPE(Isolate *isolate, const TYPENAME &it) {');
     f('EscapableHandleScope scope(isolate);');
     f('if (fastJsonFlag) {');
     f('string fjbItem = asJson(it).it;');
@@ -2805,7 +2803,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
           f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), convJsonstrToJs(isolate, it.' + name + '));');
           break;
 	default:
-          f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), jsToJSON_' + memberType.jsTypename + '(it.' + name + '));');
+          f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), jsToJSON_' + memberType.jsTypename + '(isolate, it.' + name + '));');
 	}
       }
     });
@@ -2815,7 +2813,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsMethod('toJSON', function() {
       f.emitArgSwitch([
         {args: [], ignoreExtra: true, code: function(f) {
-          f('args.GetReturnValue().Set(Local<Value>(jsToJSON_JSTYPE(*thisObj->it)));');
+          f('args.GetReturnValue().Set(Local<Value>(jsToJSON_JSTYPE(isolate, *thisObj->it)));');
         }}
       ]);
     });

@@ -4,6 +4,6 @@
 
 typedef JsWrapGeneric< Dv > JsWrap_Dv;
 void jsConstructor_Dv(JsWrap_Dv *it, FunctionCallbackInfo<Value> const &args);
-Handle<Value> jsToJSON_Dv(Dv const &it);
+Handle<Value> jsToJSON_Dv(Isolate *isolate, Dv const &it);
 
 #endif

@@ -123,8 +123,8 @@ static void jsWrap_StlSolid_transform(FunctionCallbackInfo<Value> const &args)
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
-  if (args.Length() == 1 && JsWrap_mat44::Extract(args[0]) != nullptr) {
-    arma::mat44 a0 = *JsWrap_mat44::Extract(args[0]);
+  if (args.Length() == 1 && JsWrap_mat44::Extract(isolate, args[0]) != nullptr) {
+    arma::mat44 a0 = *JsWrap_mat44::Extract(isolate, args[0]);
     thisObj->it->transform(a0);
   }
   else {
@@ -153,10 +153,10 @@ static void jsWrap_StlSolid_getIntersections(FunctionCallbackInfo<Value> const &
   HandleScope scope(isolate);
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   if (args.Length() == 2 && 
-      JsWrap_vec::Extract(args[0]) != NULL &&
-      JsWrap_vec::Extract(args[1]) != NULL) {
-    vec a0 = *JsWrap_vec::Extract(args[0]);
-    vec a1 = *JsWrap_vec::Extract(args[1]);
+      JsWrap_vec::Extract(isolate, args[0]) != NULL &&
+      JsWrap_vec::Extract(isolate, args[1]) != NULL) {
+    vec a0 = *JsWrap_vec::Extract(isolate, args[0]);
+    vec a1 = *JsWrap_vec::Extract(isolate, args[1]);
     vector<StlIntersection> ret = thisObj->it->getIntersections(a0, a1);
 
     Local<Array> retJs = Array::New(isolate, ret.size());
@@ -294,12 +294,12 @@ void jsConstructor_StlFace(JsWrap_StlFace *thisObj, FunctionCallbackInfo<Value> 
     thisObj->assignDefault();
   }
   else if (args.Length() == 3 && 
-           JsWrap_vec::Extract(args[0]) != NULL &&
-           JsWrap_vec::Extract(args[1]) != NULL &&
-           JsWrap_vec::Extract(args[2]) != NULL) {
-    vec a0 = *JsWrap_vec::Extract(args[0]);
-    vec a1 = *JsWrap_vec::Extract(args[1]);
-    vec a2 = *JsWrap_vec::Extract(args[2]);
+           JsWrap_vec::Extract(isolate, args[0]) != NULL &&
+           JsWrap_vec::Extract(isolate, args[1]) != NULL &&
+           JsWrap_vec::Extract(isolate, args[2]) != NULL) {
+    vec a0 = *JsWrap_vec::Extract(isolate, args[0]);
+    vec a1 = *JsWrap_vec::Extract(isolate, args[1]);
+    vec a2 = *JsWrap_vec::Extract(isolate, args[2]);
     thisObj->assignConstruct(a0, a1, a2);
   }
   else  {

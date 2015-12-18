@@ -34,20 +34,14 @@ using namespace v8;
 extern bool fastJsonFlag;
 
 void ThrowInvalidArgs(Isolate *isolate);
-void ThrowInvalidArgs();
 void ThrowInvalidThis(Isolate *isolate);
-void ThrowInvalidThis();
 void ThrowTypeError(Isolate *isolate, char const *s);
-void ThrowTypeError(char const *s);
 void ThrowRuntimeError(Isolate *isolate, char const *s);
-void ThrowRuntimeError(char const *s);
 
 // stl::string conversion
 bool canConvJsToString(Isolate *isolate, Local<Value> it);
 string convJsToString(Isolate *isolate, Local<Value> it);
-Local<Value> convStringToJs(string const &it);
 Local<Value> convStringToJs(Isolate *isolate, string const &it);
-Local<Value> convStringToJsBuffer(string const &it);
 Local<Value> convStringToJsBuffer(Isolate *isolate, string const &it);
 
 // arma::Col conversion
