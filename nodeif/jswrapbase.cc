@@ -42,10 +42,10 @@ void ThrowRuntimeError(char const *s) {
   string I/O
 */
 
-bool canConvJsToString(Local<Value> it) {
+bool canConvJsToString(Isolate *isolate, Local<Value> it) {
   return it->IsString() || node::Buffer::HasInstance(it);
 }
-string convJsToString(Local<Value> it) {
+string convJsToString(Isolate *isolate, Local<Value> it) {
   if (it->IsString()) {
     String::Utf8Value v8str(it);
     return string((char *) *v8str, v8str.length());
@@ -80,24 +80,24 @@ Local<Value> convStringToJsBuffer(string const &it) {
   arma::cx_double, the same as std::complex<double> is reflected into a simple {real:,imag:} object in JS. There's no binary wrapped type
   See also jsonio.cc: wrJson(..., arma::cx_double)
 */
-bool canConvJsToCxDouble(Local<Value> itv)
+bool canConvJsToCxDouble(Isolate *isolate, Local<Value> itv)
 {
   if (itv->IsObject()) {
     Local<Object> it = itv->ToObject();
-    Local<Value> realv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "real"));
-    Local<Value> imagv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "imag"));
+    Local<Value> realv = it->Get(String::NewFromUtf8(isolate, "real"));
+    Local<Value> imagv = it->Get(String::NewFromUtf8(isolate, "imag"));
     if (realv->IsNumber() && imagv->IsNumber()) {
       return true;
     }
   }
   return false;
 }
-arma::cx_double convJsToCxDouble(Local<Value> itv)
+arma::cx_double convJsToCxDouble(Isolate *isolate, Local<Value> itv)
 {
   if (itv->IsObject()) {
     Local<Object> it = itv->ToObject();
-    Local<Value> realv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "real"));
-    Local<Value> imagv = it->Get(String::NewFromUtf8(Isolate::GetCurrent(), "imag"));
+    Local<Value> realv = it->Get(String::NewFromUtf8(isolate, "real"));
+    Local<Value> imagv = it->Get(String::NewFromUtf8(isolate, "imag"));
     if (realv->IsNumber() && imagv->IsNumber()) {
       return arma::cx_double(realv->NumberValue(), imagv->NumberValue());
     }
@@ -123,18 +123,17 @@ Local<Object> convCxDoubleToJs(arma::cx_double const &it)
 /* ----------------------------------------------------------------------
   jsonstr I/O
 */
-bool canConvJsToJsonstr(Local<Value> value) {
+bool canConvJsToJsonstr(Isolate *isolate, Local<Value> value) {
   return true;
 }
 
-jsonstr convJsToJsonstr(Local<Value> value)
+jsonstr convJsToJsonstr(Isolate *isolate, Local<Value> value)
 {
-  Isolate *isolate = Isolate::GetCurrent();
   if (value->IsObject()) {
     Local<Value> toJsonString = value->ToObject()->Get(String::NewFromUtf8(isolate, "toJsonString")); // defined on all generated stubs
     if (!toJsonString.IsEmpty() && toJsonString->IsFunction()) {
       Local<Value> ret = toJsonString.As<Function>()->Call(value->ToObject(), 0, NULL);
-      return jsonstr(convJsToString(ret->ToString()));
+      return jsonstr(convJsToString(isolate, ret->ToString()));
     }
   }
   
@@ -147,7 +146,7 @@ jsonstr convJsToJsonstr(Local<Value> value)
   assert(gStringify->IsFunction() && "not a function: JSON.stringify");
   Local<Function> gJSON_stringify = gStringify.As<Function>();
   
-  return jsonstr(convJsToString(gJSON_stringify->Call(gJSON, 1, &value)->ToString()));
+  return jsonstr(convJsToString(isolate, gJSON_stringify->Call(gJSON, 1, &value)->ToString()));
 }
 
 Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it)
@@ -175,12 +174,12 @@ Local<Value> convJsonstrToJs(jsonstr const &it)
   map<string, jsonstr> I/O
 */
 
-bool canConvJsToMapStringJsonstr(Local<Value> itv) {
+bool canConvJsToMapStringJsonstr(Isolate *isolate, Local<Value> itv) {
   if (itv->IsObject()) return true;
   return false;
 }
 
-map<string, jsonstr> convJsToMapStringJsonstr(Local<Value> itv) {
+map<string, jsonstr> convJsToMapStringJsonstr(Isolate *isolate, Local<Value> itv) {
 
   if (itv->IsObject()) {
     map < string, jsonstr > ret;
@@ -193,8 +192,8 @@ map<string, jsonstr> convJsToMapStringJsonstr(Local<Value> itv) {
       Local<Value> itKey = itKeys->Get(i);
       Local<Value> itVal = it->Get(itKey);
 
-      string cKey = convJsToString(itKey->ToString());
-      jsonstr cVal = convJsToJsonstr(itVal);
+      string cKey = convJsToString(isolate, itKey->ToString());
+      jsonstr cVal = convJsToJsonstr(isolate, itVal);
 
       ret[cKey] = cVal;
     }
@@ -208,7 +207,7 @@ map<string, jsonstr> convJsToMapStringJsonstr(Local<Value> itv) {
 // ----------------------------------------------------------------------
 
 template<typename T>
-bool canConvJsToArmaCol(Local<Value> itv) {
+bool canConvJsToArmaCol(Isolate *isolate, Local<Value> itv) {
   if (itv->IsObject()) {
     Local<Object> it = itv->ToObject();
     if (it->IsFloat32Array()) return true;
@@ -218,7 +217,7 @@ bool canConvJsToArmaCol(Local<Value> itv) {
   return false;
 }
 template<typename T>
-bool canConvJsToArmaRow(Local<Value> itv) {
+bool canConvJsToArmaRow(Isolate *isolate, Local<Value> itv) {
   if (itv->IsObject()) {
     Local<Object> it = itv->ToObject();
     if (it->IsFloat32Array()) return true;
@@ -229,7 +228,7 @@ bool canConvJsToArmaRow(Local<Value> itv) {
 }
 
 template<typename T>
-arma::Col<T> convJsToArmaCol(Local<Value> itv) {
+arma::Col<T> convJsToArmaCol(Isolate *isolate, Local<Value> itv) {
   if (itv->IsObject()) {
     Local<Object> it = itv->ToObject();
 
@@ -272,7 +271,7 @@ arma::Col<T> convJsToArmaCol(Local<Value> itv) {
   throw runtime_error("convJsToArmaCol: not an array");
 }
 template<typename T>
-arma::Row<T> convJsToArmaRow(Local<Value> itv) {
+arma::Row<T> convJsToArmaRow(Isolate *isolate, Local<Value> itv) {
   if (itv->IsObject()) {
     Local<Object> it = itv->ToObject();
 
@@ -315,10 +314,8 @@ arma::Row<T> convJsToArmaRow(Local<Value> itv) {
   throw runtime_error("convJsToArmaRow: not an array");
 }
 
-static double * mkFloat64Array(size_t size, Local<Object> &ret)
+static double * mkFloat64Array(Isolate *isolate, size_t size, Local<Object> &ret)
 {
-  Isolate *isolate = Isolate::GetCurrent();
-
   if (size > 100000000) throw runtime_error("mkFloat64Array: unreasonable size");
 
   Local<ArrayBuffer> ab = ArrayBuffer::New(isolate, size*sizeof(double));
@@ -347,9 +344,9 @@ static double * mkFloat64Array(size_t size, Local<Object> &ret)
 }
 
 template<typename T>
-Local<Object> convArmaColToJs(arma::Col<T> const &it) {
+Local<Object> convArmaColToJs(Isolate *isolate, arma::Col<T> const &it) {
   Local<Object> ret;
-  double *retData = mkFloat64Array(it.n_elem, ret);
+  double *retData = mkFloat64Array(isolate, it.n_elem, ret);
   for (size_t i=0; i<it.n_elem; i++) {
     retData[i] = it(i);
   }
@@ -358,9 +355,9 @@ Local<Object> convArmaColToJs(arma::Col<T> const &it) {
 }
 
 template<typename T>
-Local<Object> convArmaRowToJs(arma::Row<T> const &it) {
+Local<Object> convArmaRowToJs(Isolate *isolate, arma::Row<T> const &it) {
   Local<Object> ret;
-  double *retData = mkFloat64Array(it.n_elem, ret);
+  double *retData = mkFloat64Array(isolate, it.n_elem, ret);
   for (size_t i=0; i<it.n_elem; i++) {
     retData[i] = it(i);
   }
@@ -377,14 +374,14 @@ Local<Object> convArmaRowToJs(arma::Row<T> const &it) {
  */
 
 template<typename T>
-bool canConvJsToArmaMat(Local<Value> it)
+bool canConvJsToArmaMat(Isolate *isolate, Local<Value> it)
 {
   if (it->IsArray()) return true;
   return false;
 }
 
 template<typename T>
-arma::Mat<T> convJsToArmaMat(Local<Value> it, size_t nRows, size_t nCols)
+arma::Mat<T> convJsToArmaMat(Isolate *isolate, Local<Value> it, size_t nRows, size_t nCols)
 {
   if (it->IsArray()) {
 
@@ -415,10 +412,10 @@ arma::Mat<T> convJsToArmaMat(Local<Value> it, size_t nRows, size_t nCols)
 }
 
 template<typename T>
-Local<Object> convArmaMatToJs(arma::Mat<T> const &it) 
+Local<Object> convArmaMatToJs(Isolate *isolate, arma::Mat<T> const &it) 
 {
   Local<Object> ret;
-  double *retData = mkFloat64Array(it.n_elem, ret);
+  double *retData = mkFloat64Array(isolate, it.n_elem, ret);
   for (size_t ei = 0; ei < it.n_elem; ei++) {
     retData[ei] = it(ei);
   }
@@ -427,53 +424,53 @@ Local<Object> convArmaMatToJs(arma::Mat<T> const &it)
 
 
 
-template bool canConvJsToArmaCol<double>(Local<Value> itv);
-template arma::Col<double> convJsToArmaCol<double>(Local<Value> itv);
-template Local<Object> convArmaColToJs<double>(arma::Col<double> const &it);
-template bool canConvJsToArmaRow<double>(Local<Value> itv);
-template arma::Row<double> convJsToArmaRow<double>(Local<Value> itv);
-template Local<Object> convArmaRowToJs<double>(arma::Row<double> const &it);
-template bool canConvJsToArmaMat<double>(Local<Value> it);
-template arma::Mat<double> convJsToArmaMat<double>(Local<Value> it, size_t nRows, size_t nCols);
-template Local<Object> convArmaMatToJs<double>(arma::Mat<double> const &it);
+template bool canConvJsToArmaCol<double>(Isolate *isolate, Local<Value> itv);
+template arma::Col<double> convJsToArmaCol<double>(Isolate *isolate, Local<Value> itv);
+template Local<Object> convArmaColToJs<double>(Isolate *isolate, arma::Col<double> const &it);
+template bool canConvJsToArmaRow<double>(Isolate *isolate, Local<Value> itv);
+template arma::Row<double> convJsToArmaRow<double>(Isolate *isolate, Local<Value> itv);
+template Local<Object> convArmaRowToJs<double>(Isolate *isolate, arma::Row<double> const &it);
+template bool canConvJsToArmaMat<double>(Isolate *isolate, Local<Value> it);
+template arma::Mat<double> convJsToArmaMat<double>(Isolate *isolate, Local<Value> it, size_t nRows, size_t nCols);
+template Local<Object> convArmaMatToJs<double>(Isolate *isolate, arma::Mat<double> const &it);
 
-template bool canConvJsToArmaCol<float>(Local<Value> itv);
-template arma::Col<float> convJsToArmaCol<float>(Local<Value> itv);
-template Local<Object> convArmaColToJs<float>(arma::Col<float> const &it);
-template bool canConvJsToArmaRow<float>(Local<Value> itv);
-template arma::Row<float> convJsToArmaRow<float>(Local<Value> itv);
-template Local<Object> convArmaRowToJs<float>(arma::Row<float> const &it);
-template bool canConvJsToArmaMat<float>(Local<Value> it);
-template arma::Mat<float> convJsToArmaMat<float>(Local<Value> it, size_t nRows, size_t nCols);
-template Local<Object> convArmaMatToJs<float>(arma::Mat<float> const &it);
+template bool canConvJsToArmaCol<float>(Isolate *isolate, Local<Value> itv);
+template arma::Col<float> convJsToArmaCol<float>(Isolate *isolate, Local<Value> itv);
+template Local<Object> convArmaColToJs<float>(Isolate *isolate, arma::Col<float> const &it);
+template bool canConvJsToArmaRow<float>(Isolate *isolate, Local<Value> itv);
+template arma::Row<float> convJsToArmaRow<float>(Isolate *isolate, Local<Value> itv);
+template Local<Object> convArmaRowToJs<float>(Isolate *isolate, arma::Row<float> const &it);
+template bool canConvJsToArmaMat<float>(Isolate *isolate, Local<Value> it);
+template arma::Mat<float> convJsToArmaMat<float>(Isolate *isolate, Local<Value> it, size_t nRows, size_t nCols);
+template Local<Object> convArmaMatToJs<float>(Isolate *isolate, arma::Mat<float> const &it);
 
-template bool canConvJsToArmaCol<int>(Local<Value> itv);
-template arma::Col<int> convJsToArmaCol<int>(Local<Value> itv);
-template Local<Object> convArmaColToJs<int>(arma::Col<int> const &it);
-template bool canConvJsToArmaRow<int>(Local<Value> itv);
-template arma::Row<int> convJsToArmaRow<int>(Local<Value> itv);
-template Local<Object> convArmaRowToJs<int>(arma::Row<int> const &it);
-template bool canConvJsToArmaMat<int>(Local<Value> it);
-template arma::Mat<int> convJsToArmaMat<int>(Local<Value> it, size_t nRows, size_t nCols);
-template Local<Object> convArmaMatToJs<int>(arma::Mat<int> const &it);
+template bool canConvJsToArmaCol<int>(Isolate *isolate, Local<Value> itv);
+template arma::Col<int> convJsToArmaCol<int>(Isolate *isolate, Local<Value> itv);
+template Local<Object> convArmaColToJs<int>(Isolate *isolate, arma::Col<int> const &it);
+template bool canConvJsToArmaRow<int>(Isolate *isolate, Local<Value> itv);
+template arma::Row<int> convJsToArmaRow<int>(Isolate *isolate, Local<Value> itv);
+template Local<Object> convArmaRowToJs<int>(Isolate *isolate, arma::Row<int> const &it);
+template bool canConvJsToArmaMat<int>(Isolate *isolate, Local<Value> it);
+template arma::Mat<int> convJsToArmaMat<int>(Isolate *isolate, Local<Value> it, size_t nRows, size_t nCols);
+template Local<Object> convArmaMatToJs<int>(Isolate *isolate, arma::Mat<int> const &it);
 
-template bool canConvJsToArmaCol<u_int>(Local<Value> itv);
-template arma::Col<u_int> convJsToArmaCol<u_int>(Local<Value> itv);
-template Local<Object> convArmaColToJs<u_int>(arma::Col<u_int> const &it);
-template bool canConvJsToArmaRow<u_int>(Local<Value> itv);
-template arma::Row<u_int> convJsToArmaRow<u_int>(Local<Value> itv);
-template Local<Object> convArmaRowToJs<u_int>(arma::Row<u_int> const &it);
-template bool canConvJsToArmaMat<u_int>(Local<Value> it);
-template arma::Mat<u_int> convJsToArmaMat<u_int>(Local<Value> it, size_t nRows, size_t nCols);
-template Local<Object> convArmaMatToJs<u_int>(arma::Mat<u_int> const &it);
+template bool canConvJsToArmaCol<u_int>(Isolate *isolate, Local<Value> itv);
+template arma::Col<u_int> convJsToArmaCol<u_int>(Isolate *isolate, Local<Value> itv);
+template Local<Object> convArmaColToJs<u_int>(Isolate *isolate, arma::Col<u_int> const &it);
+template bool canConvJsToArmaRow<u_int>(Isolate *isolate, Local<Value> itv);
+template arma::Row<u_int> convJsToArmaRow<u_int>(Isolate *isolate, Local<Value> itv);
+template Local<Object> convArmaRowToJs<u_int>(Isolate *isolate, arma::Row<u_int> const &it);
+template bool canConvJsToArmaMat<u_int>(Isolate *isolate, Local<Value> it);
+template arma::Mat<u_int> convJsToArmaMat<u_int>(Isolate *isolate, Local<Value> it, size_t nRows, size_t nCols);
+template Local<Object> convArmaMatToJs<u_int>(Isolate *isolate, arma::Mat<u_int> const &it);
 
-template bool canConvJsToArmaCol<arma::cx_double>(Local<Value> itv);
-//template arma::Col<arma::cx_double> convJsToArmaCol<arma::cx_double>(Local<Value> itv);
-//template Local<Object> convArmaColToJs<arma::cx_double>(arma::Col<arma::cx_double> const &it);
-template bool canConvJsToArmaRow<arma::cx_double>(Local<Value> itv);
-//template arma::Row<arma::cx_double> convJsToArmaRow<arma::cx_double>(Local<Value> itv);
-//template Local<Object> convArmaRowToJs<arma::cx_double>(arma::Row<arma::cx_double> const &it);
-template bool canConvJsToArmaMat<arma::cx_double>(Local<Value> it);
-//template arma::Mat<arma::cx_double> convJsToArmaMat<arma::cx_double>(Local<Value> it, size_t nRows, size_t nCols);
-//template Local<Object> convArmaMatToJs<arma::cx_double>(arma::Mat<arma::cx_double> const &it);
+template bool canConvJsToArmaCol<arma::cx_double>(Isolate *isolate, Local<Value> itv);
+//template arma::Col<arma::cx_double> convJsToArmaCol<arma::cx_double>(Isolate *isolate, Local<Value> itv);
+//template Local<Object> convArmaColToJs<arma::cx_double>(Isolate *isolate, arma::Col<arma::cx_double> const &it);
+template bool canConvJsToArmaRow<arma::cx_double>(Isolate *isolate, Local<Value> itv);
+//template arma::Row<arma::cx_double> convJsToArmaRow<arma::cx_double>(Isolate *isolate, Local<Value> itv);
+//template Local<Object> convArmaRowToJs<arma::cx_double>(Isolate *isolate, arma::Row<arma::cx_double> const &it);
+template bool canConvJsToArmaMat<arma::cx_double>(Isolate *isolate, Local<Value> it);
+//template arma::Mat<arma::cx_double> convJsToArmaMat<arma::cx_double>(Isolate *isolate, Local<Value> it, size_t nRows, size_t nCols);
+//template Local<Object> convArmaMatToJs<arma::cx_double>(Isolate *isolate, arma::Mat<arma::cx_double> const &it);
 

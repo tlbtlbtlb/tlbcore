@@ -64,7 +64,7 @@ static void jsWrap_StlSolid_toString(FunctionCallbackInfo<Value> const &args)
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   ostringstream oss;
   oss << *thisObj->it;
-  args.GetReturnValue().Set(convStringToJs(oss.str()));
+  args.GetReturnValue().Set(convStringToJs(isolate, oss.str()));
 }
 
 static void jsWrap_StlSolid_inspect(FunctionCallbackInfo<Value> const &args)
@@ -74,7 +74,7 @@ static void jsWrap_StlSolid_inspect(FunctionCallbackInfo<Value> const &args)
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   ostringstream oss;
   oss << *thisObj->it;
-  args.GetReturnValue().Set(convStringToJs(oss.str()));
+  args.GetReturnValue().Set(convStringToJs(isolate, oss.str()));
 }
 
 
@@ -83,8 +83,8 @@ static void jsWrap_StlSolid_readBinaryFile(FunctionCallbackInfo<Value> const &ar
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
-  if (args.Length() == 2 && canConvJsToString(args[0]) && args[1]->IsNumber()) {
-    string a0 = convJsToString(args[0]);
+  if (args.Length() == 2 && canConvJsToString(isolate, args[0]) && args[1]->IsNumber()) {
+    string a0 = convJsToString(isolate, args[0]);
     double a1 = args[1]->NumberValue();
     FILE *fp = fopen(a0.c_str(), "rb");
     if (!fp) {
@@ -103,8 +103,8 @@ static void jsWrap_StlSolid_writeBinaryFile(FunctionCallbackInfo<Value> const &a
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
-  if (args.Length() == 2 && canConvJsToString(args[0]) && args[1]->IsNumber()) {
-    string a0 = convJsToString(args[0]);
+  if (args.Length() == 2 && canConvJsToString(isolate, args[0]) && args[1]->IsNumber()) {
+    string a0 = convJsToString(isolate, args[0]);
     double a1 = args[1]->NumberValue();
     FILE *fp = fopen(a0.c_str(), "wb");
     if (!fp) {
@@ -428,7 +428,7 @@ static void jsWrap_StlMassProperties_toString(FunctionCallbackInfo<Value> const 
   JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
   ostringstream oss;
   oss << *thisObj->it;
-  args.GetReturnValue().Set(convStringToJs(oss.str()));
+  args.GetReturnValue().Set(convStringToJs(isolate, oss.str()));
 }
 
 static void jsWrap_StlMassProperties_inspect(FunctionCallbackInfo<Value> const &args)
@@ -438,7 +438,7 @@ static void jsWrap_StlMassProperties_inspect(FunctionCallbackInfo<Value> const &
   JsWrap_StlMassProperties* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlMassProperties>(args.This());
   ostringstream oss;
   oss << *thisObj->it;
-  args.GetReturnValue().Set(convStringToJs(oss.str()));
+  args.GetReturnValue().Set(convStringToJs(isolate, oss.str()));
 }
 
 

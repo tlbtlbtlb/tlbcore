@@ -5,9 +5,8 @@
 #include "./dv_jswrap.h"
 
 
-bool canConvJsToDv(Local<Value> itv)
+bool canConvJsToDv(Isolate *isolate, Local<Value> itv)
 {
-  Isolate *isolate = Isolate::GetCurrent();
   if (JsWrap_Dv::Extract(isolate, itv) != nullptr) {
     return true;
   }
@@ -25,9 +24,8 @@ bool canConvJsToDv(Local<Value> itv)
   return false;
   
 }
-Dv convJsToDv(Local<Value> itv)
+Dv convJsToDv(Isolate *isolate, Local<Value> itv)
 {
-  Isolate *isolate = Isolate::GetCurrent();
   shared_ptr<Dv> raw = JsWrap_Dv::Extract(isolate, itv);
   if (raw != nullptr) {
     return *raw;
