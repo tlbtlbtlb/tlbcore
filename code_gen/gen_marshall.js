@@ -822,8 +822,17 @@ function CType(reg, typename) {
   type.extraHeaderIncludes = [];
   type.extraConstructorCode = [];
   type.extraDestructorCode = [];
-  type.arrayConversions = [];
 }
+
+CType.prototype.addFunctionDecl = function(x) { this.extraFunctionDecls.push(x); };
+CType.prototype.addMemberDecl = function(x) { this.extraMemberDecls.push(x); };
+CType.prototype.addConstructorArg = function(x) { this.extraConstructorArgs.push(x); };
+CType.prototype.addHostCode = function(x) { this.extraHostCode.push(x); };
+CType.prototype.addDeclDependency = function(x) { this.extraDeclDependencies.push(x); };
+CType.prototype.addJsWrapHeaderInclude = function(x) { this.extraJsWrapHeaderIncludes.push(x); };
+CType.prototype.addHeaderInclude = function(x) { this.extraHeaderIncludes.push(x); };
+CType.prototype.addConstructorCode = function(x) { this.extraConstructorCode.push(x); };
+CType.prototype.addDestructorCode = function(x) { this.extraDestructorCode.push(x); };
 
 CType.prototype.isStruct = function() { return false; };
 CType.prototype.isObject = function() { return false; };
@@ -942,14 +951,14 @@ CType.prototype.getTypeAndVersion = function() {
   return type.typename + '@' + type.getSignature();
 };
 
-CType.prototype.declMember = function(it) {
-  var type = this;
-  type.extraMemberDecls.push(it);
-};
 
-CType.prototype.declFunctions = function(it) {
+/*
+  Defn Dependencies: 
+*/
+
+CType.prototype.addDefnDependency = function(x) { 
   var type = this;
-  type.extraFunctionDecls.push(it);
+  type.extraDefnDependencies.push(x); 
 };
 
 CType.prototype.getDefnDependencies = function() {
@@ -1422,6 +1431,16 @@ function CollectionCType(reg, typename) {
 }
 CollectionCType.prototype = Object.create(CType.prototype);
 CollectionCType.prototype.isCollection = function() { return true; };
+
+
+CollectionCType.prototype.addJswrapMethod = function(x) { 
+  var type = this;
+  type.extraJswrapMethods.push(x);
+};
+CollectionCType.prototype.addJswrapAccessor = function(x) { 
+  var type = this;
+  type.extraJswrapAccessors.push(x);
+};
 
 CollectionCType.prototype.emitLinalgDecl = function(f) { 
   var type = this;

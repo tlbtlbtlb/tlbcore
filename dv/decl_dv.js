@@ -49,12 +49,12 @@ module.exports = function(typereg) {
 
     var type = typereg.template(problemTypename);
     
-    type.extraJsWrapHeaderIncludes.push('tlbcore/dv/dv_jsWrap.h');
-    type.extraHeaderIncludes.push('tlbcore/dv/sgd.h');
+    type.addJsWrapHeaderInclude('tlbcore/dv/dv_jsWrap.h');
+    type.addHeaderInclude('tlbcore/dv/sgd.h');
     type.noSerialize = true;
     type.noPacket = true;
 
-    type.extraJswrapMethods.push(function(f) {
+    type.addJswrapMethod(function(f) {
       var type = this;
       f.emitJsMethod('addPair', function() {
         f.emitArgSwitch([{
@@ -93,13 +93,13 @@ module.exports = function(typereg) {
       });
     });
 
-    type.extraJswrapAccessors.push(function(f) {
+    type.addJswrapAccessor(function(f) {
       f.emitJsAccessors('theta', {
         get: 'args.GetReturnValue().Set(' + paramType.getCppToJsExpr('thisObj->it->theta', 'thisObj->it') + ');'
       });
     });
 
-    type.extraHostCode.push(function(f) {
+    type.addHostCode(function(f) {
       if (type.preLossPredict) {
         type.preLossPredict(f);
       }
