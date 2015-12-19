@@ -4,9 +4,9 @@ var util                = require('util');
 var cgen                = require('./cgen');
 var CType               = require('./ctype').CType;
 
-exports.CDspType = CDspType;
+exports.DspCType = DspCType;
 
-function CDspType(reg, lbits, rbits) {
+function DspCType(reg, lbits, rbits) {
   var type = this;
   type.lbits = lbits;
   type.rbits = rbits;
@@ -15,30 +15,30 @@ function CDspType(reg, lbits, rbits) {
   var typename = 'dsp' + lbits.toString() + rbits.toString();
   CType.call(type, reg, typename);
 }
-CDspType.prototype = Object.create(CType.prototype);
-CDspType.prototype.isDsp = function() { return true; };
+DspCType.prototype = Object.create(CType.prototype);
+DspCType.prototype.isDsp = function() { return true; };
 
-CDspType.prototype.getFns = function() {
+DspCType.prototype.getFns = function() {
   var type = this;
   return {};
 };
 
-CDspType.prototype.getSynopsis = function() {
+DspCType.prototype.getSynopsis = function() {
   var type = this;
   return '(' + type.typename + ')';
 };
 
-CDspType.prototype.getHeaderIncludes = function() {
+DspCType.prototype.getHeaderIncludes = function() {
   var type = this;
   return ['#include "tlbcore/common/dspcore.h"'].concat(CType.prototype.getHeaderIncludes.call(type));
 };
 
-CDspType.prototype.getAllZeroExpr = function() {
+DspCType.prototype.getAllZeroExpr = function() {
   var type = this;
   return '0';
 };
 
-CDspType.prototype.getAllNanExpr = function() {
+DspCType.prototype.getAllNanExpr = function() {
   var type = this;
   switch (type.tbits) {
   case 16:
