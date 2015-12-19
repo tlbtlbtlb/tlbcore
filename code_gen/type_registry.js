@@ -109,6 +109,16 @@ TypeRegistry.prototype.template = function(typename) {
   return t;
 };
 
+TypeRegistry.prototype.dsp = function(lbits, rbits) {
+  var typereg = this;
+  var typename = 'dsp' + lbits.toString() + rbits.toString();
+  if (typename in typereg.types) return typereg.types[typename];
+  var t = new DspCType(typereg, lbits, rbits);
+  typereg.types[typename] = t;
+  return t;
+};
+
+
 TypeRegistry.prototype.getType = function(typename) {
   var typereg = this;
   if (typename === null || typename === undefined) return null;
@@ -121,10 +131,6 @@ TypeRegistry.prototype.aliasType = function(existingName, newName) {
   var type = typereg.getType(existingName);
   if (!type) throw 'No such type ' + existingName;
   typereg.types[newName] = type;
-};
-
-TypeRegistry.prototype.loadDeclarations = function(modulename) {
-  // WRITEME
 };
 
 TypeRegistry.prototype.emitAll = function(files) {

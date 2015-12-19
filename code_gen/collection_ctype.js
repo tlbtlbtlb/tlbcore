@@ -8,8 +8,7 @@ var CType               = require('./ctype').CType;
 exports.CollectionCType = CollectionCType;
 
 /* ----------------------------------------------------------------------
-   Template types
-   WRITEME: support vector<TYPENAME> and such things
+   Template or collection types (lumped together)
 */
 
 function CollectionCType(reg, typename) {
@@ -224,11 +223,7 @@ CollectionCType.prototype.getMemberTypes = function() {
 
 CollectionCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
-  if (0 && type.isRef()) {
-    f('typedef JsWrapGenericRef< TYPENAME > JsWrap_JSTYPE;');
-  } else {
-    f('typedef JsWrapGeneric< TYPENAME > JsWrap_JSTYPE;');
-  }
+  f('typedef JsWrapGeneric< TYPENAME > JsWrap_JSTYPE;');
   f('void jsConstructor_JSTYPE(JsWrap_JSTYPE *it, FunctionCallbackInfo<Value> const &args);');
   f('Handle<Value> jsToJSON_JSTYPE(Isolate *isolate, TYPENAME const &it);');
 };

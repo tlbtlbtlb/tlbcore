@@ -160,7 +160,6 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
     return 'true';
   default:
     throw new Error('Unknown primitive type');
-    //return '(JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr)';
   }
 };
 
@@ -186,7 +185,6 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
     return 'convJsToCxDouble(isolate, ' + valueExpr + ')';
   default:
     throw new Error('Unknown primitive type');
-    //return 'JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ')';
   }
 };
 
