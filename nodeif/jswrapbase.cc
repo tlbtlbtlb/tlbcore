@@ -93,10 +93,6 @@ Local<Object> convCxDoubleToJs(Isolate *isolate, arma::cx_double const &it)
   ret->Set(String::NewFromUtf8(isolate, "imag"), Number::New(isolate, it.imag()));
   return ret;
 }
-Local<Object> convCxDoubleToJs(arma::cx_double const &it)
-{
-  return convCxDoubleToJs(Isolate::GetCurrent(), it);
-}
 
 /* ----------------------------------------------------------------------
   Enhancements to the JSON module
@@ -145,11 +141,6 @@ Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it)
   Local<Value> itJs = convStringToJs(isolate, it.it);
   Local<Value> ret = gJSON_parse->Call(gJSON, 1, &itJs);
   return ret;
-}
-
-Local<Value> convJsonstrToJs(jsonstr const &it)
-{
-  return convJsonstrToJs(Isolate::GetCurrent(), it);
 }
 
 /* ----------------------------------------------------------------------

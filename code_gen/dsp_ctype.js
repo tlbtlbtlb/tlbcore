@@ -13,6 +13,7 @@ function DspCType(reg, lbits, rbits) {
   type.tbits = lbits + rbits;
 
   var typename = 'dsp' + lbits.toString() + rbits.toString();
+  type.
   CType.call(type, reg, typename);
 }
 DspCType.prototype = Object.create(CType.prototype);

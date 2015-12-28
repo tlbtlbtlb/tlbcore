@@ -63,19 +63,16 @@ template<typename T> Local<Object> convArmaMatToJs(Isolate *isolate, arma::Mat<T
 bool canConvJsToCxDouble(Isolate *isolate, Local<Value> it);
 arma::cx_double convJsToCxDouble(Isolate *isolate, Local<Value> it);
 Local<Object> convCxDoubleToJs(Isolate *isolate, arma::cx_double const &it);
-Local<Object> convCxDoubleToJs(arma::cx_double const &it);
 
 // map<string, jsonstr> conversion
 bool canConvJsToMapStringJsonstr(Isolate *isolate, Local<Value> itv);
 map<string, jsonstr> convJsToMapStringJsonstr(Isolate *isolate, Local<Value> itv);
 Local<Value> convJsonstrToJs(Isolate *isolate, map<string, jsonstr> const &it);
-Local<Value> convJsonstrToJs(map<string, jsonstr> const &it);
 
 // jsonstr conversion
 bool canConvJsToJsonstr(Isolate *isolate, Local<Value> value);
 jsonstr convJsToJsonstr(Isolate *isolate, Local<Value> value);
 Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it);
-Local<Value> convJsonstrToJs(jsonstr const &it);
 
 // Dv conversion
 bool canConvJsToDv(Isolate *isolate, Local<Value> it);
@@ -138,6 +135,10 @@ struct JsWrapGeneric : node::ObjectWrap {
 
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     Local<Object> instance = localConstructor->NewInstance(0, nullptr);
+    if (instance.IsEmpty()) {
+      if (1) eprintf("NewInstance: constructor failed, instance is empty\n");
+      return scope.Escape(Undefined(isolate));
+    }
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assignConstruct(std::forward<Args>(_args)...);
     return scope.Escape(instance);
@@ -147,6 +148,10 @@ struct JsWrapGeneric : node::ObjectWrap {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     Local<Object> instance = localConstructor->NewInstance(0, nullptr);
+    if (instance.IsEmpty()) {
+      if (1) eprintf("NewInstance: constructor failed, instance is empty\n");
+      return scope.Escape(Undefined(isolate));
+    }
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assign(_it);
     return scope.Escape(instance);
@@ -170,6 +175,10 @@ struct JsWrapGeneric : node::ObjectWrap {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     Local<Object> instance = localConstructor->NewInstance(0, nullptr);
+    if (instance.IsEmpty()) {
+      if (1) eprintf("DependentInstance: constructor failed, instance is empty\n");
+      return scope.Escape(Undefined(isolate));
+    }
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assignConstruct(_contents);
     w->owner.Reset(isolate, _owner);
@@ -186,9 +195,6 @@ struct JsWrapGeneric : node::ObjectWrap {
       }
     }
     return shared_ptr<CONTENTS>();
-  }
-  static shared_ptr<CONTENTS> Extract(Local<Value> value) {
-    return Extract(Isolate::GetCurrent(), value);
   }
 
 
