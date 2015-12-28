@@ -157,6 +157,10 @@ struct JsWrapGeneric : node::ObjectWrap {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     Local<Object> instance = localConstructor->NewInstance(0, nullptr);
+    if (instance.IsEmpty()) {
+      if (1) eprintf("MemberInstance: constructor failed, instance is empty\n");
+      return scope.Escape(Undefined(isolate));
+    }
     JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assign(shared_ptr<CONTENTS>(_parent, _ptr));
     return scope.Escape(instance);

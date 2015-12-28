@@ -13,29 +13,17 @@ bool fastJsonFlag;
 void ThrowInvalidArgs(Isolate *isolate) {
   isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid arguments")));
 }
-void ThrowInvalidArgs() {
-  ThrowInvalidArgs(Isolate::GetCurrent());
-}
 
 void ThrowInvalidThis(Isolate *isolate) {
   isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid this, did you forget to call new?")));
-}
-void ThrowInvalidThis() {
-  ThrowInvalidThis(Isolate::GetCurrent());
 }
 
 void ThrowTypeError(Isolate *isolate, char const *s) {
   isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, s)));
 }
-void ThrowTypeError(char const *s) {
-  ThrowTypeError(Isolate::GetCurrent(), s);
-}
 
 void ThrowRuntimeError(Isolate *isolate, char const *s) {
   isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, s)));
-}
-void ThrowRuntimeError(char const *s) {
-  ThrowRuntimeError(Isolate::GetCurrent(), s);
 }
 
 /* ----------------------------------------------------------------------
@@ -62,16 +50,10 @@ string convJsToString(Isolate *isolate, Local<Value> it) {
 Local<Value> convStringToJs(Isolate *isolate, string const &it) {
   return String::NewFromUtf8(isolate, it.data(), String::kNormalString, it.size());
 }
-Local<Value> convStringToJs(string const &it) {
-  return convStringToJs(Isolate::GetCurrent(), it);
-}
 Local<Value> convStringToJsBuffer(Isolate *isolate, string const &it) {
   Local<Value> nb = node::Buffer::New(isolate, it.size()).ToLocalChecked();
   memcpy(node::Buffer::Data(nb), it.data(), it.size());
   return nb;
-}
-Local<Value> convStringToJsBuffer(string const &it) {
-  return convStringToJsBuffer(Isolate::GetCurrent(), it);
 }
 
 /* ----------------------------------------------------------------------
@@ -160,7 +142,7 @@ Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it)
   assert(gParse->IsFunction() && "not a function: JSON.parse");
   Local<Function> gJSON_parse = gParse.As<Function>();
 
-  Local<Value> itJs = convStringToJs(it.it);
+  Local<Value> itJs = convStringToJs(isolate, it.it);
   Local<Value> ret = gJSON_parse->Call(gJSON, 1, &itJs);
   return ret;
 }

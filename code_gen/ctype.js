@@ -62,9 +62,6 @@ CType.prototype.emitLinalgImpl = function(f) {
 CType.prototype.nonPtrType = function() {
   return this;
 };
-CType.prototype.nonDvType = function() {
-  return this;
-};
 
 CType.prototype.getConstructorArgs = function() {
   return this.extraConstructorArgs;
@@ -199,10 +196,10 @@ CType.prototype.getMemberTypes = function() {
 CType.prototype.emitHeader = function(f) {
   var type = this;
   f('#include "tlbcore/common/jsonio.h"');
+  type.emitForwardDecl(f);
   _.each(type.getHeaderIncludes(), function(l) {
     f(l);
   });
-  type.emitForwardDecl(f);
   type.emitTypeDecl(f);
   type.emitLinalgDecl(f);
   type.emitFunctionDecl(f);

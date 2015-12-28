@@ -5,15 +5,41 @@
    Evaluate polynomials
 */
 
+double getValue(Polyfit1 const &u, double t)
+{
+  return u.c0 + t*(u.c1);
+}
+Dv getValue(DvPolyfit1 const &u, Dv t)
+{
+  if (0) eprintf("getValue(DvPolyfit1): u.c0=%g+D%g\n", u.c0.value, u.c0.deriv);
+  return u.c0 + t*(u.c1);
+}
+double getDerivative(Polyfit1 const &u, double t)
+{
+  return u.c1;
+}
+Dv getDerivative(DvPolyfit1 const &u, Dv t)
+{
+  return u.c1;
+}
+
 double getValue(Polyfit3 const &u, double t)
 {
   return u.c0 + t*(u.c1 + (t*(u.c2 + t*u.c3)));
+}
+Dv getValue(DvPolyfit3 const &u, Dv t)
+{
+  if (0) eprintf("getValue(DvPolyfit3): u.c0=%g+D%g\n", u.c0.value, u.c0.deriv);
+  return u.c0 + t*(u.c1 + (t*(u.c2 + t*(u.c3))));
 }
 double getDerivative(Polyfit3 const &u, double t)
 {
   return u.c1 + 2.0*u.c2*t + 3.0*u.c3*t*t;
 }
-
+Dv getDerivative(DvPolyfit3 const &u, Dv t)
+{
+  return u.c1 + t*(Dv(2.0)*u.c2 + t*(Dv(3.0)*u.c3));
+}
 
 double getValue(Polyfit5 const &u, double t)
 {
@@ -28,12 +54,38 @@ double getDerivative(Polyfit5 const &u, double t)
 {
   return u.c1 + t*(2.0*u.c2 + t*(3.0*u.c3 + t*(4.0*u.c4 + t*(5.0*u.c5))));
 }
+Dv getDerivative(DvPolyfit5 const &u, Dv t)
+{
+  return u.c1 + t*(Dv(2.0)*u.c2 + t*(Dv(3.0)*u.c3 + t*(Dv(4.0)*u.c4 + t*(Dv(5.0)*u.c5))));
+}
 
 
 
 /*
-  Fit a 3rd-degree polynomial to some X and Y data. That is, return a Polyfit3 p so that getValue(p, X) approximates Y.
+  Fit a polynomial to some X and Y data. That is, return a Polyfit{1,3,5} p so that getValue(p, X) approximates Y.
  */
+
+Polyfit1 mkPolyfit1(arma::Col<double> xs, arma::Col<double> ys)
+{
+  if (xs.n_elem != ys.n_elem) throw runtime_error("incompatible arrays");
+  if (xs.n_elem < 2) throw runtime_error ("not enough data");
+
+  arma::mat xsm = arma::mat(xs.n_elem, 2);
+  arma::mat ysm = arma::mat(ys.n_elem, 1);
+
+  for (size_t ri=0; ri<xs.n_elem; ri++) {
+    double x = xs(ri);
+    double y = ys(ri);
+    xsm(ri, 0) = 1;
+    xsm(ri, 1) = x;
+    ysm(ri, 0) = y;
+  }
+  
+  // Throws runtime_error if no solution
+  arma::mat coeffs = arma::solve(xsm, ysm);
+  return Polyfit1(coeffs(0,0), coeffs(1,0));
+}
+
 
 Polyfit3 mkPolyfit3(arma::Col<double> xs, arma::Col<double> ys)
 {

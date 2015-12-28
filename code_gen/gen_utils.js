@@ -27,7 +27,7 @@ function nonPtrTypes(types) {
   return _.map(types, function(t) { return t.nonPtrType(); });
 }
 function nonDvTypes(types) {
-  return _.map(types, function(t) { return t.nonDvType(); });
+  return _.map(types, function(t) { return t.nonDvType || t });
 }
 
 

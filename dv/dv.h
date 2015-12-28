@@ -35,6 +35,22 @@ struct Dv {
 
 ostream & operator<<(ostream &s, Dv const &obj);
 
+static inline Dv asDvType(double const &a) {
+  return Dv(a);
+}
+static inline Dv asDvType(float const &a) {
+  return Dv(a);
+}
+static inline int asDvType(int const &a) {
+  return a;
+}
+static inline string asDvType(string const &a) {
+  return a;
+}
+static inline double asNonDvType(Dv const &a) {
+  return a.value;
+}
+
 static inline void foreachDv(Dv &owner, string const &name, function<void (Dv &, string const &)> f)
 {
   f(owner, name);

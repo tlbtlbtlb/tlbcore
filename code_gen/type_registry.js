@@ -263,7 +263,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
 
       f('void jsWrap_' + jsScopedFuncname + '(FunctionCallbackInfo<Value> const &args) {');
       f('Isolate *isolate = args.GetIsolate();');
-      f('EscapableHandleScope scope(isolate);');
+      f('HandleScope scope(isolate);');
       _.each(funcInfosThisTemplate, function(funcInfo) {
         f('// ' + funcInfo.desc);
 
@@ -310,6 +310,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         f('}');
         f('}');
       });
+      f('if (0) eprintf("Args.length=%d, about to throw invalid args\\n", (int)args.Length());');
       f('return ThrowInvalidArgs(isolate);');
       f('}');
 

@@ -48,8 +48,17 @@ StructCType.prototype.withDvs = function() {
     return type;
   }
   type.dvType = type.reg.struct.apply(type.reg, [dvTypename].concat(newMembers));
+  type.dvType.nonDvType = type;
+  type.dvType.extraDeclDependencies.push(type);
+  type.extraDeclDependencies.push(type.dvType);
   return type.dvType;
 };
+
+StructCType.prototype.emitForwardDecl = function(f) {
+  var type = this;
+  f('struct ' + type.typename + ';');
+};
+
 
 StructCType.prototype.emitLinalgDecl = function(f) { 
   var type = this;
@@ -58,6 +67,14 @@ StructCType.prototype.emitLinalgDecl = function(f) {
   f('void linalgExport(const ' + type.typename + ' &a, double *&p);');
   f('void linalgImport(' + type.typename + ' &a, double const *&p);');
   f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (Dv &, string const &)> f);');
+
+  if (type.dvType) {
+    f('' + type.dvType.typename + ' asDvType(' + type.typename + ' const &a);');
+  }
+  if (type.nonDvType) {
+    f('' + type.nonDvType.typename + ' asNonDvType(' + type.typename + ' const &a);');
+  }
+
 };
 
 StructCType.prototype.emitLinalgImpl = function(f) { 
@@ -94,6 +111,24 @@ StructCType.prototype.emitLinalgImpl = function(f) {
   }
   f('}');
 
+  if (type.dvType) {
+    f('' + type.dvType.typename + ' asDvType(' + type.typename + ' const &a) {');
+
+    f('return ' + type.dvType.typename + '(' + _.map(type.orderedNames, function(memberName) {
+      return 'asDvType(a.' + memberName + ')';
+    }).join(', ') + ');');
+
+    f('}');
+  }
+  if (type.nonDvType) {
+    f('' + type.nonDvType.typename + ' asNonDvType(' + type.typename + ' const &a) {');
+    
+    f('return ' + type.nonDvType.typename + '(' + _.map(type.orderedNames, function(memberName) {
+      return 'asNonDvType(a.' + memberName + ')';
+    }).join(', ') + ');');
+    
+    f('}');
+  }
 };
 
 StructCType.prototype.addSuperType = function(superTypename) {
@@ -723,16 +758,39 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsMethod('foreachDv', function() {
       f.emitArgSwitch([
         {args: ['string', 'Object'], code: function(f) {
-          f('foreachDv(*thisObj->it, a0, [isolate, &args, a0, a1, thisObj](Dv &dv, string const &name) {');
+          // If an exception is thrown by the callback, we have to avoid calling any other JS functions
+          f('bool failed = false;');
+          f('foreachDv(*thisObj->it, a0, [isolate, &args, a0, a1, thisObj, &failed](Dv &dv, string const &name) {');
+          f('if (failed) return;');
           f('Local<Value> argv[2] = {');
           f('JsWrap_Dv::MemberInstance(isolate, thisObj->it, &dv),');
           f('convStringToJs(isolate, name)');
           f('};');
-          f('a1->CallAsFunction(args.This(), 2, argv);');
+          f('Local<Value> a1ret(a1->CallAsFunction(args.This(), 2, argv));');
+          f('if (a1ret.IsEmpty()) failed = true;');
           f('});');
         }}
       ]);
     });
+
+    if (type.dvType) {
+      f.emitJsMethod('asDvType', function() {
+        f.emitArgSwitch([
+          {args: [], code: function(f) {
+            f('args.GetReturnValue().Set(' + type.dvType.getCppToJsExpr('asDvType(*thisObj->it)') + ');')
+          }}
+        ]);
+      });
+    }
+    if (type.nonDvType) {
+      f.emitJsMethod('asNonDvType', function() {
+        f.emitArgSwitch([
+          {args: [], code: function(f) {
+            f('args.GetReturnValue().Set(' + type.nonDvType.getCppToJsExpr('asNonDvType(*thisObj->it)') + ');')
+          }}
+        ]);
+      });
+    }
 
   }
 
