@@ -322,5 +322,48 @@ function withJsWrapUtils(f, typereg) {
     });
   };
 
+  f.emitJsLinalgMethods = function() {
+    f.emitJsMethod('toLinalg', function() {
+      f.emitArgSwitch([
+        {args: [], code: function(f) {
+          f('args.GetReturnValue().Set(convArmaColToJs(isolate, toLinalg(*thisObj->it)));');
+        }}
+      ]);
+    });
+    f.emitJsMethod('fromLinalg', function() {
+      f.emitArgSwitch([
+        {args: ['arma::Col<double>'], code: function(f) {
+          f('linalgImport(*thisObj->it, a0);');
+        }}
+      ]);
+    });
+
+    /* Call as parms.foreachDv('parms', callback). Calls callback(dv, fullName) for each dv
+       contained in parms. fullName is a hierarchical name of the dv (something like "parms.foo.bar").
+
+       The callback will normally modify dv (by setting dv.deriv=1), evaluate an expression for
+       which dv is a parameter, and restore dv (by setting dv.deriv=0).
+    */
+    f.emitJsMethod('foreachDv', function() {
+      f.emitArgSwitch([
+        {args: ['string', 'Object'], code: function(f) {
+          // If an exception is thrown by the callback, we have to avoid calling any other JS functions
+          f('bool failed = false;');
+          f('foreachDv(*thisObj->it, a0, [isolate, &args, a0, a1, thisObj, &failed](Dv &dv, string const &name) {');
+          f('if (failed) return;');
+          f('Local<Value> argv[2] = {');
+          f('JsWrap_Dv::MemberInstance(isolate, thisObj->it, &dv),');
+          f('convStringToJs(isolate, name)');
+          f('};');
+          f('Local<Value> a1ret(a1->CallAsFunction(args.This(), 2, argv));');
+          f('if (a1ret.IsEmpty()) failed = true;');
+          f('});');
+        }}
+      ]);
+    });
+
+
+  };
+
   return f;
 }

@@ -438,20 +438,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         }}
       ]);
     });
-    f.emitJsMethod('toLinalg', function() {
-      f.emitArgSwitch([
-        {args: [], code: function(f) {
-          f('args.GetReturnValue().Set(convArmaColToJs(isolate, toLinalg(*thisObj->it)));');
-        }}
-      ]);
-    });
-    f.emitJsMethod('fromLinalg', function() {
-      f.emitArgSwitch([
-        {args: ['arma::Col<double>'], code: function(f) {
-          f('linalgImport(*thisObj->it, a0);');
-        }}
-      ]);
-    });
+    f.emitJsLinalgMethods();
   }
 
   if (type.templateName === 'map' && type.templateArgs[0] === 'string') {

@@ -277,6 +277,16 @@ void foreachDv(map<string, VALUE> const &owner, string const &name, function<voi
   }
 }
 
+template<typename ELEM>
+void foreachDv(arma::Col<ELEM> const &owner, string const &name, function<void (Dv &, string const &)> f) {
+}
+template<typename ELEM>
+void foreachDv(arma::Row<ELEM> const &owner, string const &name, function<void (Dv &, string const &)> f) {
+}
+template<typename ELEM>
+void foreachDv(arma::Mat<ELEM> const &owner, string const &name, function<void (Dv &, string const &)> f) {
+}
+
 
 
 
