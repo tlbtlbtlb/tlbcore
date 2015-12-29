@@ -8,7 +8,7 @@ module.exports = function(typereg) {
   };
 
   lp.lossFunc = function(f) {
-    f('return sqr(pred-actual);');
+    f('return sqr(pred - actual);');
   };
   lp.predictFunc = function(f) {
     f('return getValue(theta, input);');

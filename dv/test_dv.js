@@ -1,3 +1,5 @@
+var _                   = require('underscore');
+require('../common/MoreUnderscore');
 var ur                  = require('ur');
 var util                = require('util');
 var assert              = require('assert');
@@ -43,11 +45,12 @@ describe('dv', function() {
 
 });
 
-describe('LearningProblem', function() {
-  it('should work', function() {
+describe('LearningProblem_DvPolyfit5_Dv_Dv', function() {
+
+  function test_lp(yfromx) {
     var lp = new ur.LearningProblem_DvPolyfit5_Dv_Dv();
-    for (var i=-1000; i<1000; i++) {
-      lp.addPair(i * 0.001, i*0.001);
+    for (var x = -1; x < 1; x += 0.001) {
+      lp.addPair(x, yfromx(x));
     }
     var lr = 0.01;
     var loss1;
@@ -60,12 +63,24 @@ describe('LearningProblem', function() {
     if (loss1 > 0.5) {
       throw new Error('Unacceptable loss value ' + loss1);
     }
-
-    for (var i=0; i<10; i++) {
-      var input = Math.random()*2-1;
-      var output = lp.predict(input);
-      console.log('io', input, output.value);
+    
+    console.log(lp.theta.asNonDvType());
+    console.log('    x      ytarg  ypred')
+    for (var x = -1; x <= 1; x += 0.25) {
+      var ypred = lp.predict(x).value;
+      var ytarg = yfromx(x);
+      console.log('  ', _.fmt3(x), _.fmt3(ytarg), _.fmt3(ypred));
     }
+  }
 
+
+  it('should work for y=x', function() {
+    test_lp(function(x) { return x; });
+  });
+  it('should work for y=x^2', function() {
+    test_lp(function(x) { return x*x; });
+  });
+  it('should work for y=x^3', function() {
+    test_lp(function(x) { return x*x*x; });
   });
 });
