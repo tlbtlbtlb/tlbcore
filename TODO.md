@@ -2,6 +2,12 @@
 
 ### Common
 
+  * Clean up MoreUnderscore:
+    - Eliminate arrayMapPar & friends (use async npm instead)
+    - Eliminate subclass
+    - Eliminate rsvp
+ *
+
 ### Numerical
 
 ### Arma
