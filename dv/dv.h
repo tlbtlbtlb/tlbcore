@@ -56,6 +56,16 @@ static inline void foreachDv(Dv &owner, string const &name, function<void (Dv &,
   f(owner, name);
 }
 
+template<typename THETA>
+size_t dvCount(THETA &owner)
+{
+  size_t ret = 0;
+  foreachDv(owner, "dummy", [&ret](Dv &dv, string const &name) {
+      ret++;
+    });
+  return ret;
+}
+
 /*
   Only export value as linalg
  */

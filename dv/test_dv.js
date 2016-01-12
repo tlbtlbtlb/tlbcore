@@ -49,13 +49,13 @@ describe('LearningProblem_DvPolyfit5_Dv_Dv', function() {
 
   function test_lp(yfromx) {
     var lp = new ur.LearningProblem_DvPolyfit5_Dv_Dv();
-    for (var x = -1; x < 1; x += 0.001) {
+    for (var x = -1.5; x < 1.5; x += 0.001) {
       lp.addPair(x, yfromx(x));
     }
     var lr = 0.01;
     var loss1;
     for (var i=0; i<5000; i++) {
-      loss1 = lp.sgdStep(lr, 50, 0);
+      loss1 = lp.sgdStep(lr, 10, 0);
       lr *= 0.9998;
       if (0) console.log(loss1, lp.theta.c0.value, lp.theta.c1.value, lp.theta.c2.value, lp.theta.c3.value, lp.theta.c4.value, lp.theta.c5.value, lr);
       if (loss1 != loss1) break; // detect NaN
@@ -64,7 +64,7 @@ describe('LearningProblem_DvPolyfit5_Dv_Dv', function() {
       throw new Error('Unacceptable loss value ' + loss1);
     }
     
-    console.log(lp.theta.asNonDvType());
+    console.log('loss=' + loss1.toString(), 'theta=' + lp.theta.asNonDvType().toString());
     console.log('    x      ytarg  ypred')
     for (var x = -1; x <= 1; x += 0.25) {
       var ypred = lp.predict(x).value;

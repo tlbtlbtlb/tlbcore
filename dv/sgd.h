@@ -37,8 +37,9 @@ double LearningProblem<PARAM, INPUT, OUTPUT>::sgdStep(double learningRate, int m
     mbElems.push_back((size_t)random() % inputs.size());
   }
   
-  vector<double> gradient;
+  vector<double> gradient(dvCount(theta));
   
+  size_t gi = 0;
   foreachDv(theta, "theta", [&](Dv &dv, string const &name) {
       if (verbose >= 3) eprintf("%s:\n", name.c_str());
       dv.deriv = 1;
@@ -54,10 +55,10 @@ double LearningProblem<PARAM, INPUT, OUTPUT>::sgdStep(double learningRate, int m
       
       mbLoss = mbLoss * Dv(1.0/(double)minibatchSize, 0);
       dv.deriv = 0;
-      gradient.push_back(mbLoss.deriv);
+      gradient[gi] = mbLoss.deriv;
 
       if (verbose >= 2) eprintf("%s: mbLoss = %g'%g\n", name.c_str(), mbLoss.value, mbLoss.deriv);
-
+      gi++;
     });
   
   double gradientNorm = 0.0;
@@ -74,7 +75,7 @@ double LearningProblem<PARAM, INPUT, OUTPUT>::sgdStep(double learningRate, int m
 
   }
   
-  size_t gi = 0;
+  gi = 0;
   foreachDv(theta, "theta", [&](Dv &dv, string const &name) {
       dv.value -= gradient[gi] * learningRate;
       gi++;
