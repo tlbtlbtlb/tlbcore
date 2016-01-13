@@ -133,6 +133,10 @@ struct JsWrapGeneric : node::ObjectWrap {
   static Local<Value> NewInstance(Isolate *isolate, Args &&... _args) {
     EscapableHandleScope scope(isolate);
 
+    if (constructor.IsEmpty()) {
+      if (1) eprintf("NewInstance: no constructor\n");
+      return scope.Escape(Undefined(isolate));
+    }
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
     Local<Object> instance = localConstructor->NewInstance(0, nullptr);
     if (instance.IsEmpty()) {
