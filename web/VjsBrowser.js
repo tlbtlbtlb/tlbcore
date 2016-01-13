@@ -825,6 +825,7 @@ $.fn.animation2 = function(m) {
       lastTime = curTime;
       if (m.animate) m.animate(dt);
       m.emit('animate', dt);
+      if (m.postAnimate) m.postAnimate(dt);
       window.requestAnimationFrame(wrap);
     } 
     else if (changesPending > 0) {
