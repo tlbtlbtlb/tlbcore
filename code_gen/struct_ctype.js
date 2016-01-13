@@ -665,24 +665,20 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       }},
       (constructorArgs.length > 0 && constructorArgs.length === type.orderedNames.length) ? 
         {args: ['Object'], code: function(f) {
-          if (1) {
-            f('thisObj->assignDefault();');
-            _.each(type.orderedNames, function(memberName, argi) {
-              var memberType = type.reg.getType(type.nameToType[memberName]);
-              f('Local<Value> a_' + memberName + '_js = a0->Get(String::NewFromUtf8(isolate, "' + memberName + '"));');
-              f('if (' + memberType.getJsToCppTest('a_'+memberName+'_js', {}) + ') {');
-              f('thisObj->it->' + memberName + ' = ' + memberType.getJsToCppExpr('a_'+memberName+'_js', {}) + ';');
-              f('}');
-            });
-          } else {
-	    f('thisObj->assignConstruct(' + _.map(type.orderedNames, function(memberName, argi) {
-              var memberType = type.reg.getType(type.nameToType[memberName]);
-	      if (!memberType) {
-	        throw new Error('No type found for ' + util.inspect(memberName));
-	      }
-              return memberType.getJsToCppExpr('a0->Get(String::NewFromUtf8(isolate, "' + memberName + '"))', {});
-            }));
-          }
+          f('thisObj->assignDefault();');
+          _.each(type.orderedNames, function(memberName, argi) {
+            var memberType = type.reg.getType(type.nameToType[memberName]);
+            f('');
+            f('Local<Value> a0_' + memberName + '_js = a0->Get(String::NewFromUtf8(isolate, "' + memberName + '"));');
+            f('if (a0_' + memberName + '_js->IsUndefined()) {');
+            f('}');
+            f('else if (' + memberType.getJsToCppTest('a0_'+memberName+'_js', {conv: true}) + ') {');
+            f('thisObj->it->' + memberName + ' = ' + memberType.getJsToCppExpr('a0_'+memberName+'_js', {conv: true}) + ';');
+            f('}');
+            f('else {');
+            f('return ThrowTypeError(isolate, "Expected ' + memberType.typename + ' for ' + memberName + '");');
+            f('}');
+          });
         }}
       : undefined
     ]);

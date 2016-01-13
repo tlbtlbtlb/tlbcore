@@ -82,7 +82,7 @@ function withJsWrapUtils(f, typereg) {
         _.map(argSet.args, function(argTypename, argi) {
           var m;
 	  if (argTypename === 'Object') {
-	    return '&& args[' + argi + ']->IsObject()';
+	    return ' && args[' + argi + ']->IsObject()';
 	  }
           else if (m = /^conv:(.*)$/.exec(argTypename)) {
             var argType = typereg.getType(m[1]);
