@@ -16,7 +16,6 @@
       },
       'include_dirs+': [
         '/usr/local/include',
-        "<!(node -e \"require('nan')\")"
       ],
       'libraries+': [
         '-L/usr/local/lib', '-larmadillo', '-lz'
@@ -27,7 +26,6 @@
         ['LINK','/usr/bin/clang++'],
       ],
       'include_dirs+': [
-        "<!(node -e \"require('nan')\")"
       ],
       'libraries+': [
         '-larmadillo', '-lz'

@@ -139,9 +139,9 @@ module.exports = function(typereg) {
                                   'arma::Col<ET> cumsum(arma::Col<ET> a);',
                                   'arma::Mat<ET> diagmat(arma::Col<ET> a);',
 
-                                  'arma::Mat<ET> sort(arma::Mat<ET> a, char const* dir, int dim);',
-                                  'arma::Col<ET> sort(arma::Col<ET> a, char const* dir);',
-                                  'arma::Row<ET> sort(arma::Row<ET> a, char const* dir);',
+                                  'arma::Mat<ET> sort(arma::Mat<ET> a, char const *dir, int dim);',
+                                  'arma::Col<ET> sort(arma::Col<ET> a, char const *dir);',
+                                  'arma::Row<ET> sort(arma::Row<ET> a, char const *dir);',
 
                                   'arma::Col<ET> ones< arma::Col<ET> >(int ne);',
                                   'arma::Mat<ET> ones< arma::Mat<ET> >(int nr, int nc);',
@@ -193,7 +193,7 @@ module.exports = function(typereg) {
                                   'u_int all(arma::Row<u_int> a);',
                                   'u_int all(arma::Col<u_int> a);',
 
-                                 ].join('\n').replace(/ET/g,et));
+                                 ].join('\n').replace(/ET/g, et));
         } 
         else if (rowFixed && colFixed) {
           typereg.scanCFunctions([

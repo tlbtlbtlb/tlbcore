@@ -5,7 +5,7 @@
 
 struct ParEngine {
   
-  ParEngine(size_t _threadsAvail = 0, size_t _memAvail = 0)
+  explicit ParEngine(size_t _threadsAvail = 0, size_t _memAvail = 0)
     :threadsUsed(0), threadsAvail(_threadsAvail),
      memUsed(0), memAvail(_memAvail),
      verbose(false)
@@ -43,7 +43,7 @@ struct ParEngine {
 };
 
 struct ParEngineRsv {
-  ParEngineRsv(ParEngine *_owner, size_t _memNeeded)
+  explicit ParEngineRsv(ParEngine *_owner, size_t _memNeeded)
     :owner(_owner),
      memNeeded(_memNeeded)
   {

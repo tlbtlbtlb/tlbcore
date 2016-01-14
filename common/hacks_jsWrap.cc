@@ -14,7 +14,7 @@ static void ur_jumpConsistentHash(FunctionCallbackInfo<Value> const &args)
     args.GetReturnValue().Set(Number::New(isolate, ret));
   }
   else  {
-    ThrowInvalidArgs();
+    ThrowInvalidArgs(isolate);
   }
 }
 
@@ -27,7 +27,7 @@ static void ur_realtime(FunctionCallbackInfo<Value> const &args)
     args.GetReturnValue().Set(Number::New(isolate, realtime()));
   }
   else  {
-    ThrowInvalidArgs();
+    ThrowInvalidArgs(isolate);
   }
 }
 

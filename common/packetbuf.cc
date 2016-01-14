@@ -844,7 +844,6 @@ void packet_wr_value(packet &p, arma::cx_double const &x) { packet_wr_value(p, x
 void packet_rd_typetag(packet &p, arma::cx_double const &x) { p.check_typetag("cx_double"); }
 void packet_rd_value(packet &p, arma::cx_double &x) { double real, imag; packet_rd_value(p, real); packet_rd_value(p, imag); x = arma::cx_double(real, imag); }
 
-
 void packet_wr_typetag(packet &p, Dv const &x) { p.add_typetag("Dv"); }
 void packet_wr_value(packet &p, Dv const &x) { packet_wr_value(p, x.value); packet_wr_value(p, x.deriv); }
 void packet_rd_typetag(packet &p, Dv const &x) { p.check_typetag("Dv"); }

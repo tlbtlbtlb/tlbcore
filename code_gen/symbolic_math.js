@@ -227,7 +227,10 @@ SymbolicContext.prototype.getCExpr = function(e, availCses) {
     else if (e.type === 'arma::mat44' && e.value === 0) {
       return e.type + '(arma::fill::zeros)';
     }
-    else if (e.type === 'arma::mat44' && e.value === 1) {
+    else if (e.type === 'arma::mat44' && e.value === 'zeros') {
+      return e.type + '(arma::fill::zeros)';
+    }
+    else if (e.type === 'arma::mat44' && e.value === 'eye') {
       return e.type + '(arma::fill::eye)';
     }
     else if (e.type === 'arma::mat44' && e.value.length === 16) {
@@ -237,7 +240,7 @@ SymbolicContext.prototype.getCExpr = function(e, availCses) {
       return e.type + '{' + _.map(e.value, function(v) { return v.toString(); }).join(', ') + '}';
     }
     else {
-      throw new Error('Cannot generate constant of type ' + e.type + ' and value ' + e.value);
+      throw new Error('Cannot generate constant of type ' + e.type + ' and value ' + e.value + '. You can add this case in SymbolicContext.getCExpr.');
     }
     return '(' + e.type + ' { ' + e.value.toString() + ' })';
   }

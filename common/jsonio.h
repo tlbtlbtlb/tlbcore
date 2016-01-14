@@ -1,3 +1,4 @@
+// -*- C++ -*-
 #pragma once
 #include <ctype.h>
 #include <armadillo>
@@ -26,6 +27,10 @@ struct jsonstr {
   explicit jsonstr(string const &_it);
   explicit jsonstr(const char *str);
   explicit jsonstr(const char *begin, const char *end);
+
+  jsonstr(jsonstr &&other) :it(std::move(other.it)) {}
+  jsonstr(jsonstr const &other) = default;
+  jsonstr & operator= (const jsonstr & other) = default;
   ~jsonstr();
 
   // Use this api to efficiently create a string of a given maximum size `n`. Write and advance 
@@ -123,6 +128,24 @@ bool rdJson(const char *&s, arma::cx_double &value);
 bool rdJson(const char *&s, Dv &value);
 bool rdJson(const char *&s, string &value);
 bool rdJson(const char *&s, jsonstr &value);
+
+
+/*
+  Doesn't participate in linear algebra
+ */
+static inline size_t linalgSize(const jsonstr &a)
+{
+  return 0;
+}
+static inline void linalgExport(const jsonstr &a, double *&p)
+{
+}
+static inline void linalgImport(jsonstr &a, double const *&p)
+{
+}
+static inline void foreachDv(jsonstr const &owner, string const &name, function<void (Dv &, string const &)> f) {
+}
+
 
 
 /*

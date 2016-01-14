@@ -851,7 +851,6 @@ bool rdJson(const char *&s, Dv &value)
   return false;
 }
 
-
 ostream & operator<<(ostream &s, const jsonstr &obj)
 {
   return s << obj.it;

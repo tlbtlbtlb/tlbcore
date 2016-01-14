@@ -113,6 +113,13 @@ struct packet {
   explicit packet(u_char const *data, size_t size);
   explicit packet(string const &data);
   packet(const packet &other);
+  packet(packet &&other) noexcept
+  :contents(std::move(other.contents)), annotations(std::move(other.annotations)), rd_pos(std::move(other.rd_pos)), wr_pos(std::move(other.wr_pos))
+  {
+    other.contents = nullptr;
+    other.annotations = nullptr;
+  }
+
   packet & operator= (packet const &other);
   ~packet();
 
@@ -331,6 +338,7 @@ void packet_wr_typetag(packet &p, const string &s);
 void packet_wr_typetag(packet &p, const jsonstr &s);
 void packet_wr_typetag(packet &p, const arma::cx_double &s);
 void packet_wr_typetag(packet &p, const Dv &s);
+
 
 void packet_rd_value(packet &p, bool &x);
 void packet_rd_value(packet &p, char &x);

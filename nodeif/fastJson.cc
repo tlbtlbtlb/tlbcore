@@ -4,7 +4,7 @@
 using namespace v8;
 
 void jsWrap_withFastJson(FunctionCallbackInfo<Value> const &args) {
-  Isolate* isolate = Isolate::GetCurrent();
+  Isolate* isolate = args.GetIsolate();
   HandleScope scope(isolate);
 
   if (args.Length() == 1 && args[0]->IsFunction()) {
@@ -14,7 +14,7 @@ void jsWrap_withFastJson(FunctionCallbackInfo<Value> const &args) {
     fastJsonFlag = false;
   }
   else {
-    ThrowInvalidArgs();
+    ThrowInvalidArgs(isolate);
   }
 }
 
