@@ -12,3 +12,5 @@ tags
 /dump.rdb
 /node_modules
 .gitfiles
+/o3d-read-only
+/webgl-loader-read-only
