@@ -144,6 +144,19 @@ inline void linalgImport(Dv &a, double const *&p)
   linalgImport(a.value, p);
 }
 
+inline size_t linalgSize(DvMat const &a)
+{
+  return linalgSize(a.value);
+}
+inline void linalgExport(DvMat const &a, double *&p)
+{
+  linalgExport(a.value, p);
+}
+inline void linalgImport(DvMat &a, double const *&p)
+{
+  linalgImport(a.value, p);
+}
+
 
 static inline Dv operator + (Dv const &a, Dv const &b)
 {

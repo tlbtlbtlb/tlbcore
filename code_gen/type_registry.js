@@ -56,6 +56,7 @@ TypeRegistry.prototype.setupBuiltins = function() {
   typereg.aliasType('U32','u_int');
   typereg.primitive('U64');
   typereg.primitive('Dv');
+  typereg.primitive('DvMat');
   typereg.primitive('string');
   typereg.primitive('char const *');
   typereg.primitive('jsonstr');

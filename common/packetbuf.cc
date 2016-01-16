@@ -849,6 +849,11 @@ void packet_wr_value(packet &p, Dv const &x) { packet_wr_value(p, x.value); pack
 void packet_rd_typetag(packet &p, Dv const &x) { p.check_typetag("Dv"); }
 void packet_rd_value(packet &p, Dv &x) { double value, deriv; packet_rd_value(p, value); packet_rd_value(p, deriv); x = Dv(value, deriv); }
 
+void packet_wr_typetag(packet &p, DvMat const &x) { p.add_typetag("DvMat"); }
+void packet_wr_value(packet &p, DvMat const &x) { packet_wr_value(p, x.value); packet_wr_value(p, x.deriv); }
+void packet_rd_typetag(packet &p, DvMat const &x) { p.check_typetag("DvMat"); }
+void packet_rd_value(packet &p, DvMat &x) { arma::mat value, deriv; packet_rd_value(p, value); packet_rd_value(p, deriv); x = DvMat(value, deriv); }
+
 
 // ----------------------------------------------------------------------
 
