@@ -94,22 +94,30 @@ bool jsonMatchKey(char const *&s, char const *pattern);
 */
 
 size_t wrJsonSize(bool const &value);
-size_t wrJsonSize(int const &value);
-size_t wrJsonSize(u_int const &value);
+size_t wrJsonSize(S32 const &value);
+size_t wrJsonSize(U32 const &value);
+size_t wrJsonSize(S64 const &value);
+size_t wrJsonSize(U64 const &value);
 size_t wrJsonSize(float const &value);
 size_t wrJsonSize(double const &value);
 size_t wrJsonSize(arma::cx_double const &value);
 size_t wrJsonSize(Dv const &value);
+size_t wrJsonSize(DvRef const &value);
+size_t wrJsonSize(DvMat const &value);
 size_t wrJsonSize(string const &value);
 size_t wrJsonSize(jsonstr const &value);
 
 void wrJson(char *&s, bool const &value);
-void wrJson(char *&s, int const &value);
-void wrJson(char *&s, u_int const &value);
+void wrJson(char *&s, S32 const &value);
+void wrJson(char *&s, U32 const &value);
+void wrJson(char *&s, S64 const &value);
+void wrJson(char *&s, U64 const &value);
 void wrJson(char *&s, float const &value);
 void wrJson(char *&s, double const &value);
 void wrJson(char *&s, arma::cx_double const &value);
 void wrJson(char *&s, Dv const &value);
+void wrJson(char *&s, DvRef const &value);
+void wrJson(char *&s, DvMat const &value);
 void wrJson(char *&s, string const &value);
 void wrJson(char *&s, jsonstr const &value);
 
@@ -120,12 +128,16 @@ void wrJson(char *&s, jsonstr const &value);
 */
 
 bool rdJson(const char *&s, bool &value);
-bool rdJson(const char *&s, int &value);
-bool rdJson(const char *&s, u_int &value);
+bool rdJson(const char *&s, S32 &value);
+bool rdJson(const char *&s, U32 &value);
+bool rdJson(const char *&s, S64 &value);
+bool rdJson(const char *&s, U64 &value);
 bool rdJson(const char *&s, float &value);
 bool rdJson(const char *&s, double &value);
 bool rdJson(const char *&s, arma::cx_double &value);
 bool rdJson(const char *&s, Dv &value);
+bool rdJson(const char *&s, DvRef &value);
+bool rdJson(const char *&s, DvMat &value);
 bool rdJson(const char *&s, string &value);
 bool rdJson(const char *&s, jsonstr &value);
 
@@ -143,7 +155,7 @@ static inline void linalgExport(const jsonstr &a, double *&p)
 static inline void linalgImport(jsonstr &a, double const *&p)
 {
 }
-static inline void foreachDv(jsonstr const &owner, string const &name, function<void (Dv &, string const &)> f) {
+static inline void foreachDv(jsonstr const &owner, string const &name, function<void (DvRef &, string const &)> f) {
 }
 
 

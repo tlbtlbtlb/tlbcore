@@ -16,9 +16,10 @@
       },
       'include_dirs+': [
         '/usr/local/include',
+        '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/libxml2'
       ],
       'libraries+': [
-        '-L/usr/local/lib', '-larmadillo', '-lz'
+        '-L/usr/local/lib', '-larmadillo', '-lz', '-lmlpack'
       ]
     }, {
       'make_global_settings': [

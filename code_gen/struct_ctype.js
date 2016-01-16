@@ -66,7 +66,7 @@ StructCType.prototype.emitLinalgDecl = function(f) {
   f('size_t linalgSize(const ' + type.typename + ' &a);');
   f('void linalgExport(const ' + type.typename + ' &a, double *&p);');
   f('void linalgImport(' + type.typename + ' &a, double const *&p);');
-  f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (Dv &, string const &)> f);');
+  f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (DvRef &, string const &)> f);');
 
   if (type.dvType) {
     f('' + type.dvType.typename + ' asDvType(' + type.typename + ' const &a);');
@@ -100,7 +100,7 @@ StructCType.prototype.emitLinalgImpl = function(f) {
   });
   f('}');
 
-  f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (Dv &, string const &)> f) {');
+  f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (DvRef &, string const &)> f) {');
   if (!type.noSerialize) {
     _.each(type.orderedNames, function(memberName) {
       var memberType = type.nameToType[memberName];
@@ -705,9 +705,11 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       var memberType = type.nameToType[name];
       if (!memberType.isPtr()) {
 	switch (memberType.typename) {
-	case 'int': 
-	case 'u_int': 
-	case 'float': 
+	case 'S32':
+	case 'U32':
+	case 'S64':
+	case 'U64':
+	case 'float':
  	case 'double':
           f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), Number::New(isolate, it.' + name + '));');
           break;

@@ -48,8 +48,10 @@ PrimitiveCType.prototype.getAllZeroExpr = function() {
   case 'float': return '0.0f';
   case 'double': return '0.0';
   case 'Dv': return 'Dv(0.0, 0.0)';
-  case 'int': return '0';
-  case 'u_int': return '0';
+  case 'S32': return '0';
+  case 'S64': return '0';
+  case 'U32': return '0';
+  case 'U64': return '0';
   case 'bool': return 'false';
   case 'string': return 'string()';
   case 'char const*': return 'NULL';
@@ -64,8 +66,10 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
   case 'float': return 'numeric_limits<float>::quiet_NaN()';
   case 'double': return 'numeric_limits<double>::quiet_NaN()';
   case 'Dv': return 'Dv(numeric_limits<double>::quiet_NaN(), 0.0)';
-  case 'int': return '0x80000000';
-  case 'u_int': return '0x80000000';
+  case 'S32': return '0x80000000';
+  case 'S64': return '0x8000000000000000LL';
+  case 'U32': return '0x80000000U';
+  case 'U64': return '0x8000000000000000ULL';
   case 'bool': return 'false';
   case 'string': return 'string(\"nan\")';
   case 'char const*': return 'NULL';
@@ -77,9 +81,13 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
 PrimitiveCType.prototype.getExampleValueJs = function() {
   var type = this;
   switch (type.typename) {
-  case 'int':
+  case 'S32':
     return '7';
-  case 'u_int':
+  case 'S64':
+    return '7';
+  case 'U32':
+    return '8';
+  case 'U64':
     return '8';
   case 'float':
     return '5.5';
@@ -141,8 +149,10 @@ PrimitiveCType.prototype.getVarDecl = function(varname) {
 PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
   var type = this;
   switch (type.typename) {
-  case 'int':
-  case 'u_int':
+  case 'S32':
+  case 'S64':
+  case 'U32':
+  case 'U64':
   case 'float':
   case 'double':
     return '((' + valueExpr + ')->IsNumber())';
@@ -166,9 +176,10 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
 PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   var type = this;
   switch (type.typename) {
-  case 'int':
-  case 'u_int':
-  case 'float':
+  case 'S32':
+  case 'U32':
+  case 'S64':
+  case 'U64':
   case 'double':
     return '((' + valueExpr + ')->NumberValue())';
   case 'Dv':
@@ -191,8 +202,10 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
 PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerExpr) {
   var type = this;
   switch (type.typename) {
-  case 'int': 
-  case 'u_int': 
+  case 'S32':
+  case 'S64':
+  case 'U32': 
+  case 'U64': 
   case 'float': 
   case 'double':
     return 'Number::New(isolate, ' + valueExpr + ')';

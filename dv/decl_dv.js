@@ -21,6 +21,7 @@ module.exports = function(typereg) {
       lp = typereg.learningProblem(paramTypename, inputTypename, outputTypename)
     to define the types. It returns a type, which in addition to the usual things you can do with a type, allows you to set
       lp.lossFunc = function(f) { f('return sqrt(actual - pred);'); }
+      lp.regularizerFunc = function(f) { f('return sqr(theta.a1) + sqr(theta.a2);'); }
     and
       lp.predictFunc = function(f) { f('return something(theta, input);'); }
 
@@ -50,7 +51,7 @@ module.exports = function(typereg) {
     var type = typereg.template(problemTypename);
     
     type.addJsWrapHeaderInclude('tlbcore/dv/dv_jsWrap.h');
-    type.addHeaderInclude('tlbcore/dv/sgd.h');
+    type.addHeaderInclude('tlbcore/dv/optimize.h');
     type.noSerialize = true;
     type.noPacket = true;
 
@@ -82,11 +83,28 @@ module.exports = function(typereg) {
         }]);
       });
 
+      f.emitJsMethod('regularizer', function() {
+        f.emitArgSwitch([{
+          args: [], code: function(f) {
+            f('Dv ret = thisObj->it->regularizer();');
+            f('args.GetReturnValue().Set(convDvToJs(isolate, ret));');
+          }
+        }]);
+      });
 
       f.emitJsMethod('sgdStep', function() {
         f.emitArgSwitch([{
-          args: ['double', 'double', 'int'], code: function(f) {
-            f('double loss = thisObj->it->sgdStep(a0, a1, a2);');
+          args: ['double', 'double'], code: function(f) {
+            f('double loss = thisObj->it->sgdStep(a0, a1);');
+            f('args.GetReturnValue().Set(Local<Value>(Number::New(isolate, loss)));');
+          }
+        }]);
+      });
+
+      f.emitJsMethod('lbfgs', function() {
+        f.emitArgSwitch([{
+          args: [], code: function(f) {
+            f('double loss = thisObj->it->lbfgs();');
             f('args.GetReturnValue().Set(Local<Value>(Number::New(isolate, loss)));');
           }
         }]);
@@ -96,6 +114,14 @@ module.exports = function(typereg) {
     type.addJswrapAccessor(function(f) {
       f.emitJsAccessors('theta', {
         get: 'args.GetReturnValue().Set(' + paramType.getCppToJsExpr('thisObj->it->theta', 'thisObj->it') + ');'
+      });
+      f.emitJsAccessors('verbose', {
+        get: 'args.GetReturnValue().Set(' + typereg.getType('int').getCppToJsExpr('thisObj->it->verbose') + ');',
+        set: 'thisObj->it->verbose = ' + typereg.getType('int').getJsToCppExpr('value') + ';'
+      });
+      f.emitJsAccessors('regularization', {
+        get: 'args.GetReturnValue().Set(' + typereg.getType('double').getCppToJsExpr('thisObj->it->regularization') + ');',
+        set: 'thisObj->it->regularization = ' + typereg.getType('double').getJsToCppExpr('value') + ';'
       });
     });
 
@@ -107,6 +133,13 @@ module.exports = function(typereg) {
         f('template<>');
         f('Dv LearningProblem<' + paramTypename + ',' + inputTypename + ',' + outputTypename + '>::loss(' + outputTypename + ' const &pred, ' + outputTypename + ' const &actual) {');
         type.lossFunc(f);
+        f('}');
+      }
+
+      if (type.regularizerFunc) {
+        f('template<>');
+        f('Dv LearningProblem<' + paramTypename + ',' + inputTypename + ',' + outputTypename + '>::regularizer() {');
+        type.regularizerFunc(f);
         f('}');
       }
       

@@ -35,6 +35,9 @@ describe('dv', function() {
   it('should find Dvs', function() {
     var a = new ur.DvPolyfit5();
     a.foreachDv('a', function(dv, name) {
+      if (!dv) {
+        throw new Error('No dv for ' + name);
+      }
       dv.deriv = 1;
       var ans = ur.getValue(a, 0.5);
       console.log(name, dv.toString(), ans.toString());
@@ -47,7 +50,7 @@ describe('dv', function() {
 
 describe('LearningProblem_DvPolyfit5_Dv_Dv', function() {
 
-  function test_lp(yfromx) {
+  function test_sgd(yfromx) {
     var lp = new ur.LearningProblem_DvPolyfit5_Dv_Dv();
     for (var x = -1.5; x < 1.5; x += 0.001) {
       lp.addPair(x, yfromx(x));
@@ -55,32 +58,64 @@ describe('LearningProblem_DvPolyfit5_Dv_Dv', function() {
     var lr = 0.01;
     var loss1;
     for (var i=0; i<5000; i++) {
-      loss1 = lp.sgdStep(lr, 10, 0);
+      loss1 = lp.sgdStep(lr, 10);
       lr *= 0.9998;
       if (0) console.log(loss1, lp.theta.c0.value, lp.theta.c1.value, lp.theta.c2.value, lp.theta.c3.value, lp.theta.c4.value, lp.theta.c5.value, lr);
       if (loss1 != loss1) break; // detect NaN
     }
-    if (loss1 > 0.5) {
-      throw new Error('Unacceptable loss value ' + loss1);
-    }
     
-    console.log('loss=' + loss1.toString(), 'theta=' + lp.theta.asNonDvType().toString());
+    console.log('sgd: loss=' + loss1.toString(), 'theta=' + lp.theta.asNonDvType().toString());
     console.log('    x      ytarg  ypred')
     for (var x = -1; x <= 1; x += 0.25) {
       var ypred = lp.predict(x).value;
       var ytarg = yfromx(x);
       console.log('  ', _.fmt3(x), _.fmt3(ytarg), _.fmt3(ypred));
     }
+    if (loss1 > 0.5) {
+      throw new Error('Unacceptable loss value ' + loss1);
+    }
+  }
+
+  function test_lbfgs(yfromx) {
+    var lp = new ur.LearningProblem_DvPolyfit5_Dv_Dv();
+    for (var x = -1.5; x < 1.5; x += 0.001) {
+      lp.addPair(x, yfromx(x));
+    }
+    lp.regularization = 0.0001;
+    var loss1 = lp.lbfgs();
+    
+    console.log('lbgfs: loss=' + loss1.toString(), 'theta=' + lp.theta.asNonDvType().toString());
+    console.log('    x      ytarg  ypred')
+    for (var x = -1; x <= 1; x += 0.25) {
+      var ypred = lp.predict(x).value;
+      var ytarg = yfromx(x);
+      console.log('  ', _.fmt3(x), _.fmt3(ytarg), _.fmt3(ypred));
+    }
+    if (loss1 > 0.5) {
+      throw new Error('Unacceptable loss value ' + loss1);
+    }
   }
 
 
-  it('should work for y=x', function() {
-    test_lp(function(x) { return x; });
+  it('sgd should work for y=x', function() {
+    test_sgd(function(x) { return x; });
   });
-  it('should work for y=x^2', function() {
-    test_lp(function(x) { return x*x; });
+  it('sgd should work for y=x^2', function() {
+    test_sgd(function(x) { return x*x; });
   });
-  it('should work for y=x^3', function() {
-    test_lp(function(x) { return x*x*x; });
+  it('sgd should work for y=x^3', function() {
+    test_sgd(function(x) { return x*x*x; });
   });
+
+
+  it('lbgfs should work for y=x', function() {
+    test_lbfgs(function(x) { return x; });
+  });
+  it('lbfgs should work for y=x^2', function() {
+    test_lbfgs(function(x) { return x*x; });
+  });
+  it('lbfgs should work for y=x^3', function() {
+    test_lbfgs(function(x) { return x*x*x; });
+  });
+
 });

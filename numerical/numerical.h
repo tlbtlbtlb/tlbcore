@@ -2,6 +2,7 @@
 #pragma once
 
 struct Dv;
+struct DvRef;
 
 static inline double normangle(double x) { 
   return fmod((x + M_PI), M_2PI) - M_PI; 
@@ -41,7 +42,7 @@ static inline void linalgImport(double &a, double const *&p)
 {
   a = *p++;
 }
-static inline void foreachDv(double &owner, string const &name, function<void (Dv &, string const &)> f)
+static inline void foreachDv(double &owner, string const &name, function<void (DvRef &, string const &)> f)
 {
 }
 
@@ -58,7 +59,7 @@ static inline void linalgImport(float &a, double const *&p)
 {
   a = *p++;
 }
-static inline void foreachDv(float &owner, string const &name, function<void (Dv &, string const &)> f) {
+static inline void foreachDv(float &owner, string const &name, function<void (DvRef &, string const &)> f) {
 }
 
 
@@ -72,20 +73,33 @@ static inline void linalgExport(string const &a, double *&p)
 static inline void linalgImport(string &a, double const *&p)
 {
 }
-static inline void foreachDv(string &owner, string const &name, function<void (Dv &, string const &)> f) {
+static inline void foreachDv(string &owner, string const &name, function<void (DvRef &, string const &)> f) {
 }
 
-static inline size_t linalgSize(int const &a)
+static inline size_t linalgSize(S32 const &a)
 {
   return 0;
 }
-static inline void linalgExport(int const &a, double *&p)
+static inline void linalgExport(S32 const &a, double *&p)
 {
 }
-static inline void linalgImport(int &a, double const *&p)
+static inline void linalgImport(S32 &a, double const *&p)
 {
 }
-static inline void foreachDv(int &owner, string const &name, function<void (Dv &, string const &)> f) {
+static inline void foreachDv(S32 &owner, string const &name, function<void (DvRef &, string const &)> f) {
+}
+
+static inline size_t linalgSize(S64 const &a)
+{
+  return 0;
+}
+static inline void linalgExport(S64 const &a, double *&p)
+{
+}
+static inline void linalgImport(S64 &a, double const *&p)
+{
+}
+static inline void foreachDv(S64 &owner, string const &name, function<void (DvRef &, string const &)> f) {
 }
 
 static inline size_t linalgSize(bool const &a)
@@ -98,20 +112,34 @@ static inline void linalgExport(bool const &a, double *&p)
 static inline void linalgImport(bool &a, double const *&p)
 {
 }
-static inline void foreachDv(bool &owner, string const &name, function<void (Dv &, string const &)> f) {
+static inline void foreachDv(bool &owner, string const &name, function<void (DvRef &, string const &)> f) {
 }
 
-static inline size_t linalgSize(u_int const &a)
+static inline size_t linalgSize(U32 const &a)
 {
   return 0;
 }
-static inline void linalgExport(u_int const &a, double *&p)
+static inline void linalgExport(U32 const &a, double *&p)
 {
 }
-static inline void linalgImport(u_int &a, double const *&p)
+static inline void linalgImport(U32 &a, double const *&p)
 {
 }
-static inline void foreachDv(u_int &owner, string const &name, function<void (Dv &, string const &)> f)
+static inline void foreachDv(U32 &owner, string const &name, function<void (DvRef &, string const &)> f)
+{
+}
+
+static inline size_t linalgSize(U64 const &a)
+{
+  return 0;
+}
+static inline void linalgExport(U64 const &a, double *&p)
+{
+}
+static inline void linalgImport(U64 &a, double const *&p)
+{
+}
+static inline void foreachDv(U64 &owner, string const &name, function<void (DvRef &, string const &)> f)
 {
 }
 
@@ -136,7 +164,7 @@ static inline void linalgImport(arma::cx_double &a, double const *&p)
   linalgImport(a.imag(), p);
 #endif
 }
-static inline void foreachDv(arma::cx_double &owner, string const &name, function<void (Dv &, string const &)> f)
+static inline void foreachDv(arma::cx_double &owner, string const &name, function<void (DvRef &, string const &)> f)
 {
 }
 
@@ -176,7 +204,7 @@ static inline void linalgImport(shared_ptr<T> &a, double const *&p)
   linalgImport(*a, p);
 }
 template<typename T>
-static inline void foreachDv(shared_ptr<T> &owner, string const &name, function<void (Dv &, string const &)> f) {
+static inline void foreachDv(shared_ptr<T> &owner, string const &name, function<void (DvRef &, string const &)> f) {
   // don't bother
 }
 
@@ -205,7 +233,7 @@ static inline void linalgImport(arma::Col<T> &a, double const *&p)
   }
 }
 //template<typename T>
-static inline void foreachDv(arma::Col<double> owner, string const &name, function<void (Dv &, string const &)> f) 
+static inline void foreachDv(arma::Col<double> owner, string const &name, function<void (DvRef &, string const &)> f) 
 {
 }
 
@@ -233,7 +261,7 @@ static inline void linalgImport(arma::Mat<T> &a, double const *&p)
     linalgImport(a(i), p);
   }
 }
-static inline void foreachDv(arma::Mat<double> owner, string const &name, function<void (Dv &, string const &)> f)
+static inline void foreachDv(arma::Mat<double> owner, string const &name, function<void (DvRef &, string const &)> f)
 {
 }
 
@@ -264,27 +292,27 @@ static inline void linalgImport(vector<T> &a, double const *&p)
 
 
 template<typename T>
-void foreachDv(vector<T> &owner, string const &name, function<void (Dv &, string const &)> f) {
+void foreachDv(vector<T> &owner, string const &name, function<void (DvRef &, string const &)> f) {
   for (size_t i=0; i<owner.size(); i++) {
     foreachDv(owner[i], name + "[" + to_string(i) + "]", f);
   }
 }
 
 template<typename VALUE>
-void foreachDv(map<string, VALUE> const &owner, string const &name, function<void (Dv &, string const &)> f) {
+void foreachDv(map<string, VALUE> const &owner, string const &name, function<void (DvRef &, string const &)> f) {
   for (typename map<string, VALUE>::const_iterator it = owner.begin(); it != owner.end(); it++) {
     foreachDv(it->second, name + "." + it->first, f);
   }
 }
 
 template<typename ELEM>
-void foreachDv(arma::Col<ELEM> const &owner, string const &name, function<void (Dv &, string const &)> f) {
+void foreachDv(arma::Col<ELEM> const &owner, string const &name, function<void (DvRef &, string const &)> f) {
 }
 template<typename ELEM>
-void foreachDv(arma::Row<ELEM> const &owner, string const &name, function<void (Dv &, string const &)> f) {
+void foreachDv(arma::Row<ELEM> const &owner, string const &name, function<void (DvRef &, string const &)> f) {
 }
 template<typename ELEM>
-void foreachDv(arma::Mat<ELEM> const &owner, string const &name, function<void (Dv &, string const &)> f) {
+void foreachDv(arma::Mat<ELEM> const &owner, string const &name, function<void (DvRef &, string const &)> f) {
 }
 
 

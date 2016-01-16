@@ -45,7 +45,18 @@ function CollectionCType(reg, typename) {
     }
   });
 
-  type.templateArgTypes = _.map(type.templateArgs, function(name) { return type.reg.types[name]; });
+  type.templateArgTypes = _.map(type.templateArgs, function(name) { 
+    if (/^\d+$/.test(name)) {
+      return null;
+    }
+    else {
+      var t = type.reg.types[name];
+      if (!t) {
+        throw new Error('No type for template arg ' + name);
+      }
+      return t;
+    }
+  });
   if (0) console.log('template', typename, type.templateName, type.templateArgs);
 }
 CollectionCType.prototype = Object.create(CType.prototype);
@@ -520,7 +531,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
     f.emitJsMethod('row', function() {
       f.emitArgSwitch([
-        {args: ['u_int'], code: function(f) {
+        {args: ['U32'], code: function(f) {
           f('args.GetReturnValue().Set(' + type.reg.getType('arma::subview_row<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->row(a0)', null, 'args.This()') + ');');
         }}
       ]);
@@ -528,7 +539,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
     f.emitJsMethod('col', function() {
       f.emitArgSwitch([
-        {args: ['u_int'], code: function(f) {
+        {args: ['U32'], code: function(f) {
           f('args.GetReturnValue().Set(' + type.reg.getType('arma::subview_col<' + type.templateArgs[0] + '>').getCppToJsExpr('thisObj->it->col(a0)', null, 'args.This()') + ');');
         }}
       ]);

@@ -12,6 +12,22 @@ ostream & operator<<(ostream &s, Dv const &obj)
   return s;
 }
 
+ostream & operator<<(ostream &s, DvMat const &obj)
+{
+  s << obj.value << "'" << obj.deriv;
+  return s;
+}
+
+ostream & operator<<(ostream &s, DvRef const &obj)
+{
+  if (obj.value && obj.deriv) {
+    s << *obj.value << "'" << *obj.deriv;
+  } else {
+    s << "(null)";
+  }
+  return s;
+}
+
 
 vector< Dv > softmax(vector< Dv > const &a)
 {

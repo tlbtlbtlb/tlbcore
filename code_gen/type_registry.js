@@ -49,8 +49,12 @@ TypeRegistry.prototype.setupBuiltins = function() {
   typereg.primitive('float');
   typereg.primitive('double');
   typereg.primitive('arma::cx_double');
-  typereg.primitive('int');
-  typereg.primitive('u_int');
+  typereg.primitive('S32');
+  typereg.aliasType('S32','int');
+  typereg.primitive('S64');
+  typereg.primitive('U32');
+  typereg.aliasType('U32','u_int');
+  typereg.primitive('U64');
   typereg.primitive('Dv');
   typereg.primitive('string');
   typereg.primitive('char const *');

@@ -6,10 +6,10 @@
       'include_dirs+': ['..','../..'],
       'includes': [
         './setup.gypi',
+        '../build.src/sources_root.gypi',
         './sources.gypi',
         '../geom/sources.gypi',
         '../dv/sources.gypi',
-        '../build.src/sources_root.gypi',
       ],
       'sources': [
         './main.cc',
