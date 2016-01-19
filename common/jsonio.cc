@@ -847,31 +847,37 @@ void wrJson(char *&s, DvMat const &value)
 void wrJson(char *&s, DvRef const &value)
 {
   *s++ = '{';
-  *s++ = '"';
-  *s++ = 'v';
-  *s++ = 'a';
-  *s++ = 'l';
-  *s++ = 'u';
-  *s++ = 'e';
-  *s++ = '"';
-  *s++ = ':';
-  wrJson(s, *value.value);
-  *s++ = ',';
-  *s++ = '"';
-  *s++ = 'd';
-  *s++ = 'e';
-  *s++ = 'r';
-  *s++ = 'i';
-  *s++ = 'v';
-  *s++ = '"';
-  *s++ = ':';
-  wrJson(s, *value.deriv);
+  bool needComma = false;
+  if (value.value) {
+    if (needComma) *s++ = ',';
+    *s++ = '"';
+    *s++ = 'v';
+    *s++ = 'a';
+    *s++ = 'l';
+    *s++ = 'u';
+    *s++ = 'e';
+    *s++ = '"';
+    *s++ = ':';
+    wrJson(s, *value.value);
+    needComma = true;
+  }
+  if (value.deriv) {
+    if (needComma) *s++ = ',';
+    *s++ = '"';
+    *s++ = 'd';
+    *s++ = 'e';
+    *s++ = 'r';
+    *s++ = 'i';
+    *s++ = 'v';
+    *s++ = '"';
+    *s++ = ':';
+    wrJson(s, *value.deriv);
+    needComma = true;
+  }
   *s++ = '}';
 }
 bool rdJson(const char *&s, Dv &value)
 {
-  double value_value = 0.0, value_deriv = 0.0;
-
   char c;
   jsonSkipSpace(s);
   c = *s++;
@@ -880,7 +886,6 @@ bool rdJson(const char *&s, Dv &value)
       jsonSkipSpace(s);
       c = *s++;
       if (c == '}') {
-        value = Dv(value_value, value_deriv);
         return true;
       }
       else if (c == '\"') {
@@ -898,12 +903,11 @@ bool rdJson(const char *&s, Dv &value)
                   if (c == '\"') {
                     c = *s++;
                     if (c == ':') {
-                      if (rdJson(s, value_value)) {
+                      if (rdJson(s, value.value)) {
                         jsonSkipSpace(s);
                         c = *s++;
                         if (c == ',') continue;
                         if (c == '}') {
-                          value = Dv(value_value, value_deriv);
                           return true;
                         }
                       }
@@ -927,12 +931,11 @@ bool rdJson(const char *&s, Dv &value)
                   if (c == '\"') {
                     c = *s++;
                     if (c == ':') {
-                      if (rdJson(s, value_deriv)) {
+                      if (rdJson(s, value.deriv)) {
                         jsonSkipSpace(s);
                         c = *s++;
                         if (c == ',') continue;
                         if (c == '}') {
-                          value = Dv(value_value, value_deriv);
                           return true;
                         }
                       }
@@ -952,12 +955,84 @@ bool rdJson(const char *&s, Dv &value)
 }
 bool rdJson(const char *&s, DvMat &value)
 {
-  // WRITEME
+  char c;
+  jsonSkipSpace(s);
+  c = *s++;
+  if (c == '{') {
+    while(1) {
+      jsonSkipSpace(s);
+      c = *s++;
+      if (c == '}') {
+        return true;
+      }
+      else if (c == '\"') {
+        c = *s++;
+        if (c == 'v') {
+          c = *s++;
+          if (c == 'a') {
+            c = *s++;
+            if (c == 'l') {
+              c = *s++;
+              if (c == 'u') {
+                c = *s++;
+                if (c == 'e') {
+                  c = *s++;
+                  if (c == '\"') {
+                    c = *s++;
+                    if (c == ':') {
+                      if (rdJson(s, value.value)) {
+                        jsonSkipSpace(s);
+                        c = *s++;
+                        if (c == ',') continue;
+                        if (c == '}') {
+                          return true;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (c == 'd') {
+          c = *s++;
+          if (c == 'e') {
+            c = *s++;
+            if (c == 'r') {
+              c = *s++;
+              if (c == 'i') {
+                c = *s++;
+                if (c == 'v') {
+                  c = *s++;
+                  if (c == '\"') {
+                    c = *s++;
+                    if (c == ':') {
+                      if (rdJson(s, value.deriv)) {
+                        jsonSkipSpace(s);
+                        c = *s++;
+                        if (c == ',') continue;
+                        if (c == '}') {
+                          return true;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+  s--;
   return false;
 }
 bool rdJson(const char *&s, DvRef &value)
 {
-  // WRITEME
+  // Impossible
   return false;
 }
 
@@ -1145,7 +1220,7 @@ bool rdJson(const char *&s, arma::Mat<T> &arr) {
     throw runtime_error(stringprintf("rdJson(arma::Mat %dx%x): Couldn't deduce size for %d-elem js arr",
 				     (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size()));
   }
-  if (0) eprintf("rdJson(arma::Mat): %dx%d -> %dx%d\n", (int)arr.n_rows, (int)arr.n_cols, (int)n_rows, (int)n_cols);
+  if (1) eprintf("rdJson(arma::Mat): %dx%d -> %dx%d\n", (int)arr.n_rows, (int)arr.n_cols, (int)n_rows, (int)n_cols);
   arr.set_size(n_rows, n_cols);
   for (size_t ei=0; ei < arr.n_elem; ei++) {
     arr(ei) = tmparr[ei];

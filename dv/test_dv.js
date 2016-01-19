@@ -5,10 +5,14 @@ var util                = require('util');
 var assert              = require('assert');
 
 describe('dv', function() {
-  it('dv should work', function() {
+  it('Dv should work', function() {
     var d = new ur.Dv(1.5);
     assert.equal(d.value, 1.5);
     assert.equal(d.deriv, 0);
+  });
+
+  it('DvMat should work', function() {
+    var d = new ur.DvMat();
   });
 
 

@@ -62,6 +62,16 @@ function CollectionCType(reg, typename) {
 CollectionCType.prototype = Object.create(CType.prototype);
 CollectionCType.prototype.isCollection = function() { return true; };
 
+CollectionCType.prototype.withDvs = function() {
+  var type = this;
+  switch (type.typename) {
+  case 'arma::Mat<double>': 
+    return type.reg.getType('DvMat');
+  default:
+    return type;
+  }
+};
+
 
 CollectionCType.prototype.addJswrapMethod = function(x) { 
   var type = this;
@@ -474,6 +484,21 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       }
     });
   }
+
+  if (type.templateName === 'arma::Col' || 
+      type.templateName === 'arma::Row' || 
+      type.templateName === 'arma::Mat') {
+    f.emitJsMethod('set_size', function() {
+      f.emitArgSwitch([
+        {args: ['U64'], code: function(f) {
+          f('thisObj->it->set_size(a0);');
+        }},
+        {args: ['U64', 'U64'], code: function(f) {
+          f('thisObj->it->set_size(a0, a1);');
+        }}
+      ]);
+    });
+  }       
 
   if (type.templateName === 'arma::Col' || 
       type.templateName === 'arma::Col::fixed' || 

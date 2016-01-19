@@ -155,7 +155,11 @@ static inline void linalgExport(const jsonstr &a, double *&p)
 static inline void linalgImport(jsonstr &a, double const *&p)
 {
 }
-static inline void foreachDv(jsonstr const &owner, string const &name, function<void (DvRef &, string const &)> f) {
+static inline void foreachDv(jsonstr const &owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+static inline void foreachDv(jsonstr const &owner, function<void (DvRef const &)> f) {
+}
+static inline void foreachScalar(jsonstr const &owner, function<void (double *)> f) {
 }
 
 

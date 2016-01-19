@@ -21,7 +21,7 @@ struct LearningProblem {
   
   double sgdStep(double learningRate, int minibatchSize);
 
-  double lbfgs();
+  double lbfgs(int maxIter);
 
   int verbose;
   double regularization;
@@ -64,12 +64,12 @@ double LearningProblem<PARAM, INPUT, OUTPUT>::sgdStep(double learningRate, int m
   for (int bi = 0; bi < minibatchSize; bi++) {
     mbElems.push_back((size_t)random() % inputs.size());
   }
+  sort(mbElems.begin(), mbElems.end());
   
   vector<double> gradient(dvCount(theta));
   
   size_t gi = 0;
-  foreachDv(theta, "theta", [&](DvRef &dv, string const &name) {
-      if (verbose >= 3) eprintf("%s:\n", name.c_str());
+  foreachDv(theta, [&](DvRef const &dv) {
       *dv.deriv = 1;
       
       Dv mbLoss(0.0, 0.0);
@@ -86,7 +86,7 @@ double LearningProblem<PARAM, INPUT, OUTPUT>::sgdStep(double learningRate, int m
       *dv.deriv = 0;
       gradient[gi] = mbLoss.deriv;
 
-      if (verbose >= 2) eprintf("%s: mbLoss = %g'%g\n", name.c_str(), mbLoss.value, mbLoss.deriv);
+      if (verbose >= 2) eprintf("  mbLoss = %g'%g\n", mbLoss.value, mbLoss.deriv);
       gi++;
     });
   
@@ -105,7 +105,7 @@ double LearningProblem<PARAM, INPUT, OUTPUT>::sgdStep(double learningRate, int m
   }
   
   gi = 0;
-  foreachDv(theta, "theta", [&](DvRef &dv, string const &name) {
+  foreachDv(theta, [&](DvRef const &dv) {
       *dv.value -= gradient[gi] * learningRate;
       gi++;
     });
@@ -137,9 +137,10 @@ struct OptimizableFunction {
   void setInitialPoint()
   {
     dimension = dvCount(lp->theta);
+    eprintf("optimize dimension=%lu\n", dimension);
     initialPoint.set_size(dimension);
     size_t dimi = 0;
-    foreachDv(lp->theta, "theta", [&](DvRef &dv, string const &name) {
+    foreachDv(lp->theta, [&](DvRef const &dv) {
         initialPoint[dimi] = *dv.value;
         dimi ++;
       });
@@ -149,24 +150,25 @@ struct OptimizableFunction {
   {
     assert(coordinates.size() == dimension);
     size_t dimi = 0;
-    if (lp->verbose >= 2) cout << "Evaluate" << coordinates << endl;
-    foreachDv(lp->theta, "theta", [&](DvRef &dv, string const &name) {
+    foreachDv(lp->theta, [&](DvRef const &dv) {
         *dv.value = coordinates[dimi];
         *dv.deriv = 0;
         dimi ++;
       });
     assert(dimi == dimension);
     Dv l1 = lp->totalLoss();
+    if (lp->verbose >= 2) eprintf("Evaluate at %0.3f %0.3f %0.3f: %0.6f\n",
+                                  coordinates(0), coordinates(1), coordinates(2), 
+                                  l1.value);
     return l1.value;
   }
   void Gradient(const arma::mat& coordinates, arma::mat& gradient)
   {
     assert(coordinates.size() == dimension);
-    if (lp->verbose >= 2) cout << "Gradient" << coordinates << endl;
     gradient.set_size(dimension);
 
     size_t dimi = 0;
-    foreachDv(lp->theta, "theta", [&](DvRef &dv, string const &name) {
+    foreachDv(lp->theta, [&](DvRef const &dv) {
         *dv.value = coordinates[dimi];
         *dv.deriv = 0;
         dimi ++;
@@ -174,7 +176,7 @@ struct OptimizableFunction {
     assert(dimi == dimension);
 
     dimi = 0;
-    foreachDv(lp->theta, "theta", [&](DvRef &dv, string const &name) {
+    foreachDv(lp->theta, [&](DvRef const &dv) {
         *dv.deriv = 1;
         Dv l1 = lp->totalLoss();
         *dv.deriv = 0;
@@ -183,7 +185,9 @@ struct OptimizableFunction {
         dimi ++;
       });
     assert(dimi == dimension);
-    if (lp->verbose >= 2) cout << "Gradient out" << gradient << endl;
+    if (lp->verbose >= 2) eprintf("Gradient at %0.3f %0.3f %0.3f: %0.6f %0.6g %0.6f *\n",
+                                  coordinates(0), coordinates(1), coordinates(2), 
+                                  gradient(0), gradient(1), gradient(2));
   }
   arma::mat& GetInitialPoint()
   {
@@ -198,24 +202,23 @@ struct OptimizableFunction {
 
 
 template<typename PARAM, typename INPUT, typename OUTPUT>
-double LearningProblem<PARAM, INPUT, OUTPUT>::lbfgs()
+double LearningProblem<PARAM, INPUT, OUTPUT>::lbfgs(int maxIter)
 {
   typedef OptimizableFunction<LearningProblem<PARAM, INPUT, OUTPUT> > FunctionType;
   FunctionType function(this);
   
   mlpack::optimization::L_BFGS<FunctionType> opt(function);
 
-  double ret = opt.Optimize(function.GetInitialPoint(), 100);
+  double ret = opt.Optimize(function.GetInitialPoint(), maxIter);
   
   arma::vec best = opt.MinPointIterate().first;
 
   size_t dimi = 0;
-  foreachDv(theta, "theta", [&](DvRef &dv, string const &name) {
+  foreachDv(theta, [&](DvRef const &dv) {
       *dv.value = best[dimi];
       *dv.deriv = 0;
       dimi ++;
     });
-  
 
   return ret;
 }

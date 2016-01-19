@@ -103,8 +103,8 @@ module.exports = function(typereg) {
 
       f.emitJsMethod('lbfgs', function() {
         f.emitArgSwitch([{
-          args: [], code: function(f) {
-            f('double loss = thisObj->it->lbfgs();');
+          args: ['int'], code: function(f) {
+            f('double loss = thisObj->it->lbfgs(a0);');
             f('args.GetReturnValue().Set(Local<Value>(Number::New(isolate, loss)));');
           }
         }]);
@@ -113,7 +113,8 @@ module.exports = function(typereg) {
 
     type.addJswrapAccessor(function(f) {
       f.emitJsAccessors('theta', {
-        get: 'args.GetReturnValue().Set(' + paramType.getCppToJsExpr('thisObj->it->theta', 'thisObj->it') + ');'
+        get: 'args.GetReturnValue().Set(' + paramType.getCppToJsExpr('thisObj->it->theta', 'thisObj->it') + ');',
+        set: 'thisObj->it->theta = ' + paramType.getJsToCppExpr('value') + ';'
       });
       f.emitJsAccessors('verbose', {
         get: 'args.GetReturnValue().Set(' + typereg.getType('int').getCppToJsExpr('thisObj->it->verbose') + ');',

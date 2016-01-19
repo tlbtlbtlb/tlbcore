@@ -6,11 +6,6 @@ struct jsonstr;
 
 
 
-struct DvWrtScope {
-  static __thread double relu_neg_slope;
-  static __thread void const *wrt;
-};
-
 struct Dv {
   explicit Dv() 
     :value(0.0),
@@ -51,10 +46,27 @@ struct DvMat {
      deriv(_deriv)
   {
   }
+
+  DvMat & operator = (arma::mat rhs)
+  {
+    value = rhs;
+    deriv.zeros(rhs.n_rows, rhs.n_cols);
+    return *this;
+  }
+
+  void set_size(U64 n_elem) {
+    value.set_size(n_elem);
+    deriv.set_size(n_elem);
+  }
+  void set_size(U64 n_rows, U64 n_cols) {
+    value.set_size(n_rows, n_cols);
+    deriv.set_size(n_rows, n_cols);
+  }
   
   arma::mat value;
   arma::mat deriv;
 };
+
 
 struct DvRef {
   explicit DvRef(double *_value, double *_deriv)
@@ -104,28 +116,88 @@ static inline arma::mat asNonDvType(DvMat const &a) {
   return a.value;
 }
 
-static inline void foreachDv(Dv &owner, string const &name, function<void (DvRef &, string const &)> f)
+static inline void foreachDv(Dv &owner, string const &name, function<void (DvRef const &, string const &)> f)
 {
-  DvRef ref(owner);
-  f(ref, name);
+  f(DvRef(owner), name);
+}
+static inline void foreachDv(Dv &owner, function<void (DvRef const &)> f)
+{
+  f(DvRef(owner));
+}
+static inline void foreachScalar(Dv &owner, function<void (double *)> f)
+{
 }
 
-static inline void foreachDv(DvMat &owner, string const &name, function<void (DvRef &, string const &)> f)
+static inline void foreachDv(DvMat &owner, string const &name, function<void (DvRef const &, string const &)> f)
 {
   for (size_t i = 0; i < owner.value.n_elem; i++) {
-    DvRef ref(&owner.value[i], &owner.deriv[i]);
-    f(ref, name + string("[") + to_string(i) + "]");
+    string subname = name + string("[") + to_string(i) + string("]");
+    f(DvRef(&owner.value[i], &owner.deriv[i]), subname);
   }
 }
+static inline void foreachDv(DvMat &owner, function<void (DvRef const &)> f)
+{
+  for (size_t i = 0; i < owner.value.n_elem; i++) {
+    f(DvRef(&owner.value[i], &owner.deriv[i]));
+  }
+}
+static inline void foreachScalar(DvMat &owner, function<void (double *)> f)
+{
+}
+
 
 template<typename THETA>
-size_t dvCount(THETA &owner)
+size_t dvCount(THETA const &owner)
 {
+  THETA owner2 = owner;
   size_t ret = 0;
-  foreachDv(owner, "dummy", [&ret](DvRef &dv, string const &name) {
+  foreachDv(owner2, [&ret](DvRef const &dv) {
       ret++;
     });
   return ret;
+}
+
+template<typename THETA>
+vector<DvRef> dvList(THETA &owner)
+{
+  vector<DvRef> ret;
+  foreachDv(owner, [&ret](DvRef const &dv) {
+      ret.push_back(dv);
+    });
+  return ret;
+}
+
+template<typename THETA>
+void exportDvs(THETA const &owner, DvMat &dvs)
+{
+  THETA owner2 = owner; // remove const
+  size_t count = dvCount(owner2);
+  dvs.value.set_size(count);
+  dvs.deriv.set_size(count);
+  size_t i = 0;
+  foreachDv(owner2, [&](DvRef const &dv) {
+      assert(dv.value && dv.deriv);
+      dvs.value[i] = *dv.value;
+      dvs.deriv[i] = *dv.deriv;
+      i++;
+    });
+  assert(i == count);
+}
+
+template<typename THETA>
+void importDvs(THETA &owner, DvMat &dvs)
+{
+  size_t count = dvCount(owner);
+  assert(dvs.value.n_elem == count);
+  assert(dvs.deriv.n_elem == count);
+  size_t i = 0;
+  foreachDv(owner, [&](DvRef const &dv) {
+      assert(dv.value && dv.deriv);
+      *dv.value = dvs.value[i];
+      *dv.deriv = dvs.deriv[i];
+      i++;
+    });
+  assert(i == count);
 }
 
 /*
@@ -170,13 +242,38 @@ static inline Dv & operator += (Dv &a, Dv const &b)
   return a;
 }
 
+static inline DvMat operator + (DvMat const &a, DvMat const &b)
+{
+  return DvMat(a.value + b.value, a.deriv + b.deriv);
+}
+
+static inline DvMat & operator += (DvMat &a, DvMat const &b)
+{
+  a.value += b.value;
+  a.deriv += b.deriv;
+  return a;
+}
+
+
 
 static inline Dv operator - (Dv const &a, Dv const &b)
 {
   return Dv(a.value - b.value, a.deriv - b.deriv);
 }
 
+static inline DvMat operator - (DvMat const &a, DvMat const &b)
+{
+  return DvMat(a.value - b.value, a.deriv - b.deriv);
+}
+
 static inline Dv & operator -= (Dv &a, Dv const &b)
+{
+  a.value -= b.value;
+  a.deriv -= b.deriv;
+  return a;
+}
+
+static inline DvMat & operator -= (DvMat &a, DvMat const &b)
 {
   a.value -= b.value;
   a.deriv -= b.deriv;
@@ -188,13 +285,29 @@ static inline Dv operator - (Dv const &a)
   return Dv(-a.value, -a.deriv);
 }
 
+static inline DvMat operator - (DvMat const &a)
+{
+  return DvMat(-a.value, -a.deriv);
+}
+
 
 static inline Dv operator * (Dv const &a, Dv const &b)
 {
   return Dv(a.value * b.value, a.value * b.deriv + a.deriv * b.value);
 }
 
+static inline DvMat operator * (DvMat const &a, DvMat const &b)
+{
+  return DvMat(a.value * b.value, a.value * b.deriv + a.deriv * b.value);
+}
+
 static inline Dv & operator *= (Dv &a, Dv const &b)
+{
+  a = a * b;
+  return a;
+}
+
+static inline DvMat & operator *= (DvMat &a, DvMat const &b)
 {
   a = a * b;
   return a;
@@ -205,7 +318,18 @@ static inline Dv operator * (Dv const &a, double b)
   return Dv(a.value * b, a.deriv * b);
 }
 
+static inline DvMat operator * (DvMat const &a, double b)
+{
+  return DvMat(a.value * b, a.deriv * b);
+}
+
 static inline Dv & operator *= (Dv &a, double b)
+{
+  a = a * b;
+  return a;
+}
+
+static inline DvMat & operator *= (DvMat &a, double b)
 {
   a = a * b;
   return a;
@@ -214,6 +338,11 @@ static inline Dv & operator *= (Dv &a, double b)
 static inline Dv operator * (double a, Dv const &b)
 {
   return Dv(a * b.value, a * b.deriv);
+}
+
+static inline DvMat operator * (double a, DvMat const &b)
+{
+  return DvMat(a * b.value, a * b.deriv);
 }
 
 
@@ -234,7 +363,18 @@ static inline Dv operator / (Dv const &a, double b)
   return Dv(a.value / b, a.deriv / b);
 }
 
+static inline DvMat operator / (DvMat const &a, double b)
+{
+  return DvMat(a.value / b, a.deriv / b);
+}
+
 static inline Dv & operator /= (Dv &a, double b)
+{
+  a = a / b;
+  return a;
+}
+
+static inline DvMat & operator /= (DvMat &a, double b)
 {
   a = a / b;
   return a;
@@ -318,7 +458,15 @@ static inline Dv cube(Dv x) {
 }
 
 
+Dv exp(Dv const &a);
+DvMat exp(DvMat const &a);
 
 Dv relu(Dv const &a);
+DvMat relu(DvMat const &a);
+
 Dv tanh(Dv const &a);
-vector< Dv > softmax(vector< Dv > const &a);
+DvMat tanh(DvMat const &a);
+
+DvMat softmax(DvMat const &a);
+
+Dv norm(DvMat const &a);

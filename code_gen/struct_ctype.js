@@ -19,6 +19,7 @@ function StructCType(reg, typename) {
   this.nameToInitExpr = {};
   this.extraMemberDecls = [];
   this.matrixStructures = [];
+  this.extraWraps = [];
   this.compatCodes = {};
 }
 
@@ -54,6 +55,16 @@ StructCType.prototype.withDvs = function() {
   return type.dvType;
 };
 
+StructCType.prototype.addMemberDecl = function(f) {
+  var type = this;
+  type.extraMemberDecls.push(f);
+};
+
+StructCType.prototype.addWrap = function(f) {
+  var type = this;
+  type.extraWraps.push(f);
+};
+
 StructCType.prototype.emitForwardDecl = function(f) {
   var type = this;
   f('struct ' + type.typename + ';');
@@ -66,7 +77,9 @@ StructCType.prototype.emitLinalgDecl = function(f) {
   f('size_t linalgSize(const ' + type.typename + ' &a);');
   f('void linalgExport(const ' + type.typename + ' &a, double *&p);');
   f('void linalgImport(' + type.typename + ' &a, double const *&p);');
-  f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (DvRef &, string const &)> f);');
+  f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (DvRef const &, string const &)> f);');
+  f('void foreachDv(' + type.typename + ' &owner, function<void (DvRef const &)> f);');
+  f('void foreachScalar(' + type.typename + ' &owner, function<void (double *)> f);');
 
   if (type.dvType) {
     f('' + type.dvType.typename + ' asDvType(' + type.typename + ' const &a);');
@@ -100,12 +113,34 @@ StructCType.prototype.emitLinalgImpl = function(f) {
   });
   f('}');
 
-  f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (DvRef &, string const &)> f) {');
+  f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (DvRef const &, string const &)> f) {');
   if (!type.noSerialize) {
     _.each(type.orderedNames, function(memberName) {
       var memberType = type.nameToType[memberName];
       if (!memberType.isPtr() && !memberType.noSerialize) {
         f('foreachDv(owner.' + memberName + ', name + ".' + memberName + '", f);');
+      }
+    });
+  }
+  f('}');
+
+  f('void foreachDv(' + type.typename + ' &owner, function<void (DvRef const &)> f) {');
+  if (!type.noSerialize) {
+    _.each(type.orderedNames, function(memberName) {
+      var memberType = type.nameToType[memberName];
+      if (!memberType.isPtr() && !memberType.noSerialize) {
+        f('foreachDv(owner.' + memberName + ', f);');
+      }
+    });
+  }
+  f('}');
+
+  f('void foreachScalar(' + type.typename + ' &owner, function<void (double *)> f) {');
+  if (!type.noSerialize) {
+    _.each(type.orderedNames, function(memberName) {
+      var memberType = type.nameToType[memberName];
+      if (!memberType.isPtr() && !memberType.noSerialize) {
+        f('foreachScalar(owner.' + memberName + ', f);');
       }
     });
   }
@@ -242,6 +277,11 @@ StructCType.prototype.add = function(memberName, memberType) {
       type.add(memberName1, memberType);
     });
   }
+};
+
+StructCType.prototype.setMemberInitExpr = function(memberName, expr) {
+  var type = this;
+  type.nameToInitExpr[memberName] = expr;
 };
 
 StructCType.prototype.getMemberInitExpr = function(memberName) {
@@ -822,6 +862,10 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         }}]);
     });
   }
+
+  _.each(type.extraWraps, function(wrap) {
+    wrap(f);
+  });
 
   if (!type.noStdValues && type.isCopyConstructable()) {
     _.each(['allZero', 'allNan'], function(name) {

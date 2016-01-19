@@ -349,10 +349,11 @@ function withJsWrapUtils(f, typereg) {
         {args: ['string', 'Object'], code: function(f) {
           // If an exception is thrown by the callback, we have to avoid calling any other JS functions
           f('bool failed = false;');
-          f('foreachDv(*thisObj->it, a0, [isolate, &args, a0, a1, thisObj, &failed](DvRef &dv, string const &name) {');
+          f('foreachDv(*thisObj->it, a0, [isolate, &args, a0, a1, thisObj, &failed](DvRef const &dv, string const &name) {');
           f('if (failed) return;');
+          f('DvRef dv2(dv);');
           f('Local<Value> argv[2] = {');
-          f('JsWrap_DvRef::MemberInstance(isolate, thisObj->it, &dv),');
+          f('JsWrap_DvRef::DependentInstance(isolate, args.This(), dv2),');
           f('convStringToJs(isolate, name)');
           f('};');
           f('Local<Value> a1ret(a1->CallAsFunction(args.This(), 2, argv));');

@@ -42,8 +42,15 @@ static inline void linalgImport(double &a, double const *&p)
 {
   a = *p++;
 }
-static inline void foreachDv(double &owner, string const &name, function<void (DvRef &, string const &)> f)
+static inline void foreachDv(double &owner, string const &name, function<void (DvRef const &, string const &)> f)
 {
+}
+static inline void foreachDv(double &owner, function<void (DvRef const &)> f)
+{
+}
+static inline void foreachScalar(double &owner, function<void (double *)> f)
+{
+  f(&owner);
 }
 
 
@@ -59,7 +66,11 @@ static inline void linalgImport(float &a, double const *&p)
 {
   a = *p++;
 }
-static inline void foreachDv(float &owner, string const &name, function<void (DvRef &, string const &)> f) {
+static inline void foreachDv(float &owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+static inline void foreachDv(float &owner, function<void (DvRef const &)> f) {
+}
+static inline void foreachScalar(float &owner, function<void (double *)> f) {
 }
 
 
@@ -73,7 +84,11 @@ static inline void linalgExport(string const &a, double *&p)
 static inline void linalgImport(string &a, double const *&p)
 {
 }
-static inline void foreachDv(string &owner, string const &name, function<void (DvRef &, string const &)> f) {
+static inline void foreachDv(string &owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+static inline void foreachDv(string &owner, function<void (DvRef const &)> f) {
+}
+static inline void foreachScalar(string &owner, function<void (double *)> f) {
 }
 
 static inline size_t linalgSize(S32 const &a)
@@ -86,7 +101,11 @@ static inline void linalgExport(S32 const &a, double *&p)
 static inline void linalgImport(S32 &a, double const *&p)
 {
 }
-static inline void foreachDv(S32 &owner, string const &name, function<void (DvRef &, string const &)> f) {
+static inline void foreachDv(S32 &owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+static inline void foreachDv(S32 &owner, function<void (DvRef const &)> f) {
+}
+static inline void foreachScalar(S32 &owner, function<void (double *)> f) {
 }
 
 static inline size_t linalgSize(S64 const &a)
@@ -99,7 +118,11 @@ static inline void linalgExport(S64 const &a, double *&p)
 static inline void linalgImport(S64 &a, double const *&p)
 {
 }
-static inline void foreachDv(S64 &owner, string const &name, function<void (DvRef &, string const &)> f) {
+static inline void foreachDv(S64 &owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+static inline void foreachDv(S64 &owner, function<void (DvRef const &)> f) {
+}
+static inline void foreachScalar(S64 &owner, function<void (double *)> f) {
 }
 
 static inline size_t linalgSize(bool const &a)
@@ -112,7 +135,11 @@ static inline void linalgExport(bool const &a, double *&p)
 static inline void linalgImport(bool &a, double const *&p)
 {
 }
-static inline void foreachDv(bool &owner, string const &name, function<void (DvRef &, string const &)> f) {
+static inline void foreachDv(bool &owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+static inline void foreachDv(bool &owner, function<void (DvRef const &)> f) {
+}
+static inline void foreachScalar(bool &owner, function<void (double *)> f) {
 }
 
 static inline size_t linalgSize(U32 const &a)
@@ -125,8 +152,11 @@ static inline void linalgExport(U32 const &a, double *&p)
 static inline void linalgImport(U32 &a, double const *&p)
 {
 }
-static inline void foreachDv(U32 &owner, string const &name, function<void (DvRef &, string const &)> f)
-{
+static inline void foreachDv(U32 &owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+static inline void foreachDv(U32 &owner, function<void (DvRef const &)> f) {
+}
+static inline void foreachScalar(U32 &owner, function<void (double *)> f) {
 }
 
 static inline size_t linalgSize(U64 const &a)
@@ -139,8 +169,11 @@ static inline void linalgExport(U64 const &a, double *&p)
 static inline void linalgImport(U64 &a, double const *&p)
 {
 }
-static inline void foreachDv(U64 &owner, string const &name, function<void (DvRef &, string const &)> f)
-{
+static inline void foreachDv(U64 &owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+static inline void foreachDv(U64 &owner, function<void (DvRef const &)> f) {
+}
+static inline void foreachScalar(U64 &owner, function<void (double *)> f) {
 }
 
 static inline size_t linalgSize(arma::cx_double const &a)
@@ -164,8 +197,11 @@ static inline void linalgImport(arma::cx_double &a, double const *&p)
   linalgImport(a.imag(), p);
 #endif
 }
-static inline void foreachDv(arma::cx_double &owner, string const &name, function<void (DvRef &, string const &)> f)
-{
+static inline void foreachDv(arma::cx_double &owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+static inline void foreachDv(arma::cx_double &owner, function<void (DvRef const &)> f) {
+}
+static inline void foreachScalar(arma::cx_double &owner, function<void (double *)> f) {
 }
 
 /*
@@ -204,8 +240,13 @@ static inline void linalgImport(shared_ptr<T> &a, double const *&p)
   linalgImport(*a, p);
 }
 template<typename T>
-static inline void foreachDv(shared_ptr<T> &owner, string const &name, function<void (DvRef &, string const &)> f) {
-  // don't bother
+static inline void foreachDv(shared_ptr<T> &owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+template<typename T>
+static inline void foreachDv(shared_ptr<T> &owner, function<void (DvRef const &)> f) {
+}
+template<typename T>
+static inline void foreachScalar(shared_ptr<T> &owner, function<void (double *)> f) {
 }
 
 template<typename T>
@@ -232,9 +273,14 @@ static inline void linalgImport(arma::Col<T> &a, double const *&p)
     linalgImport(a(i), p);
   }
 }
-//template<typename T>
-static inline void foreachDv(arma::Col<double> owner, string const &name, function<void (DvRef &, string const &)> f) 
-{
+static inline void foreachDv(arma::Col<double> owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+static inline void foreachDv(arma::Col<double> owner, function<void (DvRef const &)> f) {
+}
+static inline void foreachScalar(arma::Col<double> owner, function<void (double *)> f) {
+  for (size_t i=0; i<owner.n_elem; i++) {
+    f(&owner[i]);
+  }
 }
 
 template<typename T>
@@ -261,8 +307,14 @@ static inline void linalgImport(arma::Mat<T> &a, double const *&p)
     linalgImport(a(i), p);
   }
 }
-static inline void foreachDv(arma::Mat<double> owner, string const &name, function<void (DvRef &, string const &)> f)
-{
+static inline void foreachDv(arma::Mat<double> owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+static inline void foreachDv(arma::Mat<double> owner, function<void (DvRef const &)> f) {
+}
+static inline void foreachScalar(arma::Mat<double> owner, function<void (double *)> f) {
+  for (size_t i=0; i<owner.n_elem; i++) {
+    f(&owner[i]);
+  }
 }
 
 template<typename T>
@@ -292,27 +344,69 @@ static inline void linalgImport(vector<T> &a, double const *&p)
 
 
 template<typename T>
-void foreachDv(vector<T> &owner, string const &name, function<void (DvRef &, string const &)> f) {
+void foreachDv(vector<T> &owner, string const &name, function<void (DvRef const &, string const &)> f) {
   for (size_t i=0; i<owner.size(); i++) {
     foreachDv(owner[i], name + "[" + to_string(i) + "]", f);
   }
 }
+template<typename T>
+void foreachDv(vector<T> &owner, function<void (DvRef const &)> f) {
+  for (size_t i=0; i<owner.size(); i++) {
+    foreachDv(owner[i], f);
+  }
+}
+template<typename T>
+void foreachScalar(vector<T> &owner, function<void (double *)> f) {
+  for (size_t i=0; i<owner.size(); i++) {
+    foreachScalar(owner[i], f);
+  }
+}
 
 template<typename VALUE>
-void foreachDv(map<string, VALUE> const &owner, string const &name, function<void (DvRef &, string const &)> f) {
+void foreachDv(map<string, VALUE> const &owner, string const &name, function<void (DvRef const &, string const &)> f) {
   for (typename map<string, VALUE>::const_iterator it = owner.begin(); it != owner.end(); it++) {
     foreachDv(it->second, name + "." + it->first, f);
   }
 }
+template<typename VALUE>
+void foreachDv(map<string, VALUE> const &owner, function<void (DvRef const &)> f) {
+  for (typename map<string, VALUE>::const_iterator it = owner.begin(); it != owner.end(); it++) {
+    foreachDv(it->second, f);
+  }
+}
+template<typename VALUE>
+void foreachScalar(map<string, VALUE> const &owner, function<void (double *)> f) {
+  for (typename map<string, VALUE>::const_iterator it = owner.begin(); it != owner.end(); it++) {
+    foreachScalar(it->second, f);
+  }
+}
 
 template<typename ELEM>
-void foreachDv(arma::Col<ELEM> const &owner, string const &name, function<void (DvRef &, string const &)> f) {
+void foreachDv(arma::Col<ELEM> const &owner, string const &name, function<void (DvRef const &, string const &)> f) {
 }
 template<typename ELEM>
-void foreachDv(arma::Row<ELEM> const &owner, string const &name, function<void (DvRef &, string const &)> f) {
+void foreachDv(arma::Col<ELEM> const &owner, function<void (DvRef const &)> f) {
 }
 template<typename ELEM>
-void foreachDv(arma::Mat<ELEM> const &owner, string const &name, function<void (DvRef &, string const &)> f) {
+void foreachScalar(arma::Col<ELEM> const &owner, function<void (double *)> f) {
+}
+template<typename ELEM>
+void foreachDv(arma::Row<ELEM> const &owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+template<typename ELEM>
+void foreachDv(arma::Row<ELEM> const &owner, function<void (DvRef const &)> f) {
+}
+template<typename ELEM>
+void foreachScalar(arma::Row<ELEM> const &owner, function<void (double *)> f) {
+}
+template<typename ELEM>
+void foreachDv(arma::Mat<ELEM> const &owner, string const &name, function<void (DvRef const &, string const &)> f) {
+}
+template<typename ELEM>
+void foreachDv(arma::Mat<ELEM> const &owner, function<void (DvRef const &)> f) {
+}
+template<typename ELEM>
+void foreachScalar(arma::Mat<ELEM> const &owner, function<void (double *)> f) {
 }
 
 
@@ -337,5 +431,48 @@ void linalgImport(T &a, arma::Col<double> const &vec)
   double const *p = &vec[0];
   linalgImport(a, p);
   assert(p == &vec[size]);
+}
+
+
+
+
+template<typename THETA>
+size_t scalarCount(THETA const &owner)
+{
+  THETA owner2 = owner;
+  size_t ret = 0;
+  foreachScalar(owner2, [&ret](double *p) {
+      ret++;
+    });
+  return ret;
+}
+
+template<typename THETA>
+void exportScalars(THETA const &owner, arma::mat &scalars)
+{
+  THETA owner2 = owner; // remove const
+  size_t count = scalarCount(owner2);
+  scalars.set_size(count);
+  size_t i = 0;
+  foreachScalar(owner2, [&](double *p) {
+      assert(p);
+      scalars[i] = *p;
+      i++;
+    });
+  assert(i == count);
+}
+
+template<typename THETA>
+void importScalars(THETA &owner, arma::mat &scalars)
+{
+  size_t count = scalarCount(owner);
+  assert(scalars.n_elem == count);
+  size_t i = 0;
+  foreachScalar(owner, [&](double *p) {
+      assert(p);
+      *p = scalars[i];
+      i++;
+    });
+  assert(i == count);
 }
 

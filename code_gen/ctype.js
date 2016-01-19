@@ -129,6 +129,7 @@ CType.prototype.getHeaderIncludes = function() {
     ret.push('#include "' + hdr + '"');
   });
   _.each(type.getDeclDependencies(), function(othertype) {
+    othertype = type.reg.getType(othertype);
     var fns = othertype.getFns();
     if (fns && fns.typeHeader) {
       ret.push('#include "' + fns.typeHeader + '"');
@@ -212,6 +213,13 @@ CType.prototype.emitHostCode = function(f) {
   if (fns.typeHeader) {
     f('#include "' + fns.typeHeader + '"');
   }
+  _.each(type.getDefnDependencies(), function(othertype) {
+    othertype = type.reg.getType(othertype);
+    var fns = othertype.getFns();
+    if (fns && fns.typeHeader) {
+      f('#include "' + fns.typeHeader + '"');
+    }
+  });
   f('');
   type.emitHostImpl(f);
   type.emitLinalgImpl(f);
@@ -223,6 +231,7 @@ CType.prototype.emitHostCode = function(f) {
 CType.prototype.emitJsWrapHeader = function(f) {
   var type = this;
   _.each(type.getDeclDependencies().concat([type]), function(othertype) {
+    othertype = type.reg.getType(othertype);
     var fns = othertype.getFns();
     if (fns && fns.typeHeader) {
       f('#include "' + fns.typeHeader + '"');
@@ -248,6 +257,7 @@ CType.prototype.emitJsWrapCode = function(f) {
   }
   f('/* declDependencies = ' + _.map(type.getDeclDependencies(), function(ot) { return ot.jsTypename; }) + ' */');
   _.each(type.getDeclDependencies(), function(othertype) {
+    othertype = type.reg.getType(othertype);
     var fns = othertype.getFns();
     if (fns && fns.jsWrapHeader) {
       f('#include "' + fns.jsWrapHeader + '"');

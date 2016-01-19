@@ -274,6 +274,28 @@ static void jsWrap_DvMat_inspect(FunctionCallbackInfo<Value> const &args) {
   }
 }
 
+static void jsWrap_DvMat_set_size(FunctionCallbackInfo<Value> const &args) {
+  Isolate *isolate = args.GetIsolate();
+  HandleScope scope(isolate);
+  JsWrap_DvMat* thisObj = node::ObjectWrap::Unwrap<JsWrap_DvMat>(args.This());
+  if (args.Length() == 1 && (args[0])->IsNumber()) {
+    double a0 = ((args[0])->NumberValue());
+    thisObj->it->set_size((U64)a0);
+    return;
+  }
+  else if (args.Length() == 2 && (args[0])->IsNumber() && args[1]->IsNumber()) {
+    double a0 = ((args[0])->NumberValue());
+    double a1 = ((args[0])->NumberValue());
+    eprintf("DvMat::set_size %gx%g\n", a0, a1);
+    thisObj->it->set_size((U64)a0, (U64)a1);
+    eprintf("DvMat::size now %lux%lu = %lu\n", thisObj->it->value.n_rows, thisObj->it->value.n_cols, thisObj->it->value.n_elem);
+    return;
+  }
+  else  {
+    return ThrowInvalidArgs(isolate);
+  }
+}
+
 
 // ----------------------------------------------------------------------
 
@@ -421,6 +443,7 @@ void jsInit_Dv(Handle<Object> exports) {
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toString"), FunctionTemplate::New(isolate, jsWrap_DvMat_toString)->GetFunction());
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toJsonString"), FunctionTemplate::New(isolate, jsWrap_DvMat_toJsonString)->GetFunction());
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "inspect"), FunctionTemplate::New(isolate, jsWrap_DvMat_inspect)->GetFunction());
+    tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "set_size"), FunctionTemplate::New(isolate, jsWrap_DvMat_set_size)->GetFunction());
     
     tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "value"), &jsGet_DvMat_value, &jsSet_DvMat_value);
     tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "deriv"), &jsGet_DvMat_deriv, &jsSet_DvMat_deriv);

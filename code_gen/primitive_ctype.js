@@ -163,7 +163,7 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
   case 'Dv':
     return 'canConvJsToDv(isolate, ' + valueExpr + ')';
   case 'DvMat':
-    return 'false';
+    return 'JsWrap_DvMat::Extract(isolate, ' + valueExpr + ')';
   case 'bool':
     return '((' + valueExpr + ')->IsBoolean())';
   case 'string':
@@ -191,7 +191,7 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   case 'Dv':
     return 'convJsToDv(isolate, ' + valueExpr + ')';
   case 'DvMat':
-    return 'DvMat()'; // WRITME:
+    return '*JsWrap_DvMat::Extract(isolate, ' + valueExpr + ')';
   case 'bool':
     return '((' + valueExpr + ')->BooleanValue())';
   case 'string':
