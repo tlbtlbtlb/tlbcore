@@ -278,37 +278,37 @@ bool operator ==(packet const &a, packet const &b);
 /*
   The most primitive data types are handled here: char, int, float, etc.
 
-  Astonishingly, C++ considers char, signed char, and unsigned char 3 distinct types.
+  Astonishingly, C++ considers char, S8, and U8 3 distinct types.
   So if you have functions declared as:
      foo(char x)
-     foo(unsigned char x)
+     foo(U8 x)
      foo(int)
-  calling foo((signed char )7) calls the int version, rather than the char version.
+  calling foo((S8 )7) calls the int version, rather than the char version.
 
   Also, if you declare:
-     foo(signed char x)
-     foo(unsigned char x)
+     foo(S8 x)
+     foo(U8 x)
      foo(int)
   calling foo((char)7) also calls the int version.
   
   So you need to declare all 3.
 
-  This isn't true for short: short and signed short seem to be the same, and in fact
-  trying to declare both foo(short) and foo(signed short) gives an redefinition error.
+  This isn't true for short: short and S16 seem to be the same, and in fact
+  trying to declare both foo(short) and foo(S16) gives an redefinition error.
   
   Whatever.
 */
 
 void packet_wr_value(packet &p, const bool &x);
 void packet_wr_value(packet &p, const char &x);
-void packet_wr_value(packet &p, const signed char &x);
-void packet_wr_value(packet &p, const unsigned char &x);
-void packet_wr_value(packet &p, const short &x);
-void packet_wr_value(packet &p, const unsigned short &x);
-void packet_wr_value(packet &p, const int &x);
-void packet_wr_value(packet &p, const unsigned int &x);
-void packet_wr_value(packet &p, const long &x);
-void packet_wr_value(packet &p, const unsigned long &x);
+void packet_wr_value(packet &p, const S8 &x);
+void packet_wr_value(packet &p, const U8 &x);
+void packet_wr_value(packet &p, const S16 &x);
+void packet_wr_value(packet &p, const U16 &x);
+void packet_wr_value(packet &p, const S32 &x);
+void packet_wr_value(packet &p, const U32 &x);
+void packet_wr_value(packet &p, const S64 &x);
+void packet_wr_value(packet &p, const U64 &x);
 void packet_wr_value(packet &p, const float &x);
 void packet_wr_value(packet &p, const double &x);
 #if !defined(WIN32)
@@ -322,14 +322,14 @@ void packet_wr_value(packet &p, const DvMat &s);
 
 void packet_wr_typetag(packet &p, const bool &x);
 void packet_wr_typetag(packet &p, const char &x);
-void packet_wr_typetag(packet &p, const signed char &x);
-void packet_wr_typetag(packet &p, const unsigned char &x);
-void packet_wr_typetag(packet &p, const short &x);
-void packet_wr_typetag(packet &p, const unsigned short &x);
-void packet_wr_typetag(packet &p, const int &x);
-void packet_wr_typetag(packet &p, const unsigned int &x);
-void packet_wr_typetag(packet &p, const long &x);
-void packet_wr_typetag(packet &p, const unsigned long &x);
+void packet_wr_typetag(packet &p, const S8 &x);
+void packet_wr_typetag(packet &p, const U8 &x);
+void packet_wr_typetag(packet &p, const S16 &x);
+void packet_wr_typetag(packet &p, const U16 &x);
+void packet_wr_typetag(packet &p, const S32 &x);
+void packet_wr_typetag(packet &p, const U32 &x);
+void packet_wr_typetag(packet &p, const S64 &x);
+void packet_wr_typetag(packet &p, const U64 &x);
 void packet_wr_typetag(packet &p, const float &x);
 void packet_wr_typetag(packet &p, const double &x);
 #if !defined(WIN32)
@@ -344,14 +344,14 @@ void packet_wr_typetag(packet &p, const DvMat &s);
 
 void packet_rd_value(packet &p, bool &x);
 void packet_rd_value(packet &p, char &x);
-void packet_rd_value(packet &p, signed char &x);
-void packet_rd_value(packet &p, unsigned char &x);
-void packet_rd_value(packet &p, short &x);
-void packet_rd_value(packet &p, unsigned short &x);
-void packet_rd_value(packet &p, int &x);
-void packet_rd_value(packet &p, unsigned int &x);
-void packet_rd_value(packet &p, long &x);
-void packet_rd_value(packet &p, unsigned long &x);
+void packet_rd_value(packet &p, S8 &x);
+void packet_rd_value(packet &p, U8 &x);
+void packet_rd_value(packet &p, S16 &x);
+void packet_rd_value(packet &p, U16 &x);
+void packet_rd_value(packet &p, S32 &x);
+void packet_rd_value(packet &p, U32 &x);
+void packet_rd_value(packet &p, S64 &x);
+void packet_rd_value(packet &p, U64 &x);
 void packet_rd_value(packet &p, float &x);
 void packet_rd_value(packet &p, double &x);
 #if !defined(WIN32)
@@ -363,15 +363,15 @@ void packet_rd_value(packet &p, arma::cx_double &s);
 void packet_rd_value(packet &p, Dv &s);
 void packet_rd_value(packet &p, DvMat &s);
 
-void packet_rd_typetag(packet &p, signed char const &x);
+void packet_rd_typetag(packet &p, S8 const &x);
 void packet_rd_typetag(packet &p, char const &x);
-void packet_rd_typetag(packet &p, unsigned char const &x);
-void packet_rd_typetag(packet &p, short const &x);
-void packet_rd_typetag(packet &p, unsigned short const &x);
-void packet_rd_typetag(packet &p, int const &x);
-void packet_rd_typetag(packet &p, unsigned int const &x);
-void packet_rd_typetag(packet &p, long const &x);
-void packet_rd_typetag(packet &p, unsigned long const &x);
+void packet_rd_typetag(packet &p, U8 const &x);
+void packet_rd_typetag(packet &p, S16 const &x);
+void packet_rd_typetag(packet &p, U16 const &x);
+void packet_rd_typetag(packet &p, S32 const &x);
+void packet_rd_typetag(packet &p, U32 const &x);
+void packet_rd_typetag(packet &p, S64 const &x);
+void packet_rd_typetag(packet &p, U64 const &x);
 void packet_rd_typetag(packet &p, float const &x);
 void packet_rd_typetag(packet &p, double const &x);
 #if !defined(WIN32)

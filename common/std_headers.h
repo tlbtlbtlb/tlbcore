@@ -112,8 +112,8 @@ typedef unsigned int U32;
 
 #ifndef __AVR__
 #ifdef __x86_64
-typedef long int S64;
-typedef unsigned long int U64;
+typedef long long int S64;
+typedef unsigned long long int U64;
 #else
 typedef long long int S64;
 typedef unsigned long long int U64;

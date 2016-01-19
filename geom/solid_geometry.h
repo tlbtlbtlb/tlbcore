@@ -54,7 +54,7 @@ struct StlWebglMesh {
 
   arma::vec coords;
   arma::vec normals;
-  arma::ivec indexes;
+  arma::Col<S64> indexes;
 };
 
 struct StlSolid {

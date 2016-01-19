@@ -737,57 +737,57 @@ packet_rd_type_err::~packet_rd_type_err() throw()
 // ----------------------------------------------------------------------
 
 
-void packet_wr_typetag(packet &p, signed char const &x)     { p.add_typetag("schar"); }
+void packet_wr_typetag(packet &p, S8 const &x)              { p.add_typetag("S8"); }
 void packet_wr_typetag(packet &p, char const &x)            { p.add_typetag("char"); }
-void packet_wr_typetag(packet &p, unsigned char const &x)   { p.add_typetag("uchar"); }
-void packet_wr_typetag(packet &p, short const &x)           { p.add_typetag("short"); }
-void packet_wr_typetag(packet &p, unsigned short const &x)  { p.add_typetag("ushort"); }
-void packet_wr_typetag(packet &p, int const &x)             { p.add_typetag("int"); }
-void packet_wr_typetag(packet &p, unsigned int const &x)    { p.add_typetag("uint"); }
-void packet_wr_typetag(packet &p, long const &x)            { p.add_typetag("long"); }
-void packet_wr_typetag(packet &p, unsigned long const &x)   { p.add_typetag("ulong"); }
+void packet_wr_typetag(packet &p, U8 const &x)              { p.add_typetag("U8"); }
+void packet_wr_typetag(packet &p, S16 const &x)             { p.add_typetag("S16"); }
+void packet_wr_typetag(packet &p, U16 const &x)             { p.add_typetag("U16"); }
+void packet_wr_typetag(packet &p, S32 const &x)             { p.add_typetag("S32"); }
+void packet_wr_typetag(packet &p, U32 const &x)             { p.add_typetag("U32"); }
+void packet_wr_typetag(packet &p, S64 const &x)             { p.add_typetag("S64"); }
+void packet_wr_typetag(packet &p, U64 const &x)             { p.add_typetag("U64"); }
 void packet_wr_typetag(packet &p, float const &x)           { p.add_typetag("float"); }
 void packet_wr_typetag(packet &p, double const &x)          { p.add_typetag("double"); }
 void packet_wr_typetag(packet &p, timeval const &x)         { p.add_typetag("timeval"); }
 void packet_wr_typetag(packet &p, bool const &x)            { p.add_typetag("bool"); }
 
-void packet_rd_typetag(packet &p, signed char const &x)     { p.check_typetag("schar"); }
+void packet_rd_typetag(packet &p, S8 const &x)              { p.check_typetag("S8"); }
 void packet_rd_typetag(packet &p, char const &x)            { p.check_typetag("char"); }
-void packet_rd_typetag(packet &p, unsigned char const &x)   { p.check_typetag("uchar"); }
-void packet_rd_typetag(packet &p, short const &x)           { p.check_typetag("short"); }
-void packet_rd_typetag(packet &p, unsigned short const &x)  { p.check_typetag("ushort"); }
-void packet_rd_typetag(packet &p, int const &x)             { p.check_typetag("int"); }
-void packet_rd_typetag(packet &p, unsigned int const &x)    { p.check_typetag("uint"); }
-void packet_rd_typetag(packet &p, long const &x)            { p.check_typetag("long"); }
-void packet_rd_typetag(packet &p, unsigned long const &x)   { p.check_typetag("ulong"); }
+void packet_rd_typetag(packet &p, U8 const &x)              { p.check_typetag("U8"); }
+void packet_rd_typetag(packet &p, S16 const &x)             { p.check_typetag("S16"); }
+void packet_rd_typetag(packet &p, U16 const &x)             { p.check_typetag("U16"); }
+void packet_rd_typetag(packet &p, S32 const &x)             { p.check_typetag("S32"); }
+void packet_rd_typetag(packet &p, U32 const &x)             { p.check_typetag("U32"); }
+void packet_rd_typetag(packet &p, S64 const &x)             { p.check_typetag("S64"); }
+void packet_rd_typetag(packet &p, U64 const &x)             { p.check_typetag("U64"); }
 void packet_rd_typetag(packet &p, float const &x)           { p.check_typetag("float"); }
 void packet_rd_typetag(packet &p, double const &x)          { p.check_typetag("double"); }
 void packet_rd_typetag(packet &p, timeval const &x)         { p.check_typetag("timeval"); }
 void packet_rd_typetag(packet &p, bool const &x)            { p.check_typetag("bool"); }
 
-void packet_wr_value(packet &p, signed char const &x)       { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, S8 const &x)                { p.add_bytes((const u_char *)&x, sizeof(x)); }
 void packet_wr_value(packet &p, char const &x)              { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, unsigned char const &x)     { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, short const &x)             { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, unsigned short const &x)    { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, int const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, unsigned int const &x)      { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, long const &x)              { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, unsigned long const &x)     { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, U8 const &x)                { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, S16 const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, U16 const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, S32 const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, U32 const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, S64 const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, U64 const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
 void packet_wr_value(packet &p, float const &x)             { p.add_bytes((const u_char *)&x, sizeof(x)); }
 void packet_wr_value(packet &p, double const &x)            { p.add_bytes((const u_char *)&x, sizeof(x)); }
 void packet_wr_value(packet &p, timeval const &x)           { p.add_bytes((const u_char *)&x, sizeof(x)); }
 void packet_wr_value(packet &p, bool const &x)              { p.add_bytes((const u_char *)&x, sizeof(x)); }
 
-void packet_rd_value(packet &p, signed char &x)             { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, unsigned char &x)           { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, S8 &x)                      { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, U8 &x)                      { p.get_bytes((u_char *)&x, sizeof(x)); }
 void packet_rd_value(packet &p, char &x)                    { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, short &x)                   { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, unsigned short &x)          { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, int &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, unsigned int &x)            { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, long &x)                    { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, unsigned long &x)           { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, S16 &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, U16 &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, S32 &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, U32 &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, S64 &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, U64 &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
 void packet_rd_value(packet &p, float &x)                   { p.get_bytes((u_char *)&x, sizeof(x)); }
 void packet_rd_value(packet &p, double &x)                  { p.get_bytes((u_char *)&x, sizeof(x)); }
 void packet_rd_value(packet &p, timeval &x)                 { p.get_bytes((u_char *)&x, sizeof(x)); }
