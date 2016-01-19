@@ -1208,7 +1208,7 @@ bool rdJson(const char *&s, arma::Mat<T> &arr) {
     case 9: n_rows = 3; n_cols = 3; break;
     case 16: n_rows = 4; n_cols = 4; break;
     default: 
-      throw runtime_error(stringprintf("rdJson(arma::Mat %dx%x): Couldn't deduce size for %d-elem js arr",
+      throw runtime_error(stringprintf("rdJson(arma::Mat %dx%d): Couldn't deduce size for %d-elem js arr",
                                        (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size()));
     }
   }
@@ -1218,20 +1218,18 @@ bool rdJson(const char *&s, arma::Mat<T> &arr) {
   else if (n_cols == 0) {
     n_cols = tmparr.size() / n_rows;
   }
+  else if (n_rows * n_cols == tmparr.size()) {
+    // cool
+  }
+  else if (tmparr.size() == 0) {
+    n_rows = 0; n_cols = 0;
+  }
+  else if (tmparr.size() == 1) {
+    n_rows = 1; n_cols = 1;
+  }
   else {
-    if (n_rows * n_cols == tmparr.size()) {
-      // cool
-    }
-    else if (tmparr.size() == 0) {
-      n_rows = 0; n_cols = 0;
-    }
-    else if (tmparr.size() == 1) {
-      n_rows = 1; n_cols = 1;
-    }
-    else {
-      throw runtime_error(stringprintf("rdJson(arma::Mat %dx%x): Couldn't match up with %d-elem js arr",
-                                       (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size()));
-    }
+    throw runtime_error(stringprintf("rdJson(arma::Mat %dx%d): Couldn't match up with %d-elem js arr",
+                                     (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size()));
   }
   if (0) eprintf("rdJson(arma::Mat): %dx%d -> %dx%d (from %lu)\n", (int)arr.n_rows, (int)arr.n_cols, (int)n_rows, (int)n_cols, (u_long)tmparr.size());
   arr.set_size(n_rows, n_cols);

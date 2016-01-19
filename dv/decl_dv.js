@@ -50,7 +50,7 @@ module.exports = function(typereg) {
 
     var type = typereg.template(problemTypename);
     
-    type.addJsWrapHeaderInclude('tlbcore/dv/dv_jsWrap.h');
+    type.addJsWrapHeaderInclude('tlbcore/dv/dv_jswrap.h');
     type.addHeaderInclude('tlbcore/dv/optimize.h');
     type.noSerialize = true;
     type.noPacket = true;

@@ -28,9 +28,10 @@
         ['LINK','/usr/bin/clang++'],
       ],
       'include_dirs+': [
+        '/usr/include/libxml2'
       ],
       'libraries+': [
-        '-larmadillo', '-lz'
+        '-L/usr/local/lib', '-lmlpack', '-larmadillo', '-lz'
       ],
       'cflags_cc!': [
         '-fno-rtti', '-fno-exceptions', '-fno-tree-vrp'
