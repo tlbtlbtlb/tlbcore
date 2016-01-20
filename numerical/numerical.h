@@ -413,14 +413,13 @@ void foreachScalar(arma::Mat<ELEM> const &owner, function<void (double *)> f) {
 
 
 template<typename T>
-arma::vec toLinalg(const T &a)
+void linalgExport(const T &a, arma::Col<double> &vec)
 {
   size_t size = linalgSize(a);
-  arma::vec ret(size);
-  double *p = &ret[0];
+  vec.set_size(size);
+  double *p = &vec[0];
   linalgExport(a, p);
-  assert(p == &ret[size]);
-  return ret;
+  assert(p == &vec[size]);
 }
 
 template<typename T>

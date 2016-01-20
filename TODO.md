@@ -10,6 +10,10 @@
 
 ### Dv
 
+  * Get rid of foreachDv and DvRef. Instead, do dvCount / dvExport / dvImport.
+  * Make Dv include a variable-sized set of derivatives.
+  * we should give dvImport an identity matrix to set up the derivative problem for gradients
+
 ### Numerical
 
 ### Arma

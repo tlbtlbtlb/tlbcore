@@ -326,7 +326,9 @@ function withJsWrapUtils(f, typereg) {
     f.emitJsMethod('toLinalg', function() {
       f.emitArgSwitch([
         {args: [], code: function(f) {
-          f('args.GetReturnValue().Set(convArmaColToJs(isolate, toLinalg(*thisObj->it)));');
+          f('arma::vec vec;');
+          f('linalgExport(*thisObj->it, vec);');
+          f('args.GetReturnValue().Set(convArmaColToJs(isolate, vec));');
         }}
       ]);
     });

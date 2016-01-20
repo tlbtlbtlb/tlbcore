@@ -79,13 +79,6 @@ bool canConvJsToDv(Isolate *isolate, Local<Value> it);
 Dv convJsToDv(Isolate *isolate, Local<Value> it);
 Local<Value> convDvToJs(Isolate *isolate, Dv const &it);
 
-// asLinalgJs
-
-template<typename T> 
-Local<Object> toLinalgJs(Isolate *isolate, const T &a) {
-  return convArmaColToJs(isolate, toLinalg(a));
-}
-
 /*
   A template for wrapping any kind of object
 */
