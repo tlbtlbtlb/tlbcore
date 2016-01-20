@@ -288,7 +288,7 @@ static void jsWrap_DvMat_set_size(FunctionCallbackInfo<Value> const &args) {
     double a1 = ((args[0])->NumberValue());
     eprintf("DvMat::set_size %gx%g\n", a0, a1);
     thisObj->it->set_size((U64)a0, (U64)a1);
-    eprintf("DvMat::size now %lux%lu = %lu\n", thisObj->it->value.n_rows, thisObj->it->value.n_cols, thisObj->it->value.n_elem);
+    eprintf("DvMat::size now %lux%lu = %lu\n", (u_long)thisObj->it->value.n_rows, (u_long)thisObj->it->value.n_cols, (u_long)thisObj->it->value.n_elem);
     return;
   }
   else  {

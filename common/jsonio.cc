@@ -409,7 +409,7 @@ void wrJson(char *&s, S64 const &value) {
     *s++ = '0';
   }
   else {
-    s += snprintf(s, 20, "%ld", value);
+    s += snprintf(s, 20, "%lld", value);
   }
 }
 bool rdJson(const char *&s, S64 &value) {
@@ -431,7 +431,7 @@ void wrJson(char *&s, U64 const &value) {
     *s++ = '0';
   }
   else {
-    s += snprintf(s, 20, "%lu", value);
+    s += snprintf(s, 20, "%llu", value);
   }
 }
 bool rdJson(const char *&s, U64 &value) {
@@ -1207,7 +1207,9 @@ bool rdJson(const char *&s, arma::Mat<T> &arr) {
     case 4: n_rows = 2; n_cols = 2; break;
     case 9: n_rows = 3; n_cols = 3; break;
     case 16: n_rows = 4; n_cols = 4; break;
-    default: break;
+    default: 
+      throw runtime_error(stringprintf("rdJson(arma::Mat %dx%d): Couldn't deduce size for %d-elem js arr",
+                                       (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size()));
     }
   }
   else if (n_rows == 0) {
@@ -1216,13 +1218,22 @@ bool rdJson(const char *&s, arma::Mat<T> &arr) {
   else if (n_cols == 0) {
     n_cols = tmparr.size() / n_rows;
   }
-  if (n_rows == 0 || n_cols == 0) {
-    throw runtime_error(stringprintf("rdJson(arma::Mat %dx%x): Couldn't deduce size for %d-elem js arr",
-				     (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size()));
+  else if (n_rows * n_cols == tmparr.size()) {
+    // cool
   }
-  if (1) eprintf("rdJson(arma::Mat): %dx%d -> %dx%d\n", (int)arr.n_rows, (int)arr.n_cols, (int)n_rows, (int)n_cols);
+  else if (tmparr.size() == 0) {
+    n_rows = 0; n_cols = 0;
+  }
+  else if (tmparr.size() == 1) {
+    n_rows = 1; n_cols = 1;
+  }
+  else {
+    throw runtime_error(stringprintf("rdJson(arma::Mat %dx%d): Couldn't match up with %d-elem js arr",
+                                     (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size()));
+  }
+  if (0) eprintf("rdJson(arma::Mat): %dx%d -> %dx%d (from %lu)\n", (int)arr.n_rows, (int)arr.n_cols, (int)n_rows, (int)n_cols, (u_long)tmparr.size());
   arr.set_size(n_rows, n_cols);
-  for (size_t ei=0; ei < arr.n_elem; ei++) {
+  for (size_t ei=0; ei < arr.n_elem && ei < tmparr.size(); ei++) {
     arr(ei) = tmparr[ei];
   }
   return true;

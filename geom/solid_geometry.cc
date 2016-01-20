@@ -653,7 +653,7 @@ StlWebglMesh StlSolid::exportWebglMesh(double eps) const
   size_t coordi = 0;
   size_t indexi = 0;
 
-  map<string, int> dupMap;
+  map<string, S64> dupMap;
 
   auto pushVertex = [&](arma::vec3 const &position, arma::vec3 const &normal) {
     // Lame, but performance doesn't matter much here
@@ -666,7 +666,7 @@ StlWebglMesh StlSolid::exportWebglMesh(double eps) const
 				 normal[2]);
 
     // Store index+1 in dupMap, to distinguish zero as unassigned
-    int &vi = dupMap[dupKey];
+    S64 &vi = dupMap[dupKey];
     if (!vi) {
       vi = coordi + 1;
       ret.coords[coordi*3 + 0] = position(0);
