@@ -47,7 +47,7 @@ void jsonpipe::postSelect(fd_set *rfds, fd_set *wfds, fd_set *efds, double now)
           char *q = (char *)memchr(p, '\n', pend - p);
           assert(q == nullptr || q < pend);
           if (!q) {
-            rxCur.append(p, pend);
+            rxCur.append(p, pend-p);
             break;
           } else {
             if (rxCur.size()) {
@@ -68,6 +68,7 @@ void jsonpipe::postSelect(fd_set *rfds, fd_set *wfds, fd_set *efds, double now)
     while (true) {
       if (!txCur.size() && !txQ.empty()) {
         txCur = txQ.front();
+        txCur.push_back('\n');
         txQ.pop_front();
       }
       if (!txCur.size()) break;
