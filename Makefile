@@ -92,10 +92,10 @@ run:
 force :
 
 .gitfiles : force
-	git ls-files -z --exclude '.*' >$@
+	git ls-files -z >$@
 
 push.%: .gitfiles
-	rsync -a --from0 --relative --files-from .gitfiles . $*:tlbcore/.
+	rsync -ai --inplace --from0 --relative --files-from .gitfiles . $*:tlbcore/.
 
 cross.%: push.%
 	ssh $* 'cd tlbcore && env NODE_PATH=/usr/lib/node_modules make'
