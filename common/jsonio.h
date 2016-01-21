@@ -162,6 +162,28 @@ static inline void foreachDv(jsonstr const &owner, function<void (DvRef const &)
 static inline void foreachScalar(jsonstr const &owner, function<void (double *)> f) {
 }
 
+// Pointers
+
+template<typename T>
+size_t wrJsonSize(shared_ptr<T> const &p) {
+  if (p) {
+    return wrJsonSize(*p);
+  } else {
+    return 4; // null;
+  }
+}
+
+template<typename T>
+void wrJson(char *&s, shared_ptr<T> const &p) {
+  if (p) {
+    wrJson(s, *p);
+  } else {
+    *s++ = 'n';
+    *s++ = 'u';
+    *s++ = 'l';
+    *s++ = 'l';
+  }
+}
 
 
 /*

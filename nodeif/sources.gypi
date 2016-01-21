@@ -8,6 +8,7 @@
     '../common/packetbuf.cc',
     '../common/host_debug.cc',
     '../common/jsonio.cc',
+    '../common/jsonpipe.cc',
     '../numerical/polyfit.cc',
     '../numerical/haltonseq.cc'
   ]
