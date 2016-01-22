@@ -12,8 +12,7 @@
         '../dv/sources.gypi',
       ],
       'sources': [
-        './main.cc',
-        '../genes/test_genes.cc',
+        './main.cc'
       ]
     }
   ]

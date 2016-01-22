@@ -9,7 +9,8 @@ Some common infrastructure shared among my projects. Written in C++ and Javascri
   * common: a grab-bag of C++ utilities like stringprintf, packet buffers, read/write primitives and STL collections into JSON, etc.
   * numerical : numerical stuff, built on top of Armadillo
   * arma: NodeJS wrappers for core Armadillo types
-  * genes: a simple genome library, not good for anything yet
+  * dv: an automatic differentiator for numerical algorithms, and solver to fit parameters
+  * rough: an approximate parser for C++
 
 
 Installing
@@ -89,12 +90,6 @@ Geometry and Numerical Libraries
  * geom/geom_math adds basic geometrical operations on Armadillo's vector & matrix types.
  * geom/solid_geometry can read STL files (a polyhedron defined by a bunch of triangles) and compute simple geometrical properties like center of mass
  * numerical/polyfit has 3 and 5 degree polynomials and routines for fitting to sampled data
-
-
-Gene Library
---
- * Defines a way of modifying constants in source code that will someday be used to evolve control loops
-
 
 
 Build Problems
