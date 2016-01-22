@@ -266,6 +266,7 @@ CType.prototype.emitJsWrapCode = function(f) {
   f('#include "' + type.getFns().jsWrapHeader + '"');
   f('#include "vec_jsWrap.h"');
   f('#include "tlbcore/dv/dv_jswrap.h"');
+  f('');
   type.emitJsWrapImpl(f);
 };
 

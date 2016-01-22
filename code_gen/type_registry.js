@@ -86,15 +86,10 @@ TypeRegistry.prototype.object = function(typename) {
 
 TypeRegistry.prototype.struct = function(typename /* varargs */) {
   var typereg = this;
-  if (typename in typereg.types) throw 'Already defined';
+  if (typename in typereg.types) throw (typename + ' already defined');
   var t = new StructCType(typereg, typename);
   typereg.types[typename] = t;
-
-  for (var i=1; i<arguments.length; i++) {
-    var name = arguments[i][0];
-    var type = arguments[i][1];
-    t.add(name, type);
-  }
+  t.addArgs(arguments, 1);
 
   var ptrType = new PtrCType(typereg, t);
   typereg.types[ptrType.typename] = ptrType;

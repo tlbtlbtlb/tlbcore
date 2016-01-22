@@ -16,7 +16,7 @@ function StructCType(reg, typename) {
   this.orderedNames = [];
   this.superTypes = [];
   this.nameToType = {};
-  this.nameToInitExpr = {};
+  this.nameToOptions = {};
   this.extraMemberDecls = [];
   this.matrixStructures = [];
   this.extraWraps = [];
@@ -25,6 +25,17 @@ function StructCType(reg, typename) {
 
 StructCType.prototype = Object.create(CType.prototype);
 StructCType.prototype.isStruct = function() { return true; };
+
+StructCType.prototype.addArgs = function(args, startPos) {
+  var type = this;
+  for (var i=startPos; i<args.length; i++) {
+    var memberName = args[i][0];
+    var memberType = args[i][1];
+    var memberOptions = args[i][2];
+    type.add(memberName, memberType, memberOptions);
+  }
+}
+
 
 StructCType.prototype.withDvs = function() {
   var type = this;
@@ -175,15 +186,17 @@ StructCType.prototype.addSuperType = function(superTypename) {
 
 StructCType.prototype.getConstructorArgs = function() {
   var type = this;
-  return [].concat(_.flatten(_.map(type.superTypes, function(superType) {
+  return _.filter([].concat(_.flatten(_.map(type.superTypes, function(superType) {
     return superType.getConstructorArgs();
   }), true), _.map(type.orderedNames, function(memberName) {
+    if (type.nameToOptions[memberName].omitFromConstructor) return null;
     return {name: memberName, type: type.nameToType[memberName]};
-  }));
+  })), function(info) { return !!info; });
 };
 
 StructCType.prototype.hasArrayNature = function() {
   var type = this;
+  if (type.superTypes.length) return false;
   var mt = type.getMemberTypes();
   return (mt.length === 1);
 };
@@ -256,8 +269,9 @@ StructCType.prototype.getAllNanExpr = function() {
   return this.typename + '::allNan()';
 };
 
-StructCType.prototype.add = function(memberName, memberType) {
+StructCType.prototype.add = function(memberName, memberType, memberOptions) {
   var type = this;
+  if (!memberOptions) memberOptions = {};
   if (_.isString(memberType)) {
     var newMemberType = type.reg.getNamedType(memberType);
     if (!newMemberType) throw new Error('Unknown member type ' + memberType);
@@ -271,27 +285,28 @@ StructCType.prototype.add = function(memberName, memberType) {
       return;
     }
     type.nameToType[memberName] = memberType;
+    type.nameToOptions[memberName] = memberOptions;
     type.orderedNames.push(memberName);
   } else {
     _.each(memberName, function(memberName1) {
-      type.add(memberName1, memberType);
+      type.add(memberName1, memberType, memberOptions);
     });
   }
 };
 
 StructCType.prototype.setMemberInitExpr = function(memberName, expr) {
   var type = this;
-  type.nameToInitExpr[memberName] = expr;
+  type.nameToOptions[memberName].initExpr = expr;
 };
 
 StructCType.prototype.getMemberInitExpr = function(memberName) {
   var type = this;
-  var mType = type.nameToType[memberName];
-  if (memberName in type.nameToInitExpr) {
-    return type.nameToInitExpr[memberName];
-  } else {
-    return mType.getInitExpr();
-  }
+
+  var memberInitExpr = type.nameToOptions[memberName].initExpr;
+  if (memberInitExpr) return memberInitExpr;
+
+  var memberType = type.nameToType[memberName];
+  return memberType.getInitExpr();
 };
 
 StructCType.prototype.emitTypeDecl = function(f) {
@@ -324,6 +339,9 @@ StructCType.prototype.emitTypeDecl = function(f) {
 
 
   if (type.hasArrayNature()) {
+    if (!(type.orderedNames.length >= 1)) {
+      throw new Error('no names in ' + type.typename);
+    }
     f('');
     f('// Array accessors');
     f('typedef ' + type.nameToType[type.orderedNames[0]].typename + ' element_t;');
@@ -412,7 +430,11 @@ StructCType.prototype.emitHostImpl = function(f) {
 	return superType.typename + '(' + _.map(superType.getConstructorArgs(), function(argInfo) { return '_'+argInfo.name; }).join(', ') + ')';
       }),
       _.map(type.orderedNames, function(name) {
-	return name + '(_' + name + ')';
+        if (type.nameToOptions[name].omitFromConstructor) {
+          return name + '(' + type.getMemberInitExpr(name) + ')';
+        } else {
+	  return name + '(_' + name + ')';
+        }
       })).join(', '));
     f('{');
     _.each(type.extraConstructorCode, function(l) {
