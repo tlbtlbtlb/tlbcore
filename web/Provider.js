@@ -501,7 +501,12 @@ ScriptProvider.prototype.start = function() {
     data = data.replace(/\'\s*\+\n\s+\'/g, '');
     
     if (self.minifyLevel >= 1) {
-      data = jsmin(data).code;
+      try {
+        data = jsmin(data).code;
+      } catch(ex) {
+        console.log('ScriptProvider ' + self.fn + ': jsmin failed', ex);
+        // data should be unchanged
+      }
     } else {
       // Just minimal mininification: cut leading whitespace and blank lines
       data = data.replace(/\n\s+/g, '\n');
