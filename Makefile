@@ -19,7 +19,6 @@ JS_SRCDIRS := \
 	numerical \
 	geom \
 	nodeif \
-	genes \
 	web \
 	dv
 
