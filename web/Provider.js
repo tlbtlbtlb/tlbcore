@@ -505,8 +505,6 @@ ScriptProvider.prototype.start = function() {
         data = jsmin(data).code;
       } catch(ex) {
         logio.E(self.fn, 'jsmin failed', ex);
-        console.log('data type = ', typeof data);
-        console.log(data);
         // data should be unchanged
       }
     } else {
