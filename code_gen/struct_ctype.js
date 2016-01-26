@@ -34,7 +34,7 @@ StructCType.prototype.addArgs = function(args, startPos) {
     var memberOptions = args[i][2];
     type.add(memberName, memberType, memberOptions);
   }
-}
+};
 
 
 StructCType.prototype.withDvs = function() {
@@ -805,7 +805,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       f.emitJsMethod('asDvType', function() {
         f.emitArgSwitch([
           {args: [], code: function(f) {
-            f('args.GetReturnValue().Set(' + type.dvType.getCppToJsExpr('asDvType(*thisObj->it)') + ');')
+            f('args.GetReturnValue().Set(' + type.dvType.getCppToJsExpr('asDvType(*thisObj->it)') + ');');
           }}
         ]);
       });
@@ -814,7 +814,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       f.emitJsMethod('asNonDvType', function() {
         f.emitArgSwitch([
           {args: [], code: function(f) {
-            f('args.GetReturnValue().Set(' + type.nonDvType.getCppToJsExpr('asNonDvType(*thisObj->it)') + ');')
+            f('args.GetReturnValue().Set(' + type.nonDvType.getCppToJsExpr('asNonDvType(*thisObj->it)') + ');');
           }}
         ]);
       });

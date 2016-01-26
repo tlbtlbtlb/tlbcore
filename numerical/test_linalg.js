@@ -9,7 +9,7 @@ describe('Linalg conversion', function() {
     var dpf = pf.asDvType();
     if (0) console.log(dpf);
     assert.equal(dpf.constructor.name, 'DvPolyfit5');
-    var x = new ur.Dv(0.5, 0)
+    var x = new ur.Dv(0.5, 0);
     var dvi = 0;
     dpf.foreachDv('dpf', function(dv, name) {
       dv.deriv = 1.0;

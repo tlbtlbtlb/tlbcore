@@ -100,7 +100,6 @@ describe('matrix math', function() {
   });
 
   it('vec2 * mat33 should fail', function() {
-    debugger;
     var t1 = new ur.vec(2);
     var t2 = new ur.mat(3,3);
     assert.throws(function() {

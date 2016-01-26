@@ -9,14 +9,14 @@ function nextPow2(n) {
   while (ret < n) {
     ret *= 2;
   }
-  return ret
+  return ret;
 }
 
 function nextWidth(n) {
   if (n > 32) return 64;
   if (n > 16) return 32;
   if (n > 8) return 16;
-  return 8
+  return 8;
 }
 
 function DspFormat(qa, qb)
@@ -42,7 +42,7 @@ DspFormat.prototype.primConst = function(value) {
     suffix='';
   }
   else {
-    throw new RuntimeError('Unknown width');
+    throw new Error('Unknown width');
   }
 
   return  value.toString(10) + suffix;
@@ -55,12 +55,12 @@ DspFormat.prototype.maxPrim = function() {
 DspFormat.prototype.dspType = function() {
   if (this.qa === 32 && this.qb === 0) return 'int';
   return 'dsp' + this.qa.toString(10) + this.qb.toString(10);
-}
+};
 
 DspFormat.prototype.constantExpr = function(value) {
   if (this.qa === 32 && this.qb === 0) return Math.floor(value).toString(10);
   return 'DSP' + this.qa.toString(10) + this.qb.toString(10) + '(' + value.toString(10) + ')';
-}
+};
 
 
 var stdTypes = [new DspFormat(8, 8), 
@@ -83,9 +83,9 @@ var stdTypesByName = _.object(_.map(stdTypes, function(t) {
 
 function genConv(f, xt, rt, sat, rnd) {
   
-  var mods=''
-  if (sat) mods+='sat'
-  if (rnd) mods+='rnd'
+  var mods='';
+  if (sat) mods+='sat';
+  if (rnd) mods+='rnd';
 
   f('static inline ' + rt.dspType() + ' conv' + mods + '_' + xt.dspType() + '_' + rt.dspType() + '(' + xt.dspType() + ' x) {');
 
@@ -141,7 +141,7 @@ function mulResultType(xt, yt) {
 }
 
 function genMul(f, xt, yt, rt, sat, rnd) {
-  var mods=''
+  var mods='';
   if (sat) mods+='sat';
   if (rnd) mods+='rnd';
 
@@ -153,7 +153,7 @@ function genMul(f, xt, yt, rt, sat, rnd) {
 
   f(pt.primType() + ' p_prim = x_prim * y_prim;');
   f('return conv' + mods + '_' + pt.dspType() + '_' + rt.dspType() + '(p_prim);');
-  f('}')
+  f('}');
 }
 
 function genMulAll(f, xt, yt, rt) {
@@ -197,7 +197,7 @@ def gen_interp(f, valt, fract):
 function genUnaryAll(f, xt) {
   f('static inline ' + xt.dspType() + ' abs_' + xt.dspType() + '(' + xt.dspType() + ' x) {');
   f('if ((' + xt.primType() + ')x < 0) return (' + xt.dspType() + ')(-(' + xt.primType() + ')x); else return x;');
-  f('}')
+  f('}');
 }
 
 function genAll(f) {

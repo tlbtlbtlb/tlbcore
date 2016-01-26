@@ -49,12 +49,13 @@ CType.prototype.hasArrayNature = function() { return false; };
 CType.prototype.hasJsWrapper = function() { return false; };
 
 CType.prototype.hasDvs = function() { return false; };
-CType.prototype.withDvs = function() { return this; }
+CType.prototype.withDvs = function() { return this; };
 
 CType.prototype.emitLinalgDecl = function(f) {
-    f('static inline size_t linalgSize(const ' + type.typename + ' &a) { return 0; }');
-    f('static inline void linalgExport(const ' + type.typename + ' &a, double *&p) { }');
-    f('static inline void linalgImport(' + type.typename + ' &a, double const *&p) { }');
+  var type = this;
+  f('static inline size_t linalgSize(const ' + type.typename + ' &a) { return 0; }');
+  f('static inline void linalgExport(const ' + type.typename + ' &a, double *&p) { }');
+  f('static inline void linalgImport(' + type.typename + ' &a, double const *&p) { }');
 };
 CType.prototype.emitLinalgImpl = function(f) {
 };

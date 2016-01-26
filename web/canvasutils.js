@@ -190,6 +190,6 @@ var Geom3D = {
       }
       return -accum / cl;
     });
-  },
+  }
 };
 
