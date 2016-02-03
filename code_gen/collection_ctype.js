@@ -25,14 +25,15 @@ function CollectionCType(reg, typename) {
   var argi = 0;
   _.each(typename, function(c) {
     if (c === '<') {
+      if (type.templateArgs[argi]) argi ++;
       depth ++;
     }
     else if (c === '>') {
+      if (type.templateArgs[argi]) argi ++;
       depth --;
-      argi++;
     }
     else if (c === ',') {
-      argi++;
+      argi ++;
     }
     else {
       if (depth === 0) {
@@ -44,6 +45,7 @@ function CollectionCType(reg, typename) {
       }
     }
   });
+  console.log(JSON.stringify(type.templateArgs));
 
   type.templateArgTypes = _.map(type.templateArgs, function(name) { 
     if (/^\d+$/.test(name)) {
@@ -52,7 +54,7 @@ function CollectionCType(reg, typename) {
     else {
       var t = type.reg.types[name];
       if (!t) {
-        throw new Error('No type for template arg ' + name);
+        throw new Error('No type for template arg ' + name + ' in ' + _.keys(type.reg.types).join(', '));
       }
       return t;
     }
