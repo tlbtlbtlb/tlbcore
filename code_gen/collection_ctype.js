@@ -45,7 +45,6 @@ function CollectionCType(reg, typename) {
       }
     }
   });
-  console.log(JSON.stringify(type.templateArgs));
 
   type.templateArgTypes = _.map(type.templateArgs, function(name) { 
     if (/^\d+$/.test(name)) {
@@ -82,6 +81,36 @@ CollectionCType.prototype.addJswrapMethod = function(x) {
 CollectionCType.prototype.addJswrapAccessor = function(x) { 
   var type = this;
   type.extraJswrapAccessors.push(x);
+};
+
+CollectionCType.prototype.emitTypeDecl = function(f) {
+  var type = this;
+  f('');
+  f('char const * getTypeVersionString(TYPENAME const &);');
+  f('char const * getTypeName(TYPENAME const &);');
+  f('char const * getJsTypeName(TYPENAME const &);');
+  f('char const * getSchema(TYPENAME const &);');
+  f('void addSchemas(TYPENAME const &, map<string, jsonstr> &);');
+};  
+
+CollectionCType.prototype.emitHostImpl = function(f) {
+  var type = this;
+
+  var schema = {
+    typename: type.jsTypename,
+    hasArraynature: false,
+    members: []
+  };
+
+  f('char const * getTypeVersionString(TYPENAME const &it) { return "TYPENAME:1"; }');
+  f('char const * getTypeName(TYPENAME const &it) { return "TYPENAME"; }');
+  f('char const * getJsTypeName(TYPENAME const &it) { return "' + type.jsTypename + '"; }');
+  f('char const * getSchema(TYPENAME const &it) { return "' + cgen.escapeCString(JSON.stringify(schema)) + '"; }');
+  f('void addSchemas(TYPENAME const &it, map<string, jsonstr> &all) {');
+  f('if (!all["' + type.jsTypename + '"].isNull()) return;');
+  f('all["' + type.jsTypename + '"] = jsonstr(getSchema(it));');
+  f('}');
+  
 };
 
 CollectionCType.prototype.emitLinalgDecl = function(f) { 
@@ -289,10 +318,18 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
           f('thisObj->assignConstruct(a0);');
         }},
         {args: ['arma::subview_row<' + type.templateArgs.join(', ') + '>' ], code: function(f) {
-          f('thisObj->assignConstruct(a0);');
+          if (type.templateName === 'arma::Col') {
+            f('thisObj->assignConstruct(trans(a0));');
+          } else {
+            f('thisObj->assignConstruct(a0);');
+          }
         }},
         {args: ['arma::subview_col<' + type.templateArgs.join(', ') + '>' ], code: function(f) {
-          f('thisObj->assignConstruct(a0);');
+          if (type.templateName === 'arma::Row') {
+            f('thisObj->assignConstruct(trans(a0));');
+          } else {
+            f('thisObj->assignConstruct(a0);');
+          }
         }},
         {args: ['Object'], code: function(f) {
           if (type.templateName === 'arma::Row') {

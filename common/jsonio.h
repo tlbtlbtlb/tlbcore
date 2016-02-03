@@ -186,6 +186,21 @@ void wrJson(char *&s, shared_ptr<T> const &p) {
 }
 
 
+// Json - arma::Col
+template<typename T> size_t wrJsonSize(arma::Col<T> const &arr);
+template<typename T> void wrJson(char *&s, arma::Col<T> const &arr);
+template<typename T> bool rdJson(const char *&s, arma::Col<T> &arr);
+
+// Json - arma::Row
+template<typename T> size_t wrJsonSize(arma::Row<T> const &arr);
+template<typename T> void wrJson(char *&s, arma::Row<T> const &arr);
+template<typename T> bool rdJson(const char *&s, arma::Row<T> &arr);
+
+// Json - arma::Mat
+template<typename T> size_t wrJsonSize(arma::Mat<T> const &arr);
+template<typename T> void wrJson(char *&s, arma::Mat<T> const &arr);
+template<typename T> bool rdJson(const char *&s, arma::Mat<T> &arr);
+
 /*
   Json representation of various container templates.
 */
@@ -287,21 +302,6 @@ bool rdJson(const char *&s, vector<T *> &arr) {
   s++;
   return true;
 }
-
-// Json - arma::Col
-template<typename T> size_t wrJsonSize(arma::Col<T> const &arr);
-template<typename T> void wrJson(char *&s, arma::Col<T> const &arr);
-template<typename T> bool rdJson(const char *&s, arma::Col<T> &arr);
-
-// Json - arma::Row
-template<typename T> size_t wrJsonSize(arma::Row<T> const &arr);
-template<typename T> void wrJson(char *&s, arma::Row<T> const &arr);
-template<typename T> bool rdJson(const char *&s, arma::Row<T> &arr);
-
-// Json - arma::Mat
-template<typename T> size_t wrJsonSize(arma::Mat<T> const &arr);
-template<typename T> void wrJson(char *&s, arma::Mat<T> const &arr);
-template<typename T> bool rdJson(const char *&s, arma::Mat<T> &arr);
 
 
 // Json - map<KT, VT> and map<KT, VT *>

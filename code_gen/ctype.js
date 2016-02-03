@@ -126,15 +126,15 @@ CType.prototype.getCustomerIncludes = function() {
 CType.prototype.getHeaderIncludes = function() {
   var type = this;
   var ret = [];
-  _.each(type.extraHeaderIncludes, function(hdr) {
-    ret.push('#include "' + hdr + '"');
-  });
   _.each(type.getDeclDependencies(), function(othertype) {
     othertype = type.reg.getType(othertype);
     var fns = othertype.getFns();
     if (fns && fns.typeHeader) {
       ret.push('#include "' + fns.typeHeader + '"');
     }
+  });
+  _.each(type.extraHeaderIncludes, function(hdr) {
+    ret.push('#include "' + hdr + '"');
   });
   return ret;
 };
