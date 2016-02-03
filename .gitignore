@@ -8,6 +8,8 @@
 .lock-wscript
 *.log
 *.o
+*.pyc
+*.pyo
 .zedstate
 tags
 /dump.rdb
