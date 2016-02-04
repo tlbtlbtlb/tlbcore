@@ -196,7 +196,7 @@ $.fn.bogartWindowEvents = function(evMap) {
     var handler = function(ev) {
       // But don't work when there's a popupEditUrl dialog going. See VjsEditUrl.js
       if ($('#popupEditUrl').length) return;
-      fn.call(this, ev);
+      return fn.call(this, ev);
     };
 
     $(window).on(name, handler);
