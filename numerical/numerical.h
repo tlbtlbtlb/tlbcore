@@ -4,14 +4,19 @@
 struct Dv;
 struct DvRef;
 
-static inline double normangle(double x) { 
-  return fmod((x + M_PI), M_2PI) - M_PI; 
+static inline double normangle(double x) {
+  return fmod((x + M_PI), M_2PI) - M_PI;
 }
-static inline double sqr(double x) { 
-  return x*x; 
+static inline double sqr(double x) {
+  return x*x;
 }
-static inline double cube(double x) { 
-  return x*x*x; 
+static inline double cube(double x) {
+  return x*x*x;
+}
+static inline double easeInRaisedCos(double x) {
+  if (x <= 0.0) return 0.0;
+  if (x >= 1.0) return 1.0;
+  return (1-cos(x*M_PI))*0.5;
 }
 
 #if 0
@@ -474,4 +479,3 @@ void importScalars(THETA &owner, arma::mat &scalars)
     });
   assert(i == count);
 }
-

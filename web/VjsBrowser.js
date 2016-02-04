@@ -831,8 +831,8 @@ $.fn.animation2 = function(m) {
     else if (changesPending > 0) {
       changesPending--;
       if (changesPending === 0) {
-	m.fastDraw = false;
-	m.emit('animate', 0.0);
+        m.fastDraw = false;
+        m.emit('animate', 0.0);
       }
       window.requestAnimationFrame(wrap);
     } 
@@ -957,12 +957,12 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     // Firefox doesn't have offsetX, you have to work from page coordinates
     if (ev.pageX !== undefined) {
       return {x: ev.pageX - top.offset().left,
-	      y: ev.pageY - top.offset().top};
+              y: ev.pageY - top.offset().top};
     }
     // jQuery doesn't copy pageX when the event is 'wheel'
     if (ev.originalEvent.pageX !== undefined) {
       return {x: ev.originalEvent.pageX - top.offset().left,
-	      y: ev.originalEvent.pageY - top.offset().top};
+              y: ev.originalEvent.pageY - top.offset().top};
     }
     return null;
   }
@@ -983,9 +983,9 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     if (action && action.onScroll) {
       var deltas = eventDeltas(ev);
       if (deltas) {
-	var scrollRate = Math.min(15, Math.max(Math.abs(deltas.x), Math.abs(deltas.y)));
-	action.onScroll(deltas.x*scrollRate, deltas.y*scrollRate);
-	m.emit('changed');
+        var scrollRate = Math.min(15, Math.max(Math.abs(deltas.x), Math.abs(deltas.y)));
+        action.onScroll(deltas.x*scrollRate, deltas.y*scrollRate);
+        m.emit('changed');
       }
       return false;
     }
@@ -996,17 +996,17 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     var action = hd.find(md.x, md.y) || hd.defaultActions;
     if (action) {
       if (action.onDown || action.onClick || action.onUp) {
-	hd.buttonDown = true;
-	hd.mdX = md.x;
-	hd.mdY = md.y;
-	if (action.onDown) {
-	  action.onDown(hd.mdX, hd.mdY, ev);
-	  if (hd.dragging && hd.dragCursor) {
-	    // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
-	    // Grab not supported on IE or Chrome/Windows
-	    top.css('cursor', hd.dragCursor);
-	  }
-	}
+        hd.buttonDown = true;
+        hd.mdX = md.x;
+        hd.mdY = md.y;
+        if (action.onDown) {
+          action.onDown(hd.mdX, hd.mdY, ev);
+          if (hd.dragging && hd.dragCursor) {
+            // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
+            // Grab not supported on IE or Chrome/Windows
+            top.css('cursor', hd.dragCursor);
+          }
+        }
       }
     }
     m.emit('changed');
@@ -1236,23 +1236,23 @@ function setupConsole(reloadKey) {
   if (window.enableRemoteConsole) {
     window.rconsole = mkWebSocket('console', {
       start: function() {
-	if (reloadKey) {
+        if (reloadKey) {
           // Ask the server to tell us to reload. Look for reloadKey in VjsSite.js for the control flow.
           this.cmd('reloadOn', {reloadKey: reloadKey});
-	}
+        }
       },
       close: function() {
-	window.rconsole = null;
+        window.rconsole = null;
       },
       reopen: function() {
-	// Don't reopen the console, since it's sort of optional
+        // Don't reopen the console, since it's sort of optional
       },
       cmd_reload: function(msg) { // server is asking us to reload, because it knows that javascript files have changed
-	console.log('Reload');
-	window.location.reload(true);
+        console.log('Reload');
+        window.location.reload(true);
       },
       cmd_flashError: function(msg) {
-	$.flashErrorMessage(msg.err);
+        $.flashErrorMessage(msg.err);
       }
     });
   }

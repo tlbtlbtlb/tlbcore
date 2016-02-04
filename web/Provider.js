@@ -257,10 +257,10 @@ function persistentReadFile(fn, encoding, cb) {
         if (0 !== delta) {
           logio.I(fn, 'changed ' + Math.floor(delta/1000) + ' seconds newer');
           prevStats = newStats;
-	  /* It works fine to call readit immediately when everything's Unix,
-	     but when writing files from Emacs over Samba, you sometimes get
-	     an empty file at first
-	  */
+          /* It works fine to call readit immediately when everything's Unix,
+             but when writing files from Emacs over Samba, you sometimes get
+             an empty file at first
+          */
           setTimeout(readit, 300);
         }
       });

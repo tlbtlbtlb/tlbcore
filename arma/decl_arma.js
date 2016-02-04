@@ -78,9 +78,9 @@ module.exports = function(typereg) {
 
         var isInteger = (et === 'S64' || et === 'U64');
         var isComplex = (et === 'arma::cx_double');
-	if (!isInteger) {
+        if (!isInteger) {
           typereg.scanCFunctions(mTypename + ' inv(' + mTypename + ' a);');
-	}
+        }
 
         if (!rowFixed && !colFixed) {
           typereg.scanCFunctions([

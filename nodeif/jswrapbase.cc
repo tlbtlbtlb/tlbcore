@@ -370,7 +370,7 @@ arma::Mat<T> convJsToArmaMat(Isolate *isolate, Local<Value> it, size_t nRows, si
       }
     } else {
       if (nRows * nCols != itArrLen) {
-	throw runtime_error(stringprintf("convJsToArmaMat: wrong size: %d != %dx%d", int(itArrLen), int(nRows), int(nCols)));
+        throw runtime_error(stringprintf("convJsToArmaMat: wrong size: %d != %dx%d", int(itArrLen), int(nRows), int(nCols)));
       }
     }
 

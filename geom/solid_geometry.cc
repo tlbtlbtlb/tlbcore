@@ -658,12 +658,12 @@ StlWebglMesh StlSolid::exportWebglMesh(double eps) const
   auto pushVertex = [&](arma::vec3 const &position, arma::vec3 const &normal) {
     // Lame, but performance doesn't matter much here
     string dupKey = stringprintf("%.0f %.0f %.0f %.3f %.3f %.3f",
-				 position[0]/eps,
-				 position[1]/eps,
-				 position[2]/eps,
-				 normal[0],
-				 normal[1],
-				 normal[2]);
+                                 position[0]/eps,
+                                 position[1]/eps,
+                                 position[2]/eps,
+                                 normal[0],
+                                 normal[1],
+                                 normal[2]);
 
     // Store index+1 in dupMap, to distinguish zero as unassigned
     S64 &vi = dupMap[dupKey];
