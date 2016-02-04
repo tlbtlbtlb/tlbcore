@@ -427,13 +427,13 @@ StructCType.prototype.emitHostImpl = function(f) {
     }).join(', ') + ')');
     f(':' + [].concat(
       _.map(type.superTypes, function(superType) {
-	return superType.typename + '(' + _.map(superType.getConstructorArgs(), function(argInfo) { return '_'+argInfo.name; }).join(', ') + ')';
+        return superType.typename + '(' + _.map(superType.getConstructorArgs(), function(argInfo) { return '_'+argInfo.name; }).join(', ') + ')';
       }),
       _.map(type.orderedNames, function(name) {
         if (type.nameToOptions[name].omitFromConstructor) {
           return name + '(' + type.getMemberInitExpr(name) + ')';
         } else {
-	  return name + '(_' + name + ')';
+          return name + '(_' + name + ')';
         }
       })).join(', '));
     f('{');
@@ -630,12 +630,12 @@ StructCType.prototype.emitRdJson = function(f) {
   _.each(type.orderedNames, function(name) {
     if (!type.nameToType[name].isPtr()) {
       actions['"' + name + '":'] = function() {
-	f('if (rdJson(s, obj.' + name + ')) {');
-	f('jsonSkipSpace(s);');
-	f('c = *s++;');
-	f('if (c == \',\') continue;');
-	f('if (c == \'}\') return typeOk;');
-	f('}');
+        f('if (rdJson(s, obj.' + name + ')) {');
+        f('jsonSkipSpace(s);');
+        f('c = *s++;');
+        f('if (c == \',\') continue;');
+        f('if (c == \'}\') return typeOk;');
+        f('}');
       };
     }
   });
@@ -718,12 +718,12 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     var constructorArgs = type.getConstructorArgs();
     f.emitArgSwitch([
       {args: [], code: function(f) {
-	f('thisObj->assignDefault();');
+        f('thisObj->assignDefault();');
       }},
       {args: _.map(constructorArgs, function(argInfo) { return argInfo.type; }), code: function(f) {
-	f('thisObj->assignConstruct(' + _.map(constructorArgs, function(argInfo, argi) {
-	  return 'a'+argi;
-	}) + ');');
+        f('thisObj->assignConstruct(' + _.map(constructorArgs, function(argInfo, argi) {
+          return 'a'+argi;
+        }) + ');');
       }},
       (constructorArgs.length > 0 && constructorArgs.length === type.orderedNames.length) ? 
         {args: ['Object'], code: function(f) {
@@ -766,27 +766,27 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     _.each(type.orderedNames, function(name) {
       var memberType = type.nameToType[name];
       if (!memberType.isPtr()) {
-	switch (memberType.typename) {
-	case 'S32':
-	case 'U32':
-	case 'S64':
-	case 'U64':
-	case 'float':
- 	case 'double':
+        switch (memberType.typename) {
+        case 'S32':
+        case 'U32':
+        case 'S64':
+        case 'U64':
+        case 'float':
+         case 'double':
           f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), Number::New(isolate, it.' + name + '));');
           break;
-	case 'bool':
+        case 'bool':
           f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), Boolean::New(isolate, it.' + name + '));');
           break;
-	case 'string':
+        case 'string':
           f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), convStringToJs(isolate, it.' + name + '));');
           break;
-	case 'jsonstr':
+        case 'jsonstr':
           f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), convJsonstrToJs(isolate, it.' + name + '));');
           break;
-	default:
+        default:
           f('ret->Set(String::NewFromUtf8(isolate, "' + name + '"), jsToJSON_' + memberType.jsTypename + '(isolate, it.' + name + '));');
-	}
+        }
       }
     });
     f('return scope.Escape(ret);');

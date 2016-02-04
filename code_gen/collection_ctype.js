@@ -375,7 +375,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
           f('thisObj->assignConstruct(a0, a1, arma::fill::zeros);');
         }},
         {args: [type.typename], code: function(f) {
-	  f('thisObj->assignConstruct(a0);');
+          f('thisObj->assignConstruct(a0);');
         }},
         {args: ['arma::subview_row<' + type.templateArgs.join(', ') + '>' ], code: function(f) {
           f('thisObj->assignConstruct(a0);');
@@ -397,7 +397,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
           f('thisObj->assignConstruct(arma::fill::zeros);');
         }},
         {args: [type.typename], code: function(f) {
-	  f('thisObj->assignConstruct(a0);');
+          f('thisObj->assignConstruct(a0);');
         }},
         {args: ['Object'], code: function(f) {
           f('thisObj->assignConstruct(convJsToArmaMat< ' + type.templateArgs[0] + ' >(isolate, a0));');
@@ -698,13 +698,13 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
     if (type.isCopyConstructable()) {
       f.emitJsFactory('fromString', function() {
-	f.emitArgSwitch([
+        f.emitArgSwitch([
           {args: ['string'], returnType: type, code: function(f) {
             f('const char *a0s = a0.c_str();');
             f('bool ok = rdJson(a0s, ret);');
             f('if (!ok) return ThrowInvalidArgs(isolate);');
           }}
-	]);
+        ]);
       });
     }
       
@@ -733,7 +733,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
               f('};');
             }}
           ]);
-	});
+        });
       }
     }
   }

@@ -53,16 +53,16 @@ function mkWebSocketRpc(wsc, handlers) {
 
       if (verbose >= 2) console.log(wsc.url + ' Closed');
       txQueue = [];
-      if (!shutdownRequested) {	
-	if (handlers.reopen) {
-	  handlers.reopen();
-	} else {
+      if (!shutdownRequested) {        
+        if (handlers.reopen) {
+          handlers.reopen();
+        } else {
           setTimeout(function() {
             if (verbose >= 1) console.log('Reopening socket to ' + wsc.url);
             wsc = new WebSocket(wsc.url);
             setupWsc(wsc);
           }, 3000);
-	}
+        }
       }
     };
   }
@@ -105,9 +105,9 @@ function mkWebSocketRpc(wsc, handlers) {
       rspFunc.call(handlers, msg.rsp);
 
       if (interactivePending && pending.pendingCount < 3) {
-	var tip = interactivePending;
-	interactivePending = null;
-	handlers.rpc(tip.rpcReq, tip.args, tip.rspFunc);
+        var tip = interactivePending;
+        interactivePending = null;
+        handlers.rpc(tip.rpcReq, tip.args, tip.rspFunc);
       }
     }
 
@@ -132,7 +132,7 @@ function mkWebSocketRpc(wsc, handlers) {
     };
     handlers.interactiveRpc = function(rpcReq, args, rspFunc) {
       if (pending.pendingCount < 3) {
-	return handlers.rpc(rpcReq, args, rspFunc);
+        return handlers.rpc(rpcReq, args, rspFunc);
       }
       // overwrite any previous one
       interactivePending = {rpcReq: rpcReq, args: args, rspFunc: rspFunc};

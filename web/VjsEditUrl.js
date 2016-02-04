@@ -28,8 +28,8 @@ $.startEditUrl = function() {
         },
       });
       if (0) {
-	window.cm0 = cm;
-	console.log('CodeMirror stored in window.cm0 for your convenience');
+        window.cm0 = cm;
+        console.log('CodeMirror stored in window.cm0 for your convenience');
       }
       return false;
 

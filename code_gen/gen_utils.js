@@ -81,41 +81,41 @@ function withJsWrapUtils(f, typereg) {
       f(ifSep + 'if (args.Length() ' + (argSet.ignoreExtra ? '>=' : '==') + ' ' + argSet.args.length +
         _.map(argSet.args, function(argTypename, argi) {
           var m;
-	  if (argTypename === 'Object') {
-	    return ' && args[' + argi + ']->IsObject()';
-	  }
+          if (argTypename === 'Object') {
+            return ' && args[' + argi + ']->IsObject()';
+          }
           else if (m = /^conv:(.*)$/.exec(argTypename)) {
             var argType = typereg.getType(m[1]);
-	    if (!argType) {
+            if (!argType) {
               throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
-	    }
+            }
             return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {conv: true});
           }
-	  else {
+          else {
             var argType = typereg.getType(argTypename);
-	    if (!argType) {
+            if (!argType) {
               throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
-	    }
+            }
             return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {});
-	  }
+          }
         }).join('') +
         ') {');
       
       _.each(argSet.args, function(argTypename, argi) {
         var m;
         if (argTypename === 'Object') {
-	  f('Local<Object> a' + argi + ' = args[' + argi + ']->ToObject();');
+          f('Local<Object> a' + argi + ' = args[' + argi + ']->ToObject();');
         }
         else if (m = /^conv:(.*)$/.exec(argTypename)) {
           var argType = typereg.getType(m[1]);
-	  if (!argType) {
+          if (!argType) {
             throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
-	  }
-	  f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']', {conv: true}) + ';');
+          }
+          f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']', {conv: true}) + ';');
         }
         else {
-	  var argType = typereg.getType(argTypename);
-	  f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']', {}) + ';');
+          var argType = typereg.getType(argTypename);
+          f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']', {}) + ';');
         }
       });
 
@@ -127,19 +127,19 @@ function withJsWrapUtils(f, typereg) {
           f('return;');
         } else {
           var returnType = typereg.getType(argSet.returnType);
-	  if (returnType.isStruct() || returnType.isCollection()) {
+          if (returnType.isStruct() || returnType.isCollection()) {
             f('shared_ptr< ' + returnType.typename + ' > ret_ptr = make_shared< ' + returnType.typename + ' >();');
-	    f(returnType.typename + ' &ret = *ret_ptr;');
+            f(returnType.typename + ' &ret = *ret_ptr;');
             argSet.code(f);
             f('args.GetReturnValue().Set(' + returnType.getCppToJsExpr('ret_ptr') + ');');
             f('return;');
-	  }
-	  else {
+          }
+          else {
             f(returnType.typename + ' ret;');
             argSet.code(f);
             f('args.GetReturnValue().Set(' + returnType.getCppToJsExpr('ret') + ');');
             f('return;');
-	  }
+          }
         }
       } else {
         argSet.code(f);

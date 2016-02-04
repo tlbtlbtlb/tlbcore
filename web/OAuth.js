@@ -22,12 +22,12 @@ function getHttpRequestAccessToken(req) {
     if (cookies) {
       var accessToken = cookies['access_token'];
       if (accessToken) {
-	var accessTokenParts = accessToken.split(' ');
-	if (!_.every(accessTokenParts, Safety.isValidToken)) {
-	  logio.E(req.connection.remoteAddress, 'Invalid access_token cookie:', accessToken);
-	  return null;
-	}
-	return accessTokenParts;
+        var accessTokenParts = accessToken.split(' ');
+        if (!_.every(accessTokenParts, Safety.isValidToken)) {
+          logio.E(req.connection.remoteAddress, 'Invalid access_token cookie:', accessToken);
+          return null;
+        }
+        return accessTokenParts;
       }
     }
   }
@@ -102,17 +102,17 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
 
     if (codeInfo && codeInfo.redirectUrl) {
       self.getAccessToken(authCode, up, function(err, accessTokenInfo) {
-	logio.O(remote, 'Cookie access_token', 'github ' + accessTokenInfo['access_token']);
-	res.writeHead(302, {
-	  'Set-Cookie': cookie.serialize('access_token', 'github ' + accessTokenInfo['access_token'], {
-	    path: '/',
-	    maxAge: 30*86400,
-	    httpOnly: false,
-	    secure: (up.protocol === 'https:')
-	  }),
-	  'Location': codeInfo.redirectUrl,
-	});
-	res.end();
+        logio.O(remote, 'Cookie access_token', 'github ' + accessTokenInfo['access_token']);
+        res.writeHead(302, {
+          'Set-Cookie': cookie.serialize('access_token', 'github ' + accessTokenInfo['access_token'], {
+            path: '/',
+            maxAge: 30*86400,
+            httpOnly: false,
+            secure: (up.protocol === 'https:')
+          }),
+          'Location': codeInfo.redirectUrl,
+        });
+        res.end();
       });
 
     }
@@ -125,10 +125,10 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
     var appRedirectUrl = up.query['redirect_url'];
     res.writeHead(302, {
       'Set-Cookie': cookie.serialize('access_token', '', {
-	path: '/',
-	maxAge: 0,
-	httpOnly: false,
-	secure: (up.protocol === 'https:')
+        path: '/',
+        maxAge: 0,
+        httpOnly: false,
+        secure: (up.protocol === 'https:')
       }),
       'Location': appRedirectUrl
     });
@@ -161,8 +161,8 @@ OAuthProvider.prototype.getAccessToken = function(authCode, up, cb) {
       var accessTokenInfo = querystring.parse(data);
       logio.I(remote, accessTokenInfo);
       if (cb) {
-	cb(null, accessTokenInfo);
-	cb = null;
+        cb(null, accessTokenInfo);
+        cb = null;
       }
     });
     res.on('err', function(err) {
