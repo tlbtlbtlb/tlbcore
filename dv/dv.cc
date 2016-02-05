@@ -60,7 +60,7 @@ Dv relu(Dv const &a)
 {
   if (a.value > 0.0) {
     return a;
-  } 
+  }
   else if (relu_neg_slope) {
     return Dv(a.value * relu_neg_slope, a.deriv * relu_neg_slope);
   }
@@ -74,11 +74,11 @@ DvMat relu(DvMat const &a)
   DvMat ret(a);
   for (size_t i=0; i<a.value.n_elem; i++) {
     double aValue = a.value[i];
-    
+
     if (aValue > 0.0) {
       ret.value[i] = aValue;
       ret.deriv[i] = a.deriv[i];
-    } 
+    }
     else if (relu_neg_slope) {
       ret.value[i] = aValue * relu_neg_slope;
       ret.deriv[i] = a.deriv[i] * relu_neg_slope;

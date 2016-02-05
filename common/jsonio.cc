@@ -12,8 +12,8 @@ jsonstr::jsonstr()
 {
 }
 
-jsonstr::jsonstr(string const &_it) 
-  :it(_it) 
+jsonstr::jsonstr(string const &_it)
+  :it(_it)
 {
 }
 
@@ -61,7 +61,7 @@ bool jsonstr::isNull()
 }
 
 /*
-  writeToFile uses gzip by default. 
+  writeToFile uses gzip by default.
 */
 void jsonstr::writeToFile(string const &fn, bool enableGzip)
 {
@@ -112,7 +112,7 @@ int jsonstr::readFromFile(string const &fn)
     if (fileSize > 1000000000) {
       throw runtime_error(fn + string(": Unreasonable file size ") + to_string(fileSize));
     }
-    
+
     fseek(fp, 0, SEEK_SET);
     char *p = startWrite(fileSize);
     int nr = fread(p, fileSize, 1, fp);
@@ -120,7 +120,7 @@ int jsonstr::readFromFile(string const &fn)
       throw runtime_error(fn + string(": partial read ") + to_string(nr) + "/" + to_string(fileSize));
     }
     endWrite(p + fileSize);
-    
+
     if (fclose(fp) < 0) {
       throw runtime_error(fn + string(": ") + string(strerror(errno)));
     }
@@ -144,7 +144,7 @@ int jsonstr::readFromFile(string const &fn)
         it += string(&buf[0], &buf[nr]);
       }
     }
-    
+
     rc = gzclose(gzfp);
     if (rc != Z_OK) {
       throw runtime_error(gzfn + string(": close failed: ") + to_string(rc));
@@ -227,7 +227,7 @@ bool jsonSkipValue(char const *&s) {
   else {
     return false;
   }
-  
+
   return true;
 }
 
@@ -298,8 +298,8 @@ bool jsonMatchKey(char const *&s, char const *pattern)
 
 // Json - bool
 
-size_t wrJsonSize(bool const &value) { 
-  return 5; 
+size_t wrJsonSize(bool const &value) {
+  return 5;
 }
 void wrJson(char *&s, bool const &value) {
   if (value) {
@@ -356,9 +356,9 @@ bool rdJson(const char *&s, bool &value) {
 
 // json - S32
 
-size_t wrJsonSize(S32 const &value) { 
+size_t wrJsonSize(S32 const &value) {
   if (value == 0) return 1;
-  return 12; 
+  return 12;
 }
 void wrJson(char *&s, S32 const &value) {
   if (value == 0) {
@@ -378,9 +378,9 @@ bool rdJson(const char *&s, S32 &value) {
 
 // json - U32
 
-size_t wrJsonSize(U32 const &value) { 
+size_t wrJsonSize(U32 const &value) {
   if (value == 0) return 1;
-  return 12; 
+  return 12;
 }
 void wrJson(char *&s, U32 const &value) {
   if (value == 0) {
@@ -400,9 +400,9 @@ bool rdJson(const char *&s, U32 &value) {
 
 // json - S64
 
-size_t wrJsonSize(S64 const &value) { 
+size_t wrJsonSize(S64 const &value) {
   if (value == 0) return 1;
-  return 20; 
+  return 20;
 }
 void wrJson(char *&s, S64 const &value) {
   if (value == 0) {
@@ -422,9 +422,9 @@ bool rdJson(const char *&s, S64 &value) {
 
 // json - U64
 
-size_t wrJsonSize(U64 const &value) { 
+size_t wrJsonSize(U64 const &value) {
   if (value == 0) return 1;
-  return 20; 
+  return 20;
 }
 void wrJson(char *&s, U64 const &value) {
   if (value == 0) {
@@ -443,9 +443,9 @@ bool rdJson(const char *&s, U64 &value) {
 }
 
 
-// json - float 
+// json - float
 
-size_t wrJsonSize(float const &value) { 
+size_t wrJsonSize(float const &value) {
   if (value == 0.0f) return 1;
   return 20;
 }
@@ -468,7 +468,7 @@ bool rdJson(const char *&s, float &value) {
 
 // json - double
 
-size_t wrJsonSize(double const &value) { 
+size_t wrJsonSize(double const &value) {
   if (value == 0.0 || value == 1.0) return 1;
   return 25;
 }
@@ -503,7 +503,7 @@ bool rdJson(const char *&s, double &value) {
 
 // json - string
 
-size_t wrJsonSize(string const &value) { 
+size_t wrJsonSize(string const &value) {
   size_t ret = 2;
   for (auto vi : value) {
     u_char c = vi;
@@ -573,7 +573,7 @@ void wrJson(char *&s, string const &value) {
         *s++ = toHexDigit((mbc >> 8) & 0x0f);
         *s++ = toHexDigit((mbc >> 4) & 0x0f);
         *s++ = toHexDigit((mbc >> 0) & 0x0f);
-      } 
+      }
     }
 #endif
     else {
@@ -1207,7 +1207,7 @@ bool rdJson(const char *&s, arma::Mat<T> &arr) {
     case 4: n_rows = 2; n_cols = 2; break;
     case 9: n_rows = 3; n_cols = 3; break;
     case 16: n_rows = 4; n_cols = 4; break;
-    default: 
+    default:
       throw runtime_error(stringprintf("rdJson(arma::Mat %dx%d): Couldn't deduce size for %d-elem js arr",
                                        (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size()));
     }

@@ -37,40 +37,40 @@ function fillImageVersion(fn, version, options, sizeCb)
 
   /*
     Use ImageMagick to make a smaller version. See http://www.imagemagick.org/www/command-line-options.html
-    
+
     Watch out for special characters in fn. In particular, ImageMagick interprets :, *, [ and ]. See http://www.imagemagick.org/www/command-line-processing.html
 
     WRITEME someday: I'd love to bind Cairographics in and do this with better alpha blending.
     It does work out well to have it in a separate process, though. What I really want is a JSON-driven cairographics render process that we can just
     pipe commands to.
   */
-  
+
   if (version === 'orig') {
     cmd = ('identify -ping ' + fn);
   }
   else if (version.match(/^S\d+x\d+$/)) {
-    cmd = ('mogrify -resize ' + version.substr(1) + ' -strip -colorspace rgb -write ' + fn2 + ' ' + fn + 
+    cmd = ('mogrify -resize ' + version.substr(1) + ' -strip -colorspace rgb -write ' + fn2 + ' ' + fn +
            ' && identify ' + fn2);
-  } 
+  }
   else if (version.match(/^R\d+x\d+$/)) {
-    cmd = ('mogrify -resize ' + version.substr(1) + ' -raise 2 -strip -colorspace rgb -write ' + fn2 + ' ' + fn + 
+    cmd = ('mogrify -resize ' + version.substr(1) + ' -raise 2 -strip -colorspace rgb -write ' + fn2 + ' ' + fn +
            ' && identify ' + fn2);
-  } 
+  }
   else if (version.match(/^T\d+x\d+$/)) {
     cmd = ('mogrify -thumbnail ' + version.substr(1) + ' -strip -colorspace rgb -write ' + fn2 + ' ' + fn +
            ' && identify ' + fn2);
-  } 
+  }
   else if (version.match(/^onqb$/)) {
     cmd = ('convert -size 90x297 xc:white' +
            ' -draw "image over 0,0 0,0 \'website/images/qbIcon90x297.jpg\'" ' +
-           ' -draw "image over 33,2 14,10 \'' + fn + '\'" ' + 
+           ' -draw "image over 33,2 14,10 \'' + fn + '\'" ' +
            fn2 +
            ' && identify ' + fn2);
-  } 
+  }
   else if (version.match(/^onqbhead$/)) {
 
     var hsScale = Math.min(28.0/options.origWidth, 25.0/options.origHeight);
-    var drawWidth = Math.round(options.origWidth * hsScale); 
+    var drawWidth = Math.round(options.origWidth * hsScale);
     var drawHeight = Math.round(options.origHeight * hsScale);
     var drawX = Math.round(45 - drawWidth/2);
     var drawY = Math.round(15 - drawHeight/2);
@@ -87,7 +87,7 @@ function fillImageVersion(fn, version, options, sizeCb)
     }
     cmd += ' ' + fn2;
     cmd += ' && identify ' + fn2;
-  } 
+  }
   else {
     sizeCb('fillImageVersion: bad version=' + version);
     return;
@@ -120,7 +120,7 @@ function fillImageVersion(fn, version, options, sizeCb)
 var syncActiveCount = 0;
 function syncPendingFiles() {
   if (filesToSync.length === 0 || syncActiveCount > 0) return;
-  
+
   var todo = _.uniq(_.sortBy(filesToSync, _.identity), true);
   filesToSync = [];
 
@@ -129,7 +129,7 @@ function syncPendingFiles() {
   syncActiveCount ++;
   _.arrayMapPar(_.keys(dests), function(destName, parCb) {
     if (destName === Topology.getHostname()) return parCb();
-    
+
     var cmd = 'rsync -Rr --ignore-existing ' + _.map(todo, Safety.shellQuote).join(' ') + ' ' + destName + ':/home/otto/robot/. </dev/null';
     logio.O('os', cmd);
 
@@ -138,7 +138,7 @@ function syncPendingFiles() {
       if (stderr && stderr.length) logio.E(destName, stderr);
       parCb();
     });
-    
+
   }, function() {
     syncActiveCount --;
   }, 4);
@@ -215,7 +215,7 @@ function mkImageVersions(origFn, options, cb) {
     });
   });
 
-  
+
   return ii;
 }
 

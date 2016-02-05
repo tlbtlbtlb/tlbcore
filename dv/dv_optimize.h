@@ -10,7 +10,7 @@ struct DvOptimizer {
     extract_dvs(parm_dvs, parms);
     best_loss = loss(parms);
   }
-  
+
   void step() {
     size_t num_dvs = parm_dvs.size();
 
@@ -26,10 +26,10 @@ struct DvOptimizer {
       jac0[0, i] = loss0_dvi.deriv;
       if (1) eprintf("jac[0, %lu] = %g\n", (u_long)i, loss0_dvi.deriv);
     }
-    
-    // 
-    
-    
+
+    //
+
+
 
   }
 
@@ -45,5 +45,5 @@ struct DvOptimizer {
   Dv (*loss)(PARMS const &parms);
   double best_loss;
 };
-  
-  
+
+

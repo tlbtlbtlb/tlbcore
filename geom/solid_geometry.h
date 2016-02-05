@@ -58,7 +58,7 @@ struct StlWebglMesh {
 };
 
 struct StlSolid {
-  
+
   StlSolid();
   ~StlSolid();
 
@@ -79,7 +79,7 @@ struct StlSolid {
 
   arma::vec3 bboxLo, bboxHi;
   vector<StlFace> faces;
-  
+
 };
 
 ostream & operator << (ostream &s, StlSolid const &it);

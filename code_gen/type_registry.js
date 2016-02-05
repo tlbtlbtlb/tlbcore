@@ -94,7 +94,7 @@ TypeRegistry.prototype.struct = function(typename /* varargs */) {
   var ptrType = new PtrCType(typereg, t);
   typereg.types[ptrType.typename] = ptrType;
   typereg.types['shared_ptr< ' + typename + ' >'] = ptrType;
-  
+
   return t;
 };
 
@@ -235,7 +235,7 @@ TypeRegistry.prototype.emitMochaFile = function(files) {
   f('var ur = require("ur");');
   f('var util = require("util");');
   f('var assert = require("assert");');
-  
+
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
     type.emitJsTestImpl(f.child({TYPENAME: type.typename, JSTYPE: type.jsTypename}));
@@ -256,7 +256,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
       funcInfosByTemplate[funcInfo.funcTemplate].push(funcInfo);
     });
     f('/* funcInfosByTemplate: ' + jsFuncname + '\n' + util.inspect(funcInfosByTemplate) + '\n*/');
-    
+
     _.each(funcInfosByTemplate, function(funcInfosThisTemplate, funcTemplate) {
       var funcTemplateType = (funcTemplate !== '') ? typereg.getType(funcTemplate) : null;
       var jsScopedFuncname = jsFuncname + (funcTemplateType ? '_' + funcTemplateType.jsTypename : '');
@@ -300,7 +300,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
           if (!returnType) {
             throw new Error('No such type ' + funcInfo.returnType + ' for ' + jsFuncname);
           }
-          
+
           f(returnType.typename + ' ret = ' + gen_utils.getFunctionCallExpr(funcInfo.funcInvocation, callargs) + ';');
           f('args.GetReturnValue().Set(' + typereg.types[returnType.typename].getCppToJsExpr('ret') + ');');
           f('return;');
@@ -327,7 +327,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
   _.each(initFuncs, function(s) {
     f(s);
   });
-  
+
   f('}');
 
 };
@@ -392,8 +392,8 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
   for (var arity=0; arity < 7; arity++) {
 
     var argsExpr = _.range(0, arity).map(function() { return argExpr; }).join('\\s*,\\s*');
-    
-    var funcExpr = ('(' + typenameExpr + ')\\s+' + 
+
+    var funcExpr = ('(' + typenameExpr + ')\\s+' +
                     '(' + typenameExpr + '::)?' +
                     '(' + funcnameExpr + ')\\s*' +
                     '(<\\s*(' + typenameExpr + ')\\s*>)?' +
@@ -402,7 +402,7 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
     if (0 && arity === 0) console.log(argExpr);
 
     var re = new RegExp(funcExpr, 'g');
-    
+
     var m;
     while ((m = re.exec(text))) {
       var desc = m[0];

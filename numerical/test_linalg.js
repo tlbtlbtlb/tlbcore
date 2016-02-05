@@ -21,5 +21,5 @@ describe('Linalg conversion', function() {
     });
     assert.equal(dvi, 6);
   });
-  
+
 });

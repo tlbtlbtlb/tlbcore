@@ -16,10 +16,10 @@ double unipolarHaltonAxis(u_int i, u_int radix)
 {
   if (i == 0) return 0.0;
   int digit = int(i % radix);
-  
+
   double digitValue = digit;
   double placeValue = 1.0/radix;
-  
+
   return (digitValue + unipolarHaltonAxis(i/radix, radix)) * placeValue;
 }
 
@@ -44,10 +44,10 @@ double bipolarHaltonAxis(u_int i, u_int radix)
 {
   if (i == 0) return 0.0;
   int digit = int(i % radix);
-    
+
   double digitValue = (1 - (digit%2) * 2) * ((digit + 1) / 2) * 2.0;
   double placeValue = 1.0/radix;
-  
+
   return (digitValue + bipolarHaltonAxis(i/radix, radix)) * placeValue;
 }
 

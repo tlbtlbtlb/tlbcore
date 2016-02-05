@@ -114,16 +114,16 @@ jsonstr convJsToJsonstr(Isolate *isolate, Local<Value> value)
       return jsonstr(convJsToString(isolate, ret->ToString()));
     }
   }
-  
+
   Local<Object> global = isolate->GetCurrentContext()->Global();
   Local<Value> gJSON = global->Get(String::NewFromUtf8(isolate, "JSON"));
   assert(gJSON->IsObject());
-    
+
   Local<Value> gStringify = gJSON->ToObject()->Get(String::NewFromUtf8(isolate, "stringify"));
   assert(!gStringify.IsEmpty() && "function not found: JSON.stringify");
   assert(gStringify->IsFunction() && "not a function: JSON.stringify");
   Local<Function> gJSON_stringify = gStringify.As<Function>();
-  
+
   return jsonstr(convJsToString(isolate, gJSON_stringify->Call(gJSON, 1, &value)->ToString()));
 }
 
@@ -132,7 +132,7 @@ Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it)
   Local<Object> global = isolate->GetCurrentContext()->Global();
   Local<Value> gJSON = global->Get(String::NewFromUtf8(isolate, "JSON"));
   assert(gJSON->IsObject());
-    
+
   Local<Value> gParse = gJSON->ToObject()->Get(String::NewFromUtf8(isolate, "parse"));
   assert(!gParse.IsEmpty() && "function not found: JSON.parse");
   assert(gParse->IsFunction() && "not a function: JSON.parse");
@@ -159,7 +159,7 @@ map<string, jsonstr> convJsToMapStringJsonstr(Isolate *isolate, Local<Value> itv
 
     Local<Object> it = itv->ToObject();
     Local<Array> itKeys = it->GetOwnPropertyNames();
-    
+
     size_t itKeysLen = itKeys->Length();
     for (size_t i=0; i<itKeysLen; i++) {
       Local<Value> itKey = itKeys->Get(i);
@@ -302,7 +302,7 @@ static double * mkFloat64Array(Isolate *isolate, size_t size, Local<Object> &ret
   if (float64Array.IsEmpty()) throw runtime_error("Type not found: Float64Array");
   if (!float64Array->IsFunction()) throw runtime_error("Not a constructor: Float64Array");
   Local<Function> float64ArrayConstructor = float64Array.As<Function>();
-  
+
 
   Local<Value> jsSize = Integer::NewFromUnsigned(isolate, (u_int)size);
   ret = float64ArrayConstructor->NewInstance(1, &jsSize);
@@ -323,7 +323,7 @@ Local<Object> convArmaColToJs(Isolate *isolate, arma::Col<T> const &it) {
   for (size_t i=0; i<it.n_elem; i++) {
     retData[i] = it(i);
   }
-  
+
   return ret;
 }
 
@@ -334,7 +334,7 @@ Local<Object> convArmaRowToJs(Isolate *isolate, arma::Row<T> const &it) {
   for (size_t i=0; i<it.n_elem; i++) {
     retData[i] = it(i);
   }
-  
+
   return ret;
 }
 
@@ -360,7 +360,7 @@ arma::Mat<T> convJsToArmaMat(Isolate *isolate, Local<Value> it, size_t nRows, si
 
     Local<Array> itArr = Local<Array>::Cast(it);
     size_t itArrLen = itArr->Length();
-    
+
     if (nRows == 0 && nCols == 0) {
       switch (itArrLen) {
       case 16: nRows = 4; nCols = 4; break;
@@ -385,7 +385,7 @@ arma::Mat<T> convJsToArmaMat(Isolate *isolate, Local<Value> it, size_t nRows, si
 }
 
 template<typename T>
-Local<Object> convArmaMatToJs(Isolate *isolate, arma::Mat<T> const &it) 
+Local<Object> convArmaMatToJs(Isolate *isolate, arma::Mat<T> const &it)
 {
   Local<Object> ret;
   double *retData = mkFloat64Array(isolate, it.n_elem, ret);

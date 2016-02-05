@@ -54,7 +54,7 @@ function funcnameCToJs(name) {
 }
 
 /*
-  Return the expression to call a function with given arguments. 
+  Return the expression to call a function with given arguments.
 */
 function getFunctionCallExpr(funcexpr, args) {
   /*
@@ -100,7 +100,7 @@ function withJsWrapUtils(f, typereg) {
           }
         }).join('') +
         ') {');
-      
+
       _.each(argSet.args, function(argTypename, argi) {
         var m;
         if (argTypename === 'Object') {
@@ -144,13 +144,13 @@ function withJsWrapUtils(f, typereg) {
       } else {
         argSet.code(f);
       }
-      
+
       f('}');
       ifSep = 'else ';
     });
 
     f(ifSep + ' {');
-    
+
     if (0) {
       f('eprintf("No matching args:\\n");');
       _.each(argSets, function(argSet) {
@@ -162,7 +162,7 @@ function withJsWrapUtils(f, typereg) {
         f('eprintf("\\n");');
       });
     }
-    
+
     f('return ThrowInvalidArgs(isolate);');
     f('}');
   };

@@ -4,7 +4,7 @@
 #include <condition_variable>
 
 struct ParEngine {
-  
+
   explicit ParEngine(size_t _threadsAvail = 0, size_t _memAvail = 0)
     :threadsUsed(0), threadsAvail(_threadsAvail),
      memUsed(0), memAvail(_memAvail),
@@ -31,7 +31,7 @@ struct ParEngine {
       pending.pop_front();
     }
   }
-  
+
   mutex mtx;
   condition_variable readyCv;
   size_t threadsUsed, threadsAvail;
@@ -71,8 +71,8 @@ struct ParEngineRsv {
       owner->readyCv.notify_one();
     }
   }
-  
+
   ParEngine *owner;
   size_t memNeeded;
-  
+
 };

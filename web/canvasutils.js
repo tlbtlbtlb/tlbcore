@@ -20,7 +20,7 @@ function drawTooltip(ctx, lo, x, y, str) {
     }
     if (x < lo.boxL + 10) {
       x = lo.boxL + 10;
-    } 
+    }
     else if (x > lo.boxR - 10 - textW) {
       x = lo.boxR - 10 - textW;
     }
@@ -76,7 +76,7 @@ function drawSpinner(ctx, spinnerX, spinnerY, spinnerSize, phase) {
     var theta = i * (Math.PI / 6.0);
     var dirX = Math.cos(theta) * spinnerSize/30;
     var dirY = Math.sin(theta) * spinnerSize/30;
-    
+
     var dimness = ((phase - theta + 4*Math.PI) % (2*Math.PI)) / (2*Math.PI);
 
     ctx.beginPath();
@@ -146,11 +146,11 @@ var Geom3D = {
             0, 0, 0];
   },
   T: function T(t, x, y, z) { // Transform a local coordinate
-    return [t[0], t[1], t[2], 
+    return [t[0], t[1], t[2],
             t[3], t[4], t[5],
             t[6], t[7], t[8],
-            t[9] + t[0]*x + t[3]*y + t[6]*z, 
-            t[10] + t[1]*x + t[4]*y + t[7]*z, 
+            t[9] + t[0]*x + t[3]*y + t[6]*z,
+            t[10] + t[1]*x + t[4]*y + t[7]*z,
             t[11] + t[2]*x + t[5]*y + t[8]*z];
   },
   S: function S(t, s) { // Scale
@@ -158,7 +158,7 @@ var Geom3D = {
             t[3]*s,   t[4]*s, t[5]*s,
             t[6]*s,   t[7]*s, t[8]*s,
             t[9], t[10], t[11]];
-            
+
   },
   fromOrientation: function(m) {
     return [m[0], m[1], m[2],

@@ -69,7 +69,7 @@ ObjectCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerExpr
   }
   else if (ownerExpr) {
     return 'JsWrap_' + type.jsTypename + '::DependentInstance(isolate, ' + ownerExpr + ', &(' + valueExpr + '))';
-  } 
+  }
   else {
     return 'JsWrap_' + type.jsTypename + '::NewInstance(isolate, ' + valueExpr + ')';
   }

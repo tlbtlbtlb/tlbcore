@@ -191,7 +191,7 @@ describe('mat', function() {
     assert.equal(r1[2], 6);
     r1[1] *= 10;
     assert.equal(m[4], 50);
-    
+
     var c0 = m.col(0);
     assert.equal(c0[0], 1);
     assert.equal(c0[1], 4);
@@ -205,7 +205,7 @@ describe('mat', function() {
     assert.equal(c1[2], 8);
     c1[1] *= 10;
     assert.equal(m[4], 500);
-    
-    
+
+
   });
 });

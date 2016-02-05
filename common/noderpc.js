@@ -26,6 +26,6 @@ function setupRpc(channel, onRead, doWrites) {
   };
 
   if (doWrites) {
-    
+
   }
-      
+

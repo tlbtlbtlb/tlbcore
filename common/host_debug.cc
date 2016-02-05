@@ -71,12 +71,12 @@ void _uplogj(const char *debugname, json const &x)
   }
 
   string line = stringprintf("%0.6f %s ", realtime(), debugname) + x_s + string("\n");
-  
+
   int uplog_fd = open("/var/log/uplogs", O_WRONLY|O_CREAT|O_APPEND);
   if (!(uplog_fd < 0)) {
     write(uplog_fd, line.c_str(), line.size());
     close(uplog_fd);
   }
 }
-    
+
 #endif

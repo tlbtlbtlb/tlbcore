@@ -18,7 +18,7 @@ function chooseUploadDir() {
     To try to concentrate write activity and cluster related files,
     we change the directory every 15 seconds.
    */
-  
+
   var t = Date.now();
   var diri = Math.floor(t / 15000) % 256;
   return fmtUploadDir(diri);

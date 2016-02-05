@@ -57,7 +57,7 @@ function setup() {
       servers[k].bestAddr = getBestAddr(servers[hostname], servers[k]);
     }
   }
-  
+
   servers[hostname].isLocal = true;
   servers[hostname].bestAddr = '127.0.0.1';
 
@@ -112,9 +112,9 @@ function getLocalServer() {
 }
 
 function getBestAddr(srcInfo, dstInfo) {
-  return ((srcInfo.rsAddr ? dstInfo.rsAddr : null) || 
-          (srcInfo.ciscoAddr ? dstInfo.ciscoAddr : null) || 
-          (srcInfo.pioneerAddr ? dstInfo.pioneerAddr : null) || 
-          (srcInfo.coronadoAddr ? dstInfo.coronadoAddr : null) || 
+  return ((srcInfo.rsAddr ? dstInfo.rsAddr : null) ||
+          (srcInfo.ciscoAddr ? dstInfo.ciscoAddr : null) ||
+          (srcInfo.pioneerAddr ? dstInfo.pioneerAddr : null) ||
+          (srcInfo.coronadoAddr ? dstInfo.coronadoAddr : null) ||
           (srcInfo.pubAddr ? dstInfo.pubAddr : null));
 }

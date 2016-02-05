@@ -12,18 +12,18 @@
   It's *not* architecture independent, so you'd be hosed if you tried
   to communicate between a big-endian and a little-endian machine.
 
-  In the robot environment, I standardize on the Intel binary format, so 
+  In the robot environment, I standardize on the Intel binary format, so
   the AVR32 code does endian gymnastics to make that work.
 
   Reading:
 
   A packet is a binary blob of data. Walk through it as you read
   data objects one at a time.
-  
+
   Example: {
     packet rd(1024);
     rd.add_read(fd);
-    
+
     int foo;
     rd.get(foo);
     float bar;
@@ -37,7 +37,7 @@
   The interesting work is done in overloaded packet_wr_value functions.
   These should correspond to packet_rd_value functions which extract
   the data item back out.
- 
+
   Example: {
     packet wr;
     wr.add(17);
@@ -47,10 +47,10 @@
   }
 
   Supporting your own data types:
-  
+
   You have to implement packet_wr_value and packet_rd_value.
   Also, packet_wr_typetag and packet_rd_typetag.
-  
+
 */
 
 struct packet_contents;
@@ -124,7 +124,7 @@ struct packet {
   ~packet();
 
   string as_string();
-  
+
   int rd_to_file(int fd) const;
   int rd_to_file(FILE *fp) const;
   int to_file(int fd) const;
@@ -171,16 +171,16 @@ struct packet {
   void add_typetag(char const *s);
 
   template<typename T>
-  void add_checked(const T &x) { 
-    packet_wr_typetag(*this, x); 
-    packet_wr_value(*this, x); 
+  void add_checked(const T &x) {
+    packet_wr_typetag(*this, x);
+    packet_wr_value(*this, x);
   }
-  
+
   template<typename T>
-  void add(const T &x) { 
-    packet_wr_value(*this, x); 
+  void add(const T &x) {
+    packet_wr_value(*this, x);
   }
-  
+
   void add_be_uint32(uint32_t x);
   void add_be_uint24(uint32_t x);
   void add_be_uint16(uint32_t x);
@@ -206,45 +206,45 @@ struct packet {
   void get_bytes(char *data, size_t size); // throws packet_rd_overrun_err if it fails
 
   void get_reversed(uint8_t *data, size_t size);
-  
+
   template<typename T>
-  void get(T &x) { 
-    packet_rd_value(*this, x); 
+  void get(T &x) {
+    packet_rd_value(*this, x);
   }
 
   template<typename T>
   void get_checked(T &x) {
     packet_rd_typetag(*this, x);
-    packet_rd_value(*this, x); 
+    packet_rd_value(*this, x);
   }
 
   template<typename T>
-  T fget() { 
-    T ret; 
-    packet_rd_value(*this, ret); 
-    return ret; 
+  T fget() {
+    T ret;
+    packet_rd_value(*this, ret);
+    return ret;
   }
 
   template<typename T>
-  T fget_checked() { 
+  T fget_checked() {
     T ret;
     packet_rd_typetag(*this, ret);
-    packet_rd_value(*this, ret); 
-    return ret; 
+    packet_rd_value(*this, ret);
+    return ret;
   }
 
   packet get_pkt();
 
   bool test_typetag(char const *expected);
   void check_typetag(char const *expected);
-  
+
   uint32_t get_be_uint32();
   uint32_t get_be_uint24();
   uint16_t get_be_uint16();
   uint8_t get_be_uint8();
   double get_be_double();
   string get_nl_string();
-  
+
   static packet read_from_file(char const *fn);
   static packet read_from_fd(int fd);
 
@@ -290,12 +290,12 @@ bool operator ==(packet const &a, packet const &b);
      foo(U8 x)
      foo(int)
   calling foo((char)7) also calls the int version.
-  
+
   So you need to declare all 3.
 
   This isn't true for short: short and S16 seem to be the same, and in fact
   trying to declare both foo(short) and foo(S16) gives an redefinition error.
-  
+
   Whatever.
 */
 

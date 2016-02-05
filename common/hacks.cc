@@ -17,7 +17,7 @@ strcatdup(const char *s1, const char *s2)
   return r;
 }
 
-double frandom(char *randState) 
+double frandom(char *randState)
 {
   char *oldState = setstate(randState);
   double x= (double)random()/((double)0x7fffffff);  // generate a random number 0..1
@@ -237,7 +237,7 @@ charname(int ci)
     memset(charnames, 0, 256*8);
   }
   char *p=&charnames[ci*8];
-  
+
   if (!*p) {
     if (ci=='\n') {
       sprintf(p,"\\n");
@@ -270,7 +270,7 @@ charname_hex(int ci)
     memset(charnames, 0, 256*8);
   }
   char *p=&charnames[ci*8];
-  
+
   if (!*p) {
     if (ci=='\n') {
       sprintf(p,"\\n");
@@ -319,7 +319,7 @@ getln(FILE *f)
   }
   if (n_line>=1 && line[n_line-1]=='\r') n_line--;
   line[n_line++]=0;
-    
+
   line=(char *)realloc(line,n_line);
   return line;
 }
@@ -349,7 +349,7 @@ getall(FILE *f)
     line[n_line++]=c;
   }
   line[n_line++]=0;
-    
+
   line=(char *)realloc(line,n_line);
   return line;
 }
@@ -581,7 +581,7 @@ string tlb_realpath(const string &pathname)
   if (len == 0) {
     diee("realpath: %s (2)", pathname.c_str());
   }
-  
+
   for (int i = len-1; i>=0; i--) {
     if (resolved_path[i] == '/') {
       string rproot = string(&resolved_path[0], &resolved_path[i+1]) + string("...");
@@ -607,14 +607,14 @@ string tlb_basename(const string &pathname)
   auto pnend = pathname.end();
 
   if (pnbeg==pnend) return string(".");
-  
+
   auto baseend = pnend;
   while (baseend-1 > pnbeg && *(baseend-1)=='/') baseend--;
-  
+
   auto basebeg = baseend-1;
-  
+
   while (basebeg > pnbeg && *(basebeg-1) != '/') basebeg--;
-  
+
   return string(basebeg, baseend);
 }
 
@@ -631,7 +631,7 @@ bool same_type(std::type_info const &t1, std::type_info const &t2)
     There is a preprocessor symbol, _GXX_MERGED_TYPEINFO_NAMES, which
     changes the #included file behavior, but we'd have to change it
     when building libstdc++ also.
-    
+
     Comparing by name does work, tho. So use this function instead of
     ==.
   */
@@ -652,7 +652,7 @@ void stl_exec(vector<string> const &args)
     cargs.push_back(it->c_str());
   }
   cargs.push_back(nullptr);
-  
+
 #if defined(WIN32)
   _execvp(cargs[0], (char *const *)&cargs[0]);
 #else
@@ -661,7 +661,7 @@ void stl_exec(vector<string> const &args)
   eprintf("execvp %s: %s\n", cargs[0], strerror(errno));
   exit(2);
 }
-  
+
 // ----------------------------------------------------------------------
 
 exec_change_watcher::exec_change_watcher()
@@ -687,7 +687,7 @@ void exec_change_watcher::setup()
 #else
   return;
 #endif
-  
+
   int statrc = stat(orig_exe, &orig_st);
   if (statrc < 0) {
     orig_st.st_mtime = 0;

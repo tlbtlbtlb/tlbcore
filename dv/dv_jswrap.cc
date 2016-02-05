@@ -23,7 +23,7 @@ bool canConvJsToDv(Isolate *isolate, Local<Value> itv)
     return true;
   }
   return false;
-  
+
 }
 Dv convJsToDv(Isolate *isolate, Local<Value> itv)
 {
@@ -423,14 +423,14 @@ void jsInit_Dv(Handle<Object> exports) {
     Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, jsNew_Dv);
     tpl->SetClassName(String::NewFromUtf8(isolate, "Dv"));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
-    
+
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toString"), FunctionTemplate::New(isolate, jsWrap_Dv_toString)->GetFunction());
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toJsonString"), FunctionTemplate::New(isolate, jsWrap_Dv_toJsonString)->GetFunction());
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "inspect"), FunctionTemplate::New(isolate, jsWrap_Dv_inspect)->GetFunction());
-    
+
     tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "value"), &jsGet_Dv_value, &jsSet_Dv_value);
     tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "deriv"), &jsGet_Dv_deriv, &jsSet_Dv_deriv);
-    
+
     JsWrap_Dv::constructor.Reset(isolate, tpl->GetFunction());
     exports->Set(String::NewFromUtf8(isolate, "Dv"), tpl->GetFunction());
   }
@@ -439,15 +439,15 @@ void jsInit_Dv(Handle<Object> exports) {
     Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, jsNew_DvMat);
     tpl->SetClassName(String::NewFromUtf8(isolate, "DvMat"));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
-    
+
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toString"), FunctionTemplate::New(isolate, jsWrap_DvMat_toString)->GetFunction());
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toJsonString"), FunctionTemplate::New(isolate, jsWrap_DvMat_toJsonString)->GetFunction());
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "inspect"), FunctionTemplate::New(isolate, jsWrap_DvMat_inspect)->GetFunction());
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "set_size"), FunctionTemplate::New(isolate, jsWrap_DvMat_set_size)->GetFunction());
-    
+
     tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "value"), &jsGet_DvMat_value, &jsSet_DvMat_value);
     tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "deriv"), &jsGet_DvMat_deriv, &jsSet_DvMat_deriv);
-    
+
     JsWrap_DvMat::constructor.Reset(isolate, tpl->GetFunction());
     exports->Set(String::NewFromUtf8(isolate, "DvMat"), tpl->GetFunction());
   }
@@ -456,14 +456,14 @@ void jsInit_Dv(Handle<Object> exports) {
     Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, jsNew_DvRef);
     tpl->SetClassName(String::NewFromUtf8(isolate, "DvRef"));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
-    
+
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toString"), FunctionTemplate::New(isolate, jsWrap_DvRef_toString)->GetFunction());
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toJsonString"), FunctionTemplate::New(isolate, jsWrap_DvRef_toJsonString)->GetFunction());
     tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "inspect"), FunctionTemplate::New(isolate, jsWrap_DvRef_inspect)->GetFunction());
-    
+
     tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "value"), &jsGet_DvRef_value, &jsSet_DvRef_value);
     tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "deriv"), &jsGet_DvRef_deriv, &jsSet_DvRef_deriv);
-    
+
     JsWrap_DvRef::constructor.Reset(isolate, tpl->GetFunction());
     exports->Set(String::NewFromUtf8(isolate, "DvRef"), tpl->GetFunction());
   }

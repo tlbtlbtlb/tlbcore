@@ -54,7 +54,7 @@ StructCType.prototype.withDvs = function() {
     }
     newMembers.push([memberName, newMemberType]);
   });
-         
+
   if (!nontrivial) {
     type.dvType = type;
     return type;
@@ -82,7 +82,7 @@ StructCType.prototype.emitForwardDecl = function(f) {
 };
 
 
-StructCType.prototype.emitLinalgDecl = function(f) { 
+StructCType.prototype.emitLinalgDecl = function(f) {
   var type = this;
 
   f('size_t linalgSize(const ' + type.typename + ' &a);');
@@ -101,7 +101,7 @@ StructCType.prototype.emitLinalgDecl = function(f) {
 
 };
 
-StructCType.prototype.emitLinalgImpl = function(f) { 
+StructCType.prototype.emitLinalgImpl = function(f) {
   var type = this;
 
   f('size_t linalgSize(const ' + type.typename + ' &a) {');
@@ -111,7 +111,7 @@ StructCType.prototype.emitLinalgImpl = function(f) {
   });
   f('return ret;');
   f('}');
-  
+
   f('void linalgExport(const ' + type.typename + ' &a, double *&p) {');
   _.each(type.orderedNames, function(memberName) {
     f('linalgExport(a.' + memberName + ', p);');
@@ -168,11 +168,11 @@ StructCType.prototype.emitLinalgImpl = function(f) {
   }
   if (type.nonDvType) {
     f('' + type.nonDvType.typename + ' asNonDvType(' + type.typename + ' const &a) {');
-    
+
     f('return ' + type.nonDvType.typename + '(' + _.map(type.orderedNames, function(memberName) {
       return 'asNonDvType(a.' + memberName + ')';
     }).join(', ') + ');');
-    
+
     f('}');
   }
 };
@@ -233,7 +233,7 @@ StructCType.prototype.getJsToCppExpr = function(valueExpr, o) {
 
 StructCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
-  
+
   if (ownerExpr) {
     return 'JsWrap_' + type.jsTypename + '::MemberInstance(isolate, ' + ownerExpr + ', &(' + valueExpr + '))';
   } else {
@@ -323,7 +323,7 @@ StructCType.prototype.emitTypeDecl = function(f) {
   if (type.needsDestructor()) {
     f('~TYPENAME();');
   }
-  
+
   f('');
   f('// Factory functions');
   if (!type.noStdValues) {
@@ -386,7 +386,7 @@ StructCType.prototype.emitTypeDecl = function(f) {
   f('void packet_rd_typetag(packet &p, TYPENAME &x);');
   f('void packet_wr_value(packet &p, const TYPENAME &x);');
   f('void packet_rd_value(packet &p, TYPENAME &x);');
-  
+
   CType.prototype.emitTypeDecl.call(type, f);
   f('');
 };
@@ -591,7 +591,7 @@ StructCType.prototype.emitPacketIo = function(f) {
       }
   });
   f('}');
-  
+
 };
 
 
@@ -645,7 +645,7 @@ StructCType.prototype.emitRdJson = function(f) {
     f('if (c == \',\') continue;');
     f('if (c == \'}\') return typeOk;');
   };
-  
+
   f('bool rdJson(char const *&s, TYPENAME &obj) {');
   f('bool typeOk = false;');
   f('char c;');
@@ -669,9 +669,9 @@ StructCType.prototype.emitRdJson = function(f) {
   f('return false;');
   f('}');
 
-  
+
   function emitPrefix(prefix) {
-    
+
     // O(n^2), not a problem with current structures but could be with 1000s of members
     var nextChars = [];
     _.each(actions, function(action, name) {
@@ -725,7 +725,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
           return 'a'+argi;
         }) + ');');
       }},
-      (constructorArgs.length > 0 && constructorArgs.length === type.orderedNames.length) ? 
+      (constructorArgs.length > 0 && constructorArgs.length === type.orderedNames.length) ?
         {args: ['Object'], code: function(f) {
           f('thisObj->assignDefault();');
           _.each(type.orderedNames, function(memberName, argi) {
@@ -747,7 +747,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   });
 
   if (!type.noSerialize) {
-    
+
     f('Handle<Value> jsToJSON_JSTYPE(Isolate *isolate, const TYPENAME &it) {');
     f('EscapableHandleScope scope(isolate);');
     f('if (fastJsonFlag) {');
@@ -761,7 +761,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f('}');
 
     f('Local<Object> ret = Object::New(isolate);');
-    
+
     f('ret->Set(String::NewFromUtf8(isolate, "__type"), String::NewFromUtf8(isolate, "JSTYPE"));');
     _.each(type.orderedNames, function(name) {
       var memberType = type.nameToType[name];

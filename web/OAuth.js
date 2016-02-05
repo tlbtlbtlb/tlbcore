@@ -39,7 +39,7 @@ function getHttpRequestAccessToken(req) {
    OAuthProvider. Meant to be generic, but currently probably has some assumptions from Github baked in.
 
    Spec at https://developer.github.com/v3/oauth/
-   
+
 */
 
 function OAuthProvider(oauthUrl, clientId, clientSecret, scopes) {
@@ -150,7 +150,7 @@ OAuthProvider.prototype.getAccessToken = function(authCode, up, cb) {
   };
   var remote = 'https://' + accessTokenArgs.hostname + accessTokenArgs.path;
   logio.O(remote, 'POST');
-  
+
   var postReq = https.request(accessTokenArgs, function(res) {
     var datas = [];
     res.on('data', function(d) {
@@ -180,5 +180,5 @@ OAuthProvider.prototype.getAccessToken = function(authCode, up, cb) {
 };
 
 OAuthProvider.prototype.toString = function() {
-  return 'OAuthProvider(' + this.oauthUrl + ', ' + this.clientId + ', ..., [' + this.scopes.join(',') + '])'; 
+  return 'OAuthProvider(' + this.oauthUrl + ', ' + this.clientId + ', ..., [' + this.scopes.join(',') + '])';
 };

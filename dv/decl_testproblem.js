@@ -16,5 +16,5 @@ module.exports = function(typereg) {
   lp.predictFunc = function(f) {
     f('return getValue(theta, input);');
   };
-  
+
 };

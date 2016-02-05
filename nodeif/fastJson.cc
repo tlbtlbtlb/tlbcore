@@ -25,6 +25,6 @@ void jsInit_fastJson(Handle<Object> exports) {
   Local<Object> global = isolate->GetCurrentContext()->Global();
   Local<Value> JSON = global->Get(String::NewFromUtf8(isolate, "JSON"));
   assert(JSON->IsObject());
-  
+
   JSON->ToObject()->Set(String::NewFromUtf8(isolate, "withFastJson"), FunctionTemplate::New(isolate, jsWrap_withFastJson)->GetFunction());
 }

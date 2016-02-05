@@ -113,7 +113,7 @@ Scanner.prototype.scan = function(pos, c) {
   else if (s.mode === 'stringEscape0') {
     if (/^[x0-9a-f]$/.test(c)) {
       s.mode = 'stringEscape1';
-    } 
+    }
     else {
       s.mode = 'string';
     }

@@ -7,7 +7,7 @@
   Define JSON mappings for C++ types, including the primitive types and containers. You can
   add support for your own types by adding wrJson, wrJsonSize and rdJson functions.
 
-  The mapping between a statically typed data structure and JSON is subtle. The same JSON could 
+  The mapping between a statically typed data structure and JSON is subtle. The same JSON could
   read into different C++ types depending on what types rdJson is called with.
 
   jsonstr is a json-encoded result. It can be further part of a data structure, so you can put
@@ -33,15 +33,15 @@ struct jsonstr {
   jsonstr & operator= (const jsonstr & other) = default;
   ~jsonstr();
 
-  // Use this api to efficiently create a string of a given maximum size `n`. Write and advance 
+  // Use this api to efficiently create a string of a given maximum size `n`. Write and advance
   // the pointer until the end, then call endWrite which will set the final size of the string
   char *startWrite(size_t n);
   void endWrite(char *p);
 
   bool isNull();
 
-  // Read and write to files. 
-  // Read returns -1 with errno=ENOENT if not found. 
+  // Read and write to files.
+  // Read returns -1 with errno=ENOENT if not found.
   // Otherwise, these throw runtime errors if anything else goes wrong.
   void writeToFile(string const &fn, bool enableGzip=true);
   int readFromFile(string const &fn);
@@ -86,7 +86,7 @@ bool jsonMatchKey(char const *&s, char const *pattern);
   Write C++ types to a string (char *) as JSON.
   For efficiency, this is a two-pass process:
     - Call wrJsonSize to get the buffer size needed (a slight over-estimate).
-    - Allocate a buffer 
+    - Allocate a buffer
     - Call wrJson.
   See asJson (defined below) for the right way to do it.
 

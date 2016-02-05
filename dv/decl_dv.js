@@ -34,7 +34,7 @@ module.exports = function(typereg) {
 
     After a large number of steps, you can retrieve the parameters with
       problem.theta
-    
+
   */
 
   typereg.learningProblem = function(paramTypename, inputTypename, outputTypename) {
@@ -42,14 +42,14 @@ module.exports = function(typereg) {
     if (!(paramTypename in typereg.types)) throw ('Type ' + paramTypename + ' not defined yet');
     if (!(inputTypename in typereg.types)) throw ('Type ' + inputTypename + ' not defined yet');
     if (!(outputTypename in typereg.types)) throw ('Type ' + outputTypename + ' not defined yet');
-    
+
     var paramType = typereg.getType(paramTypename);
     var inputType = typereg.getType(inputTypename);
     var outputType = typereg.getType(outputTypename);
     var problemTypename = 'LearningProblem<' + paramTypename + ',' + inputTypename + ',' + outputTypename + '>';
 
     var type = typereg.template(problemTypename);
-    
+
     type.addJsWrapHeaderInclude('tlbcore/dv/dv_jswrap.h');
     type.addHeaderInclude('tlbcore/dv/optimize.h');
     type.noSerialize = true;
@@ -143,7 +143,7 @@ module.exports = function(typereg) {
         type.regularizerFunc(f);
         f('}');
       }
-      
+
       if (type.predictFunc) {
         f('template<>');
         f('' + outputTypename + ' LearningProblem<' + paramTypename + ',' + inputTypename + ',' + outputTypename + '>::predict(' + inputTypename + ' const &input) {');
@@ -151,7 +151,7 @@ module.exports = function(typereg) {
         f('}');
       }
     });
-    
+
 
     return type;
   };

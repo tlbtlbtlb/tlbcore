@@ -20,7 +20,7 @@ PrimitiveCType.prototype.getFns = function() {
 PrimitiveCType.prototype.withDvs = function() {
   var type = this;
   switch (type.typename) {
-  case 'double': 
+  case 'double':
   case 'float':
     return type.reg.getType('Dv');
   default:
@@ -103,7 +103,7 @@ PrimitiveCType.prototype.getExampleValueJs = function() {
     return 'true';
   case 'string':
     return '"foo"';
-  case 'char const*': 
+  case 'char const*':
     return '"foo"';
   case 'jsonstr':
     return '"{\\"foo\\":1}"';
@@ -212,9 +212,9 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerE
   switch (type.typename) {
   case 'S32':
   case 'S64':
-  case 'U32': 
-  case 'U64': 
-  case 'float': 
+  case 'U32':
+  case 'U64':
+  case 'float':
   case 'double':
     return 'Number::New(isolate, ' + valueExpr + ')';
   case 'Dv':

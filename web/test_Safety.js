@@ -10,7 +10,7 @@ describe('Safety.isValidEmail', function() {
     if (Safety.isValidEmail(email)) throw new Error('should be invalid, but isValidEmail=true: ' + email);
   }
   it('should work', function() {
-    
+
     cgood('tlb@tlb.org');
     cgood('t@semi-anonymous.com');
     cgood('foo@bar.com');
@@ -59,12 +59,12 @@ describe('Safety.isValidPassword', function() {
     if (Safety.isValidPassword(password)) throw new Error('should be invalid, but isValidPassword=true: ' + password);
   }
   it('should work', function() {
-    
+
     cgood('foobar');
     cgood('h^77j@429');
     cgood('ugly123');
     cbad('ho');
     cbad('hobart\u1234;');
-  });  
+  });
 });
 

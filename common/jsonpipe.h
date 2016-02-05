@@ -11,14 +11,14 @@ struct jsonpipe {
   void setFds(int _txFd, int _rxFd);
   void closeTx();
   void closeRx();
-  
+
   string rx(); // Returns empty string if no data
   void tx(string const &s); // queues and always returns immediately.
-  
+
   deque<string> txQ;
   deque<string> rxQ;
 
   string rxCur, txCur;
   int txFd, rxFd;
-  
+
 };

@@ -9,8 +9,8 @@ var Safety              = require('./Safety');
 
 /*
   High-level interface to the database.
-  Usage: 
-    require('VjsDbs').defDb('local', 'redis', '127.0.0.1', 6379, {}); 
+  Usage:
+    require('VjsDbs').defDb('local', 'redis', '127.0.0.1', 6379, {});
     ...
     db = require('VjsDbs')('local');
 */
@@ -22,7 +22,7 @@ var dbDefs = {};
 var dbs = {};
 
 function getNamedDb(name) {
-  if (!dbs[name]) { 
+  if (!dbs[name]) {
     var defn = dbDefs[name];
     if (!defn) throw new Error('Database not defined');
 
@@ -71,10 +71,10 @@ function enhanceRedis(redis0) {
         cb = null;
         return;
       }
-      
+
       try {
         obj = JSON.parse(objStr);
-      } 
+      }
       catch (ex) {
         logio.E('db ' + key, 'Bad objStr', objStr, ex);
       }

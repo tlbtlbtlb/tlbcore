@@ -52,9 +52,9 @@ WebServer.prototype.setUrl = function(url, p) {
   }
 
   if (p.isDir()) {
-    webServer.dirProviders['GET ' + url] = p; 
+    webServer.dirProviders['GET ' + url] = p;
   } else {
-    webServer.urlProviders['GET ' + url] = p; 
+    webServer.urlProviders['GET ' + url] = p;
 
     p.reloadKey = url;
     p.on('changed', function() {
@@ -68,11 +68,11 @@ WebServer.prototype.setUrl = function(url, p) {
 WebServer.prototype.setPrefixHosts = function(prefix, hosts) {
   var webServer = this;
   prefix = path.join('/', prefix, '/');
-  
+
   _.each(hosts, function(host) {
     webServer.hostPrefixes[host] = prefix;
     console.log('Set hostPrefix['+host+']='+prefix);
-    
+
     var alphaHost = host.replace(/^(\w+)\./, '$1-alpha.');
     if (alphaHost !== host) {
       webServer.hostPrefixes[alphaHost] = prefix;
@@ -82,7 +82,7 @@ WebServer.prototype.setPrefixHosts = function(prefix, hosts) {
 
 WebServer.prototype.setSocketProtocol = function(url, f) {
   var webServer = this;
-  
+
   webServer.wsHandlers[url] = f;
 };
 
@@ -142,7 +142,7 @@ WebServer.prototype.setupStdContent = function(prefix) {
 
 WebServer.prototype.setupContent = function(dirs) {
   var webServer = this;
-  
+
   webServer.setupBaseProvider();
   webServer.setupStdContent('/');
 
@@ -188,7 +188,7 @@ function delPort(hn) {
 
 WebServer.prototype.startHttpServer = function(serverInfo) {
   var webServer = this;
-  
+
   var httpServer = null;
   if (serverInfo.proto === 'https') {
     httpServer = https.createServer({
@@ -242,7 +242,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
     for (var pathcPrefix = pathc.length-1; pathcPrefix >= 1; pathcPrefix--) {
       var prefix = req.method + ' /' + pathc.slice(0, pathcPrefix).join('/') + '/';
       p = webServer.dirProviders[prefix];
-      if (p) { 
+      if (p) {
         var suffix = pathc.slice(pathcPrefix, pathc.length).join('/');
         logio.I(req.remoteLabel, desc, p.toString());
         p.handleRequest(req, res, suffix);
@@ -266,7 +266,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
       wsr.reject();
       return;
     }
-    
+
     var handlersFunc = webServer.wsHandlers[callid];
     if (!handlersFunc) {
       logio.E(wsr.remoteLabel, 'Unknown api', callid, webServer.wsHandlers);
@@ -324,7 +324,7 @@ WebServer.prototype.getSiteHits = function(cb) {
 
 WebServer.prototype.getContentStats = function(cb) {
   var webServer = this;
-  cb(null, _.map(_.sortBy(_.keys(webServer.urlProviders), _.identity), function(k) { 
+  cb(null, _.map(_.sortBy(_.keys(webServer.urlProviders), _.identity), function(k) {
     return _.extend({}, webServer.urlProviders[k].getStats(), {desc: k});
   }));
 };

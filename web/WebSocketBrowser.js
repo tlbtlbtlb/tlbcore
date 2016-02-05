@@ -49,11 +49,11 @@ function mkWebSocketRpc(wsc, handlers) {
     wsc.onclose = function(event) {
       if (handlers.close) {
         handlers.close();
-      } 
+      }
 
       if (verbose >= 2) console.log(wsc.url + ' Closed');
       txQueue = [];
-      if (!shutdownRequested) {        
+      if (!shutdownRequested) {
         if (handlers.reopen) {
           handlers.reopen();
         } else {
@@ -66,7 +66,7 @@ function mkWebSocketRpc(wsc, handlers) {
       }
     };
   }
-  
+
   function handleMsg(msg) {
     if (msg.cmd) {
       var cmdFunc = handlers['cmd_' + msg.cmd];
@@ -120,7 +120,7 @@ function mkWebSocketRpc(wsc, handlers) {
       if (verbose >= 1) console.log(wsc.url, 'Unknown message', msg);
     }
   }
-  
+
   function setupHandlers() {
     handlers.cmd = function(cmd, args) {
       handlers.tx({cmd: cmd, args: args});

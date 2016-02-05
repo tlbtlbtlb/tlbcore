@@ -2,7 +2,7 @@ var _                   = require('underscore');
 var assert              = require('assert');
 
 module.exports = function(typereg) {
-  /* 
+  /*
      These are not correct prototypes: for example, they neglect that the functions are all in the arma namespace.
      The real prototypes are most template functions.
      But they're good enough for gen_marshall to construct a wrapper to call them this way.
@@ -88,7 +88,7 @@ module.exports = function(typereg) {
             'ET accu(arma::Mat<ET> a);',
             'ET dot(arma::Col<ET> a, arma::Col<ET> b);',
             'ET cdot(arma::Col<ET> a, arma::Col<ET> b);',
-            
+
             isInteger ? '' : 'ET cond(arma::Mat<ET> a);',
             isInteger ? '' : 'ET det(arma::Mat<ET> a);',
             isInteger ? '' : 'ET norm_dot(arma::Col<ET> a, arma::Col<ET> b);',
@@ -194,7 +194,7 @@ module.exports = function(typereg) {
             'U64 all(arma::Col<U64> a);',
 
           ].join('\n').replace(/ET/g, et));
-        } 
+        }
         else if (rowFixed && colFixed) {
           typereg.scanCFunctions([
             cTypename + ' operator + (' + cTypename + ' a, ' + cTypename + ' b);',

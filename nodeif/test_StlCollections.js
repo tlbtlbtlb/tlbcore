@@ -17,5 +17,5 @@ describe('ur.map_string_jsonstr', function() {
     it.foo = {bar:1};
     console.log(JSON.stringify(it));
   });
-  
+
 });

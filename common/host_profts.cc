@@ -70,7 +70,7 @@ void profts_dump(int mincount)
       {
         double us = 1.0e-3 * (double)(profts_entries[i].timestamp - base_timestamp);
         double diffus = 1.0e-3 * (double)(profts_entries[i].timestamp - last_timestamp);
-        printf("  %8.0fkc %8.0fkc   %s%s.0x%x\n", 
+        printf("  %8.0fkc %8.0fkc   %s%s.0x%x\n",
                 diffus, us,
                 &spacebuf[max(0, MAX_SPACEBUF-indent)], profts_entries[i].label, profts_entries[i].data);
       }
@@ -110,8 +110,8 @@ const char * profts_dump_str()
     {
       double us = 1.0e-3 * (double)(profts_entries[i].timestamp - base_timestamp);
       double diffus = 1.0e-3 * (double)(profts_entries[i].timestamp - last_timestamp);
-      n_retbuf += snprintf(retbuf + n_retbuf, 1024, 
-                           "  %8.0fkc %8.0fkc   %s%s.0x%x\n", 
+      n_retbuf += snprintf(retbuf + n_retbuf, 1024,
+                           "  %8.0fkc %8.0fkc   %s%s.0x%x\n",
                            diffus, us,
                            &spacebuf[max(0, MAX_SPACEBUF-indent)], profts_entries[i].label, profts_entries[i].data);
     }

@@ -92,7 +92,7 @@ _.mixin({
     oldSet = oldSet.concat();
     newSet = newSet.concat();
     oldSet.sort();
-    newSet.sort(); 
+    newSet.sort();
 
     var oldi = 0, newi = 0;
     while (oldi < oldSet.length || newi < newSet.length) {
@@ -109,7 +109,7 @@ _.mixin({
         var os = o.toString();
         var n = newSet[newi];
         var ns = n.toString();
-        
+
         if (os < ns) {
           if (remFunc) remFunc(o);
           oldi ++;
@@ -129,10 +129,10 @@ _.mixin({
 
   setDiff: function(a, b) {
     var ret = {aNotB: [], bNotA: [], aAndB: []};
-    _.setDiffMap(a, b, 
-                 function(x) { 
-                   ret.aNotB.push(x); 
-                 }, 
+    _.setDiffMap(a, b,
+                 function(x) {
+                   ret.aNotB.push(x);
+                 },
                  function(x) {
                    ret.bNotA.push(x);
                  },
@@ -158,7 +158,7 @@ _.mixin({
     }
     return (x < 0 ? '' : '+') + x.toFixed(3);
   },
-  
+
   fmt6: function(x) {
     if (x === undefined || x === null) {
       return "";
@@ -194,7 +194,7 @@ _.mixin({
       r = v1*v1 + v2*v2;
     } while (r >= 1.0);
     fac = Math.sqrt(-2.0 * Math.log(r)/r);
-    
+
     return v1 * fac;
   },
 
@@ -205,11 +205,11 @@ _.mixin({
   normangle: function(x) {
     return (x % (Math.PI*2) + (Math.PI*3)) % (Math.PI*2) - Math.PI;
   },
-  
+
   normanglepos: function(x) {
     return (x % (Math.PI*2) + (Math.PI*2)) % (Math.PI*2);
   },
-  
+
   sqr: function(x) {
     return x*x;
   },
@@ -259,7 +259,7 @@ _.mixin({
   });
   });
   }
-  
+
   This function returns a future value from the robot info database. If it's called multiple times
   for the same robotName & rsvp, it will only fetch the data once.
 
@@ -329,7 +329,7 @@ function rsvp() {
       }
     }
   };
-  
+
   return rsvp0;
 }
 

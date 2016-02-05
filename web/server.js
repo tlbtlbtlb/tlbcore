@@ -35,11 +35,11 @@ function main() {
       Provider.ScriptProvider.prototype.minifyLevel = 0;
       Provider.CssProvider.prototype.minifyLevel = 0;
       break;
-      
+
     case '--mirror':
       webServer0.wwwRoot = process.argv[++argi];
       break;
-      
+
     case '--http':
       {
         var argHost = process.argv[++argi];
@@ -95,14 +95,14 @@ function main() {
   }
 
   if (0) console.log(servers);
-  
+
   VjsRepl.setupReplServer();
   VjsRepl.addToContext('webServer0', webServer0);
   if (0) VjsRepl.addToContext('redis0', require('./VjsDbs')('redis0'));
   VjsRepl.addToContext('VjsSite', VjsSite);
 
   webServer0.setupContent(sites);
-  
+
   _.each(servers, function(serverInfo) {
     webServer0.startHttpServer(serverInfo);
   });

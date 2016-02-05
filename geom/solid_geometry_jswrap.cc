@@ -152,7 +152,7 @@ static void jsWrap_StlSolid_getIntersections(FunctionCallbackInfo<Value> const &
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
-  if (args.Length() == 2 && 
+  if (args.Length() == 2 &&
       JsWrap_vec::Extract(isolate, args[0]) != NULL &&
       JsWrap_vec::Extract(isolate, args[1]) != NULL) {
     vec a0 = *JsWrap_vec::Extract(isolate, args[0]);
@@ -188,7 +188,7 @@ static void jsWrap_StlSolid_removeTinyFaces(FunctionCallbackInfo<Value> const &a
 }
 
 struct vecsortwrap {
-  
+
 };
 
 static void jsWrap_StlSolid_exportWebglMesh(FunctionCallbackInfo<Value> const &args)
@@ -233,11 +233,11 @@ static void jsWrap_StlSolid_estimateVolume(FunctionCallbackInfo<Value> const &ar
   JsWrap_StlSolid* thisObj = node::ObjectWrap::Unwrap<JsWrap_StlSolid>(args.This());
   if (args.Length() == 0) {
     auto ret = thisObj->it->estimateVolume();
-    
+
     Local<Object> retJs = Object::New(isolate);
     retJs->Set(String::NewFromUtf8(isolate, "volume"), Number::New(isolate, ret.first));
     retJs->Set(String::NewFromUtf8(isolate, "center"), JsWrap_vec::NewInstance(isolate, ret.second));
-    
+
     args.GetReturnValue().Set(retJs);
   }
   else {
@@ -269,7 +269,7 @@ void jsInit_StlSolid(Handle<Object> exports) {
   tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "exportWebglMesh"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_exportWebglMesh)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "analyzeHole"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_analyzeHole)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "estimateVolume"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_estimateVolume)->GetFunction());
-  
+
   JsWrap_StlSolid::constructor.Reset(isolate, tpl->GetFunction());
   exports->Set(String::NewFromUtf8(isolate, "StlSolid"), tpl->GetFunction());
 }
@@ -293,7 +293,7 @@ void jsConstructor_StlFace(JsWrap_StlFace *thisObj, FunctionCallbackInfo<Value> 
   if (args.Length() == 0) {
     thisObj->assignDefault();
   }
-  else if (args.Length() == 3 && 
+  else if (args.Length() == 3 &&
            JsWrap_vec::Extract(isolate, args[0]) != NULL &&
            JsWrap_vec::Extract(isolate, args[1]) != NULL &&
            JsWrap_vec::Extract(isolate, args[2]) != NULL) {
@@ -390,7 +390,7 @@ void jsInit_StlFace(Handle<Object> exports) {
   tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "getE2"), FunctionTemplate::New(isolate, &jsWrap_StlFace_getE2)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "isDegenerate"), FunctionTemplate::New(isolate, &jsWrap_StlFace_isDegenerate)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "getCentroid"), FunctionTemplate::New(isolate, &jsWrap_StlFace_getCentroid)->GetFunction());
-  
+
   JsWrap_StlFace::constructor.Reset(isolate, tpl->GetFunction());
   exports->Set(String::NewFromUtf8(isolate, "StlFace"), tpl->GetFunction());
 }
@@ -513,7 +513,7 @@ void jsInit_StlMassProperties(Handle<Object> exports) {
 
   tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toString"), FunctionTemplate::New(isolate, &jsWrap_StlMassProperties_toString)->GetFunction());
   tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "inspect"), FunctionTemplate::New(isolate, &jsWrap_StlMassProperties_inspect)->GetFunction());
-  
+
   tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "density"), &jsGet_StlMassProperties_density);
   tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "volume"), &jsGet_StlMassProperties_volume);
   tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "mass"), &jsGet_StlMassProperties_mass);
@@ -523,7 +523,7 @@ void jsInit_StlMassProperties(Handle<Object> exports) {
   tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "inertiaCm"), &jsGet_StlMassProperties_inertiaCm);
   tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "rogOrigin"), &jsGet_StlMassProperties_rogOrigin);
   tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "rogCm"), &jsGet_StlMassProperties_rogCm);
-  
+
   JsWrap_StlMassProperties::constructor.Reset(isolate, tpl->GetFunction());
   exports->Set(String::NewFromUtf8(isolate, "StlMassProperties"), tpl->GetFunction());
 }

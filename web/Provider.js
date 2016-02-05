@@ -93,11 +93,11 @@ function emitHtmlDoc(res, emitHead, emitBody) {
 
 function emit404(res, comment) {
   res.writeHead(404, {'Content-Type': 'text/html'});
-  emitHtmlDoc(res, 
-              function(dst) { 
-                dst.write('<title>Not Found</title>'); 
+  emitHtmlDoc(res,
+              function(dst) {
+                dst.write('<title>Not Found</title>');
               },
-              function(dst) { 
+              function(dst) {
                 dst.write('<h1>404 Not Found</h1><p>\n' + comment + '\n</p>');
               });
   res.end();
@@ -105,11 +105,11 @@ function emit404(res, comment) {
 
 function emit500(res) {
   res.writeHead(500, {'Content-Type': 'text/html'});
-  emitHtmlDoc(res, 
-              function(dst) { 
-                dst.write('<title>Internal Error</title>'); 
+  emitHtmlDoc(res,
+              function(dst) {
+                dst.write('<title>Internal Error</title>');
               },
-              function(dst) { 
+              function(dst) {
                 dst.write('<h1>500 Internal Error</h1><p>Something is wrong</p>');
               });
   res.end();
@@ -161,14 +161,14 @@ function emitBinaryDoc(res, fn, callid) {
       logio.O(remote, callid + ': failed to read ' + fn + ': ' + err);
 
       res.writeHead(404, {'Content-Type': 'text/html'});
-      emitHtmlDoc(res, 
-                  function(res) { 
-                    res.write('<title>Not Found</title>'); 
+      emitHtmlDoc(res,
+                  function(res) {
+                    res.write('<title>Not Found</title>');
                   },
-                  function(res) { 
+                  function(res) {
                     res.write('<h1>Not Found</h1><p>Resource ' + callid + ' not found</p>');
                   });
-      
+
       res.end();
       return;
     }
@@ -218,7 +218,7 @@ function linkContent(dst, srcRel) {
         }
         else if (symlinkErr) {
           logio.E(dst, 'symlink ' + src + ': ' + symlinkErr);
-        } 
+        }
         else {
           logio.O(dst, 'symlink ' + src);
         }
@@ -244,7 +244,7 @@ function persistentReadFile(fn, encoding, cb) {
       logio.E(fn, err);
       return cb(null);
     }
-    
+
     var prevStats = stats;
     fs.watch(fn, {persistent: false}, function(event, fn1) {
       fs.stat(fn, function(err, newStats) {
@@ -252,7 +252,7 @@ function persistentReadFile(fn, encoding, cb) {
           logio.E(fn, err);
           return;
         }
-        
+
         var delta = newStats.mtime - prevStats.mtime;
         if (0 !== delta) {
           logio.I(fn, 'changed ' + Math.floor(delta/1000) + ' seconds newer');
@@ -284,7 +284,7 @@ function reqClientAcceptsGzip(req) {
 
 /* ----------------------------------------------------------------------
    AnyProvider() -- Superclass of all Providers
-   
+
 */
 
 function AnyProvider() {
@@ -357,7 +357,7 @@ XmlContentProvider.prototype.start = function() {
     var errs = [];
     var oldlen = data.length;
     data = data.replace(/\n\s+/g, ' ');
-    
+
     var doc = new xml.XMLDoc(data, function(err) {
       console.log('XML parse error in ' + self.fn + ': ' + err);
       if (errs.length < 10) errs.push(err);
@@ -367,7 +367,7 @@ XmlContentProvider.prototype.start = function() {
       console.log("Failed to parse " + self.fn, errs);
       return;
     }
-    
+
     var asScriptBody = '';
     var contents = doc.docNode.getElements('content');
     _.each(contents, function(content) {
@@ -383,10 +383,10 @@ XmlContentProvider.prototype.start = function() {
       if (verbose>=2) console.log('XmlContentProvider.start: ' + self.fn + '.' + name + ' ' + oldlen + ' to ' + contentStr.length);
       // <br/> in xml gets turned into <br></br>, but some browsers recognize the </br> as another line break
       contentStr = contentStr.replace(/<\/br>/, '');
-      
+
       asScriptBody += '$.defContent(\'' + name + '\',\'' + contentStr.replace(/([\'\\])/g, '\\$1').replace(/<\/script>/ig, '\\x3c\\x2fscript\\x3e') + '\');\n';
     });
-    
+
     if (verbose>=2) console.log('loadData: ' + self.basename + ' len=' + asScriptBody.length);
 
     self.asScriptBody = asScriptBody;
@@ -395,8 +395,8 @@ XmlContentProvider.prototype.start = function() {
   });
 };
 
-XmlContentProvider.prototype.toString = function() { 
-  return "XmlContentProvider(" + JSON.stringify(this.fn) + ")"; 
+XmlContentProvider.prototype.toString = function() {
+  return "XmlContentProvider(" + JSON.stringify(this.fn) + ")";
 };
 
 XmlContentProvider.prototype.getType = function() {
@@ -416,8 +416,8 @@ function XmlContentDirProvider(fn) {
 }
 XmlContentDirProvider.prototype = Object.create(AnyProvider.prototype);
 
-XmlContentDirProvider.prototype.toString = function() { 
-  return "XmlContentDirProvider(" + JSON.stringify(this.fn) + ")"; 
+XmlContentDirProvider.prototype.toString = function() {
+  return "XmlContentDirProvider(" + JSON.stringify(this.fn) + ")";
 };
 
 XmlContentDirProvider.prototype.start = function() {
@@ -431,13 +431,13 @@ XmlContentDirProvider.prototype.start = function() {
     if (err) throw('Failed to readdir ' + self.fn + ': ' + err);
     _.each(files, function(basename) {
       if (basename in self.subs) return;
-      
+
       var m = basename.match(/^[a-zA-Z0-9](.*)\.xml$/);
       if (m) {
         var subFn = path.join(self.fn, basename);
-        
+
         var cp = self.subs[basename] = new XmlContentProvider(subFn);
-        cp.on('changed', function() { 
+        cp.on('changed', function() {
 
           var asScriptBody = '';
           _.each(self.subs, function(it, itName) {
@@ -457,8 +457,8 @@ XmlContentDirProvider.prototype.start = function() {
 XmlContentDirProvider.prototype.getStats = function() {
   var self = this;
   var ret = AnyProvider.prototype.getStats.call(this);
-  ret.components = _.map(_.sortBy(_.keys(this.subs), _.identity), function(k) { 
-    return self.subs[k].getStats(); 
+  ret.components = _.map(_.sortBy(_.keys(this.subs), _.identity), function(k) {
+    return self.subs[k].getStats();
   });
   return ret;
 };
@@ -470,7 +470,7 @@ XmlContentDirProvider.prototype.getType = function() {
 /* ----------------------------------------------------------------------
    ScriptProvider(fn, commonjsModule) -- Most users use providerSet.addScript(fn, commonjsModule);
    Read the file named fn and arrange for the browser to get the minified contents as a <script>
-   If commonjsModule is set, it wraps it as a module that can use require & exports. 
+   If commonjsModule is set, it wraps it as a module that can use require & exports.
    If it's not set, it goes into the browser's global javascript scope.
    If (this.minifyLevel >= 1), it runs it through jsmin to save a fair bit of space.
    Otherwise, it just collapses whitespace
@@ -499,7 +499,7 @@ ScriptProvider.prototype.start = function() {
     var oldlen = data.length;
     // 'foo' + 'bar' => 'foobar'
     data = data.replace(/\'\s*\+\n\s+\'/g, '');
-    
+
     if (self.minifyLevel >= 1) {
       try {
         data = jsmin(data).code;
@@ -516,13 +516,13 @@ ScriptProvider.prototype.start = function() {
     if (m) {
       console.log('ScriptProvider ' + self.fn + ': suspicious ,} at ' + m[0]);
     }
-    
+
     if (self.commonjsModule) {
       data = 'defmodule("' + self.commonjsModule + '", function(exports, require, module, __filename) {\n' + data + '\n});\n';
     } else {
       data = data + '\n';
     }
-    
+
     if (verbose>=2) console.log('ScriptProvider ' + self.fn + ' ' + oldlen + ' to ' + data.length);
     self.asScriptBody = data;
     self.pending = false;
@@ -530,8 +530,8 @@ ScriptProvider.prototype.start = function() {
   });
 };
 
-ScriptProvider.prototype.toString = function() { 
-  return "ScriptProvider(" + JSON.stringify(this.fn) + ")"; 
+ScriptProvider.prototype.toString = function() {
+  return "ScriptProvider(" + JSON.stringify(this.fn) + ")";
 };
 
 // Use --noMin option to server.js instead of changing this
@@ -575,8 +575,8 @@ JsonProvider.prototype.start = function() {
   });
 };
 
-JsonProvider.prototype.toString = function() { 
-  return "JsonProvider(" + JSON.stringify(this.fn) + ")"; 
+JsonProvider.prototype.toString = function() {
+  return "JsonProvider(" + JSON.stringify(this.fn) + ")";
 };
 
 JsonProvider.prototype.getType = function() {
@@ -617,8 +617,8 @@ KeyValueProvider.prototype.setValue = function(value) {
   self.emit('changed');
 };
 
-KeyValueProvider.prototype.toString = function() { 
-  return "KeyValueProvider(" + JSON.stringify(this.key) + ', ' + JSON.stringify(this.value) + ")"; 
+KeyValueProvider.prototype.toString = function() {
+  return "KeyValueProvider(" + JSON.stringify(this.key) + ', ' + JSON.stringify(this.value) + ")";
 };
 
 KeyValueProvider.prototype.getType = function() {
@@ -653,7 +653,7 @@ CssProvider.prototype.start = function() {
 
   persistentReadFile(self.fn, 'utf8', function(data) {
     var oldlen = data.length;
-    
+
     data = data.replace(/\n\s+/g, '\n');
     data = data.replace(/^\s*border-radius:\s*(\w+);$/mg, 'border-radius: $1; -moz-border-radius: $1; -webkit-border-radius: $1;');
     data = data.replace(/^\s*box-shadow:\s*(\w+);$/mg, 'box-shadow: $1; -moz-box-shadow: $1; -webkit-box-shadow: $1;');
@@ -665,7 +665,7 @@ CssProvider.prototype.start = function() {
     }
     data = data.replace(/\n\s+/, '\n');
     data = data.replace(/^\n+/, '');
-    
+
     if (1) {
       /*
         Replace tiny images with data urls for faster loading
@@ -678,17 +678,17 @@ CssProvider.prototype.start = function() {
         return 'url(\"' + du + '\")';
       });
     }
-    
+
     if (verbose>=2) console.log('CssProvider ' + self.fn + ' ' + oldlen + ' to ' + data.length);
-    
+
     self.asCssHead = data;
     self.pending = false;
     self.emit('changed');
   });
 };
 
-CssProvider.prototype.toString = function() { 
-  return "CssProvider(" + JSON.stringify(this.fn) + ")"; 
+CssProvider.prototype.toString = function() {
+  return "CssProvider(" + JSON.stringify(this.fn) + ")";
 };
 CssProvider.prototype.minifyLevel = 1;
 
@@ -716,11 +716,11 @@ SvgProvider.prototype.start = function() {
   self.pending = true;
 
   persistentReadFile(self.fn, 'utf8', function(data) {
-    
+
     var errs = [];
     var oldlen = data.length;
     data = data.replace(/\r?\n\s*/g, ' ');
-    
+
     var doc = new xml.XMLDoc(data, function(err) {
       console.log('XML parse error in ' + self.fn + ': ' + err);
       errs.push(err);
@@ -730,11 +730,11 @@ SvgProvider.prototype.start = function() {
       console.log("Failed to parse " + self.fn, errs);
       return;
     }
-    
+
     var out = '';
     var name = self.basename;
     self.asSvg = doc.docNode.getUnderlyingXMLText();
-    
+
     if (verbose>=2) console.log('SvgProvider.loadData: ' + self.fn + ' ' + oldlen + ' to ' + self.asSvg.length);
     self.asScriptBody = '$.defContent(\'' + name + '\',\'' + self.asSvg.replace(/([\'\\])/g, '\\$1').replace(/<\/script>/ig, '\\x3c\\x2fscript\\x3e') + '\');\n';
     self.pending = false;
@@ -748,7 +748,7 @@ SvgProvider.prototype.getType = function() {
 
 /* ----------------------------------------------------------------------
    MarkdownProvider(fn, contentName) -- Most users use providerSet.addMarkdown(fn, contentName)
-   Read the file named fn, and re-read if it changes. Convert Markdown to HTML, and arrange for the 
+   Read the file named fn, and re-read if it changes. Convert Markdown to HTML, and arrange for the
    HTML to be available in the browser with $(...).fmtContent[contentName];
 */
 
@@ -860,7 +860,7 @@ ProviderSet.prototype.addProvider = function(p) {
   for (var i=0; i<this.providers.length; i++) {
     if (p.equals(this.providers[i])) return;
   }
-  this.providers.push(p); 
+  this.providers.push(p);
   return p;
 };
 
@@ -897,14 +897,14 @@ ProviderSet.prototype.start = function() {
 
   _.each(self.providers, function(p) {
     p.start();
-    p.on('changed', function() { 
+    p.on('changed', function() {
       if (self.anyPending()) return;
 
       var cat = [];
 
       function emitAll(key, preamble, postamble) {
         var nonEmpty = false;
-        _.each(self.providers, function(p) { 
+        _.each(self.providers, function(p) {
           var t = p[key];
           if (t && t.length) {
             if (!nonEmpty) {
@@ -918,7 +918,7 @@ ProviderSet.prototype.start = function() {
           cat.push(postamble);
         }
       }
-      
+
       cat.push('<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n');
       // Maybe these could be providers?
       if (self.title) {
@@ -937,7 +937,7 @@ ProviderSet.prototype.start = function() {
 
       emitAll('asHtmlBody', '', '');
       emitAll('asScriptBody', '<script type="text/javascript">\n//<![CDATA[\n', '\n//]]>\n</script>\n');
-  
+
       cat.push('<script type="text/javascript">\n' +
                'setTimeout(function() {' +
                'pageSetupFromHash(' + JSON.stringify(self.reloadKey) + ');' +
@@ -1034,7 +1034,7 @@ ProviderSet.prototype.getType = function() {
 };
 
 ProviderSet.prototype.toString = function() {
-  return "ProviderSet(" + JSON.stringify(this.title) + ")"; 
+  return "ProviderSet(" + JSON.stringify(this.title) + ")";
 };
 
 
@@ -1078,7 +1078,7 @@ RawFileProvider.prototype.mirrorTo = function(dst) {
 };
 
 RawFileProvider.prototype.toString = function() {
-  return "RawFileProvider(" + JSON.stringify(this.fn) + ")"; 
+  return "RawFileProvider(" + JSON.stringify(this.fn) + ")";
 };
 
 
@@ -1109,7 +1109,7 @@ RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
   } else {
     encoding = 'binary';
   }
-  
+
   // WRITEME: when given a range request, don't read the entire file only to use a small slice
   // Which means re-implementing most of fs.readFile
   fs.readFile(fullfn, encoding, function(err, content) {
@@ -1129,7 +1129,7 @@ RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
         var start = parseInt(rangem[2]);
         // byte ranges are inclusive, so "bytes=0-1" means 2 bytes.
         var end = rangem[3] ? parseInt(rangem[3]) : content.length -1;
-        
+
         logio.O(remote, fullfn + ': (206 ' + contentType + ' range=' + start.toString() + '-' + end.toString() + '/' + content.length.toString() + ')');
         res.writeHead(206, {
           'Content-Type': contentType,
@@ -1162,5 +1162,5 @@ RawDirProvider.prototype.mirrorTo = function(dst) {
 };
 
 RawDirProvider.prototype.toString = function() {
-  return "RawDirProvider(" + JSON.stringify(this.fn) + ")"; 
+  return "RawDirProvider(" + JSON.stringify(this.fn) + ")";
 };

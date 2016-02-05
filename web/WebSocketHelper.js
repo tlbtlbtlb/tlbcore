@@ -9,7 +9,7 @@
     https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays
     https://developer.mozilla.org/en-US/docs/Web/API/DataView
     https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify
-  
+
 */
 var _                   = require('underscore');
 
@@ -20,7 +20,7 @@ exports.RpcPendingQueue = RpcPendingQueue;
 function stringify(msg, binaries) {
 
   var json = JSON.stringify(msg, function(k, v) {
-    
+
     /*
       I'd like to use this optimization for objects that implement toJsonString, but it doesn't work because the .toJSON method is called first which
       turns them into regular objects
@@ -120,7 +120,7 @@ function parse(json, binaries) {
 /*
   Queue of outstanding RPC requests, indexed by ID. ID is an integer for now, but maybe it should be a hard-to-forge cookie.
   Especially coming from the server.
-  
+
   We use an array instead of a hash because I think it's faster.
 */
 function RpcPendingQueue() {

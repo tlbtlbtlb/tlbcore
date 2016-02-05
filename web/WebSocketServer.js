@@ -11,16 +11,16 @@
   }
   This module also fills in some new fields in handlers, like .tx = a function to send on the websocket, and .label = a name for it useful for logging
   So you can initiate a one-way command with
-  
+
   handlers.tx({cmd: 'foo', fooInfo: ...})
-  
+
   Or create an RPC with
 
   handlers.rpc({cmd: 'bar', barInfo: ...}, function(barRsp) {
     barRsp is the response from the other end
   });
-  
-  
+
+
   Info:
     https://developer.mozilla.org/en-US/docs/WebSockets/Writing_WebSocket_client_applications
     https://developer.mozilla.org/en-US/docs/Web/API/WebSocket

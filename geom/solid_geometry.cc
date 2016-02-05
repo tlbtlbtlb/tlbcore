@@ -25,7 +25,7 @@ OctreeNode *OctreeNode::lookup(vec3 const &pt, double maxScale)
                ((pt[2] >= center[2]) ? 1:0));
   if (!children[index]) {
     vec3 newCenter { center[0] + scale * ((index&4) ? +0.5 : -0.5), center[1] + scale * ((index&2) ? +0.5 : -0.5), center[2] + scale * ((index&1) ? +0.5 : -0.5) };
-    
+
     children[index] = new OctreeNode(newCenter, scale*0.5);
   }
   return children[index]->lookup(pt, maxScale);
@@ -93,15 +93,15 @@ StlFace::rayIntersects(vec3 const &p, vec3 const &d, double &t) const
   if (fabs(a)<1e-10) return false;
 
   double f=1.0/a;
-  
+
   vec3 s=p-v0;
   double u = f * dot(s, h);
   if (u<0.0 || u>1.0) return false;
-  
+
   vec3 q = cross(s, e1);
   double v = f * dot(d, q);
   if (v<0.0 || u+v>1.0) return false;
-  
+
   t = f * dot(e2, q);
   if (t < 1e-10) return false;
 
@@ -112,10 +112,10 @@ StlFace::rayIntersects(vec3 const &p, vec3 const &d, double &t) const
 bool
 StlFace::rayIntersects(vec3 const &p, vec3 const &d, double &t) const
 {
-  double e1_x = v1[0]-v0[0]; 
+  double e1_x = v1[0]-v0[0];
   double e1_y = v1[1]-v0[1];
   double e1_z = v1[2]-v0[2];
-  double e2_x = v2[0]-v0[0]; 
+  double e2_x = v2[0]-v0[0];
   double e2_y = v2[1]-v0[1];
   double e2_z = v2[2]-v0[2];
 
@@ -141,7 +141,7 @@ StlFace::rayIntersects(vec3 const &p, vec3 const &d, double &t) const
 
   double v = f*d[0]*q_x + f*d[1]*q_y + f*d[2]*q_z;
   if (v<0.0 || u+v>1.0) return false;
-  
+
   t = f*e2_x*q_x + f*e2_y*q_y + f*e2_z*q_z;
   if (t < 1e-10) return false;
 
@@ -183,8 +183,8 @@ StlFace::getE2() const
 bool StlFace::isDegenerate() const
 {
   const double eps = 1e-9;
-  return (norm(v0 - v1, 2) < eps || 
-          norm(v2 - v1, 2) < eps || 
+  return (norm(v0 - v1, 2) < eps ||
+          norm(v2 - v1, 2) < eps ||
           norm(v0 - v2, 2) < eps);
 }
 
@@ -195,7 +195,7 @@ vec3 StlFace::getCentroid() const
 
 bool operator == (StlFace const &a, StlFace const &b)
 {
-  return (all(a.normal == b.normal) && 
+  return (all(a.normal == b.normal) &&
           all(a.v0 == b.v0) &&
           all(a.v1 == b.v1) &&
           all(a.v2 == b.v2));
@@ -228,7 +228,7 @@ StlSolid::readBinaryFile(FILE *fp, double scale)
   if (fread(&nTriangles, sizeof(uint32_t), 1, fp) != 1) throw runtime_error("reading n_triangles");
 
   faces.reserve(faces.size() + nTriangles);
-  
+
   for (uint32_t ti=0; ti<nTriangles; ti++) {
 
     float data[12];
@@ -240,7 +240,7 @@ StlSolid::readBinaryFile(FILE *fp, double scale)
     vec3 v2 {data[9] * scale, data[10] * scale, data[11] * scale};
 
     StlFace face(v0, v1, v2, n);
-    
+
     uint16_t attrByteCount = 0;
     if (fread(&attrByteCount, sizeof(uint16_t), 1, fp) != 1) throw runtime_error("reading attrByteCount");
 
@@ -325,7 +325,7 @@ StlSolid::calcBbox()
   vec3 hi = faces[0].v0;
 
   for (auto &face: faces) {
-    
+
     lo[0] = min(lo[0], face.v0[0]);
     lo[1] = min(lo[1], face.v0[1]);
     lo[2] = min(lo[2], face.v0[2]);
@@ -335,7 +335,7 @@ StlSolid::calcBbox()
     lo[0] = min(lo[0], face.v2[0]);
     lo[1] = min(lo[1], face.v2[1]);
     lo[2] = min(lo[2], face.v2[2]);
-    
+
     hi[0] = max(hi[0], face.v0[0]);
     hi[1] = max(hi[1], face.v0[1]);
     hi[2] = max(hi[2], face.v0[2]);
@@ -345,7 +345,7 @@ StlSolid::calcBbox()
     hi[0] = max(hi[0], face.v2[0]);
     hi[1] = max(hi[1], face.v2[1]);
     hi[2] = max(hi[2], face.v2[2]);
-    
+
   }
   bboxLo = lo;
   bboxHi = hi;
@@ -395,7 +395,7 @@ vector<StlIntersection>
 StlSolid::getIntersections(vec3 const &p, vec3 const &d) const
 {
   vector<StlIntersection> ret;
-  
+
   for (auto &face : faces) {
     double t;
     if (face.rayIntersects(p, d, t)) {
@@ -436,9 +436,9 @@ StlSolid::getStlMassProperties(double density) const
   double sum_xy = 0.0;
   double sum_yz = 0.0;
   double sum_zx = 0.0;
-    
+
   for (auto &f : faces) {
-        
+
     vec3 v0 = f.v0;
     vec3 v1 = f.v1;
     vec3 v2 = f.v2;
@@ -453,7 +453,7 @@ StlSolid::getStlMassProperties(double density) const
     f2[0] = sqr(v0[0]) + v0[0]*v1[0] + sqr(v1[0]) + v2[0]*f1[0];
     f2[1] = sqr(v0[1]) + v0[1]*v1[1] + sqr(v1[1]) + v2[1]*f1[1];
     f2[2] = sqr(v0[2]) + v0[2]*v1[2] + sqr(v1[2]) + v2[2]*f1[2]; // l^2
-                  
+
     vec3 f3;
     f3[0] = pow(v0[0], 3) + sqr(v0[0])*v1[0] + v0[0]*sqr(v1[0]) + pow(v1[0], 3) + v2[0]*f2[0];
     f3[1] = pow(v0[1], 3) + sqr(v0[1])*v1[1] + v0[1]*sqr(v1[1]) + pow(v1[1], 3) + v2[1]*f2[1];
@@ -471,7 +471,7 @@ StlSolid::getStlMassProperties(double density) const
     g2[0] = f2[0] + v2[0]*(f1[0] + v2[0]);
     g2[1] = f2[1] + v2[1]*(f1[1] + v2[1]);
     g2[2] = f2[2] + v2[2]*(f1[2] + v2[2]); // l^2
-    
+
     sum_area += norm(d, 2)*0.5;            // l^2
     sum_1  += (d[0] * f1[0]) * (1 / 6.0);  // l^3
     sum_x  += (d[0] * f2[0]) * (1 / 24.0); // l^4
@@ -504,13 +504,13 @@ StlSolid::getStlMassProperties(double density) const
 */
 struct Vec3SpatialMap {
 
-  Vec3SpatialMap(double maxScale) 
+  Vec3SpatialMap(double maxScale)
   {
     eps = 0.000001;
     epssq = eps*eps;
     root = new OctreeNode(vec3 {0.0, 0.0, 0.0}, maxScale);
   }
-  
+
   ~Vec3SpatialMap()
   {
     for (auto it : spatial) {
@@ -552,7 +552,7 @@ struct Vec3SpatialMap {
       }
     }
   }
-  
+
   double eps;
   double epssq;
   OctreeNode *root;
@@ -564,7 +564,7 @@ double StlSolid::getMaxScale() const
   return max(max(abs(bboxLo(0)),max(abs(bboxLo(1)),abs(bboxLo(2)))),
              max(abs(bboxHi(0)),max(abs(bboxHi(1)),abs(bboxHi(2)))));
 }
-             
+
 /*
   This is a fairly primitive algorithm. Much better are known, but it's hard to find a convenient
   tool to do it.
@@ -575,7 +575,7 @@ double StlSolid::getMaxScale() const
 void StlSolid::removeTinyFaces(double minSize)
 {
   Vec3SpatialMap spatial(getMaxScale());
-  
+
   for (size_t fi=0; fi<faces.size(); fi++) {
     StlFace &f = faces[fi];
     spatial.addPt(&f.v0);
@@ -596,9 +596,9 @@ void StlSolid::removeTinyFaces(double minSize)
     }
     seed = (1103515245 * seed + 12345);
   }
-  
+
   for (int passi=0; passi<3; passi++) {
-    
+
     for (auto fiit : faceOrdering) {
       StlFace &f = faces[fiit];
       if (f.isDegenerate()) continue;
@@ -739,14 +739,14 @@ arma::vec3 StlSolid::analyzeHole(int axisi)
   vector<arma::vec3> directions;
 
   for (int testi = 0; testi < itercount && directions.size() < 20; testi++) {
-    /* 
+    /*
        Choose random points along the Z axis
        and a vector of unit length in a random direction in the XY plane.
     */
-    
+
     double th = unipolarHaltonAxis(testi, 3) * (M_PI*2.0);
     double height = unipolarHaltonAxis(testi, 5);
-    
+
     arma::vec3 pt(arma::fill::zeros);
     arma::vec3 d(arma::fill::zeros);
     if (axisi == 0) {
@@ -767,7 +767,7 @@ arma::vec3 StlSolid::analyzeHole(int axisi)
     else {
       throw runtime_error("analyzeHole: bad axis");
     }
-    
+
     auto intersections = getIntersections(pt, d);
     for (size_t intersectioni=0; intersectioni < 2 && intersectioni < intersections.size(); intersectioni++) {
       auto intersection = intersections[intersectioni];
@@ -775,16 +775,16 @@ arma::vec3 StlSolid::analyzeHole(int axisi)
         arma::vec3 si_pt = pt + d * intersection.t;
         arma::vec3 tangent = arma::normalise(arma::cross(avec, intersection.face.normal));
         arma::vec3 realaxis = arma::normalise(arma::cross(tangent, intersection.face.normal)) * -1;
-        
+
         if (arma::dot(avec, realaxis) > 0.9) {
           directions.push_back(realaxis);
         }
       }
     }
   }
-  
+
   if (directions.size() < 10) return arma::vec3 {0, 0, 0};
-  
+
   sort(directions.begin(), directions.end(), [&](arma::vec3 const &a, arma::vec3 const &b) {
       return dot(avec, b) < dot(avec, a);
     });
@@ -798,8 +798,8 @@ arma::vec3 StlSolid::analyzeHole(int axisi)
 
   // Keep only best 70%
   directions.resize(directions.size() * 7 / 10);
-       
-  arma::vec3 avg_dir = accumulate(directions.begin(), directions.end(), arma::vec3 {0, 0, 0}) * (1.0/directions.size()); 
+
+  arma::vec3 avg_dir = accumulate(directions.begin(), directions.end(), arma::vec3 {0, 0, 0}) * (1.0/directions.size());
 
   return avg_dir;
 }
@@ -814,30 +814,30 @@ StlSolid::estimateVolume()
   const int itercount = 300;
   arma::vec3 corner = bboxLo;
   arma::vec3 diagonal = bboxHi - corner;
-  
+
   double volume_accum = 0.0;
   double volume_denom = 0.0;
   arma::vec3 center_accum(arma::fill::zeros);
   double center_denom = 0.0;
-  
+
 
   for (int testi = 0; testi < itercount; testi++) {
     // Choose random points in the XY plane
     double hx = unipolarHaltonAxis(testi, 3);
     double hy = unipolarHaltonAxis(testi, 5);
-    
+
     arma::vec3 pt { corner[0] + hx*diagonal[0], corner[1] + hy*diagonal[1], corner[2] };
 
     // and pointing to the other side. We want unit length so t == actual distance
     arma::vec3 d {0.0, 0.0, diagonal[2]/abs(diagonal[2])};
-    
+
     auto intersections = getIntersections(pt, d);
-    
+
     if (intersections.size()) {
       for (size_t ii=0; ii < intersections.size(); ii += 2) {
         double minz = intersections[ii].t + corner[2];
         double maxz = intersections[ii+1].t + corner[2];
-        
+
         volume_accum += (maxz - minz);
         center_accum[0] += pt[0] * (maxz-minz);
         center_accum[1] += pt[1] * (maxz-minz);
@@ -850,7 +850,7 @@ StlSolid::estimateVolume()
 
   double volume = volume_accum * (diagonal[0] * diagonal[1]) / volume_denom;
   arma::vec3 center = center_accum / center_denom;
-    
+
   return make_pair(volume, center);
 }
 
@@ -904,7 +904,7 @@ StlMassProperties::calcDerived()
 
 StlMassProperties operator +(StlMassProperties const &a, StlMassProperties const &b)
 {
-  return StlMassProperties(a.volume + b.volume, 
+  return StlMassProperties(a.volume + b.volume,
                            a.mass + b.mass,
                            a.area,
                            (a.cm*a.mass + b.cm*b.mass) /(a.mass + b.mass),

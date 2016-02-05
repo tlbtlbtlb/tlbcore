@@ -23,5 +23,5 @@ describe('geom_math', function() {
     assert.equal(t2[2], 3);
     assert.equal(t2[3], 1);
   });
-  
+
 });

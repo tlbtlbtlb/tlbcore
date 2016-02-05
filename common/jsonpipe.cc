@@ -122,7 +122,7 @@ void jsonpipe::setFds(int _txFd, int _rxFd)
 {
   if (txFd != -1) throw runtime_error("txFd already set");
   if (rxFd != -1) throw runtime_error("rxFd already set");
-  
+
   txFd = _txFd;
   rxFd = _rxFd;
 }

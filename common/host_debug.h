@@ -29,7 +29,7 @@ extern FILE *debug_tslog;
   uplogj takes a single JSON object and appends it to /var/log/uplogs as well as
   writing it to the same place as tsdprintf.
   These can be looked at in the admin console.
-  
+
  */
 #define uplogj(X) _uplogj(debugname, X)
 

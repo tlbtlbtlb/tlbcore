@@ -7,7 +7,7 @@ var symbolic_math       = require('./symbolic_math');
 
 
 function main() {
-  
+
   var watchFlag = false;
   var prefix = 'build.src/';
   var files = [];
@@ -23,7 +23,7 @@ function main() {
     case '--prefix':
       prefix = process.argv[++argi];
       break;
-      
+
     default:
       files.push(arg);
       if (watchFlag) {
@@ -40,7 +40,7 @@ function main() {
     var filegen = new cgen.FileGen(prefix);
 
     if (1) {
-      var ts = typereg.struct('TestStruct', 
+      var ts = typereg.struct('TestStruct',
                               ['foo', 'double'],
                               ['bar', 'int'],
                               ['buz', 'double']);
@@ -48,8 +48,8 @@ function main() {
         ts.addConstructorCode('eprintf("Construct TestStruct %p\\n", this);');
         ts.addDestructorCode('eprintf("Destruct TestStruct %p\\n", this);');
       }
-      
-      typereg.struct('TestStructString', 
+
+      typereg.struct('TestStructString',
                      ['foo', 'string']);
     }
 

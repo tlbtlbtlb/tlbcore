@@ -14,11 +14,11 @@ struct LearningProblem {
   void addPair(INPUT const &input, OUTPUT const &output);
 
   OUTPUT predict(INPUT const &input);
-  
+
   Dv loss(OUTPUT const &pred, OUTPUT const &actual);
   Dv totalLoss(); // sum across all input-output pairs
   Dv regularizer();
-  
+
   double sgdStep(double learningRate, int minibatchSize);
 
   double lbfgs(int maxIter);
@@ -59,19 +59,19 @@ template<typename PARAM, typename INPUT, typename OUTPUT>
 double LearningProblem<PARAM, INPUT, OUTPUT>::sgdStep(double learningRate, int minibatchSize)
 {
   assert(inputs.size() == outputs.size());
-  
+
   vector<size_t> mbElems;
   for (int bi = 0; bi < minibatchSize; bi++) {
     mbElems.push_back((size_t)random() % inputs.size());
   }
   sort(mbElems.begin(), mbElems.end());
-  
+
   vector<double> gradient(dvCount(theta));
-  
+
   size_t gi = 0;
   foreachDv(theta, [&](DvRef const &dv) {
       *dv.deriv = 1;
-      
+
       Dv mbLoss(0.0, 0.0);
       for (size_t elemi : mbElems) {
         OUTPUT oPred = predict(inputs[elemi]);
@@ -80,7 +80,7 @@ double LearningProblem<PARAM, INPUT, OUTPUT>::sgdStep(double learningRate, int m
         if (verbose >= 3) eprintf("    l1=%g'%g input=%s pred=%s actual=%s\n", l1.value, l1.deriv, as_string(inputs[elemi]).c_str(), as_string(oPred).c_str(), as_string(oActual).c_str());
         mbLoss = mbLoss + l1;
       }
-      
+
       mbLoss = mbLoss / (double)minibatchSize;
       mbLoss = mbLoss + regularizer() * regularization;
       *dv.deriv = 0;
@@ -89,7 +89,7 @@ double LearningProblem<PARAM, INPUT, OUTPUT>::sgdStep(double learningRate, int m
       if (verbose >= 2) eprintf("  mbLoss = %g'%g\n", mbLoss.value, mbLoss.deriv);
       gi++;
     });
-  
+
   double gradientNorm = 0.0;
   for (auto it : gradient) {
     gradientNorm += sqr(it);
@@ -103,7 +103,7 @@ double LearningProblem<PARAM, INPUT, OUTPUT>::sgdStep(double learningRate, int m
     eprintf("  norm=%g lr=%g\n", gradientNorm, learningRate);
 
   }
-  
+
   gi = 0;
   foreachDv(theta, [&](DvRef const &dv) {
       *dv.value -= gradient[gi] * learningRate;
@@ -123,7 +123,7 @@ double LearningProblem<PARAM, INPUT, OUTPUT>::sgdStep(double learningRate, int m
   if (verbose >= 1) eprintf("sgdStep: theta=%s  loss=%g\n", as_string(theta).c_str(), mbLoss.value);
 
   return mbLoss.value;
-  
+
 }
 
 template<typename LP>
@@ -158,7 +158,7 @@ struct OptimizableFunction {
     assert(dimi == dimension);
     Dv l1 = lp->totalLoss();
     if (lp->verbose >= 2) eprintf("Evaluate at %0.3f %0.3f %0.3f: %0.6f\n",
-                                  coordinates(0), coordinates(1), coordinates(2), 
+                                  coordinates(0), coordinates(1), coordinates(2),
                                   l1.value);
     return l1.value;
   }
@@ -186,7 +186,7 @@ struct OptimizableFunction {
       });
     assert(dimi == dimension);
     if (lp->verbose >= 2) eprintf("Gradient at %0.3f %0.3f %0.3f: %0.6f %0.6g %0.6f *\n",
-                                  coordinates(0), coordinates(1), coordinates(2), 
+                                  coordinates(0), coordinates(1), coordinates(2),
                                   gradient(0), gradient(1), gradient(2));
   }
   arma::mat& GetInitialPoint()
@@ -206,11 +206,11 @@ double LearningProblem<PARAM, INPUT, OUTPUT>::lbfgs(int maxIter)
 {
   typedef OptimizableFunction<LearningProblem<PARAM, INPUT, OUTPUT> > FunctionType;
   FunctionType function(this);
-  
+
   mlpack::optimization::L_BFGS<FunctionType> opt(function);
 
   double ret = opt.Optimize(function.GetInitialPoint(), maxIter);
-  
+
   arma::vec best = opt.MinPointIterate().first;
 
   size_t dimi = 0;

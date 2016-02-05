@@ -34,7 +34,7 @@ DspFormat.prototype.primConst = function(value) {
   var suffix;
   if (this.qt === 64) {
     suffix = 'LL';
-  } 
+  }
   else if (this.qt === 32) {
     suffix = 'L';
   }
@@ -63,18 +63,18 @@ DspFormat.prototype.constantExpr = function(value) {
 };
 
 
-var stdTypes = [new DspFormat(8, 8), 
+var stdTypes = [new DspFormat(8, 8),
                 new DspFormat(4, 12),
-                new DspFormat(2, 30), 
-                new DspFormat(8, 24), 
-                new DspFormat(16, 16), 
+                new DspFormat(2, 30),
+                new DspFormat(8, 24),
+                new DspFormat(16, 16),
                 new DspFormat(32, 0),
-                new DspFormat(4, 60), 
-                new DspFormat(10, 54), 
-                new DspFormat(16, 48), 
-                new DspFormat(18, 46), 
-                new DspFormat(24, 40), 
-                new DspFormat(32, 32), 
+                new DspFormat(4, 60),
+                new DspFormat(10, 54),
+                new DspFormat(16, 48),
+                new DspFormat(18, 46),
+                new DspFormat(24, 40),
+                new DspFormat(32, 32),
                 new DspFormat(40, 24)];
 
 var stdTypesByName = _.object(_.map(stdTypes, function(t) {
@@ -82,7 +82,7 @@ var stdTypesByName = _.object(_.map(stdTypes, function(t) {
 }));
 
 function genConv(f, xt, rt, sat, rnd) {
-  
+
   var mods='';
   if (sat) mods+='sat';
   if (rnd) mods+='rnd';
@@ -108,7 +108,7 @@ function genConv(f, xt, rt, sat, rnd) {
   if (xt.qb > rt.qb) {
     f('x_prim >>= ' + (xt.qb - rt.qb) + ';');
   }
-  
+
   // Saturate
   if (sat && xt.qa > rt.qa) {
     var maxval = xt.primConst(Math.pow(2, (rt.qt - Math.max(0, rt.qb - xt.qb) - 1)) - 1);
@@ -146,7 +146,7 @@ function genMul(f, xt, yt, rt, sat, rnd) {
   if (rnd) mods+='rnd';
 
   var pt = mulResultType(xt, yt);
-  
+
   f('static inline ' + rt.dspType() + ' mul' + mods + '_' + xt.dspType() + '_' + yt.dspType() + '_' + rt.dspType() + '(' + xt.dspType() + ' x, ' + yt.dspType() + ' y) {');
   f(pt.primType() + ' x_prim = (' + pt.primType() + ')(' + xt.primType() + ')x;');
   f(pt.primType() + ' y_prim = (' + pt.primType() + ')(' + yt.primType() + ')y;');

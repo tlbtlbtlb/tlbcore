@@ -7,7 +7,7 @@ exports.loadAndParse = loadAndParse;
 
 
 function loadAndParse(modname, cb) {
-  
+
   var filename = require.resolve(modname);
   console.log(filename);
   fs.readFile(filename, 'utf8', function(err, contents) {

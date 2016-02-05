@@ -137,7 +137,7 @@ mat33 mat33Rotation(vec3 const &axis, double theta)
   q[1] = axis(0) * s / n;
   q[2] = axis(1) * s / n;
   q[3] = axis(2) * s / n;
-  
+
   return quatToMat(q);
 }
 
@@ -159,7 +159,7 @@ mat33 mat33RotationVectorToVector(vec3 const &src, vec3 const &dst)
   }
   double dp = dot(src, dst);
   double angle = atan2(norm(cp, 2), dp);
-  
+
   return mat33Rotation(normalise(cp), angle);
 }
 
@@ -255,15 +255,15 @@ mat44 mat44RotationXYPlane(double theta)
 }
 
 mat44 mat44RotationXAPlane(double theta)
-{ 
+{
   throw runtime_error("not implemented");
 }
 mat44 mat44RotationYAPlane(double theta)
-{ 
+{
   throw runtime_error("not implemented");
 }
 mat44 mat44RotationZAPlane(double theta)
-{ 
+{
   throw runtime_error("not implemented");
 }
 
@@ -321,7 +321,7 @@ mat44 mat44LookAt(vec3 const &eyepos, vec3 const &lookat, vec3 const &up)
   vec3 zaxis = normalise(eyepos-lookat);
   vec3 xaxis = normalise(cross(up, zaxis));
   vec3 yaxis = cross(zaxis, xaxis);
-  
+
   mat44 ret(fill::zeros);
   ret(0,0) = xaxis(0);
   ret(0,1) = xaxis(1);
@@ -389,7 +389,7 @@ mat33 alignWithY(mat33 const &u, vec3 const &y_targ, double weight)
 }
 
 mat33 alignWithX(mat33 const &u, vec3 const &y_targ, double weight)
-{ 
+{
   throw runtime_error("not implemented");
 }
 
@@ -400,7 +400,7 @@ EulerAngles matToEuler(mat33 const &u)
   /*
     This gets then in yaw-pitch-roll order with moving coordinates.
     This should be the inverse of ea_to_mat
-    
+
     Based on HMatrix_to_Eul with:
     order=ZXYr (yaw pitch roll) 1101 f=1 s=0 n=1 i=1 j=0 k=2 h=1
 
@@ -437,11 +437,11 @@ mat33 quatToMat(Quaternion const &u)
   ret(0,0) = 1 - 2.0 * (u(2)*u(2) + u(3)*u(3));
   ret(0,1) =     2.0 * (u(1)*u(2) - u(0)*u(3));
   ret(0,2) =     2.0 * (u(0)*u(2) + u(1)*u(3));
-                                      
+
   ret(1,0) =     2.0 * (u(1)*u(2) + u(0)*u(3));
   ret(1,1) = 1 - 2.0 * (u(1)*u(1) + u(3)*u(3));
   ret(1,2) =     2.0 * (u(2)*u(3) - u(0)*u(1));
-                                      
+
   ret(2,0) =     2.0 * (u(1)*u(3) - u(0)*u(2));
   ret(2,1) =     2.0 * (u(0)*u(1) + u(2)*u(3));
   ret(2,2) = 1 - 2.0 * (u(1)*u(1) + u(2)*u(2));
@@ -462,7 +462,7 @@ Quaternion eulerToQuat(EulerAngles const &u)
   ret(1) = - cj*si*sh - sj*ci*ch;
   ret(2) = + cj*si*ch - sj*ci*sh;
   ret(3) = + cj*ci*sh - sj*si*ch;
-  
+
   if (ret[0] < 0.0) {
     return -ret;
   } else {
@@ -512,7 +512,7 @@ mat33 randomTwaddle(mat33 const &u, double rotsigma, int niter)
     double rx = frandom_normal() * rotsigma;
     double ry = frandom_normal() * rotsigma;
     double rz = frandom_normal() * rotsigma;
-    
+
     tmp = mat33RotationZAxis(rz) * (mat33RotationYAxis(ry) * (mat33RotationXAxis(rx) * tmp));
   }
   return tmp;

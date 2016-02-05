@@ -18,7 +18,7 @@ var defops = {};
 function defop(retType, op /*, argTypes..., impl */) {
   var argTypes = [];
   for (var argi=2; argi + 1 < arguments.length; argi++) argTypes.push(arguments[argi]);
-  
+
   if (!defops[op]) defops[op] = [];
   defops[op].push({
     retType: retType,
@@ -62,7 +62,7 @@ SymbolicContext.prototype.registerWrapper = function() {
   var c = this;
 
   // This is complicated because in an SymbolicContext the inargs & outargs are just {name:type}, but the wrap function takes the args explicitely
-  // in order and with 
+  // in order and with
   c.typereg.addWrapFunction(c.getSignature(), '', c.name, '', 'void', c.collectArgs(function(argname, argTypename, isOut) {
     return {typename: argTypename, passing: isOut ? '&' : 'const &'};
   }));
@@ -137,7 +137,7 @@ SymbolicContext.prototype.Vv4 = function(name) { return this.V('arma::vec4', nam
 SymbolicContext.prototype.A = function(name, value) {
   var c = this;
   if (0) value.printName = name;
-  var e = c.dedup(new SymbolicAssign(c, 
+  var e = c.dedup(new SymbolicAssign(c,
                                      value.type,
                                      name,
                                      value));
@@ -329,9 +329,9 @@ SymbolicContext.prototype.emitCpp = function(f, filter) {
     c.emitCppCses(a, f, availCses, costs);
   });
   _.each(c.assigns, function(a) {
-    f(a.name + ' = ' + c.getCExpr(a.value, availCses) + ';');  
+    f(a.name + ' = ' + c.getCExpr(a.value, availCses) + ';');
   });
-  
+
 };
 
 
@@ -369,17 +369,17 @@ function SymbolicConst(c, type, value) {
   e.cseKey = 'C' + simpleHash(e.type + ',' + e.value.toString());
   e.cseCost = 0.25;
 }
-SymbolicConst.prototype.isZero = function() { 
+SymbolicConst.prototype.isZero = function() {
   var e = this;
   if (e.type === 'double' && e.value === 0) return true;
   if (e.type === 'arma::mat4' && e.value === 0) return true;
-  return false; 
+  return false;
 };
-SymbolicConst.prototype.isOne = function() { 
+SymbolicConst.prototype.isOne = function() {
   var e = this;
   if (e.type === 'double' && e.value === 1) return true;
   if (e.type === 'arma::mat4' && e.value === 1) return true;
-  return false; 
+  return false;
 };
 
 function SymbolicExpr(c, op, args) {
@@ -403,19 +403,19 @@ function SymbolicExpr(c, op, args) {
   e.cseKey = 'E' + simpleHash(e.type + ',' + e.op + ',' + _.map(e.args, function(arg) { return arg.cseKey; }).join(','));
   e.cseCost = 1.0;
 }
-SymbolicExpr.prototype.isZero = function() { 
+SymbolicExpr.prototype.isZero = function() {
   var e = this;
   if (e.opInfo.impl.isZero) {
     return e.opInfo.impl.isZero.call(e);
   }
-  return false; 
+  return false;
 };
-SymbolicExpr.prototype.isOne = function() { 
+SymbolicExpr.prototype.isOne = function() {
   var e = this;
   if (e.opInfo.impl.isOne) {
     return e.opInfo.impl.isOne.call(e);
   }
-  return false; 
+  return false;
 };
 
 
@@ -600,12 +600,12 @@ defop('arma::mat44',        'arma::mat44',
       'double', 'double', 'double', 'double', {
         c: function(a00, a10, a20, a30, a01, a11, a21, a31, a02, a12, a22, a32, a03, a13, a23, a33) {
           assert.ok(a33);
-          return ('arma::mat44 {' + 
+          return ('arma::mat44 {' +
                   a00 + ', ' + a10 + ', ' + a20 + ', ' + a30 + ', ' +
                   a01 + ', ' + a11 + ', ' + a21 + ', ' + a31 + ', ' +
                   a02 + ', ' + a12 + ', ' + a22 + ', ' + a32 + ', ' +
                   a03 + ', ' + a13 + ', ' + a23 + ', ' + a33 + '}');
-          
+
         },
         deriv: function(wrt) {
           var c = this.c;
@@ -640,17 +640,17 @@ defop('arma::mat44',        'mat44RotationX',   'double', {
                c.C('double', 0),
                c.C('double', 0),
                c.C('double', 0),
-               
+
                c.C('double', 0),
                c.E('cos', a),
                c.E('sin', a),
                c.C('double', 0),
-               
+
                c.C('double', 0),
                c.E('-sin', a),
                c.E('cos', a),
                c.C('double', 0),
-               
+
                c.C('double', 0),
                c.C('double', 0),
                c.C('double', 0),
@@ -667,17 +667,17 @@ defop('arma::mat44',        'mat44RotationY',   'double', {
                c.C('double', 0),
                c.E('-sin', a),
                c.C('double', 0),
-               
+
                c.C('double', 0),
                c.C('double', 1),
                c.C('double', 0),
                c.C('double', 0),
-               
+
                c.E('sin', a),
                c.C('double', 0),
                c.E('cos', a),
                c.C('double', 0),
-               
+
                c.C('double', 0),
                c.C('double', 0),
                c.C('double', 0),
@@ -693,17 +693,17 @@ defop('arma::mat44',        'mat44RotationZ',   'double', {
                c.E('sin', a),
                c.C('double', 0),
                c.C('double', 0),
-               
+
                c.E('-sin', a),
                c.E('cos', a),
                c.C('double', 0),
                c.C('double', 0),
-               
+
                c.C('double', 0),
                c.C('double', 0),
                c.C('double', 1),
                c.C('double', 0),
-               
+
                c.C('double', 0),
                c.C('double', 0),
                c.C('double', 0),
@@ -714,7 +714,7 @@ defop('arma::mat44',        'mat44RotationZ',   'double', {
 defop('arma::mat44',        'mat44Translation',   'double', 'double', 'double', {
   replace: function(wrt) {
     var c = this.c;
-    return c.E('arma::mat44', 
+    return c.E('arma::mat44',
                c.C('double', 1),
                c.C('double', 0),
                c.C('double', 0),
@@ -777,7 +777,7 @@ defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
                           c.E('*', c.matrixElem(a,rowi,3), c.matrixElem(b,3,coli)))));
       });
     });
-    
+
     return c.E.apply(c, args);
   },
   print: true,
@@ -812,7 +812,7 @@ defop('arma::mat44',    '+',           'arma::mat44', 'arma::mat44', {
         args.push(c.E('+', c.matrixElem(a,rowi,coli), c.matrixElem(b,rowi,coli)));
       });
     });
-    
+
     return c.E.apply(c, args);
   },
 
@@ -863,7 +863,7 @@ if (0) {
   defop('arma::vec3',    '*',           'arma::mat33', 'arma::vec3');
   defop('arma::vec3',    '*',           'arma::mat44', 'arma::vec3');
   defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4');
- 
+
   defop('arma::vec2',    '*',           'arma::vec2', 'double');
   defop('arma::vec3',    '*',           'arma::vec3', 'double');
   defop('arma::vec4',    '*',           'arma::vec4', 'double');

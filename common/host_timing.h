@@ -51,7 +51,7 @@ struct anytimer {
   {
     return realtime() - time_seconds;
   }
-  
+
   bool is_elapsed(double dt) const
   {
     return time_seconds == -1.0 || (realtime() - time_seconds) >= dt;
@@ -61,7 +61,7 @@ struct anytimer {
   {
     return dur_seconds;
   }
-  
+
 
   double time_seconds;
   double dur_seconds;

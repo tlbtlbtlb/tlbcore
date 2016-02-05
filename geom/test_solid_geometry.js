@@ -47,7 +47,7 @@ describe('solid_geometry', function() {
     console.log('Done 1');
     fs.writeFileSync('/tmp/test_solid_geometry_mesh.json', meshJson);
     console.log('Done 2');
-    
+
   });
 });
 

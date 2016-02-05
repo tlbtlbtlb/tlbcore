@@ -93,7 +93,7 @@ struct JsWrapGeneric : node::ObjectWrap {
     :it(make_shared<CONTENTS>(std::forward<Args>(_args)...))
   {
   }
-  
+
   JsWrapGeneric(Isolate *_isolate, shared_ptr<CONTENTS> _it)
     :it(_it)
   {
@@ -103,7 +103,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   {
     it = _it;
   }
-  
+
   template<typename... Args>
   void assignConstruct(Args &&... _args)
   {
@@ -114,11 +114,11 @@ struct JsWrapGeneric : node::ObjectWrap {
   {
     it = make_shared<CONTENTS>();
   }
-  
+
   ~JsWrapGeneric()
   {
   }
-  
+
   shared_ptr<CONTENTS> it;
   Persistent<Value> owner;
 

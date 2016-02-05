@@ -7,12 +7,12 @@ struct jsonstr;
 
 
 struct Dv {
-  explicit Dv() 
+  explicit Dv()
     :value(0.0),
      deriv(0.0)
   {
   }
-  
+
   explicit Dv(double _value)
   :value(_value),
    deriv(0.0)
@@ -23,19 +23,19 @@ struct Dv {
      deriv(_deriv)
   {
   }
-  
+
   double value;
   double deriv;
-  
+
 };
 
 struct DvMat {
-  explicit DvMat() 
+  explicit DvMat()
     :value(),
      deriv()
   {
   }
-  
+
   explicit DvMat(arma::mat const &_value)
   :value(_value),
    deriv(_value.n_rows, value.n_cols, arma::fill::zeros)
@@ -62,7 +62,7 @@ struct DvMat {
     value.set_size(n_rows, n_cols);
     deriv.set_size(n_rows, n_cols);
   }
-  
+
   arma::mat value;
   arma::mat deriv;
 };
@@ -75,17 +75,17 @@ struct DvRef {
   }
 
   explicit DvRef(Dv &it)
-  :value(&it.value), 
+  :value(&it.value),
    deriv(&it.deriv)
   {
   }
-  
+
   explicit DvRef()
-  :value(nullptr), 
+  :value(nullptr),
    deriv(nullptr)
   {
   }
-  
+
   double *value;
   double *deriv;
 };
@@ -348,7 +348,7 @@ static inline DvMat operator * (double a, DvMat const &b)
 
 static inline Dv operator / (Dv const &a, Dv const &b)
 {
-  return Dv(a.value / b.value, 
+  return Dv(a.value / b.value,
             (a.deriv * b.value - b.deriv * a.value) / sqr(b.value));
 }
 
@@ -441,7 +441,7 @@ static inline Dv min(Dv const &a, Dv const &b)
 }
 
 
-static inline Dv normangle(Dv x) { 
+static inline Dv normangle(Dv x) {
   return Dv(fmod((x.value + M_PI), M_2PI) - M_PI, x.deriv);
 }
 

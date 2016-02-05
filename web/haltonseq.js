@@ -14,10 +14,10 @@ function unipolarHaltonAxis(i, radix)
 {
   if (i === 0) return 0.0;
   var digit = i % radix;
-  
+
   var digitValue = digit;
   var placeValue = 1.0/radix;
-  
+
   return (digitValue + unipolarHaltonAxis(Math.floor(i/radix), radix)) * placeValue;
 }
 
@@ -42,10 +42,10 @@ function bipolarHaltonAxis(i, radix)
 {
   if (i === 0) return 0.0;
   var digit = i % radix;
-    
+
   var digitValue = (1 - (digit%2) * 2) * ((digit + 1) / 2) * 2.0;
   var placeValue = 1.0/radix;
-  
+
   return (digitValue + bipolarHaltonAxis(Math.floor(i/radix), radix)) * placeValue;
 }
 

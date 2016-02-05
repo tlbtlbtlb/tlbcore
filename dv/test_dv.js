@@ -33,7 +33,7 @@ describe('dv', function() {
     var cWrtB = ur.mul(a, b);
     b.deriv = 0;
     assert.equal(cWrtB.deriv, 1.5)
-    
+
   });
 
   it('should find Dvs', function() {
@@ -67,7 +67,7 @@ describe('LearningProblem_DvPolyfit5_Dv_Dv', function() {
       if (0) console.log(loss1, lp.theta.c0.value, lp.theta.c1.value, lp.theta.c2.value, lp.theta.c3.value, lp.theta.c4.value, lp.theta.c5.value, lr);
       if (loss1 != loss1) break; // detect NaN
     }
-    
+
     console.log('sgd: loss=' + loss1.toString(), 'theta=' + lp.theta.asNonDvType().toString());
     console.log('    x      ytarg  ypred')
     for (var x = -1; x <= 1; x += 0.25) {
@@ -87,7 +87,7 @@ describe('LearningProblem_DvPolyfit5_Dv_Dv', function() {
     }
     lp.regularization = 0.0001;
     var loss1 = lp.lbfgs();
-    
+
     console.log('lbgfs: loss=' + loss1.toString(), 'theta=' + lp.theta.asNonDvType().toString());
     console.log('    x      ytarg  ypred')
     for (var x = -1; x <= 1; x += 0.25) {

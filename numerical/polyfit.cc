@@ -80,7 +80,7 @@ Polyfit1 mkPolyfit1(arma::Col<double> xs, arma::Col<double> ys)
     xsm(ri, 1) = x;
     ysm(ri, 0) = y;
   }
-  
+
   // Throws runtime_error if no solution
   arma::mat coeffs = arma::solve(xsm, ysm);
   return Polyfit1(coeffs(0,0), coeffs(1,0));
@@ -104,7 +104,7 @@ Polyfit3 mkPolyfit3(arma::Col<double> xs, arma::Col<double> ys)
     xsm(ri, 3) = x*x*x;
     ysm(ri, 0) = y;
   }
-  
+
   // Throws runtime_error if no solution
   arma::mat coeffs = arma::solve(xsm, ysm);
   return Polyfit3(coeffs(0,0), coeffs(1,0), coeffs(2,0), coeffs(3,0));
@@ -129,7 +129,7 @@ Polyfit5 mkPolyfit5(arma::Col<double> xs, arma::Col<double> ys)
     xsm(ri, 5) = x*x*x*x*x;
     ysm(ri, 0) = y;
   }
-  
+
   // Throws runtime_error if no solution
   arma::mat coeffs = arma::solve(xsm, ysm);
   return Polyfit5(coeffs(0,0), coeffs(1,0), coeffs(2,0), coeffs(3,0), coeffs(4,0), coeffs(5,0));

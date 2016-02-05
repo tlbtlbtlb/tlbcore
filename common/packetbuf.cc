@@ -86,7 +86,7 @@ void packet::reserve(size_t new_size)
       stats.cow_count ++;
     }
     contents = alloc_contents(new_alloc);
-    
+
     memcpy(contents->buf, old_contents->buf, old_contents->alloc);
     stats.copy_bytes_count += old_contents->alloc;
 
@@ -151,7 +151,7 @@ packet & packet::operator= (packet const &other)
   return *this;
 }
 
-packet::~packet() 
+packet::~packet()
 {
   decref(contents);
   decref(annotations);
@@ -358,7 +358,7 @@ void packet::add_file_contents(FILE *fp)
 }
 
 
-void packet::add_bytes(const u_char *data, size_t size) 
+void packet::add_bytes(const u_char *data, size_t size)
 {
   reserve(wr_pos + size);
   memcpy(contents->buf + wr_pos, data, size);
@@ -392,7 +392,7 @@ void packet::add_nl_string(string const &s)
 }
 
 
-void packet::add_pkt(packet const &wr) 
+void packet::add_pkt(packet const &wr)
 {
   add((u_int)wr.remaining());
   add_bytes(wr.rd_ptr(), wr.remaining());
@@ -406,7 +406,7 @@ void packet::add_be_uint32(u_int x) {
   buf[3]=(x>>0)&0xff;
   add_bytes(buf, sizeof(buf));
 }
-  
+
 void packet::add_be_uint24(u_int x) {
   u_char buf[3];
   buf[0]=(x>>16)&0xff;
@@ -414,14 +414,14 @@ void packet::add_be_uint24(u_int x) {
   buf[2]=(x>>0)&0xff;
   add_bytes(buf, sizeof(buf));
 }
-  
+
 void packet::add_be_uint16(u_int x) {
   u_char buf[2];
   buf[0]=(x>>8)&0xff;
   buf[1]=(x>>0)&0xff;
   add_bytes(buf, sizeof(buf));
 }
-  
+
 void packet::add_be_uint8(u_int x) {
   u_char buf[1];
   buf[0]=(x>>0)&0xff;
@@ -436,14 +436,14 @@ void packet::add_be_double(double x) {
 
   it.value = x;
 
-#if BYTE_ORDER==LITTLE_ENDIAN  
+#if BYTE_ORDER==LITTLE_ENDIAN
   add_reversed(it.bytes, 8);
 #elif BYTE_ORDER==BIG_ENDIAN
   add_bytes(it.bytes, 8);
 #else
 #error "unexpected byte order"
 #endif
-  
+
 }
 
 void packet::dump(FILE *fp) const
@@ -466,7 +466,7 @@ void packet::dump(FILE *fp) const
 
 // ----------------------------------------------------------------------
 
-void packet::rewind() 
+void packet::rewind()
 {
   rd_pos=0;
 }
@@ -476,7 +476,7 @@ void packet::get_skip(int n)
   rd_pos += n;
 }
 
-bool packet::get_test(u_char *data, size_t size) 
+bool packet::get_test(u_char *data, size_t size)
 {
   if ((int)rd_pos + (int)size <= (int)wr_pos) {
     memcpy(data, contents->buf + rd_pos, size);
@@ -486,14 +486,14 @@ bool packet::get_test(u_char *data, size_t size)
   return false;
 }
 
-void packet::get_bytes(u_char *data, size_t size) 
+void packet::get_bytes(u_char *data, size_t size)
 {
   if (!get_test(data, size)) {
     throw packet_rd_overrun_err(size - remaining());
   }
 }
 
-void packet::get_bytes(char *data, size_t size) 
+void packet::get_bytes(char *data, size_t size)
 {
   get_bytes((u_char *)data, size);
 }
@@ -521,41 +521,41 @@ packet packet::get_pkt()
   return ret;
 }
 
-u_int packet::get_be_uint32() 
+u_int packet::get_be_uint32()
 {
   u_char buf[4];
   get_bytes(buf, 4);
-    
+
   return (((u_int)buf[0]<<24) |
           ((u_int)buf[1]<<16) |
           ((u_int)buf[2]<<8) |
           ((u_int)buf[3]<<0));
 }
 
-u_int packet::get_be_uint24() 
+u_int packet::get_be_uint24()
 {
   u_char buf[3];
   get_bytes(buf, 3);
-    
+
   return (((u_int)buf[0]<<16) |
           ((u_int)buf[1]<<8) |
           ((u_int)buf[2]<<0));
 }
 
-u_short packet::get_be_uint16() 
+u_short packet::get_be_uint16()
 {
   u_char buf[2];
   get_bytes(buf, 2);
-    
+
   return (((u_short)buf[0]<<8) |
           ((u_short)buf[1]<<0));
 }
-  
-u_char packet::get_be_uint8() 
+
+u_char packet::get_be_uint8()
 {
   u_char buf[1];
   get_bytes(buf, 1);
-    
+
   return (u_char)buf[0];
 }
 
@@ -566,9 +566,9 @@ double packet::get_be_double()
     double value;
   } it;
 
-#if BYTE_ORDER==LITTLE_ENDIAN  
+#if BYTE_ORDER==LITTLE_ENDIAN
   get_reversed(it.bytes, 8);
-#elif BYTE_ORDER==BIG_ENDIAN  
+#elif BYTE_ORDER==BIG_ENDIAN
   get_bytes(it.bytes, 8);
 #else
 #error "unexpected byte order"
@@ -597,7 +597,7 @@ void packet::add_typetag(char const *tag)
   }
   add((u_char)size);
   add_bytes(tag, size);
-}  
+}
 
 /*
   Check for a given type tag. Consume the tag if matched, else rewind.
@@ -663,7 +663,7 @@ packet packet::read_from_fd(int fd)
   if (fstat(fd, &st) < 0) {
     return packet(0);
   }
-  
+
   packet ret(st.st_size + 8192);
   ret.add_file_contents(fd);
   close(fd);
@@ -702,7 +702,7 @@ void packet::clear_stats()
 {
   memset(&stats, 0, sizeof(stats));
 }
-    
+
 
 // ----------------------------------------------------------------------
 
@@ -726,7 +726,7 @@ packet_rd_overrun_err::~packet_rd_overrun_err() throw()
 
 packet_rd_type_err::packet_rd_type_err(string const &_expected, string const &_got)
   :runtime_error(stringprintf("Packet rd type error(expected %s, got %s)", _expected.c_str(), _got.c_str())),
-   expected(_expected), 
+   expected(_expected),
    got(_got)
 {
 }
@@ -798,11 +798,11 @@ void packet_rd_value(packet &p, bool &x)                    { p.get_bytes((u_cha
 void packet_wr_typetag(packet &p, string const &x) { p.add_typetag("string"); }
 void packet_wr_value(packet &p, const string &x) {
   size_t size = x.size();
-    
+
   if (size<0xff) {
     u_char smallsize = (u_char)size;
     p.add(smallsize);
-  } 
+  }
   else if (size < size_t(0x3fffffff)) {
     u_char smallsize = 0xff;
     p.add(smallsize);
@@ -811,7 +811,7 @@ void packet_wr_value(packet &p, const string &x) {
   else {
     abort();
   }
-  
+
   p.add_bytes(&x[0], size);
 }
 
@@ -874,4 +874,4 @@ string packet::run_test(int testid)
 }
 
 
-// 
+//
