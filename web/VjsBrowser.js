@@ -127,7 +127,7 @@ function gotoCurrentHash() {
       } catch(ex) {
         errlog('gotoCurrentHash', 'Error parsing', optionsEnc, ex);
       }
-    } 
+    }
     else if (optionsEnc[0] === '.') {
       try {
         options = JSON.parse(atob(optionsEnc.substr(1)));
@@ -230,10 +230,10 @@ $.fn.bogartBodyEvents = function(evMap) {
 
 /* ----------------------------------------------------------------------
    Content enhancers -- things that recognize magical constructions in the xml and add functionality
-   
+
    $.enhance['selector'] = function() {  }
    creates an enhancer that matches on the given selector and calls the function with this bound to the jQuery wrapper on the elements
-   
+
 */
 
 $.defContent = function(contentName, contents) {
@@ -403,12 +403,12 @@ function escapeHtml(text) {
   return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-$.fn.fmtText = function(text) {  
+$.fn.fmtText = function(text) {
   this.html(String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
   return this;
 };
 
-$.fn.fmtTextLines = function(text) {  
+$.fn.fmtTextLines = function(text) {
   this.html(String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>'));
   return this;
 };
@@ -448,17 +448,17 @@ $.fn.fmtShortDate = function(d) {
     if (n < 10) return '0'+n.toFixed();
     return n.toFixed();
   }
-  this.html(d.getFullYear() + '.' + 
+  this.html(d.getFullYear() + '.' +
             (d.getMonth()+1).toFixed() + '.' +
             d.getDate().toFixed() + ' ' +
-            d.getHours() + ':' + 
+            d.getHours() + ':' +
             pad(d.getMinutes()) + ':' +
             pad(d.getSeconds()));
   return this;
 };
 
 $.fn.fmtTimeSince = function(lastUpdate) {
-  
+
   if (!lastUpdate || isNaN(lastUpdate)) {
     this.html('unknown');
     return this;
@@ -511,7 +511,7 @@ $.fn.fmtErrorMessage = function(err) {
       this.append(em);
     }
   }
-  
+
   if (_.isString(err)) {
     em.html(err);
   }
@@ -583,6 +583,30 @@ $.flashErrorMessage = function(msg) {
   }, 2000);
 };
 
+var flashSuccessMessageTimeout = null;
+
+$.flashSuccessMessage = function(msg) {
+  var fem = $('#flashSuccessMessage');
+  if (fem.length === 0) {
+    fem = $('<div id="flashSuccessMessage">').appendTo(document.body);
+  }
+  var sw = $(window).width();
+  var fw = fem.width();
+  fem.css({left: Math.floor((sw-fw)/2 - 30).toString() + 'px'});
+  var em = $('<div class="successMessage">');
+  fem.append(em).show();
+  fem.fmtSuccessMessage(msg);
+  if (flashSuccessMessageTimeout) {
+    clearTimeout(flashSuccessMessageTimeout);
+  }
+  flashSuccessMessageTimeout = setTimeout(function() {
+    fem.fadeOut(500, function() {
+      $(this).empty();
+    });
+  }, 2000);
+};
+
+
 /* ----------------------------------------------------------------------
   DOM structure utilities
 */
@@ -609,7 +633,7 @@ $.fn.syncChildren = function(newItems, options) {
 
   var domKey = options.domKey || 'syncDomChildren';
   var domClass = options.domClass || 'syncDomChildren';
-  
+
   var removeEl = options.removeEl || function(name) {
     $(this).remove();
   };
@@ -696,20 +720,20 @@ $.fn.syncChildren = function(newItems, options) {
   var vendors = ['ms', 'moz', 'webkit', 'o'];
   for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
     window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
-    window.cancelAnimationFrame = 
+    window.cancelAnimationFrame =
       window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
   }
-  
+
   if (!window.requestAnimationFrame)
     window.requestAnimationFrame = function(callback, element) {
       var currTime = new Date().getTime();
       var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-      var id = window.setTimeout(function() { callback(currTime + timeToCall); }, 
+      var id = window.setTimeout(function() { callback(currTime + timeToCall); },
                                  timeToCall);
       lastTime = currTime + timeToCall;
       return id;
     };
-  
+
   if (!window.cancelAnimationFrame)
     window.cancelAnimationFrame = function(id) {
       clearTimeout(id);
@@ -752,7 +776,7 @@ $.fn.animation = function(f, deltat) {
     // Make sure dom object still exists, otherwise give up
     if (self.closest('body').length) {
       var curtick = Math.floor(curtime / deltat);
-      
+
       var nticks = 0;
       if (curtick <= lasttick) {
       }
@@ -788,7 +812,7 @@ $.fn.animation = function(f, deltat) {
 
   As well as emitting the 'animate' signal, it calls m.animate(dt) where dt is the time (in seconds) elapsed since
   the last call, limited to reasonable bounds to provide smooth animation.
-  
+
   It also checks on each animation whether the the dom element is still in the document, and shuts
   down when not.
 
@@ -827,7 +851,7 @@ $.fn.animation2 = function(m) {
       m.emit('animate', dt);
       if (m.postAnimate) m.postAnimate(dt);
       window.requestAnimationFrame(wrap);
-    } 
+    }
     else if (changesPending > 0) {
       changesPending--;
       if (changesPending === 0) {
@@ -835,7 +859,7 @@ $.fn.animation2 = function(m) {
         m.emit('animate', 0.0);
       }
       window.requestAnimationFrame(wrap);
-    } 
+    }
     else {
       afActive = false;
     }
@@ -897,7 +921,7 @@ BoxLayout.prototype.childBox = function(t, r, b, l) {
 
 /*
   Animate a canvas based on a model.
-  
+
   Call on a pre-existing canvas dom node.
 
   This calls drawFunc with (m, ctx, hd, lo, o), where:
@@ -911,7 +935,7 @@ BoxLayout.prototype.childBox = function(t, r, b, l) {
     wheel, mousedown, mousemove, mouseup.
   These can be acted on by adding callbacks to hd inside drawFunc
 
-  Convention is for drawFunc to add properties to lo as it works out the geometry 
+  Convention is for drawFunc to add properties to lo as it works out the geometry
   of what it's drawing, and pass it around to subordinate drawing functions.
 
   On a Retina or similar screen, this arranges to double the pixel size of the canvas and
@@ -919,7 +943,7 @@ BoxLayout.prototype.childBox = function(t, r, b, l) {
   think in css pixels, including for mouse hit detection.
 
   lo.canvas[LTRB] are always the (css-pixel) canvas dimensions
-  lo.box[LTRB] start out as the canvas dimensions, but could be 
+  lo.box[LTRB] start out as the canvas dimensions, but could be
 
   If you want to snap to device pixels to get super-crisp 1-pixel lines do this:
     ctx.lineWidth = lo.thinWidth;
@@ -937,7 +961,7 @@ BoxLayout.prototype.childBox = function(t, r, b, l) {
 
   There's also .textLayer, .cursorLayer, .buttonLayer and .curLayer, which calls its argument
   immediately
-    
+
 */
 $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   var top = this;
@@ -990,7 +1014,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       return false;
     }
   });
-  
+
   top.on('mousedown', function(ev) {
     var md = eventOffsets(ev);
     var action = hd.find(md.x, md.y) || hd.defaultActions;
@@ -1025,7 +1049,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       m.emit('changed');
     }
   });
-  
+
   top.on('mouseup', function(ev) {
     hd.mdX = hd.mdY = null;
     hd.buttonDown = false;
@@ -1113,7 +1137,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
 
 
 /* ----------------------------------------------------------------------
-   Track all key events within a document object. The hash (down) keeps track of what keys are down, 
+   Track all key events within a document object. The hash (down) keeps track of what keys are down,
    and (changed) is called whenever anything changes.
 */
 
@@ -1131,7 +1155,7 @@ $.fn.trackKeys = function(down, changed) {
 };
 
 /* ----------------------------------------------------------------------
-  On some browsers on retina devices, the canvas is at css pixel resolution. 
+  On some browsers on retina devices, the canvas is at css pixel resolution.
   This converts it to device pixel resolution.
 */
 $.fn.maximizeCanvasResolution = function() {
@@ -1144,7 +1168,7 @@ $.fn.maximizeCanvasResolution = function() {
       var ratio = devicePixelRatio / backingStoreRatio;
       var oldWidth = canvas.width;
       var oldHeight = canvas.height;
-      
+
       // Store pixelRatio here for use by client code
       canvas.pixelRatio = ratio;
 
@@ -1169,13 +1193,13 @@ $.fn.setCanvasSize = function(cssWidth, cssHeight, ctx) {
 
   var ratio = devicePixelRatio / backingStoreRatio;
   if (0) console.log('SCS', cssWidth, cssHeight, ratio);
-    
+
   // Store pixelRatio here for use by client code
   canvas.pixelRatio = ratio;
-  
+
   canvas.width = cssWidth * ratio;
   canvas.height = cssHeight * ratio;
-  
+
   canvas.style.width = cssWidth + 'px';
   canvas.style.height = cssHeight + 'px';
 
@@ -1184,7 +1208,7 @@ $.fn.setCanvasSize = function(cssWidth, cssHeight, ctx) {
 
 /*
   mkDeferQ is a way of deferring drawing some elements on a canvas so they can be layered on top.
-  Usage: 
+  Usage:
     ctx.textLayer = mkContextLayer();
     ...
     ctx.textLayer(function() {   // the closure is queued
@@ -1226,7 +1250,7 @@ function setupConsole(reloadKey) {
   // Gracefully degrade firebug logging
   function donothing () {}
   if (!window.console) {
-    var names = ['log', 'debug', 'info', 'warn', 'error', 'assert', 'dir', 'dirxml', 'group', 
+    var names = ['log', 'debug', 'info', 'warn', 'error', 'assert', 'dir', 'dirxml', 'group',
                  'groupEnd', 'time', 'timeEnd', 'count', 'trace', 'profile', 'profileEnd'];
     window.console = {};
     for (var i = 0; i<names.length; i++) window.console[names[i]] = donothing;
@@ -1385,4 +1409,3 @@ function pageSetupFromHash(reloadKey) {
   gotoCurrentHash();
   startHistoryPoll();
 }
-
