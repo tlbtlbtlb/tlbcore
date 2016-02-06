@@ -497,8 +497,6 @@ ScriptProvider.prototype.start = function() {
   persistentReadFile(self.fn, 'utf8', function(data) {
 
     var oldlen = data.length;
-    // 'foo' + 'bar' => 'foobar'
-    data = data.replace(/\'\s*\+\n\s+\'/g, '');
 
     if (self.minifyLevel >= 1) {
       try {
@@ -507,6 +505,9 @@ ScriptProvider.prototype.start = function() {
         logio.E(self.fn, 'jsmin failed', ex);
         // data should be unchanged
       }
+      // 'foo' + 'bar' => 'foobar'
+      data = data.replace(/\'\+\'/g, '');
+      data = data.replace(/\"\+\"/g, '');
     } else {
       // Just minimal mininification: cut leading whitespace and blank lines
       data = data.replace(/\n\s+/g, '\n');
