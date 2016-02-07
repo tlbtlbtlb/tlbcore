@@ -528,6 +528,8 @@ $.fn.fmtErrorMessage = function(err) {
 $.fn.clearErrorMessage = function() {
   this.find('.errorMessage').hide();
   this.find('.errorMessageLoc').empty().hide();
+  this.find('.successMessage').hide();
+  this.find('.successMessageLoc').empty().hide();
   return this;
 };
 
