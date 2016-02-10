@@ -19,7 +19,6 @@ function StructCType(reg, typename) {
   this.nameToOptions = {};
   this.extraMemberDecls = [];
   this.matrixStructures = [];
-  this.extraWraps = [];
   this.compatCodes = {};
 }
 
@@ -69,11 +68,6 @@ StructCType.prototype.withDvs = function() {
 StructCType.prototype.addMemberDecl = function(f) {
   var type = this;
   type.extraMemberDecls.push(f);
-};
-
-StructCType.prototype.addWrap = function(f) {
-  var type = this;
-  type.extraWraps.push(f);
 };
 
 StructCType.prototype.emitForwardDecl = function(f) {
@@ -885,8 +879,11 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     });
   }
 
-  _.each(type.extraWraps, function(wrap) {
-    wrap(f);
+  _.each(type.extraJswrapMethods, function(it) {
+    it.call(type, f);
+  });
+  _.each(type.extraJswrapAccessors, function(it) {
+    it.call(type, f);
   });
 
   if (!type.noStdValues && type.isCopyConstructable()) {
@@ -926,4 +923,3 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   }
 
 };
-

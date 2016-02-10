@@ -18,8 +18,6 @@ function CollectionCType(reg, typename) {
   type.templateName = '';
   type.templateArgs = [];
   type.constructorJswrapCases = [];
-  type.extraJswrapMethods = [];
-  type.extraJswrapAccessors = [];
 
   var depth = 0;
   var argi = 0;
@@ -74,14 +72,6 @@ CollectionCType.prototype.withDvs = function() {
 };
 
 
-CollectionCType.prototype.addJswrapMethod = function(x) {
-  var type = this;
-  type.extraJswrapMethods.push(x);
-};
-CollectionCType.prototype.addJswrapAccessor = function(x) {
-  var type = this;
-  type.extraJswrapAccessors.push(x);
-};
 
 CollectionCType.prototype.emitTypeDecl = function(f) {
   var type = this;
@@ -814,4 +804,3 @@ CollectionCType.prototype.emitJsTestImpl = function(f) {
   f('});');
 
 };
-

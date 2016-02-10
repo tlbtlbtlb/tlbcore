@@ -24,6 +24,8 @@ function CType(reg, typename) {
   type.extraHeaderIncludes = [];
   type.extraConstructorCode = [];
   type.extraDestructorCode = [];
+  type.extraJswrapMethods = [];
+  type.extraJswrapAccessors = [];
 }
 
 CType.prototype.addFunctionDecl = function(x) { this.extraFunctionDecls.push(x); };
@@ -35,6 +37,8 @@ CType.prototype.addJsWrapHeaderInclude = function(x) { this.extraJsWrapHeaderInc
 CType.prototype.addHeaderInclude = function(x) { this.extraHeaderIncludes.push(x); };
 CType.prototype.addConstructorCode = function(x) { this.extraConstructorCode.push(x); };
 CType.prototype.addDestructorCode = function(x) { this.extraDestructorCode.push(x); };
+CType.prototype.addJswrapMethod = function(x) { this.extraJswrapMethods.push(x); };
+CType.prototype.addJswrapAccessor = function(x) { this.extraJswrapAccessors.push(x); };
 
 CType.prototype.isStruct = function() { return false; };
 CType.prototype.isObject = function() { return false; };
@@ -312,5 +316,3 @@ CType.prototype.getFormalParameter = function(varname) {
 CType.prototype.getInitExpr = function() {
   return this.getAllZeroExpr();
 };
-
-
