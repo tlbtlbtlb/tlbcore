@@ -1137,8 +1137,8 @@ RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
           'Content-Length': (end - start + 1).toString(),
           // 'bytes ', not 'bytes=' like the request for some reason
           'Content-Range': 'bytes ' + start.toString() + '-' + end.toString() + '/' + content.length.toString(),
-          'Accept-Ranges': 'bytes',
-          'Cache-Control': 'max-age=900'
+          'Accept-Ranges': 'bytes'
+          //'Cache-Control': 'max-age=900'
         });
         res.write(content.slice(start, end + 1), encoding);
         res.end();
