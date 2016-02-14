@@ -623,7 +623,7 @@ StructCType.prototype.emitRdJson = function(f) {
   };
   _.each(type.orderedNames, function(name) {
     if (!type.nameToType[name].isPtr()) {
-      actions['"' + name + '":'] = function() {
+      actions['"' + name + '" :'] = function() {
         f('if (rdJson(s, obj.' + name + ')) {');
         f('jsonSkipSpace(s);');
         f('c = *s++;');
@@ -633,7 +633,7 @@ StructCType.prototype.emitRdJson = function(f) {
       };
     }
   });
-  actions['"__type":"' + type.jsTypename + '"'] = function() {
+  actions['"__type" : "' + type.jsTypename + '"'] = function() {
     f('typeOk = true;');
     f('c = *s++;');
     f('if (c == \',\') continue;');
@@ -649,7 +649,6 @@ StructCType.prototype.emitRdJson = function(f) {
   f('while(1) {');
   f('jsonSkipSpace(s);');
   f('char const *memberStart = s;');
-  f('c = *s++;');
   emitPrefix('');
   f('s = memberStart;');
   f('if (!jsonSkipMember(s)) return false;');
@@ -676,20 +675,30 @@ StructCType.prototype.emitRdJson = function(f) {
     });
 
     nextChars = _.uniq(nextChars);
-
-    var ifCount = 0;
-    _.each(nextChars, function(nextChar) {
-      f((ifCount ? 'else if' : 'if') + ' (c == \'' + (nextChar === '\"' ? '\\' : '') + nextChar + '\') {');
-      ifCount++;
-      var augPrefix = prefix + nextChar;
+    if (nextChars.length == 1 && nextChars[0] == ' ') {
+      f('jsonSkipSpace(s);');
+      var augPrefix = prefix + ' ';
       if (augPrefix in actions) {
         actions[augPrefix]();
       } else {
-        f('c = *s++;');
         emitPrefix(augPrefix);
       }
-      f('}');
-    });
+    }
+    else {
+      f('c = *s++;');
+      var ifCount = 0;
+      _.each(nextChars, function(nextChar) {
+        f((ifCount ? 'else if' : 'if') + ' (c == \'' + (nextChar === '\"' ? '\\' : '') + nextChar + '\') {');
+        ifCount++;
+        var augPrefix = prefix + nextChar;
+        if (augPrefix in actions) {
+          actions[augPrefix]();
+        } else {
+          emitPrefix(augPrefix);
+        }
+        f('}');
+      });
+    }
   }
 };
 
