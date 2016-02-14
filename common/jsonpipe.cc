@@ -2,6 +2,8 @@
 #include "./jsonio.h"
 #include "./jsonpipe.h"
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <mutex>
 #include <condition_variable>
 
@@ -82,35 +84,40 @@ void jsonpipe::postSelect(fd_set *rfds, fd_set *wfds, fd_set *efds, double now)
   }
 
   if (txFd != -1 && FD_ISSET(txFd, wfds)) {
-    while (true) {
-      if (!txCur.size() && !txQ.empty()) {
-        txCur = txQ.front();
-        txCur.push_back('\n');
-        txQ.pop_front();
-      }
-      if (!txCur.size()) break;
+    txWork(lock);
+  }
+}
 
-      lock.unlock();
-      ssize_t nw = write(txFd, &txCur[0], txCur.size());
-      lock.lock();
-      if (nw < 0 && errno == EAGAIN) {
-        break;
-      }
-      else if (nw < 0) {
-        eprintf("jsonpipe: write: %s\n", strerror(errno));
-        closeTx();
-        break;
-      }
-      else if (nw < (ssize_t)txCur.size()) {
-        txCur.erase(0, (size_t)nw);
-      }
-      else if (nw == (ssize_t)txCur.size()) {
-        txCur.clear();
-      }
-      else {
-        throw runtime_error(stringprintf("write wrote %ld/%ld", (long)nw, (long)txCur.size()));
-        txCur.erase(0, (size_t)nw);
-      }
+void jsonpipe::txWork(unique_lock<mutex> &lock)
+{
+  while (true) {
+    if (!txCur.size() && !txQ.empty()) {
+      txCur = txQ.front();
+      txCur.push_back('\n');
+      txQ.pop_front();
+    }
+    if (!txCur.size()) break;
+
+    lock.unlock();
+    ssize_t nw = write(txFd, &txCur[0], txCur.size());
+    lock.lock();
+    if (nw < 0 && errno == EAGAIN) {
+      break;
+    }
+    else if (nw < 0) {
+      eprintf("jsonpipe: write: %s\n", strerror(errno));
+      closeTx();
+      break;
+    }
+    else if (nw < (ssize_t)txCur.size()) {
+      txCur.erase(0, (size_t)nw);
+    }
+    else if (nw == (ssize_t)txCur.size()) {
+      txCur.clear();
+    }
+    else {
+      throw runtime_error(stringprintf("write wrote %ld/%ld", (long)nw, (long)txCur.size()));
+      txCur.erase(0, (size_t)nw);
     }
   }
 }
@@ -150,6 +157,8 @@ void jsonpipe::setFds(int _txFd, int _rxFd)
   rxFd = _rxFd;
   int nosigpipe = 1;
   setsockopt(txFd, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, sizeof(nosigpipe));
+  int nodelay = 1;
+  setsockopt(txFd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay));
   fcntl(txFd, F_SETFL, O_NONBLOCK);
 }
 
@@ -182,4 +191,7 @@ void jsonpipe::tx(string const &s)
 {
   unique_lock<mutex> lock(mutex0);
   txQ.push_back(s);
+  if (txQ.size() == 1) {
+    txWork(lock);
+  }
 }

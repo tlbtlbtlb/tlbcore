@@ -15,6 +15,7 @@ struct jsonpipe {
   string rxBlock(); // waits for data, returns empty string if socket closed
   string rxNonblock(); // Returns empty string if no data
   void tx(string const &s); // queues and always returns immediately.
+  void txWork(std::unique_lock<mutex> &lock);
 
   deque<string> txQ;
   deque<string> rxQ;
