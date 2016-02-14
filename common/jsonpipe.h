@@ -12,11 +12,14 @@ struct jsonpipe {
   void closeTx();
   void closeRx();
 
-  string rx(); // Returns empty string if no data
+  string rxBlock(); // waits for data, returns empty string if socket closed
+  string rxNonblock(); // Returns empty string if no data
   void tx(string const &s); // queues and always returns immediately.
 
   deque<string> txQ;
   deque<string> rxQ;
+  std::mutex mutex0;
+  std::condition_variable rxQNonempty;
 
   string rxCur, txCur;
   int txFd, rxFd;
