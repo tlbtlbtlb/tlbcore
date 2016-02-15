@@ -98,9 +98,7 @@ void jsonpipe::txWork(unique_lock<mutex> &lock)
     }
     if (!txCur.size()) break;
 
-    lock.unlock();
     ssize_t nw = write(txFd, &txCur[0], txCur.size());
-    lock.lock();
     if (nw < 0 && errno == EAGAIN) {
       break;
     }
