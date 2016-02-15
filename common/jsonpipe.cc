@@ -4,8 +4,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <mutex>
-#include <condition_variable>
 
 jsonpipe::jsonpipe()
   :txFd(-1),
@@ -37,22 +35,21 @@ void jsonpipe::postSelect(fd_set *rfds, fd_set *wfds, fd_set *efds, double now)
     bool rxActivity = false;
     char buf[8192];
     while (1) {
-      lock.unlock();
       ssize_t nr = read(rxFd, buf, sizeof(buf));
-      lock.lock();
       if (nr < 0 && errno == EAGAIN) {
         break;
       }
       else if (nr < 0) {
-        eprintf("jsonpipe: read: %s\n", strerror(errno));
         closeRx();
-        return;
+        break;
       }
       else if (nr == 0) {
         if (rxCur.size()) {
           eprintf("jsonpipe: %lu bytes with no newline at EOF\n", (u_long)rxCur.size());
         }
         rxCur.clear();
+        closeRx();
+        break;
       }
       else {
         char *p = buf;
@@ -88,6 +85,10 @@ void jsonpipe::postSelect(fd_set *rfds, fd_set *wfds, fd_set *efds, double now)
   }
 }
 
+#if !defined(MSG_NOSIGNAL)
+#define MSG_NOSIGNAL 0
+#endif
+
 void jsonpipe::txWork(unique_lock<mutex> &lock)
 {
   while (true) {
@@ -98,7 +99,8 @@ void jsonpipe::txWork(unique_lock<mutex> &lock)
     }
     if (!txCur.size()) break;
 
-    ssize_t nw = write(txFd, &txCur[0], txCur.size());
+    ssize_t nw = send(txFd, &txCur[0], txCur.size(), MSG_NOSIGNAL);
+
     if (nw < 0 && errno == EAGAIN) {
       break;
     }
@@ -122,7 +124,6 @@ void jsonpipe::txWork(unique_lock<mutex> &lock)
 
 void jsonpipe::closeRx()
 {
-  unique_lock<mutex> lock(mutex0);
   if (rxFd == -1) return;
   if (rxFd == txFd) {
     shutdown(rxFd, SHUT_RD);
@@ -134,7 +135,6 @@ void jsonpipe::closeRx()
 
 void jsonpipe::closeTx()
 {
-  unique_lock<mutex> lock(mutex0);
   if (txFd == -1) return;
   if (txFd == rxFd) {
     shutdown(txFd, SHUT_WR);
@@ -153,11 +153,14 @@ void jsonpipe::setFds(int _txFd, int _rxFd)
 
   txFd = _txFd;
   rxFd = _rxFd;
+#ifdef SO_NOSIGPIPE
   int nosigpipe = 1;
   setsockopt(txFd, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, sizeof(nosigpipe));
+#endif
   int nodelay = 1;
-  setsockopt(txFd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay));
+  setsockopt(rxFd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay));
   fcntl(txFd, F_SETFL, O_NONBLOCK);
+  fcntl(rxFd, F_SETFL, O_NONBLOCK);
 }
 
 string jsonpipe::rxNonblock()
