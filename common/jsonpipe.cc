@@ -7,7 +7,8 @@
 
 jsonpipe::jsonpipe()
   :txFd(-1),
-   rxFd(-1)
+   rxFd(-1),
+   txEofFlag(false)
 {
 }
 
@@ -20,7 +21,7 @@ jsonpipe::~jsonpipe()
 void jsonpipe::preSelect(fd_set *rfds, fd_set *wfds, fd_set *efds, double now)
 {
   unique_lock<mutex> lock(mutex0);
-  if (txFd != -1 && (txCur.size() || !txQ.empty())) {
+  if (txFd != -1 && (txCur.size() || !txQ.empty() || txEofFlag)) {
     FD_SET(txFd, wfds);
   }
   if (rxFd != -1) {
@@ -32,52 +33,7 @@ void jsonpipe::postSelect(fd_set *rfds, fd_set *wfds, fd_set *efds, double now)
 {
   unique_lock<mutex> lock(mutex0);
   if (rxFd != -1 && FD_ISSET(rxFd, rfds)) {
-    bool rxActivity = false;
-    char buf[8192];
-    while (1) {
-      ssize_t nr = read(rxFd, buf, sizeof(buf));
-      if (nr < 0 && errno == EAGAIN) {
-        break;
-      }
-      else if (nr < 0) {
-        closeRx();
-        break;
-      }
-      else if (nr == 0) {
-        if (rxCur.size()) {
-          eprintf("jsonpipe: %lu bytes with no newline at EOF\n", (u_long)rxCur.size());
-        }
-        rxCur.clear();
-        closeRx();
-        break;
-      }
-      else {
-        char *p = buf;
-        char *pend = buf + nr;
-        while (p < pend) {
-          char *q = (char *)memchr(p, '\n', pend - p);
-          assert(q == nullptr || q < pend);
-          if (!q) {
-            rxCur.append(p, pend-p);
-            break;
-          } else {
-            if (rxCur.size()) {
-              rxCur.append(p, q-p);
-              rxQ.push_back(rxCur);
-              rxActivity = true;
-              rxCur.clear();
-            } else {
-              rxQ.push_back(string(p, q-p));
-              rxActivity = true;
-            }
-            p = q + 1;
-          }
-        }
-      }
-    }
-    if (rxActivity) {
-      rxQNonempty.notify_all();
-    }
+    rxWork(lock);
   }
 
   if (txFd != -1 && FD_ISSET(txFd, wfds)) {
@@ -89,15 +45,69 @@ void jsonpipe::postSelect(fd_set *rfds, fd_set *wfds, fd_set *efds, double now)
 #define MSG_NOSIGNAL 0
 #endif
 
+void jsonpipe::rxWork(unique_lock<mutex> &lock)
+{
+  bool rxActivity = false;
+  char buf[8192];
+  while (1) {
+    ssize_t nr = read(rxFd, buf, sizeof(buf));
+    if (nr < 0 && errno == EAGAIN) {
+      break;
+    }
+    else if (nr < 0) {
+      closeRx();
+      break;
+    }
+    else if (nr == 0) {
+      if (rxCur.size()) {
+        eprintf("jsonpipe: %lu bytes with no newline at EOF\n", (u_long)rxCur.size());
+      }
+      rxCur.clear();
+      closeRx();
+      break;
+    }
+    else {
+      char *p = buf;
+      char *pend = buf + nr;
+      while (p < pend) {
+        char *q = (char *)memchr(p, '\n', pend - p);
+        assert(q == nullptr || q < pend);
+        if (!q) {
+          rxCur.append(p, pend-p);
+          break;
+        } else {
+          if (rxCur.size()) {
+            rxCur.append(p, q-p);
+            rxQ.push_back(rxCur);
+            rxActivity = true;
+            rxCur.clear();
+          } else {
+            rxQ.push_back(string(p, q-p));
+            rxActivity = true;
+          }
+          p = q + 1;
+        }
+      }
+    }
+  }
+  if (rxActivity) {
+    rxQNonempty.notify_all();
+  }
+}
+
 void jsonpipe::txWork(unique_lock<mutex> &lock)
 {
   while (true) {
     if (!txCur.size() && !txQ.empty()) {
-      txCur = txQ.front();
-      txCur.push_back('\n');
+      txCur = txQ.front() + string("\n");
       txQ.pop_front();
     }
-    if (!txCur.size()) break;
+    if (!txCur.size()) {
+      if (txEofFlag) {
+        closeTx();
+      }
+      break;
+    }
 
     ssize_t nw = send(txFd, &txCur[0], txCur.size(), MSG_NOSIGNAL);
 
@@ -195,4 +205,9 @@ void jsonpipe::tx(string const &s)
   if (txQ.size() == 1) {
     txWork(lock);
   }
+}
+
+void jsonpipe::txEof()
+{
+  txEofFlag = true;
 }
