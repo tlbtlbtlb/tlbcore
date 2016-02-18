@@ -151,8 +151,7 @@ function withJsWrapUtils(f, typereg) {
 
     f(ifSep + ' {');
 
-    var acceptable = _.map(argSets, function(argSet) {
-      if (argSet === undefined) return '(???)';
+    var acceptable = _.map(_.filter(argSets, function(argSet) { return !!argSet; }), function(argSet) {
       return '(' + _.map(argSet.args, function(argInfo, argi) {
         if (_.isString(argInfo)) return argInfo;
         var argType = typereg.getType(argInfo);

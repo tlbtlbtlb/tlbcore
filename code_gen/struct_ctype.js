@@ -728,17 +728,18 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
           return 'a'+argi;
         }) + ');');
       }},
-      (constructorArgs.length > 0 && constructorArgs.length === type.orderedNames.length) ?
+      (constructorArgs.length > 0) ?
         {args: ['Object'], code: function(f) {
           f('thisObj->assignDefault();');
-          _.each(type.orderedNames, function(memberName, argi) {
+          _.each(constructorArgs, function(argInfo, argi) {
+            var memberName = argInfo.name;
             var memberType = type.reg.getType(type.nameToType[memberName]);
             f('');
             f('Local<Value> a0_' + memberName + '_js = a0->Get(String::NewFromUtf8(isolate, "' + memberName + '"));');
             f('if (a0_' + memberName + '_js->IsUndefined()) {');
             f('}');
-            f('else if (' + memberType.getJsToCppTest('a0_'+memberName+'_js', {conv: true}) + ') {');
-            f('thisObj->it->' + memberName + ' = ' + memberType.getJsToCppExpr('a0_'+memberName+'_js', {conv: true}) + ';');
+            f('else if (' + memberType.getJsToCppTest('a0_' + memberName + '_js', {conv: true}) + ') {');
+            f('thisObj->it->' + memberName + ' = ' + memberType.getJsToCppExpr('a0_' + memberName + '_js', {conv: true}) + ';');
             f('}');
             f('else {');
             f('return ThrowTypeError(isolate, "Expected ' + memberType.typename + ' for ' + memberName + '");');
