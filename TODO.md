@@ -6,13 +6,13 @@
     - Eliminate arrayMapPar & friends (use async npm instead)
     - Eliminate subclass
     - Eliminate rsvp
- *
 
 ### Dv
 
   * Get rid of foreachDv and DvRef. Instead, do dvCount / dvExport / dvImport.
   * Make Dv include a variable-sized set of derivatives.
-  * we should give dvImport an identity matrix to set up the derivative problem for gradients
+  * We should give dvImport an identity matrix to set up the derivative problem for gradients
+  * Should I throw this whole experiment away?
 
 ### Numerical
 
@@ -25,10 +25,12 @@
  * Add sourcemaps?   http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/
  * Consider using some actual supported framework? Maybe it's too late.
 
-
 ### code_gen
 
 ### nodeif
+
+* Clean up:
+   - Is fastJson still useful? I think it's only used when sending large arrays to the browser via binary blobs in websocket. But do I do this?
 
 ### geom
 
