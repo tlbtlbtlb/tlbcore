@@ -1,7 +1,7 @@
 
 # Reasonable user targets
 default : build
-test :: 
+test ::
 build :: stage1
 stage1 :: setup
 clean ::
@@ -10,6 +10,10 @@ size ::
 node_modules ::
 
 include common/MakeSystem.inc
+
+ifeq ($(UNAME_SYSTEM),Darwin)
+export NODE_PATH = /usr/local/lib/node_modules
+endif
 
 # MAINTAINME
 JS_SRCDIRS := \
@@ -65,7 +69,7 @@ clean ::
 	rm -rf nodeif/bin
 
 build :: build.nodeif
-build.nodeif :: 
+build.nodeif ::
 	cd nodeif && node-gyp build --jobs 8
 	mkdir -p node_modules
 	cp nodeif/build/Release/ur.node node_modules/ur.node
