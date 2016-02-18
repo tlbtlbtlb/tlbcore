@@ -151,19 +151,16 @@ function withJsWrapUtils(f, typereg) {
 
     f(ifSep + ' {');
 
-    if (0) {
-      f('eprintf("No matching args:\\n");');
-      _.each(argSets, function(argSet) {
-        f('eprintf("  argSet: ");');
-        _.each(argSet.args, function(argInfo, argi) {
-          var argType = typereg.getType(argInfo);
-          f('eprintf("  %s' +  argType.typename + '", (' + argType.getJsToCppTest('args[' + argi + ']', {}) + ') ? "" : "!");');
-        });
-        f('eprintf("\\n");');
-      });
-    }
+    var acceptable = _.map(argSets, function(argSet) {
+      if (argSet === undefined) return '(???)';
+      return '(' + _.map(argSet.args, function(argInfo, argi) {
+        if (_.isString(argInfo)) return argInfo;
+        var argType = typereg.getType(argInfo);
+        return argType ? argType.typename : '?';
+      }).join(',') + (argSet.ignoreExtra ? '...' : '') + ')';
+    }).join(' or ');
 
-    f('return ThrowInvalidArgs(isolate);');
+    f('return ThrowTypeError(isolate, "Invalid arguments: expected ' + acceptable + '");');
     f('}');
   };
 
@@ -316,6 +313,7 @@ function withJsWrapUtils(f, typereg) {
       binding(f);
     });
     f('JsWrap_JSTYPE::constructor.Reset(isolate, tpl->GetFunction());');
+    f('JsWrap_JSTYPE::constructorName = "JSTYPE";');
     f('exports->Set(String::NewFromUtf8(isolate, "JSTYPE"), tpl->GetFunction());');
     _.each(f.jsConstructorBindings, function(binding) {
       binding(f);

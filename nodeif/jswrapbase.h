@@ -201,10 +201,13 @@ struct JsWrapGeneric : node::ObjectWrap {
   }
 
   static Persistent<Function> constructor;
+  static string constructorName;
 };
 
 template <typename CONTENTS>
 Persistent<Function> JsWrapGeneric<CONTENTS>::constructor;
+template <typename CONTENTS>
+string JsWrapGeneric<CONTENTS>::constructorName;
 
 
 #endif
