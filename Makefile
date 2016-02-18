@@ -42,10 +42,10 @@ install.ubuntu ::
 	sudo apt-get update
 	sudo apt-get -y install git make python-software-properties python g++ make software-properties-common curl pwgen
 	sudo apt-get -y install nodejs
-	sudo apt-get -y install liblapack-dev pkg-config cmake libarmadillo-dev
+	sudo apt-get -y install liblapack-dev pkg-config cmake libarmadillo-dev libzmqpp-dev
 
 install.brew ::
-	brew install rename zopfli ffmpeg trash node tree ack hub git
+	brew install rename zopfli ffmpeg trash node tree ack hub git zmq zmqpp
 
 install.npm ::
 	sudo npm install -g underscore node-gyp jshint mocha uglify-js

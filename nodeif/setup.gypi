@@ -2,14 +2,14 @@
   'conditions': [
     ['OS=="mac"', {
       'xcode_settings': {
-        'GCC_ENABLE_CPP_EXCEPTIONS': 'YES', 
-        'GCC_ENABLE_CPP_RTTI': 'YES', 
+        'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
+        'GCC_ENABLE_CPP_RTTI': 'YES',
         'MACOSX_DEPLOYMENT_TARGET': '10.7',
         'OTHER_CFLAGS': [
-          '-stdlib=libc++', 
+          '-stdlib=libc++',
           '-std=c++14', '-DARMA_MAT_PREALLOC=16',
-          '-Wall', '-Wextra', 
-          '-Wno-format-nonliteral', '-Wno-missing-prototypes', '-Wno-unused-parameter', 
+          '-Wall', '-Wextra',
+          '-Wno-format-nonliteral', '-Wno-missing-prototypes', '-Wno-unused-parameter',
           '-Wno-c++11-extensions',
           '-Winit-self', '-Wno-shadow', '-Wpointer-arith', '-Wcast-qual'
         ]
@@ -20,7 +20,7 @@
         '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/libxml2'
       ],
       'libraries+': [
-        '-L/usr/local/lib', '-larmadillo', '-lz', '-lmlpack'
+        '-L/usr/local/lib', '-larmadillo', '-lz', '-lmlpack', '-lzmq', '-lzmqpp'
       ]
     }, {
       'make_global_settings': [
@@ -31,7 +31,7 @@
         '/usr/include/libxml2'
       ],
       'libraries+': [
-        '-L/usr/local/lib', '-lmlpack', '-larmadillo', '-lz'
+        '-L/usr/local/lib', '-larmadillo', '-lz', '-lmlpack', '-lzmq', '-lzmqpp'
       ],
       'cflags_cc!': [
         '-fno-rtti', '-fno-exceptions', '-fno-tree-vrp'
