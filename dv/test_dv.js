@@ -86,7 +86,7 @@ describe('LearningProblem_DvPolyfit5_Dv_Dv', function() {
       lp.addPair(x, yfromx(x));
     }
     lp.regularization = 0.0001;
-    var loss1 = lp.lbfgs();
+    var loss1 = lp.lbfgs(1000);
 
     console.log('lbgfs: loss=' + loss1.toString(), 'theta=' + lp.theta.asNonDvType().toString());
     console.log('    x      ytarg  ypred')
