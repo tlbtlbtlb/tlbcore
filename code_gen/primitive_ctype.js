@@ -145,9 +145,13 @@ PrimitiveCType.prototype.getArgTempDecl = function(varname) {
   }
 };
 
-PrimitiveCType.prototype.getVarDecl = function(varname) {
+PrimitiveCType.prototype.getVarDecl = function(varname, initializer) {
   var type = this;
-  return type.typename + ' ' + varname;
+  if (initializer) {
+    return type.typename + ' ' + varname + ' = ' + initializer;    
+  } else {
+    return type.typename + ' ' + varname;
+  }
 };
 
 PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
@@ -237,4 +241,3 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerE
     throw new Error('Unknown primitive type');
   }
 };
-

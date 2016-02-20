@@ -328,7 +328,7 @@ StructCType.prototype.emitTypeDecl = function(f) {
   f('');
   f('// Member variables');
   _.each(type.orderedNames, function(name) {
-    type.nameToType[name].emitVarDecl(f, name);
+    type.nameToType[name].emitVarDecl(f, name, type.nameToOptions[name].initializer);
   });
 
 

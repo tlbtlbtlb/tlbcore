@@ -40,8 +40,9 @@ PtrCType.prototype.getExampleValueJs = function() {
 };
 
 
-PtrCType.prototype.emitVarDecl = function(f, varname) {
+PtrCType.prototype.emitVarDecl = function(f, varname, initializer) {
   var type = this;
+  assert.ok(initializer === undefined);
   f('shared_ptr< ' + type.baseType.typename + ' > ' + varname + ';');
 };
 
@@ -78,4 +79,3 @@ PtrCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
     return 'JsWrap_' + type.jsTypename + '::NewInstance(isolate, ' + valueExpr + ')';
   }
 };
-
