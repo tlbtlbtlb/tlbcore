@@ -43,6 +43,9 @@ function SymbolicContext(typereg, name, inargs, outargs) {
   c.outargs = outargs;
   c.cses = {};
   c.assigns = [];
+  c.preCode = [];
+  c.postCode = [];
+  c.arrayBuilder = {};
   if (c.typereg) {
     c.registerWrapper();
   }
@@ -50,11 +53,11 @@ function SymbolicContext(typereg, name, inargs, outargs) {
 
 SymbolicContext.prototype.checkArgs = function() {
   var c = this;
-  _.each(c.inargs, function(argtype, argname) {
-    assert.ok(argtype in c.typereg.types);
+  _.each(c.inargs, function(arginfo) {
+    assert.ok(arginfo[1] in c.typereg.types);
   });
-  _.each(c.outargs, function(argtype, argname) {
-    assert.ok(argtype in c.typereg.types);
+  _.each(c.outargs, function(arginfo) {
+    assert.ok(arginfo[1] in c.typereg.types);
   });
 };
 
@@ -70,17 +73,17 @@ SymbolicContext.prototype.registerWrapper = function() {
 
 SymbolicContext.prototype.collectArgs = function(argFunc) {
   var c = this;
-  return _.map(_.sortBy(_.keys(c.inargs), _.identity), function(argname) {
-    var argTypename = c.inargs[argname];
-    return argFunc(argname, argTypename, false);
-  }).concat(_.map(_.sortBy(_.keys(c.outargs), _.identity), function(argname) {
-    var argTypename = c.outargs[argname];
-    return argFunc(argname, argTypename, true);
+  return _.map(c.inargs, function(arginfo) {
+    return argFunc(arginfo[0], arginfo[1], false);
+  }).concat(_.map(c.outargs, function(arginfo) {
+    return argFunc(arginfo[0], arginfo[1], true);
   }));
 };
 
 SymbolicContext.prototype.getAllTypes = function() {
-  return _.uniq(_.values(this.inargs).concat(_.values(this.outargs)));
+  var c = this;
+  return _.uniq(_.map(c.inargs, function(arginfo) { return arginfo[1]; }).concat(
+    _.map(c.outargs, function(arginfo) { return arginfo[1]; })));
 };
 
 SymbolicContext.prototype.getSignature = function() {
@@ -98,7 +101,9 @@ SymbolicContext.prototype.emitDecl = function(f) {
 SymbolicContext.prototype.emitDefn = function(f) {
   var c = this;
   f(c.getSignature() + ' {');
+  _.each(c.preCode, function(code) { f(code); });
   c.emitCpp(f);
+  _.each(c.postCode, function(code) { f(code); });
   f('}');
   f('');
 };
@@ -140,6 +145,19 @@ SymbolicContext.prototype.A = function(name, value) {
   var e = c.dedup(new SymbolicAssign(c,
                                      value.type,
                                      name,
+                                     value));
+  c.assigns.push(e);
+  return value;
+};
+
+SymbolicContext.prototype.Aa = function(name, value) {
+  var c = this;
+  if (0) value.printName = name;
+  var index = c.arrayBuilder[name] || 0;
+  c.arrayBuilder[name] = index + 1;
+  var e = c.dedup(new SymbolicAssign(c,
+                                     value.type,
+                                     name + '[' + index.toString() + ']',
                                      value));
   c.assigns.push(e);
   return value;
