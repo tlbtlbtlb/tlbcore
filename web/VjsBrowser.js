@@ -1187,6 +1187,7 @@ $.fn.maximizeCanvasResolution = function() {
 };
 
 $.fn.setCanvasSize = function(cssWidth, cssHeight, ctx) {
+  if (!this.length) return;
   var canvas = this[0];
   if (!ctx) ctx = canvas.getContext('2d');
   var devicePixelRatio = window.devicePixelRatio || 1;
