@@ -8,7 +8,9 @@ exports.logDataSep = logDataSep;
 exports.I = I;
 exports.O = O;
 exports.E = E;
+exports.setMaxLength = function(v) { maxLength = v; }
 
+var maxLength = 500;
 var verbose = 1;
 
 // ----------------------------------------------------------------------
@@ -29,6 +31,7 @@ function logDataSep(remote, sep, args) {
   if (typeof(remote) === 'undefined') remote = '?';
   var infos = [];
   var stacks = [];
+  var maxLength0 = maxLength;
   for (var argi = 1; argi < args.length; argi++) {
     var arg = args[argi];
     if (arg === null) {
@@ -40,6 +43,9 @@ function logDataSep(remote, sep, args) {
     else if (typeof(arg) === 'object') {
       if (arg.stack && arg.message) {
         stacks.push(arg.stack.toString());
+      }
+      else if (arg.logMaxLength) {
+        maxLength0 = arg.logMaxLength;
       }
       else {
         infos.push(JSON.stringify(arg));
@@ -53,8 +59,8 @@ function logDataSep(remote, sep, args) {
     }
   }
   var info = infos.join(' ');
-  if (info.length > 500) {
-    info = info.substr(0, 489) + ' ...[' + info.length.toString() + ' long]';
+  if (info.length > maxLength0) {
+    info = info.substr(0, maxLength0 - 11) + ' ...[' + info.length.toString() + ' long]';
   }
   if (remote.length < 40) remote = remote + '                                        '.substr(0, 40-remote.length);
   console.log(remote + sep + info.replace(/\n/g, '\n                                         . '));
@@ -74,4 +80,3 @@ function O(remote) {
 function E(remote) {
   logDataSep(remote, ' ! ', arguments);
 }
-
