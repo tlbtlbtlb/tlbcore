@@ -72,13 +72,13 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
   }
 
   function handleMsg(msg) {
-    if (verbose >= 2) logio.I(handlers.label, msg)
     if (msg.cmdReq) {
       var cmdFunc = handlers['cmd_' + msg.cmdReq];
       if (!cmdFunc) {
         if (verbose >= 1) logio.E(handlers.label, 'Unknown cmdReq in', msg);
         return;
       }
+      if (verbose >= 2) logio.I(handlers.label, 'cmd', msg.cmdReq, msg.cmdArgs)
       cmdFunc.apply(handlers, msg.cmdArgs);
     }
     else if (msg.rpcReq) {
@@ -88,6 +88,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
         return;
       }
       var done = false;
+      if (verbose >= 2) logio.I(handlers.label, 'rpc', msg.rpcReq, msg.rpcArgs)
       try {
         reqFunc.apply(handlers, msg.rpcArgs.concat([function(/* ... */) {
           var rpcRet = Array.prototype.slice.call(arguments, 0);
@@ -109,6 +110,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
         if (verbose >= 1) logio.E(handlers.label, 'Unknown response', msg.rpcId);
         return;
       }
+      if (verbose >= 2) logio.I(handlers.label, 'return', msg.rpcRet)
       rpcCb.apply(handlers, msg.rpcRet);
     }
     else if (msg.hello) {
