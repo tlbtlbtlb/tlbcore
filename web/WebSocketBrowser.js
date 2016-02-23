@@ -68,13 +68,13 @@ function mkWebSocketRpc(wsc, handlers) {
   }
 
   function handleMsg(msg) {
-    if (msg.cmd) {
-      var cmdFunc = handlers['cmd_' + msg.cmd];
+    if (msg.cmdReq) {
+      var cmdFunc = handlers['cmd_' + msg.cmdReq];
       if (!cmdFunc) {
-        if (verbose >= 1) console.log(wsc.url, 'Unknown cmd', msg.cmd);
+        if (verbose >= 1) console.log(wsc.url, 'Unknown cmd', msg.cmdReq);
         return;
       }
-      cmdFunc.call(handlers, msg.args);
+      cmdFunc.apply(handlers, msg.cmdArgs);
     }
     else if (msg.rpcReq) {
       var reqFunc = handlers['req_' + msg.rpcReq];
@@ -84,33 +84,34 @@ function mkWebSocketRpc(wsc, handlers) {
       }
       var done = false;
       try {
-        reqFunc.call(handlers, msg.args, function(rsp) {
-          handlers.tx({rpcId: msg.rpcId, rsp: rsp});
+        reqFunc.apply(handlers, msg.rpcArgs.concat([function(/* ... */) {
+          var rpcRet = Array.prototype.slice.call(arguments, 0);
           done = true;
-        });
+          handlers.tx({ rpcId: msg.rpcId, rpcRet: rpcRet });
+        }]));
       } catch(ex) {
         if (!done) {
           done = true;
-          handlers.tx({rpcId: msg.rpcId, rsp: {err: ex.toString()}});
+          handlers.tx({ rpcId: msg.rpcId, rpcRet: [ex.toString()] });
         }
       }
     }
     else if (msg.rpcId) {
-      var rspFunc = callbacks[msg.rpcId];
-      if (!rspFunc) rspFunc = pending.get(msg.rpcId);
-      if (!rspFunc) {
+      var rpcCb = callbacks[msg.rpcId];
+      if (!rpcCb) rpcCb = pending.get(msg.rpcId);
+      if (!rpcCb) {
         if (verbose >= 1) console.log(wsc.url, 'Unknown response', msg.rpcId);
         return;
       }
-      rspFunc.call(handlers, msg.rsp);
+      if (verbose >= 2) console.log('rpcId=', msg.rpcId, 'rpcRet=', msg.rpcRet)
+      rpcCb.apply(handlers, msg.rpcRet);
 
       if (interactivePending && pending.pendingCount < 3) {
         var tip = interactivePending;
         interactivePending = null;
-        handlers.rpc(tip.rpcReq, tip.args, tip.rspFunc);
+        handlers.rpc.apply(handlers, [tip.rpcReq].concat(tip.rpcArgs, [tip.rpcCb]));
       }
     }
-
 
     else if (msg.hello) {
       handlers.hello = msg.hello;
@@ -122,25 +123,34 @@ function mkWebSocketRpc(wsc, handlers) {
   }
 
   function setupHandlers() {
-    handlers.cmd = function(cmd, args) {
-      handlers.tx({cmd: cmd, args: args});
+    handlers.cmd = function(cmdReq /* ... */) {
+      var cmdArgs = Array.prototype.slice.call(arguments, 1);
+      handlers.tx({cmdReq: cmdReq, cmdArgs: cmdArgs});
     };
-    handlers.rpc = function(rpcReq, args, rspFunc) {
+    handlers.rpc = function(rpcReq /* ... */) {
       var rpcId = pending.getNewId();
-      pending.add(rpcId, rspFunc);
-      handlers.tx({rpcReq: rpcReq, rpcId: rpcId, args: args});
+      var rpcArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
+      var rpcCb = arguments[arguments.length - 1];
+      if (verbose >= 2) console.log('rpcReq=', rpcReq, 'rpcArgs=', rpcArgs)
+
+      pending.add(rpcId, rpcCb);
+      handlers.tx({rpcReq: rpcReq, rpcId: rpcId, rpcArgs: rpcArgs});
     };
-    handlers.interactiveRpc = function(rpcReq, args, rspFunc) {
+    handlers.interactiveRpc = function(rpcReq /* ... */) {
       if (pending.pendingCount < 3) {
-        return handlers.rpc(rpcReq, args, rspFunc);
+        return handlers.rpc.apply(handlers, arguments);
       }
+      var rpcCb = arguments[arguments.length - 1];
+      var rpcArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
       // overwrite any previous one
-      interactivePending = {rpcReq: rpcReq, args: args, rspFunc: rspFunc};
+      interactivePending = {rpcReq: rpcReq, rpcArgs: rpcArgs, rpcCb: rpcCb};
     };
-    handlers.callback = function(rpcReq, args, rspFunc) {
+    handlers.callback = function(rpcReq /* ... */) {
       var rpcId = pending.getNewId();
-      callbacks[rpcId] = rspFunc;
-      handlers.tx({rpcReq: rpcReq, rpcId: rpcId, args: args});
+      var rpcCb = arguments[arguments.length - 1];
+      var rpcArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
+      callbacks[rpcId] = rpcCb;
+      handlers.tx({rpcReq: rpcReq, rpcId: rpcId, rpcArgs: rpcArgs});
     };
     handlers.tx = function(msg) {
       if (txQueue) {
@@ -173,4 +183,3 @@ function mkWebSocketRpc(wsc, handlers) {
   }
 
 }
-
