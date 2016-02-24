@@ -1150,7 +1150,7 @@ RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
     res.writeHead(200, {
       'Content-Type': contentType,
       'Content-Length': (encoding === 'binary' ? content.length.toString() : undefined),
-      'Cache-Control': 'max-age=900'
+      //'Cache-Control': 'max-age=900'
     });
     res.write(content, encoding);
     res.end();
