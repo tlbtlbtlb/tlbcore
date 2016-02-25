@@ -338,6 +338,18 @@ WebServer.prototype.reloadAllBrowsers = function(reloadKey) {
   });
 };
 
+WebServer.prototype.findByContentMac = function(contentMac) {
+  var webServer = this;
+  var ret = [];
+  _.each(webServer.urlProviders, function(provider, url) {
+    if (provider && provider.contentMac == contentMac) {
+      ret.push(provider);
+    }
+  });
+  return ret;
+};
+
+
 WebServer.prototype.mkConsoleHandler = function() {
   var webServer = this;
   return {
@@ -364,7 +376,15 @@ WebServer.prototype.mkConsoleHandler = function() {
     cmd_reloadOn: function(msg) {
       var self = this;
       self.reloadKey = msg.reloadKey;
+      if (msg.contentMac) {
+        var sameContent = webServer.findByContentMac(msg.contentMac);
+        if (!sameContent.length) {
+          logio.I(self.label, 'Obsolete contentMac (suggesting reload)', msg.contentMac)
+          self.cmd('reload', {});
+        } else {
+          logio.I(self.label, 'Valid contentMac', msg.contentMac)
+        }
+      }
     }
   };
 };
-

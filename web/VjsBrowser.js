@@ -1249,7 +1249,7 @@ function mkImage(src, width, height) {
    Console
 */
 
-function setupConsole(reloadKey) {
+function setupConsole(reloadKey, contentMac) {
   // Gracefully degrade firebug logging
   function donothing () {}
   if (!window.console) {
@@ -1265,7 +1265,7 @@ function setupConsole(reloadKey) {
       start: function() {
         if (reloadKey) {
           // Ask the server to tell us to reload. Look for reloadKey in VjsSite.js for the control flow.
-          this.cmd('reloadOn', {reloadKey: reloadKey});
+          this.cmd('reloadOn', {reloadKey: reloadKey, contentMac: contentMac});
         }
       },
       close: function() {
@@ -1406,8 +1406,8 @@ function mkWebSocket(path, handlers) {
    Called from web page setup code (search for pageSetupFromHash in Provider.js)
 */
 
-function pageSetupFromHash(reloadKey) {
-  setupConsole(reloadKey);
+function pageSetupFromHash(reloadKey, contentMac) {
+  setupConsole(reloadKey, contentMac);
   setupClicks();
   gotoCurrentHash();
   startHistoryPoll();

@@ -16,6 +16,7 @@ var jsmin               = require('jsmin2');
 var xml                 = require('xmldom');
 var marked              = require('marked');
 var zlib                = require('zlib');
+var crypto              = require('crypto');
 var logio               = require('./logio');
 var Safety              = require('./Safety');
 
@@ -36,11 +37,14 @@ exports.emit404 = emit404;
 exports.emit500 = emit500;
 exports.emit301 = emit301;
 exports.emit302 = emit302;
+exports.emit200Json = emit200Json;
 exports.reqClientAcceptsGzip = reqClientAcceptsGzip;
 
 // ======================================================================
 
 var verbose           = 1;
+
+var assetCacheControl = 'max-age=2592000'; // 30 days
 
 function removeComments(content) {
   content = content.replace(/\'(\\.|[^\\\'])*\'|\"(?:\\.|[^\\\"])*\"|\/\/[\S \t]*|\/\*[\s\S]*?\*\//g, function(m) {
@@ -125,6 +129,14 @@ function emit302(res, location) {
   res.end();
 }
 
+function emit200Json(res, obj) {
+  var objStr = JSON.stringify(obj);
+  var objBuf = new Buffer(objStr, 'utf8');
+  res.writeHead(200, {'Content-Type': 'text/json', 'Content-Length': objBuf.length.toString()});
+  res.write(objBuf);
+  res.end();
+}
+
 function contentTypeFromFn(fn) {
   var m = fn.match(/^.*\.(\w+)$/);
   if (m) {
@@ -178,7 +190,7 @@ function emitBinaryDoc(res, fn, callid) {
     res.writeHead(200, {
       'Content-Type': ct,
       'Content-Length': content.length.toString(),
-      'Cache-Control': 'max-age=900'
+      'Cache-Control': assetCacheControl
     });
     res.write(content, 'binary');
     res.end();
@@ -295,6 +307,7 @@ function AnyProvider() {
   this.asScriptBody = null;
   this.started = false;
   this.pending = false;
+  this.cacheControl = assetCacheControl;
 }
 AnyProvider.prototype = Object.create(events.EventEmitter.prototype);
 
@@ -939,9 +952,13 @@ ProviderSet.prototype.start = function() {
       emitAll('asHtmlBody', '', '');
       emitAll('asScriptBody', '<script type="text/javascript">\n//<![CDATA[\n', '\n//]]>\n</script>\n');
 
+      var hmac = crypto.createHmac('sha256', 'tlb');
+      hmac.update(new Buffer(cat.join(''), 'utf8'));
+      var contentMac = hmac.digest('hex');
+
       cat.push('<script type="text/javascript">\n' +
                'setTimeout(function() {' +
-               'pageSetupFromHash(' + JSON.stringify(self.reloadKey) + ');' +
+               'pageSetupFromHash(' + JSON.stringify(self.reloadKey) + ', ' + JSON.stringify(contentMac) + ');' +
                '});\n' +
                '</script>\n');
       cat.push('</body>\n</html>\n');
@@ -950,6 +967,7 @@ ProviderSet.prototype.start = function() {
       var zlibT0 = Date.now();
       zlib.gzip(asHtmlBuf, function(err, asHtmlGzBuf) {
         self.asHtmlBuf = asHtmlBuf;
+        self.contentMac = contentMac;
         if (err) {
           logio.E(self.getDesc(), err);
           self.asHtmlGzBuf = undefined;
@@ -957,7 +975,7 @@ ProviderSet.prototype.start = function() {
         }
         self.asHtmlGzBuf = asHtmlGzBuf;
         var zlibT1 = Date.now();
-        logio.O(self.toString(), 'Compressed ' + asHtmlBuf.length.toString() + ' => ' + asHtmlGzBuf.length.toString() + ' (' + (zlibT1-zlibT0) + ' mS)');
+        logio.O(self.toString(), 'mac=' + self.contentMac + ' compressed ' + asHtmlBuf.length.toString() + ' => ' + asHtmlGzBuf.length.toString() + ' (' + (zlibT1-zlibT0) + ' mS)');
         self.pending = false;
         self.emit('changed');
       });
@@ -1042,7 +1060,7 @@ ProviderSet.prototype.toString = function() {
 
 // ----------------------------------------------------------------------
 
-function RawFileProvider(fn) {
+function RawFileProvider(fn, o) {
   AnyProvider.call(this);
   assert.ok(_.isString(fn));
   this.fn = fn;
@@ -1066,9 +1084,11 @@ RawFileProvider.prototype.handleRequest = function(req, res, suffix) {
     }
     var remote = res.connection.remoteAddress + '!http';
     logio.O(remote, self.fn + ': (200 ' + self.contentType + ' len=' + content.length.toString() + ')');
-    res.writeHead(200, {'Content-Type': self.contentType,
-                        'Content-Length': (self.encoding === 'binary' ? content.length.toString() : undefined),
-                        'Cache-Control': 'max-age=900'});
+    res.writeHead(200, {
+      'Content-Type': self.contentType,
+      'Content-Length': (self.encoding === 'binary' ? content.length.toString() : undefined),
+      'Cache-Control': self.cacheControl
+    });
     res.write(content, self.encoding);
     res.end();
   });
@@ -1137,8 +1157,8 @@ RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
           'Content-Length': (end - start + 1).toString(),
           // 'bytes ', not 'bytes=' like the request for some reason
           'Content-Range': 'bytes ' + start.toString() + '-' + end.toString() + '/' + content.length.toString(),
-          'Accept-Ranges': 'bytes'
-          //'Cache-Control': 'max-age=900'
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': self.cacheControl
         });
         res.write(content.slice(start, end + 1), encoding);
         res.end();
@@ -1150,7 +1170,7 @@ RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
     res.writeHead(200, {
       'Content-Type': contentType,
       'Content-Length': (encoding === 'binary' ? content.length.toString() : undefined),
-      //'Cache-Control': 'max-age=900'
+      'Cache-Control': self.cacheControl
     });
     res.write(content, encoding);
     res.end();
