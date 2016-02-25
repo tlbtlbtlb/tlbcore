@@ -813,7 +813,10 @@ MarkdownProvider.prototype.getType = function() {
   return 'markdown';
 };
 
-// ----------------------------------------------------------------------
+/* ----------------------------------------------------------------------
+  A class to bundle everything needed for a single-page app / RIA.
+
+*/
 
 function ProviderSet() {
   AnyProvider.call(this);
@@ -952,9 +955,9 @@ ProviderSet.prototype.start = function() {
       emitAll('asHtmlBody', '', '');
       emitAll('asScriptBody', '<script type="text/javascript">\n//<![CDATA[\n', '\n//]]>\n</script>\n');
 
-      var hmac = crypto.createHmac('sha256', 'tlb');
-      hmac.update(new Buffer(cat.join(''), 'utf8'));
-      var contentMac = hmac.digest('hex');
+      var hmac = crypto.createHash('sha256');
+      hmac.update(cat.join(''), 'utf8');
+      var contentMac = hmac.digest('base64');
 
       cat.push('<script type="text/javascript">\n' +
                'setTimeout(function() {' +

@@ -1261,6 +1261,7 @@ function setupConsole(reloadKey, contentMac) {
 
   // Create remote console over a websocket connection
   if (window.enableRemoteConsole) {
+    console.log('setupConsole reload', reloadKey, contentMac)
     window.rconsole = mkWebSocket('console', {
       start: function() {
         if (reloadKey) {
@@ -1271,9 +1272,6 @@ function setupConsole(reloadKey, contentMac) {
       close: function() {
         window.rconsole = null;
       },
-      reopen: function() {
-        // Don't reopen the console, since it's sort of optional
-      },
       cmd_reload: function(msg) { // server is asking us to reload, because it knows that javascript files have changed
         console.log('Reload');
         window.location.reload(true);
@@ -1282,6 +1280,8 @@ function setupConsole(reloadKey, contentMac) {
         $.flashErrorMessage(msg.err);
       }
     });
+  } else {
+    console.log('setupConsole noreload', reloadKey, contentMac)
   }
 }
 

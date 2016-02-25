@@ -5,7 +5,7 @@
 var _                   = require('underscore');
 var WebSocketHelper     = require('WebSocketHelper');
 
-var verbose = 1;
+var verbose = 2;
 
 exports.mkWebSocketRpc = mkWebSocketRpc;
 
@@ -17,6 +17,7 @@ function mkWebSocketRpc(wsc, handlers) {
   var rxBinaries = [];
   var shutdownRequested = false;
   var interactivePending = null;
+  var reopenBackoff = 1000; // milliseconds
 
   setupWsc();
   setupHandlers();
@@ -45,6 +46,7 @@ function mkWebSocketRpc(wsc, handlers) {
         txQueue = null;
       }
       if (handlers.start) handlers.start();
+      reopenBackoff = 1000;
     };
     wsc.onclose = function(event) {
       if (handlers.close) {
@@ -61,7 +63,8 @@ function mkWebSocketRpc(wsc, handlers) {
             if (verbose >= 1) console.log('Reopening socket to ' + wsc.url);
             wsc = new WebSocket(wsc.url);
             setupWsc(wsc);
-          }, 3000);
+          }, reopenBackoff);
+          reopenBackoff = Math.min(30000, reopenBackoff*2);
         }
       }
     };

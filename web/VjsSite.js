@@ -376,13 +376,14 @@ WebServer.prototype.mkConsoleHandler = function() {
     cmd_reloadOn: function(msg) {
       var self = this;
       self.reloadKey = msg.reloadKey;
-      if (msg.contentMac) {
-        var sameContent = webServer.findByContentMac(msg.contentMac);
+      self.contentMac = msg.contentMac;
+      if (self.contentMac) {
+        var sameContent = webServer.findByContentMac(self.contentMac);
         if (!sameContent.length) {
-          logio.I(self.label, 'Obsolete contentMac (suggesting reload)', msg.contentMac)
+          logio.I(self.label, 'Obsolete contentMac (suggesting reload)', self.contentMac)
           self.cmd('reload', {});
         } else {
-          logio.I(self.label, 'Valid contentMac', msg.contentMac)
+          logio.I(self.label, 'Valid contentMac', self.contentMac)
         }
       }
     }
