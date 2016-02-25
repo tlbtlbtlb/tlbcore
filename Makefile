@@ -15,6 +15,8 @@ ifeq ($(UNAME_SYSTEM),Darwin)
 export NODE_PATH = /usr/local/lib/node_modules
 endif
 
+GYP_MODE ?= Release
+
 # MAINTAINME
 JS_SRCDIRS := \
 	common \
@@ -57,11 +59,44 @@ clean ::
 setup ::
 	mkdir -p build.src
 
-stage1 ::
-	node code_gen/mk_marshall.js $(DECL_TYPES)
+BUILD_SRC_DEPS := \
+	common/MoreUnderscore.js \
+	code_gen/mk_marshall.js \
+	code_gen/cgen.js \
+	code_gen/gen_marshall.js \
+	code_gen/gen_utils.js \
+	code_gen/type_registry.js \
+	code_gen/ctype.js \
+	code_gen/struct_ctype.js \
+	code_gen/collection_ctype.js \
+	code_gen/dsp_ctype.js \
+	code_gen/object_ctype.js \
+	code_gen/primitive_ctype.js \
+	code_gen/ptr_ctype.js \
+	code_gen/struct_ctype.js \
+	code_gen/symbolic_math.js \
+	code_gen/mk_dspmath.js \
+	$(DECL_TYPES)
 
-stage1 ::
+stage1 :: build.src/timestamp
+build.src/timestamp :: $(BUILD_SRC_DEPS)
+	node code_gen/mk_marshall.js $(DECL_TYPES)
+	touch $@
+
+GYP_CONFIG_DEPS := \
+	Makefile \
+	build.src/timestamp \
+	$(wildcard $(foreach dir,$(GYP_SRCDIRS),$(dir)/*.gyp)) \
+	$(wildcard $(foreach dir,$(GYP_SRCDIRS),$(dir)/*.gypi))
+
+stage1 :: nodeif/build/Makefile
+ifeq ($(GYP_MODE),Debug)
+nodeif/build/Makefile : $(GYP_CONFIG_DEPS)
+	cd nodeif && node-gyp configure --debug
+else
+nodeif/build/Makefile : $(GYP_CONFIG_DEPS)
 	cd nodeif && node-gyp configure
+endif
 
 
 clean ::
@@ -69,10 +104,10 @@ clean ::
 	rm -rf nodeif/bin
 
 build :: build.nodeif
-build.nodeif ::
+build.nodeif :: stage1
 	cd nodeif && node-gyp build --jobs 8
 	mkdir -p node_modules
-	cp nodeif/build/Release/ur.node node_modules/ur.node
+	cp nodeif/build/$(GYP_MODE)/ur.node node_modules/ur.node
 
 test :: build
 	env NODE_PATH=$(NODE_PATH):$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js)) build.src/test_*.js
