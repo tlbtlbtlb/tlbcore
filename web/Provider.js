@@ -823,7 +823,7 @@ function ProviderSet() {
   this.providers = [];
   this.title = 'VJS';
   this.faviconUrl = 'favicon.ico';
-  this.body = '<center><img src="/spinner-lib/spinner.gif" width="24" height="24" class="spinner320x240"/></center>\n';
+  this.body = '<center><img src="/spinner-lib/spinner32t.gif" width="32" height="32" class="spinner320x240"/></center>\n';
 
   this.reloadKey = undefined;
 }
@@ -893,6 +893,7 @@ ProviderSet.prototype.handleRequest = function(req, res, suffix) {
       'Content-Type': contentType,
       'Content-Length': self.asHtmlGzBuf.length.toString(),
       'Content-Encoding': 'gzip',
+      'Vary': 'Accept-Encoding'
     });
     res.write(self.asHtmlGzBuf, 'binary');
     logio.O(remote, self.toString() + ' (200 ' + contentType + ' len=' + this.asHtmlGzBuf.length + ' compressed)');
@@ -900,6 +901,7 @@ ProviderSet.prototype.handleRequest = function(req, res, suffix) {
     res.writeHead(200, {
       'Content-Type': contentType,
       'Content-Length': self.asHtmlBuf.length.toString(),
+      'Vary': 'Accept-Encoding'
     });
     res.write(self.asHtmlBuf, 'binary');
     logio.O(remote, self.toString() + ' (200 ' + contentType + ' len=' + this.asHtmlBuf.length + ')');

@@ -136,7 +136,8 @@ WebServer.prototype.setupStdContent = function(prefix) {
 
   // Files available from root of file server
   webServer.setUrl(prefix+'favicon.ico', require.resolve('./images/umbrella.ico'));
-  webServer.setUrl(prefix+'spinner-lib/spinner.gif', require.resolve('./spinner-lib/spinner.gif'));
+  webServer.setUrl(prefix+'spinner-lib/spinner24.gif', require.resolve('./spinner-lib/spinner24.gif'));
+  webServer.setUrl(prefix+'spinner-lib/spinner32t.gif', require.resolve('./spinner-lib/spinner32t.gif'));
   webServer.setUrl(prefix+'images/icons.png', require.resolve('./images/ui-icons_888888_256x240.png'));
 };
 
