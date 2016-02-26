@@ -1,25 +1,33 @@
 .spinner {
-	position: absolute;
-	opacity: 0.9;
-	filter: alpha(opacity=90);
-	z-index: 999;
-	background: #fff;
+    position: absolute;
+    opacity: 0.9;
+    filter: alpha(opacity=90);
+    z-index: 999;
+    background: #fff;
 }
 .spinner-msg {
-	text-align: center;
-	font-weight: bold;
+    text-align: center;
+    font-weight: bold;
 }
 
 .spinner-img {
-	background: url(/spinner-lib/spinner.gif) no-repeat;
-	width: 24px;
-	height: 24px;
-	margin: 0 auto;
+    background: url(/spinner-lib/spinner.gif) no-repeat;
+    width: 24px;
+    height: 24px;
+    margin: 0 auto;
 }
 
 .spinner-img12 {
-	background: url(/spinner-lib/spinner.gif) no-repeat;
-	width: 12px;
-	height: 12px;
-	margin: 0 auto;
+    background: url(/spinner-lib/spinner.gif) no-repeat;
+    background-size: contain;
+    width: 12px;
+    height: 12px;
+    margin: 0 auto;
+}
+.spinner-img16 {
+    background: url(/spinner-lib/spinner.gif) no-repeat;
+    background-size: contain;
+    width: 16px;
+    height: 16px;
+    margin: 0 auto;
 }

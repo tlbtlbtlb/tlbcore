@@ -5,7 +5,7 @@
 var _                   = require('underscore');
 var WebSocketHelper     = require('WebSocketHelper');
 
-var verbose = 2;
+var verbose = 1;
 
 exports.mkWebSocketRpc = mkWebSocketRpc;
 
