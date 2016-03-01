@@ -143,7 +143,7 @@ CollectionCType.prototype.getSynopsis = function() {
   return '(' + this.typename + ')';
 };
 
-CollectionCType.prototype.getInitExpr = function() {
+CollectionCType.prototype.getInitializer = function() {
   var type = this;
   if (/^arma::.*::fixed$/.test(type.templateName)) {
     return 'arma::fill::zeros';

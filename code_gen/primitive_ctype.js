@@ -145,37 +145,9 @@ PrimitiveCType.prototype.getArgTempDecl = function(varname) {
   }
 };
 
-PrimitiveCType.prototype.getVarDecl = function(varname, initializer) {
+PrimitiveCType.prototype.getVarDecl = function(varname) {
   var type = this;
-  if (initializer === null || initializer === undefined) {
-    switch (type.typename) {
-    case 'S32':
-    case 'S64':
-    case 'U32':
-    case 'U64':
-      initializer = '0';
-      break;
-    case 'float':
-      initializer = '0.0f';
-      break;
-    case 'double':
-      initializer = '0.0';
-      break;
-    case 'bool':
-      initializer = 'false';
-      break;
-    case 'char const *':
-      initializer = '0';
-      break;
-    default:
-      break;
-    }
-  }
-  if (initializer) {
-    return type.typename + ' ' + varname + ' = ' + initializer;
-  } else {
-    return type.typename + ' ' + varname;
-  }
+  return type.typename + ' ' + varname;
 };
 
 PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {

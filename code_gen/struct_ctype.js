@@ -288,19 +288,19 @@ StructCType.prototype.add = function(memberName, memberType, memberOptions) {
   }
 };
 
-StructCType.prototype.setMemberInitExpr = function(memberName, expr) {
+StructCType.prototype.setMemberInitializer = function(memberName, expr) {
   var type = this;
-  type.nameToOptions[memberName].initExpr = expr;
+  type.nameToOptions[memberName].initializer = expr;
 };
 
-StructCType.prototype.getMemberInitExpr = function(memberName) {
+StructCType.prototype.getMemberInitializer = function(memberName) {
   var type = this;
 
-  var memberInitExpr = type.nameToOptions[memberName].initExpr;
-  if (memberInitExpr) return memberInitExpr;
+  var memberInitializer = type.nameToOptions[memberName].initializer;
+  if (memberInitializer) return memberInitializer;
 
   var memberType = type.nameToType[memberName];
-  return memberType.getInitExpr();
+  return memberType.getInitializer();
 };
 
 StructCType.prototype.emitTypeDecl = function(f) {
@@ -326,9 +326,9 @@ StructCType.prototype.emitTypeDecl = function(f) {
   }
   f('TYPENAME copy() const;');
   f('');
-  f('// Member variables');
+  f('// Member variables 2');
   _.each(type.orderedNames, function(name) {
-    type.nameToType[name].emitVarDecl(f, name, type.nameToOptions[name].initializer);
+    f(type.nameToType[name].getVarDecl(name) + ';');
   });
 
 
@@ -394,8 +394,8 @@ StructCType.prototype.emitHostImpl = function(f) {
     f('TYPENAME::TYPENAME()');
     if (type.orderedNames.length) {
       f(':' + _.map(type.orderedNames, function(name) {
-        return name + '(' + type.getMemberInitExpr(name) + ')';
-      }).join(',\n'));
+        return name + '(' + type.getMemberInitializer(name) + ')';
+      }).join(',\n '));
     }
     f('{');
     _.each(type.extraConstructorCode, function(l) {
@@ -425,11 +425,11 @@ StructCType.prototype.emitHostImpl = function(f) {
       }),
       _.map(type.orderedNames, function(name) {
         if (type.nameToOptions[name].omitFromConstructor) {
-          return name + '(' + type.getMemberInitExpr(name) + ')';
+          return name + '(' + type.getMemberInitializer(name) + ')';
         } else {
           return name + '(_' + name + ')';
         }
-      })).join(', '));
+      })).join(',\n '));
     f('{');
     _.each(type.extraConstructorCode, function(l) {
       f(l);

@@ -39,13 +39,6 @@ PtrCType.prototype.getExampleValueJs = function() {
   return 'null';
 };
 
-
-PtrCType.prototype.emitVarDecl = function(f, varname, initializer) {
-  var type = this;
-  assert.ok(initializer === undefined);
-  f('shared_ptr< ' + type.baseType.typename + ' > ' + varname + ';');
-};
-
 PtrCType.prototype.getFormalParameter = function(varname) {
   var type = this;
   return 'shared_ptr< ' + type.baseType.typename + ' > ' + varname;

@@ -303,18 +303,9 @@ CType.prototype.emitJsWrapDecl = function(f) {
 CType.prototype.emitJsWrapImpl = function(f) {
 };
 
-CType.prototype.getVarDecl = function(varname, initializer) {
+CType.prototype.getVarDecl = function(varname) {
   var type = this;
-  if (initializer !== undefined && initializer !== null) {
-    return type.typename + ' ' + varname + ' = ' + initializer;
-  } else {
-    return type.typename + ' ' + varname;
-  }
-};
-
-CType.prototype.emitVarDecl = function(f, varname, initializer) {
-  var type = this;
-  f(type.getVarDecl(varname, initializer) + ';');
+  return type.typename + ' ' + varname;
 };
 
 CType.prototype.getFormalParameter = function(varname) {
@@ -322,6 +313,6 @@ CType.prototype.getFormalParameter = function(varname) {
   return type.typename + ' ' + varname;
 };
 
-CType.prototype.getInitExpr = function() {
+CType.prototype.getInitializer = function() {
   return this.getAllZeroExpr();
 };

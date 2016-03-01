@@ -27,6 +27,8 @@
 
 ### code_gen
 
+ * Do initializer and Initializer do something different? Unify them somehow
+
 ### nodeif
 
 * Clean up:
