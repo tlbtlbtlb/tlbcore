@@ -18,6 +18,7 @@ string bindZmqSocket(T &it, string endpoint) {
   it.sock->get(zmqpp::socket_option::last_endpoint, ret);
   // zmqpp fails by including a trailing 0 byte in ret.
   if (ret.size() > 0 && ret.back() == 0) ret.pop_back();
+  it.sockDesc = ret;
   return ret;
 }
 
@@ -29,5 +30,6 @@ string connectZmqSocket(T &it, string endpoint) {
   string ret;
   it.sock->get(zmqpp::socket_option::last_endpoint, ret);
   if (ret.size() > 0 && ret.back() == 0) ret.pop_back();
+  it.sockDesc = ret;
   return ret;
 }
