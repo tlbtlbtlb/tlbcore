@@ -341,7 +341,7 @@ bool rdJson(const char *&s, bool &value) {
         if (c == 's') {
           c = *s++;
           if (c == 'e') {
-            value = true;
+            value = false;
             return true;
           }
         }
