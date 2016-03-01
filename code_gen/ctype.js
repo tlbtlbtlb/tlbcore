@@ -303,13 +303,18 @@ CType.prototype.emitJsWrapDecl = function(f) {
 CType.prototype.emitJsWrapImpl = function(f) {
 };
 
+CType.prototype.getVarDecl = function(varname, initializer) {
+  var type = this;
+  if (initializer !== undefined && initializer !== null) {
+    return type.typename + ' ' + varname + ' = ' + initializer;
+  } else {
+    return type.typename + ' ' + varname;
+  }
+};
+
 CType.prototype.emitVarDecl = function(f, varname, initializer) {
   var type = this;
-  if (initializer !== undefined) {
-    f(type.typename + ' ' + varname + ' = ' + initializer + ';');
-  } else {
-    f(type.typename + ' ' + varname + ';');
-  }
+  f(type.getVarDecl(varname, initializer) + ';');
 };
 
 CType.prototype.getFormalParameter = function(varname) {
