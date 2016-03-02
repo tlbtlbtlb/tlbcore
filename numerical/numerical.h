@@ -19,6 +19,11 @@ static inline double easeInRaisedCos(double x) {
   return (1-cos(x*M_PI))*0.5;
 }
 
+static inline arma::vec3 fromHomo(arma::vec4 const &v)
+{
+  return arma::vec3 {v[0]/v[3], v[1]/v[3], v[2]/v[3]};
+}
+
 #if 0
 static inline double tanh(double x)
 {
