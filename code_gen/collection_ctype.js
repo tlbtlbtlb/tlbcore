@@ -181,7 +181,7 @@ CollectionCType.prototype.getFormalParameter = function(varname) {
 
 CollectionCType.prototype.getArgTempDecl = function(varname) {
   var type = this;
-  return type.typename + ' ' + varname;
+  return type.typename + ' &' + varname;
 };
 
 CollectionCType.prototype.getVarDecl = function(varname) {
