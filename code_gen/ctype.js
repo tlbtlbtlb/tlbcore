@@ -260,7 +260,7 @@ CType.prototype.emitJsWrapCode = function(f) {
   if (fns.jsWrapHeader) {
     f('#include "' + fns.jsWrapHeader + '"');
   }
-  f('/* declDependencies = ' + _.map(type.getDeclDependencies(), function(ot) { return ot.jsTypename; }) + ' */');
+  f('/* declDependencies = ' + _.map(type.getDeclDependencies(), function(ot) { return ot.typename; }) + ' */');
   _.each(type.getDeclDependencies(), function(othertype) {
     othertype = type.reg.getType(othertype);
     var fns = othertype.getFns();
