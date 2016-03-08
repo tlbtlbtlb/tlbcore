@@ -38,6 +38,7 @@ template<typename T>
 void labelZmqSocket(T &it)
 {
   string ret;
+  assert(it.sock);
   it.sock->get(zmqpp::socket_option::last_endpoint, ret);
   // zmqpp fails by including a trailing 0 byte in ret.
   if (ret.size() > 0 && ret.back() == 0) ret.pop_back();
@@ -56,4 +57,16 @@ void connectZmqSocket(T &it, string endpoint, string sockType) {
   createZmqSocket(it, sockType);
   it.sock->connect(endpoint.c_str());
   labelZmqSocket(it);
+}
+
+template<typename T>
+void setTimeoutZmqSocket(T &it, int recvTimeout, int sendTimeout) {
+  assert(it.sock);
+  if (recvTimeout != 0) {
+    it.sock->set(zmqpp::socket_option::receive_timeout, recvTimeout);
+  }
+  if (sendTimeout != 0) {
+    it.sock->set(zmqpp::socket_option::send_timeout, sendTimeout);
+  }
+
 }
