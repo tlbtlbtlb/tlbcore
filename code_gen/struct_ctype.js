@@ -36,35 +36,6 @@ StructCType.prototype.addArgs = function(args, startPos) {
 };
 
 
-StructCType.prototype.withDvs = function() {
-  var type = this;
-  if (type.dvType) return type.dvType;
-
-  var dvTypename = 'Dv' + type.typename;
-  var typeMap = {};
-  var nontrivial = false;
-  var newMembers = [];
-
-  _.each(type.orderedNames, function(memberName) {
-    var memberType = type.nameToType[memberName];
-    var newMemberType = memberType.withDvs();
-    if (newMemberType !== memberType) {
-      nontrivial = true;
-    }
-    newMembers.push([memberName, newMemberType]);
-  });
-
-  if (!nontrivial) {
-    type.dvType = type;
-    return type;
-  }
-  type.dvType = type.reg.struct.apply(type.reg, [dvTypename].concat(newMembers));
-  type.dvType.nonDvType = type;
-  type.dvType.extraDeclDependencies.push(type);
-  type.extraDeclDependencies.push(type.dvType);
-  return type.dvType;
-};
-
 StructCType.prototype.addMemberDecl = function(f) {
   var type = this;
   type.extraMemberDecls.push(f);
@@ -75,101 +46,6 @@ StructCType.prototype.emitForwardDecl = function(f) {
   f('struct ' + type.typename + ';');
 };
 
-
-StructCType.prototype.emitLinalgDecl = function(f) {
-  var type = this;
-
-  f('size_t linalgSize(const ' + type.typename + ' &a);');
-  f('void linalgExport(const ' + type.typename + ' &a, double *&p);');
-  f('void linalgImport(' + type.typename + ' &a, double const *&p);');
-  f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (DvRef const &, string const &)> f);');
-  f('void foreachDv(' + type.typename + ' &owner, function<void (DvRef const &)> f);');
-  f('void foreachScalar(' + type.typename + ' &owner, function<void (double *)> f);');
-
-  if (type.dvType) {
-    f('' + type.dvType.typename + ' asDvType(' + type.typename + ' const &a);');
-  }
-  if (type.nonDvType) {
-    f('' + type.nonDvType.typename + ' asNonDvType(' + type.typename + ' const &a);');
-  }
-
-};
-
-StructCType.prototype.emitLinalgImpl = function(f) {
-  var type = this;
-
-  f('size_t linalgSize(const ' + type.typename + ' &a) {');
-  f('size_t ret = 0;');
-  _.each(type.orderedNames, function(memberName) {
-    f('ret += linalgSize(a.' + memberName + ');');
-  });
-  f('return ret;');
-  f('}');
-
-  f('void linalgExport(const ' + type.typename + ' &a, double *&p) {');
-  _.each(type.orderedNames, function(memberName) {
-    f('linalgExport(a.' + memberName + ', p);');
-  });
-  f('}');
-
-  f('void linalgImport(' + type.typename + ' &a, double const *&p) {');
-  _.each(type.orderedNames, function(memberName) {
-    f('linalgImport(a.' + memberName + ', p);');
-  });
-  f('}');
-
-  f('void foreachDv(' + type.typename + ' &owner, string const &name, function<void (DvRef const &, string const &)> f) {');
-  if (!type.noSerialize) {
-    _.each(type.orderedNames, function(memberName) {
-      var memberType = type.nameToType[memberName];
-      if (!memberType.isPtr() && !memberType.noSerialize) {
-        f('foreachDv(owner.' + memberName + ', name + ".' + memberName + '", f);');
-      }
-    });
-  }
-  f('}');
-
-  f('void foreachDv(' + type.typename + ' &owner, function<void (DvRef const &)> f) {');
-  if (!type.noSerialize) {
-    _.each(type.orderedNames, function(memberName) {
-      var memberType = type.nameToType[memberName];
-      if (!memberType.isPtr() && !memberType.noSerialize) {
-        f('foreachDv(owner.' + memberName + ', f);');
-      }
-    });
-  }
-  f('}');
-
-  f('void foreachScalar(' + type.typename + ' &owner, function<void (double *)> f) {');
-  if (!type.noSerialize) {
-    _.each(type.orderedNames, function(memberName) {
-      var memberType = type.nameToType[memberName];
-      if (!memberType.isPtr() && !memberType.noSerialize) {
-        f('foreachScalar(owner.' + memberName + ', f);');
-      }
-    });
-  }
-  f('}');
-
-  if (type.dvType) {
-    f('' + type.dvType.typename + ' asDvType(' + type.typename + ' const &a) {');
-
-    f('return ' + type.dvType.typename + '(' + _.map(type.orderedNames, function(memberName) {
-      return 'asDvType(a.' + memberName + ')';
-    }).join(', ') + ');');
-
-    f('}');
-  }
-  if (type.nonDvType) {
-    f('' + type.nonDvType.typename + ' asNonDvType(' + type.typename + ' const &a) {');
-
-    f('return ' + type.nonDvType.typename + '(' + _.map(type.orderedNames, function(memberName) {
-      return 'asNonDvType(a.' + memberName + ')';
-    }).join(', ') + ');');
-
-    f('}');
-  }
-};
 
 StructCType.prototype.addSuperType = function(superTypename) {
   var type = this;
@@ -804,25 +680,6 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       ]);
     });
 
-    f.emitJsLinalgMethods();
-    if (type.dvType) {
-      f.emitJsMethod('asDvType', function() {
-        f.emitArgSwitch([
-          {args: [], code: function(f) {
-            f('args.GetReturnValue().Set(' + type.dvType.getCppToJsExpr('asDvType(*thisObj->it)') + ');');
-          }}
-        ]);
-      });
-    }
-    if (type.nonDvType) {
-      f.emitJsMethod('asNonDvType', function() {
-        f.emitArgSwitch([
-          {args: [], code: function(f) {
-            f('args.GetReturnValue().Set(' + type.nonDvType.getCppToJsExpr('asNonDvType(*thisObj->it)') + ');');
-          }}
-        ]);
-      });
-    }
   }
 
   if (!type.noSerialize) {

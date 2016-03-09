@@ -20,7 +20,6 @@ void jsWrap_tlbcore_toString(FunctionCallbackInfo<Value> const &args) {
 void jsInit_fastJson(Handle<Object> exports);
 void jsBoot(Handle<Object> exports);
 void jsInit_solid_geometry(Handle<Object> exports);
-void jsInit_Dv(Handle<Object> exports);
 
 static void init(Handle<Object> exports) {
   Isolate *isolate = Isolate::GetCurrent();
@@ -29,7 +28,6 @@ static void init(Handle<Object> exports) {
   jsInit_fastJson(exports);
   jsBoot(exports);
   jsInit_solid_geometry(exports);
-  jsInit_Dv(exports);
 }
 
 NODE_MODULE(ur, init);

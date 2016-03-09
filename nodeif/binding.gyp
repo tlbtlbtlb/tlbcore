@@ -9,7 +9,6 @@
         '../build.src/sources_root.gypi',
         './sources.gypi',
         '../geom/sources.gypi',
-        '../dv/sources.gypi',
       ],
       'sources': [
         './main.cc'
@@ -17,4 +16,3 @@
     }
   ]
 }
-

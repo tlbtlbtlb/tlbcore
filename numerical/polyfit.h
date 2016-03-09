@@ -8,24 +8,15 @@
 #include "build.src/Polyfit1_decl.h"
 #include "build.src/Polyfit3_decl.h"
 #include "build.src/Polyfit5_decl.h"
-#include "build.src/DvPolyfit1_decl.h"
-#include "build.src/DvPolyfit3_decl.h"
-#include "build.src/DvPolyfit5_decl.h"
 
 double getValue(Polyfit1 const &u, double t);
-Dv getValue(DvPolyfit1 const &u, Dv t);
 double getDerivative(Polyfit1 const &u, double t);
-Dv getDerivative(DvPolyfit1 const &u, Dv t);
 
 double getValue(Polyfit3 const &u, double t);
-Dv getValue(DvPolyfit3 const &u, Dv t);
 double getDerivative(Polyfit3 const &u, double t);
-Dv getDerivative(DvPolyfit3 const &u, Dv t);
 
 double getValue(Polyfit5 const &u, double t);
-Dv getValue(DvPolyfit5 const &u, Dv t);
 double getDerivative(Polyfit5 const &u, double t);
-Dv getDerivative(DvPolyfit5 const &u, Dv t);
 
 Polyfit1 mkPolyfit1(arma::Col<double> xs, arma::Col<double> ys);
 Polyfit3 mkPolyfit3(arma::Col<double> xs, arma::Col<double> ys);

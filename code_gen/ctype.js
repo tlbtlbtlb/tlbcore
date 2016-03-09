@@ -52,18 +52,6 @@ CType.prototype.isCopyConstructable = function() { return true; };
 CType.prototype.hasArrayNature = function() { return false; };
 CType.prototype.hasJsWrapper = function() { return false; };
 
-CType.prototype.hasDvs = function() { return false; };
-CType.prototype.withDvs = function() { return this; };
-
-CType.prototype.emitLinalgDecl = function(f) {
-  var type = this;
-  f('static inline size_t linalgSize(const ' + type.typename + ' &a) { return 0; }');
-  f('static inline void linalgExport(const ' + type.typename + ' &a, double *&p) { }');
-  f('static inline void linalgImport(' + type.typename + ' &a, double const *&p) { }');
-};
-CType.prototype.emitLinalgImpl = function(f) {
-};
-
 CType.prototype.nonPtrType = function() {
   return this;
 };
@@ -207,7 +195,6 @@ CType.prototype.emitHeader = function(f) {
     f(l);
   });
   type.emitTypeDecl(f);
-  type.emitLinalgDecl(f);
   type.emitFunctionDecl(f);
 };
 
@@ -227,7 +214,6 @@ CType.prototype.emitHostCode = function(f) {
   });
   f('');
   type.emitHostImpl(f);
-  type.emitLinalgImpl(f);
   _.each(type.extraHostCode, function(l) {
     f(l);
   });
@@ -270,7 +256,6 @@ CType.prototype.emitJsWrapCode = function(f) {
   });
   f('#include "' + type.getFns().jsWrapHeader + '"');
   f('#include "vec_jsWrap.h"');
-  f('#include "tlbcore/dv/dv_jswrap.h"');
   f('');
   type.emitJsWrapImpl(f);
 };

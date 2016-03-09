@@ -6,7 +6,6 @@ var cgen                = require('./cgen');
 exports.getTypename = getTypename;
 exports.sortTypes = sortTypes;
 exports.nonPtrTypes = nonPtrTypes;
-exports.nonDvTypes = nonDvTypes;
 exports.funcnameCToJs = funcnameCToJs;
 exports.getFunctionCallExpr = getFunctionCallExpr;
 exports.withJsWrapUtils = withJsWrapUtils;
@@ -25,9 +24,6 @@ function sortTypes(types) {
 
 function nonPtrTypes(types) {
   return _.map(types, function(t) { return t.nonPtrType(); });
-}
-function nonDvTypes(types) {
-  return _.map(types, function(t) { return t.nonDvType || t; });
 }
 
 
@@ -317,52 +313,6 @@ function withJsWrapUtils(f, typereg) {
     _.each(f.jsConstructorBindings, function(binding) {
       binding(f);
     });
-  };
-
-  f.emitJsLinalgMethods = function() {
-    f.emitJsMethod('toLinalg', function() {
-      f.emitArgSwitch([
-        {args: [], code: function(f) {
-          f('arma::vec vec;');
-          f('linalgExport(*thisObj->it, vec);');
-          f('args.GetReturnValue().Set(convArmaColToJs(isolate, vec));');
-        }}
-      ]);
-    });
-    f.emitJsMethod('fromLinalg', function() {
-      f.emitArgSwitch([
-        {args: ['arma::Col<double>'], code: function(f) {
-          f('linalgImport(*thisObj->it, a0);');
-        }}
-      ]);
-    });
-
-    /* Call as parms.foreachDv('parms', callback). Calls callback(dv, fullName) for each dv
-       contained in parms. fullName is a hierarchical name of the dv (something like "parms.foo.bar").
-
-       The callback will normally modify dv (by setting dv.deriv=1), evaluate an expression for
-       which dv is a parameter, and restore dv (by setting dv.deriv=0).
-    */
-    f.emitJsMethod('foreachDv', function() {
-      f.emitArgSwitch([
-        {args: ['string', 'Object'], code: function(f) {
-          // If an exception is thrown by the callback, we have to avoid calling any other JS functions
-          f('bool failed = false;');
-          f('foreachDv(*thisObj->it, a0, [isolate, &args, a0, a1, thisObj, &failed](DvRef const &dv, string const &name) {');
-          f('if (failed) return;');
-          f('DvRef dv2(dv);');
-          f('Local<Value> argv[2] = {');
-          f('JsWrap_DvRef::DependentInstance(isolate, args.This(), dv2),');
-          f('convStringToJs(isolate, name)');
-          f('};');
-          f('Local<Value> a1ret(a1->CallAsFunction(args.This(), 2, argv));');
-          f('if (a1ret.IsEmpty()) failed = true;');
-          f('});');
-        }}
-      ]);
-    });
-
-
   };
 
   return f;

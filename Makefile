@@ -25,15 +25,12 @@ JS_SRCDIRS := \
 	numerical \
 	geom \
 	nodeif \
-	web \
-	dv
+	web
 
 DECL_TYPES := \
 	arma/decl_arma.js \
 	geom/decl_geom.js \
 	numerical/decl_numerical.js \
-	dv/decl_dv.js \
-	dv/decl_testproblem.js
 
 # Manual machine setup
 # See https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager

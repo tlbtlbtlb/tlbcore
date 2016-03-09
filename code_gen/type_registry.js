@@ -55,8 +55,6 @@ TypeRegistry.prototype.setupBuiltins = function() {
   typereg.primitive('U32');
   typereg.aliasType('U32','u_int');
   typereg.primitive('U64');
-  typereg.primitive('Dv');
-  typereg.primitive('DvMat');
   typereg.primitive('string');
   typereg.primitive('char const *');
   typereg.primitive('jsonstr');
@@ -477,4 +475,3 @@ TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs) {
   var typereg = this;
   return typereg.symbolics[name] = new symbolic_math.SymbolicContext(typereg, name, inargs, outargs);
 };
-

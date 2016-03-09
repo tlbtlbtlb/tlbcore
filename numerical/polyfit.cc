@@ -9,16 +9,7 @@ double getValue(Polyfit1 const &u, double t)
 {
   return u.c0 + t*(u.c1);
 }
-Dv getValue(DvPolyfit1 const &u, Dv t)
-{
-  if (0) eprintf("getValue(DvPolyfit1): u.c0=%g+D%g\n", u.c0.value, u.c0.deriv);
-  return u.c0 + t*(u.c1);
-}
 double getDerivative(Polyfit1 const &u, double t)
-{
-  return u.c1;
-}
-Dv getDerivative(DvPolyfit1 const &u, Dv t)
 {
   return u.c1;
 }
@@ -27,36 +18,18 @@ double getValue(Polyfit3 const &u, double t)
 {
   return u.c0 + t*(u.c1 + (t*(u.c2 + t*u.c3)));
 }
-Dv getValue(DvPolyfit3 const &u, Dv t)
-{
-  if (0) eprintf("getValue(DvPolyfit3): u.c0=%g+D%g\n", u.c0.value, u.c0.deriv);
-  return u.c0 + t*(u.c1 + (t*(u.c2 + t*(u.c3))));
-}
 double getDerivative(Polyfit3 const &u, double t)
 {
   return u.c1 + 2.0*u.c2*t + 3.0*u.c3*t*t;
-}
-Dv getDerivative(DvPolyfit3 const &u, Dv t)
-{
-  return u.c1 + t*(Dv(2.0)*u.c2 + t*(Dv(3.0)*u.c3));
 }
 
 double getValue(Polyfit5 const &u, double t)
 {
   return u.c0 + t*(u.c1 + (t*(u.c2 + t*(u.c3 + t*(u.c4 + t*(u.c5))))));
 }
-Dv getValue(DvPolyfit5 const &u, Dv t)
-{
-  if (0) eprintf("getValue(DvPolyfit5): u.c0=%g+D%g\n", u.c0.value, u.c0.deriv);
-  return u.c0 + t*(u.c1 + (t*(u.c2 + t*(u.c3 + t*(u.c4 + t*(u.c5))))));
-}
 double getDerivative(Polyfit5 const &u, double t)
 {
   return u.c1 + t*(2.0*u.c2 + t*(3.0*u.c3 + t*(4.0*u.c4 + t*(5.0*u.c5))));
-}
-Dv getDerivative(DvPolyfit5 const &u, Dv t)
-{
-  return u.c1 + t*(Dv(2.0)*u.c2 + t*(Dv(3.0)*u.c3 + t*(Dv(4.0)*u.c4 + t*(Dv(5.0)*u.c5))));
 }
 
 

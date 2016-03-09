@@ -61,17 +61,6 @@ function CollectionCType(reg, typename) {
 CollectionCType.prototype = Object.create(CType.prototype);
 CollectionCType.prototype.isCollection = function() { return true; };
 
-CollectionCType.prototype.withDvs = function() {
-  var type = this;
-  switch (type.typename) {
-  case 'arma::Mat<double>':
-    return type.reg.getType('DvMat');
-  default:
-    return type;
-  }
-};
-
-
 
 CollectionCType.prototype.emitTypeDecl = function(f) {
   var type = this;
@@ -101,38 +90,6 @@ CollectionCType.prototype.emitHostImpl = function(f) {
   f('all["' + type.jsTypename + '"] = jsonstr(getSchema(it));');
   f('}');
 
-};
-
-CollectionCType.prototype.emitLinalgDecl = function(f) {
-  var type = this;
-
-  f('size_t linalgSize(const ' + type.typename + ' &a);');
-  f('void linalgExport(const ' + type.typename + ' &a, double *&p);');
-  f('void linalgImport(' + type.typename + ' &a, double const *&p);');
-};
-
-CollectionCType.prototype.emitLinalgImpl = function(f) {
-  var type = this;
-
-  f('size_t linalgSize(const ' + type.typename + ' &a) {');
-  f('size_t ret = 0;');
-  if (type.templateName === 'arma::Row' || type.templateName === 'arma::Col' || type.templateName === 'arma::Mat' || type.templateName === 'vector') {
-    f('for (auto it : a) { ret += linalgSize(it); }');
-  }
-  f('return ret;');
-  f('}');
-
-  f('void linalgExport(const ' + type.typename + ' &a, double *&p) {');
-  if (type.templateName === 'arma::Row' || type.templateName === 'arma::Col' || type.templateName === 'arma::Mat' || type.templateName === 'vector') {
-    f('for (auto it : a) { linalgExport(it, p); }');
-  }
-  f('}');
-
-  f('void linalgImport(' + type.typename + ' &a, double const *&p) {');
-  if (type.templateName === 'arma::Row' || type.templateName === 'arma::Col' || type.templateName === 'arma::Mat' || type.templateName === 'vector') {
-    f('for (auto &it : a) { linalgImport(it, p); }');
-  }
-  f('}');
 };
 
 CollectionCType.prototype.hasJsWrapper = function() {
@@ -488,7 +445,6 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         }}
       ]);
     });
-    f.emitJsLinalgMethods();
   }
 
   if (type.templateName === 'map' && type.templateArgs[0] === 'string') {

@@ -17,17 +17,6 @@ PrimitiveCType.prototype.getFns = function() {
   return {};
 };
 
-PrimitiveCType.prototype.withDvs = function() {
-  var type = this;
-  switch (type.typename) {
-  case 'double':
-  case 'float':
-    return type.reg.getType('Dv');
-  default:
-    return type;
-  }
-};
-
 PrimitiveCType.prototype.emitJsWrapDecl = function(f) {
   f('char const * getTypeVersionString(TYPENAME const &);');
   f('char const * getTypeName(TYPENAME const &);');
@@ -47,8 +36,6 @@ PrimitiveCType.prototype.getAllZeroExpr = function() {
   switch (type.typename) {
   case 'float': return '0.0f';
   case 'double': return '0.0';
-  case 'Dv': return 'Dv(0.0, 0.0)';
-  case 'DvMat': return 'DvMat()';
   case 'S32': return '0';
   case 'S64': return '0';
   case 'U32': return '0';
@@ -66,8 +53,6 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
   switch (type.typename) {
   case 'float': return 'numeric_limits<float>::quiet_NaN()';
   case 'double': return 'numeric_limits<double>::quiet_NaN()';
-  case 'Dv': return 'Dv(numeric_limits<double>::quiet_NaN(), 0.0)';
-  case 'DvMat': return 'DvMat()';
   case 'S32': return '0x80000000';
   case 'S64': return '0x8000000000000000LL';
   case 'U32': return '0x80000000U';
@@ -95,10 +80,6 @@ PrimitiveCType.prototype.getExampleValueJs = function() {
     return '5.5';
   case 'double':
     return '9.5';
-  case 'Dv':
-    return 'new ur.Dv(9.5, 0.0)';
-  case 'DvMat':
-    return 'new ur.DvMat()';
   case 'bool':
     return 'true';
   case 'string':
@@ -160,10 +141,6 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
   case 'float':
   case 'double':
     return '((' + valueExpr + ')->IsNumber())';
-  case 'Dv':
-    return 'canConvJsToDv(isolate, ' + valueExpr + ')';
-  case 'DvMat':
-    return 'JsWrap_DvMat::Extract(isolate, ' + valueExpr + ')';
   case 'bool':
     return '((' + valueExpr + ')->IsBoolean())';
   case 'string':
@@ -188,10 +165,6 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   case 'U64':
   case 'double':
     return '((' + valueExpr + ')->NumberValue())';
-  case 'Dv':
-    return 'convJsToDv(isolate, ' + valueExpr + ')';
-  case 'DvMat':
-    return '*JsWrap_DvMat::Extract(isolate, ' + valueExpr + ')';
   case 'bool':
     return '((' + valueExpr + ')->BooleanValue())';
   case 'string':
@@ -217,10 +190,6 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerE
   case 'float':
   case 'double':
     return 'Number::New(isolate, ' + valueExpr + ')';
-  case 'Dv':
-    return 'convDvToJs(isolate, ' + valueExpr + ')';
-  case 'DvMat':
-    return 'JsWrap_DvMat::NewInstance(isolate, ' + valueExpr + ')';
   case 'bool':
     return 'Boolean::New(isolate, ' + valueExpr + ')';
   case 'string':

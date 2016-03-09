@@ -27,7 +27,6 @@
 #include <node_buffer.h>
 #include <node_object_wrap.h>
 #include <armadillo>
-#include "tlbcore/dv/dv.h"
 using namespace node;
 using namespace v8;
 
@@ -73,11 +72,6 @@ Local<Value> convJsonstrToJs(Isolate *isolate, map<string, jsonstr> const &it);
 bool canConvJsToJsonstr(Isolate *isolate, Local<Value> value);
 jsonstr convJsToJsonstr(Isolate *isolate, Local<Value> value);
 Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it);
-
-// Dv conversion
-bool canConvJsToDv(Isolate *isolate, Local<Value> it);
-Dv convJsToDv(Isolate *isolate, Local<Value> it);
-Local<Value> convDvToJs(Isolate *isolate, Dv const &it);
 
 /*
   A template for wrapping any kind of object

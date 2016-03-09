@@ -169,7 +169,6 @@ typedef unsigned char bool;
 #ifdef __cplusplus
 #  include "./packetbuf.h"
 #  include "../numerical/numerical.h"
-#  include "../dv/dv.h"
 #endif
 
 #  include "./host_debug.h"
@@ -180,4 +179,3 @@ typedef unsigned char bool;
 
 
 #endif
-

@@ -13,7 +13,6 @@ function ChildJsonPipe(execName, execArgs, execOptions) {
   m.queue = [];
   var datas=[];
   m.child.stdout.on('data', function(buf) {
-    logio.I('child', buf.length, 'bytes');
     while (buf.length) {
       var eol = buf.indexOf(10); // newline
       if (eol < 0) {
@@ -23,7 +22,6 @@ function ChildJsonPipe(execName, execArgs, execOptions) {
         datas.push(buf.slice(0, eol));
         try {
           var rep = JSON.parse(datas.join(''));
-          logio.I('child', rep);
           datas = [];
           var repCb = m.queue.shift();
           repCb.apply(null, rep);
