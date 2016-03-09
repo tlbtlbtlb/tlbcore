@@ -436,7 +436,7 @@ template<typename T>
 void linalgImport(T &a, arma::Col<double> const &vec)
 {
   size_t size = linalgSize(a);
-  assert(size == vec.n_elem);
+  if (size != vec.n_elem) throw runtime_error("linalgImport: size mismatch");
   double const *p = &vec[0];
   linalgImport(a, p);
   assert(p == &vec[size]);
@@ -475,7 +475,7 @@ template<typename THETA>
 void importScalars(THETA &owner, arma::mat &scalars)
 {
   size_t count = scalarCount(owner);
-  assert(scalars.n_elem == count);
+  if (scalars.n_elem != count) throw runtime_error("importScalars: size mismatch");
   size_t i = 0;
   foreachScalar(owner, [&](double *p) {
       assert(p);

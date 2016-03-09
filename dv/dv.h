@@ -188,8 +188,8 @@ template<typename THETA>
 void importDvs(THETA &owner, DvMat &dvs)
 {
   size_t count = dvCount(owner);
-  assert(dvs.value.n_elem == count);
-  assert(dvs.deriv.n_elem == count);
+  if (dvs.value.n_elem != count) throw runtime_error("importDvs: size mismatch");
+  if (dvs.deriv.n_elem != count) throw runtime_error("importDvs: size mismatch");
   size_t i = 0;
   foreachDv(owner, [&](DvRef const &dv) {
       assert(dv.value && dv.deriv);
