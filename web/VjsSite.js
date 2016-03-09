@@ -234,7 +234,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
     webServer.serverAccessCounts[callid] = (webServer.serverAccessCounts[callid] || 0) + 1;
     var p = webServer.urlProviders[callid];
     if (p) {
-      logio.I(req.remoteLabel, desc, p.toString());
+      if (!p.silent) logio.I(req.remoteLabel, desc, p.toString());
       p.handleRequest(req, res, '');
       return;
     }
@@ -245,7 +245,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
       p = webServer.dirProviders[prefix];
       if (p) {
         var suffix = pathc.slice(pathcPrefix, pathc.length).join('/');
-        logio.I(req.remoteLabel, desc, p.toString());
+        if (!p.silent) logio.I(req.remoteLabel, desc, p.toString());
         p.handleRequest(req, res, suffix);
         return;
       }

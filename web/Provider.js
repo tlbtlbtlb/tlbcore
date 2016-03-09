@@ -307,6 +307,7 @@ function AnyProvider() {
   this.asScriptBody = null;
   this.started = false;
   this.pending = false;
+  this.silent = false;
   this.cacheControl = assetCacheControl;
 }
 AnyProvider.prototype = Object.create(events.EventEmitter.prototype);
