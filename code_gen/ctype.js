@@ -184,6 +184,25 @@ CType.prototype.getMemberTypes = function() {
   return [];
 };
 
+CType.prototype.getRecursiveMembers = function() {
+  var type = this;
+  var acc = {};
+  type.accumulateRecursiveMembers([], acc);
+  return acc;
+};
+
+CType.prototype.accumulateRecursiveMembers = function(context, acc) {
+  var type = this;
+  if (!acc[type.typename]) {
+    acc[type.typename] = [];
+  }
+  acc[type.typename].push(context);
+}
+
+CType.prototype.refRecursiveMember = function(context) {
+  var type = this;
+};
+
 
 // ----------------------------------------------------------------------
 

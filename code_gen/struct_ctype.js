@@ -132,6 +132,15 @@ StructCType.prototype.getMemberTypes = function() {
   return subtypes;
 };
 
+StructCType.prototype.accumulateRecursiveMembers = function(context, acc) {
+  var type = this;
+  _.each(type.orderedNames, function(name) {
+    var memberType = type.nameToType[name];
+    memberType.accumulateRecursiveMembers(context.concat([name]), acc);
+  });
+};
+
+
 StructCType.prototype.getAllZeroExpr = function() {
   return this.typename + '::allZero()';
 };
@@ -202,21 +211,22 @@ StructCType.prototype.emitTypeDecl = function(f) {
   }
   f('TYPENAME copy() const;');
   f('');
-  f('// Member variables 2');
+  f('// Member variables');
   _.each(type.orderedNames, function(name) {
     f(type.nameToType[name].getVarDecl(name) + ';');
   });
 
-
-  if (type.hasArrayNature()) {
-    if (!(type.orderedNames.length >= 1)) {
-      throw new Error('no names in ' + type.typename);
-    }
-    f('');
-    f('// Array accessors');
-    f('typedef ' + type.nameToType[type.orderedNames[0]].typename + ' element_t;');
-    f('inline element_t & operator[] (int i) { return (&' + type.orderedNames[0] + ')[i]; }');
-    f('inline element_t const & operator[] (int i) const { return (&' + type.orderedNames[0] + ')[i]; }');
+  var rm = type.getRecursiveMembers();
+  if (_.keys(rm).length) {
+    _.each(rm, function(members, et) {
+      var ett = type.reg.types[et];
+      if (ett.isPtr()) return;
+      f('');
+      f('// Array accessors');
+      f('inline size_t ' + ett.jsTypename + 'Size() const { return ' + members.length + '; }');
+      f('vector< ' + et + ' > ' + ett.jsTypename + 'AsVector() const;');
+      f('void setFrom(vector< ' + et + ' > const &_v);');
+    });
   }
 
   if (type.extraMemberDecls.length) {
@@ -387,6 +397,46 @@ StructCType.prototype.emitHostImpl = function(f) {
     type.emitPacketIo(f);
   }
 
+  function mkRef(names) {
+    return _.map(names, function(namePart) {
+      if (_.isNumber(namePart)) {
+        return '[' + namePart + ']';
+      } else {
+        return '.' + namePart;
+      }
+    }).join('').substr(1);
+  }
+
+  var rm = type.getRecursiveMembers();
+
+  if (_.keys(rm).length) {
+    _.each(rm, function(members, et) {
+      var ett = type.reg.types[et];
+      if (ett.isPtr()) return;
+      f('');
+      f('// Array accessors');
+      f('vector< ' + et + ' > TYPENAME::' + ett.jsTypename + 'AsVector() const {');
+
+      f('vector< ' + et + ' > _ret(' + members.length + ');')
+      f('auto _p = _ret.begin();');
+      _.each(members, function(names) {
+        f('*_p++ = ' + mkRef(names) + ';');
+      });
+      f('assert(_p == _ret.end());');
+      f('return _ret;');
+
+      f('}');
+
+      f('void TYPENAME::setFrom(vector< ' + et + ' > const &_v) {');
+      f('if (_v.size() != ' + members.length + ') throw runtime_error(string("TYPENAME/' + et + ' size_mismatch ") + to_string(_v.size()) + " != ' + members.length + '");');
+      f('auto _p = _v.begin();');
+      _.each(members, function(names) {
+        f(mkRef(names) + ' = *_p++;');
+      });
+      f('assert(_p == _v.end());');
+      f('}');
+    });
+  }
 };
 
 StructCType.prototype.getExampleValueJs = function() {
