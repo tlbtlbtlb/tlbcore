@@ -1,3 +1,6 @@
 [submodule "web/jquery"]
 	path = web/jquery
 	url = https://github.com/jquery/jquery.git
+[submodule "web/d3"]
+	path = web/d3
+	url = https://github.com/mbostock/d3.git
