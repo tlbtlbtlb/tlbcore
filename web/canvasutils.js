@@ -193,3 +193,73 @@ var Geom3D = {
   }
 };
 
+/*
+  Return c0 + (c1-c0)*p, with c0,c1 in RGB color space
+  Requires '#RRGGBB' format
+*/
+function blendColors(c0, c1, p) {
+    var c0h = parseInt(c0.slice(1), 16);
+    var c1h = parseInt(c1.slice(1), 16);
+    var r0 = (c0h>>16) & 0xff;
+    var g0 = (c0h>>8) & 0xff;
+    var b0 = (c0h>>0) & 0xff;
+    var r1 = (c1h>>16) & 0xff;
+    var g1 = (c1h>>8) & 0xff;
+    var b1 = (c1h>>0) & 0xff;
+    return "#" + (0x1000000+
+      (Math.round((r1 - r0)*p) + r0) * 0x10000 +
+      (Math.round((g1 - g0)*p) + g0) * 0x100 +
+      (Math.round((b1 - b0)*p) + b0)).toString(16).slice(1);
+}
+
+
+var _goodGraphColors = [
+  '#F15854', // red
+  '#5DA5DA', // blue
+  '#FAA43A', // orange
+  '#60BD68', // green
+  '#F17CB0', // pink
+  '#B2912F', // brown
+  '#B276B2', // purple
+  '#DECF3F', // yellow
+  '#4D4D4D', // gray
+  // Munin:
+  '#00cc00',
+  '#0066b3',
+  '#ff8000',
+  '#ffcc00',
+  '#330099',
+  '#990099',
+  '#ccff00',
+  '#ff0000',
+  '#808080',
+  '#008f00',
+  '#00487d',
+  '#b35a00',
+  '#b38f00',
+  '#6b006b',
+  '#8fb300',
+  '#b30000',
+  '#bebebe',
+  '#80ff80',
+  '#80c9ff',
+  '#ffc080',
+  '#ffe680',
+  '#aa80ff',
+  '#ee00cc',
+  '#ff8080',
+  '#666600',
+  '#ffbfff',
+  '#00ffcc',
+  '#cc6699',
+  '#999900'
+];
+
+var _darkGraphColors = _.map(_goodGraphColors, function(c) { blendColors(c, '#000000', 0.33); });
+
+function goodGraphColor(i) {
+  return _goodGraphColors[i % _goodGraphColors.length];
+}
+function darkGraphColor(i) {
+  return _darkGraphColors[i % _darkGraphColors.length];
+}
