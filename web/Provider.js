@@ -23,6 +23,7 @@ var Safety              = require('./Safety');
 exports.AnyProvider = AnyProvider;
 exports.RawFileProvider = RawFileProvider;
 exports.RawDirProvider = RawDirProvider;
+exports.JsonLogDirProvider = JsonLogDirProvider;
 exports.XmlContentProvider = XmlContentProvider;
 exports.XmlContentDirProvider = XmlContentDirProvider;
 exports.ScriptProvider = ScriptProvider;
@@ -1190,4 +1191,58 @@ RawDirProvider.prototype.mirrorTo = function(dst) {
 
 RawDirProvider.prototype.toString = function() {
   return "RawDirProvider(" + JSON.stringify(this.fn) + ")";
+};
+
+
+
+function JsonLogDirProvider(fn) {
+  AnyProvider.call(this);
+  assert.ok(_.isString(fn));
+  this.fn = fn;
+}
+JsonLogDirProvider.prototype = Object.create(AnyProvider.prototype);
+
+JsonLogDirProvider.prototype.isDir = function() { return true; };
+
+JsonLogDirProvider.prototype.handleRequest = function(req, res, suffix) {
+  var self = this;
+
+  if (!Safety.isSafeDirName(suffix)) {
+    logio.E(req.remoteLabel, 'Unsafe filename ', suffix);
+    emit404(res, 'Invalid filename');
+    return;
+  }
+  var fullfn = path.join(self.fn, suffix + '.jsonlog');
+
+  fs.readFile(fullfn, function(err, content) {
+    if (err) {
+      logio.E(self.fn, 'Error: ' + err);
+      emit404(res, err);
+      return;
+    }
+
+    var ci = 0;
+    while (ci < content.length) {
+      ci = content.indexOf(10, ci);
+      if (ci < 0) break;
+      content.writeInt8(44, ci);
+      ci++;
+    }
+    content.writeInt8(93, content.length-1);
+
+    var remote = res.connection.remoteAddress + '!http';
+    logio.O(remote, fullfn + ': (200 json log len=' + content.length.toString() + ')');
+    res.writeHead(200, {
+      'Content-Type': 'text/json',
+      'Content-Length': (content.length + 1).toString(),
+      'Cache-Control': self.cacheControl
+    });
+    res.write('[', 'utf8');
+    res.write(content);
+    res.end();
+  });
+};
+
+JsonLogDirProvider.prototype.toString = function() {
+  return "JsonLogDirProvider(" + JSON.stringify(this.fn) + ")";
 };

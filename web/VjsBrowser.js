@@ -1244,6 +1244,53 @@ function mkImage(src, width, height) {
   return ret;
 }
 
+/*
+  items maps {name : url, ...}
+  f is called with {name : data, ...}
+  On any failure, it writes a message to the jQuery item
+*/
+$.fn.withJsonItems = function(items, f) {
+  var top = this;
+  var datas = {};
+  var pending = 0;
+  var errs = [];
+  _.each(_.keys(items), function(name) {
+    pending += 1;
+    var item = items[name];
+    var url;
+    var data = null;
+    if (_.isArray(item)) {
+      url = item[0];
+      data = JSON.stringify(item[1]);
+    } else {
+      url = item;
+    }
+    $.ajax(url, {
+      success: function(data) {
+        datas[name] = data;
+        decPending();
+      },
+      error: function(xhr, err) {
+        console.log(items[name], 'fail', err);
+        errs.push(err);
+        decPending();
+      },
+      cache: false,
+      method: data ? 'POST' : 'GET',
+      data: data
+    });
+  });
+  function decPending() {
+    pending--;
+    if (pending === 0) {
+      if (errs.length) {
+        top.text(errs.join(', '));
+      } else {
+        f.call(top, datas);
+      }
+    }
+  }
+};
 
 /* ----------------------------------------------------------------------
    Console
