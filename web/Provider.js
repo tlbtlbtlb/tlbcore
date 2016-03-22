@@ -560,6 +560,9 @@ ScriptProvider.prototype.getType = function() {
   return 'script';
 };
 
+ScriptProvider.prototype.scriptType = 'text/javascript';
+
+
 /* ----------------------------------------------------------------------
    JsonProvider(fn, globalVarname) -- Most users use providerSet.addJson(fn, globalVarname);
    Read the file named fn and arrange for the browser to get the value as window[globalVarname];
@@ -929,14 +932,22 @@ ProviderSet.prototype.start = function() {
           var t = p[key];
           if (t && t.length) {
             if (!nonEmpty) {
-              cat.push(preamble);
+              if (_.isFunction(preamble)) {
+                cat.push(preamble(p));
+              } else {
+                cat.push(preamble);
+              }
               nonEmpty = true;
             }
             cat.push(t);
           }
         });
         if (nonEmpty) {
-          cat.push(postamble);
+          if (_.isFunction(postamble)) {
+            cat.push(postamble(p));
+          } else {
+            cat.push(postamble);
+          }
         }
       }
 
@@ -957,7 +968,9 @@ ProviderSet.prototype.start = function() {
       cat.push(self.body);
 
       emitAll('asHtmlBody', '', '');
-      emitAll('asScriptBody', '<script type="text/javascript">\n//<![CDATA[\n', '\n//]]>\n</script>\n');
+      emitAll('asScriptBody', function(p) {
+        return '<script type="' + p.scriptType + '">\n//<![CDATA[\n';
+      }, '\n//]]>\n</script>\n');
 
       var hmac = crypto.createHash('sha256');
       hmac.update(cat.join(''), 'utf8');
