@@ -24,7 +24,7 @@ function TypeRegistry(groupname) {
   typereg.enums = [];
   typereg.consts = {};
   typereg.wrapFunctions = {};
-  typereg.symbolics = {};
+  typereg.symbolics = {c: {}, js: {}};
   typereg.extraJsWrapFuncsHeaders = [];
 
   typereg.debugJson = false;
@@ -436,7 +436,7 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
   var hl = files.getFile('symbolics_' + typereg.groupname + '.h');
 
   // Make a list of all includes: collect all types for all functions, then collect the customerIncludes for each type, and remove dups
-  var allIncludes = _.uniq(_.flatten(_.map(_.flatten(_.map(typereg.symbolics, function(func) { return func.getAllTypes(); })), function(typename) {
+  var allIncludes = _.uniq(_.flatten(_.map(_.flatten(_.map(typereg.symbolics.c, function(func) { return func.getAllTypes(); })), function(typename) {
     var type = typereg.types[typename];
     if (!type) throw new Error('No such type ' + typename);
     return type.getCustomerIncludes();
@@ -449,10 +449,17 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
   cl('#include "tlbcore/common/std_headers.h"');
   cl('#include "./symbolics_' + typereg.groupname + '.h"');
 
-  _.each(typereg.symbolics, function(func, funcname) {
+  _.each(typereg.symbolics.c, function(func, funcname) {
     func.emitDecl(hl);
     func.emitDefn(cl);
   });
+
+  var jsl = files.getFile('symbolics_' + typereg.groupname + '.js');
+
+  _.each(typereg.symbolics.js, function(func, funcname) {
+    func.emitDefn(jsl);
+  });
+
 };
 
 
@@ -471,7 +478,8 @@ TypeRegistry.prototype.addWrapFunction = function(desc, funcScope, funcname, fun
                                           args: args});
 };
 
-TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs) {
+TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs, lang) {
   var typereg = this;
-  return typereg.symbolics[name] = new symbolic_math.SymbolicContext(typereg, name, inargs, outargs);
+  if (!lang) lang='c';
+  return typereg.symbolics[lang][name] = new symbolic_math.SymbolicContext(typereg, name, inargs, outargs, lang);
 };
