@@ -191,7 +191,26 @@ var Geom3D = {
       return -accum / cl;
     });
   },
-  matmul_4x4_4x4: function(a, b) {
+  toHomo_mat33_mat44: function(m) {
+    return [
+      m[0], m[1], m[2], 0,
+      m[3], m[4], m[5], 0,
+      m[6], m[7], m[8], 0,
+      0, 0, 0, 1
+    ];
+  },
+  identity_mat33: [
+    1, 0, 0,
+    0, 1, 0,
+    0, 0, 1
+  ],
+  identity_mat44: [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  ],
+  mul_mat44_mat44: function(a, b) {
     return [
       a[0]*b[0] + a[4]*b[1] + a[8]*b[2] + a[12]*b[3],
       a[1]*b[0] + a[5]*b[1] + a[9]*b[2] + a[13]*b[3],
@@ -214,7 +233,7 @@ var Geom3D = {
       a[3]*b[12] + a[7]*b[13] + a[11]*b[14] + a[15]*b[15]
     ];
   },
-  matmul_4x4_4x1: function(a, b) {
+  mul_mat44_vec4: function(a, b) {
     return [
       a[0]*b[0] + a[4]*b[1] + a[8]*b[2] + a[12]*b[3],
       a[1]*b[0] + a[5]*b[1] + a[9]*b[2] + a[13]*b[3],
@@ -222,7 +241,7 @@ var Geom3D = {
       a[3]*b[0] + a[7]*b[1] + a[11]*b[2] + a[15]*b[3]
     ];
   },
-  matadd_4x4_4x4: function(a, b) {
+  add_mat44_mat44: function(a, b) {
     return [
       a[0] + b[0],
       a[1] + b[1],

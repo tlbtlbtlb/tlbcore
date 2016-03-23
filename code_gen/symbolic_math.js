@@ -112,9 +112,6 @@ SymbolicContext.prototype.emitDecl = function(f) {
 
 SymbolicContext.prototype.emitDefn = function(f) {
   var c = this;
-  if (c.lang === 'js') {
-    f('exports.' + c.name + ' = ' + c.name + ';');
-  }
   f(c.getSignature() + ' {');
   _.each(c.preCode, function(code) { f(code); });
   c.emitCode(f);
@@ -856,7 +853,7 @@ defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
     return '(' + a + ' * ' + b + ')';
   },
   js: function(a, b) {
-    return 'Geom3D.matmul_4x4_4x4(' + a + ', ' + b + ')';
+    return 'Geom3D.mul_mat44_mat44(' + a + ', ' + b + ')';
   },
   deriv: function(wrt, a, b) {
     var c = this.c;
@@ -892,7 +889,7 @@ defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4', {
     return '(' + a + ' * ' + b + ')';
   },
   js: function(a, b) {
-    return 'Geom3D.matmul_4x4_4x1(' + a + ', ' + b + ')';
+    return 'Geom3D.mul_mat44_vec4(' + a + ', ' + b + ')';
   },
   deriv: function(wrt, a, b) {
     var c = this.c;
@@ -908,7 +905,7 @@ defop('arma::mat44',    '+',           'arma::mat44', 'arma::mat44', {
     return '(' + a + ' + ' + b + ')';
   },
   js: function(a, b) {
-    return 'Geom3D.matadd_4x4_4x4(' + a + ', ' + b + ')';
+    return 'Geom3D.add_mat44_mat44(' + a + ', ' + b + ')';
   },
 
   replace_tooExpensive: function(wrt) {
