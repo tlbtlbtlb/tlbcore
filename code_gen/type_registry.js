@@ -185,7 +185,6 @@ TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
   var f = files.getFile('functions_' + typereg.groupname + '_jsWrap.cc');
   f('#include "tlbcore/common/std_headers.h"');
   f('#include "tlbcore/nodeif/jswrapbase.h"');
-  f('#include "build.src/map_string_jsonstr_jsWrap.h"');
   f('#include "./symbolics_' + typereg.groupname + '.h"');
   _.each(typereg.extraJsWrapFuncsHeaders, f);
   f('/* Types known about:\n  ' + _.keys(typereg.types).join('\n  ') + '\n*/');
