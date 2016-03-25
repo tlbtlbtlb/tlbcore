@@ -275,6 +275,7 @@ CType.prototype.emitJsWrapCode = function(f) {
   });
   f('#include "' + type.getFns().jsWrapHeader + '"');
   f('#include "vec_jsWrap.h"');
+  f('#include "build.src/map_string_jsonstr_jsWrap.h"');  
   f('');
   type.emitJsWrapImpl(f);
 };

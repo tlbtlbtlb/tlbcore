@@ -770,6 +770,14 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     });
   }
 
+  f.emitJsFactory('addSchemas', function() {
+    f.emitArgSwitch([
+      {args: ['map<string,jsonstr>'], code: function(f) {
+        f('TYPENAME::addSchemas(a0);');
+      }}
+    ]);
+  });
+
   if (!type.noPacket) {
     f.emitJsMethod('toPacket', function() {
       f.emitArgSwitch([
