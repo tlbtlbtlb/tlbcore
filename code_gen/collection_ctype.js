@@ -23,17 +23,34 @@ function CollectionCType(reg, typename) {
   var argi = 0;
   _.each(typename, function(c) {
     if (c === '<') {
-      if (type.templateArgs[argi]) argi ++;
+      if (type.templateArgs[argi]) {
+        if (depth == 0) {
+          argi ++;
+          c = null;
+        } else {
+        }
+      } else {
+        c = null;
+      }
       depth ++;
     }
     else if (c === '>') {
-      if (type.templateArgs[argi]) argi ++;
+      if (type.templateArgs[argi]) {
+        if (depth == 1) {
+          argi ++;
+          c = null;
+        } else {
+        }
+      }
       depth --;
     }
     else if (c === ',') {
-      argi ++;
+      if (depth == 1) {
+        argi ++;
+        c = null;
+      }
     }
-    else {
+    if (c !== null) {
       if (depth === 0) {
         type.templateName = type.templateName + c;
       }
@@ -51,7 +68,8 @@ function CollectionCType(reg, typename) {
     else {
       var t = type.reg.types[name];
       if (!t) {
-        throw new Error('No type for template arg ' + name + ' in ' + _.keys(type.reg.types).join(', '));
+        console.log('No type for template arg ' + name + ' in ' + type.templateName + ' < ' + type.templateArgs.join(' , ') + ' > ');
+        throw new Error('No type for template arg ' + name);
       }
       return t;
     }
