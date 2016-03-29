@@ -247,6 +247,8 @@ StructCType.prototype.emitTypeDecl = function(f) {
 
   f('};');
 
+  f('TYPENAME interpolate(TYPENAME const &a, TYPENAME const &b, double cb);');
+
   f('char const * getTypeVersionString(TYPENAME const &);');
   f('char const * getTypeName(TYPENAME const &);');
   f('char const * getJsTypeName(TYPENAME const &);');
@@ -407,35 +409,59 @@ StructCType.prototype.emitHostImpl = function(f) {
     }).join('').substr(1);
   }
 
-  var rm = type.getRecursiveMembers();
+  if (!type.noSerialize) {
 
-  if (_.keys(rm).length) {
-    _.each(rm, function(members, et) {
-      var ett = type.reg.types[et];
-      if (ett.isPtr()) return;
-      f('');
-      f('// Array accessors');
-      f('vector< ' + et + ' > TYPENAME::' + ett.jsTypename + 'AsVector() const {');
+    var rm = type.getRecursiveMembers();
 
-      f('vector< ' + et + ' > _ret(' + members.length + ');')
-      f('auto _p = _ret.begin();');
-      _.each(members, function(names) {
-        f('*_p++ = ' + mkRef(names) + ';');
+    if (_.keys(rm).length) {
+      _.each(rm, function(members, et) {
+        var ett = type.reg.types[et];
+        if (ett.isPtr()) return;
+        f('');
+        f('// Array accessors');
+        f('vector< ' + et + ' > TYPENAME::' + ett.jsTypename + 'AsVector() const {');
+
+        f('vector< ' + et + ' > _ret(' + members.length + ');')
+        f('auto _p = _ret.begin();');
+        _.each(members, function(names) {
+          f('*_p++ = ' + mkRef(names) + ';');
+        });
+        f('assert(_p == _ret.end());');
+        f('return _ret;');
+
+        f('}');
+
+        f('void TYPENAME::setFrom(vector< ' + et + ' > const &_v) {');
+        f('if (_v.size() != ' + members.length + ') throw runtime_error(string("TYPENAME/' + et + ' size_mismatch ") + to_string(_v.size()) + " != ' + members.length + '");');
+        f('auto _p = _v.begin();');
+        _.each(members, function(names) {
+          f(mkRef(names) + ' = *_p++;');
+        });
+        f('assert(_p == _v.end());');
+        f('}');
       });
-      f('assert(_p == _ret.end());');
-      f('return _ret;');
 
+      f('TYPENAME interpolate(TYPENAME const &a, TYPENAME const &b, double cb) {');
+      f('if (cb == 0.0) {');
+      f('return a;');
       f('}');
-
-      f('void TYPENAME::setFrom(vector< ' + et + ' > const &_v) {');
-      f('if (_v.size() != ' + members.length + ') throw runtime_error(string("TYPENAME/' + et + ' size_mismatch ") + to_string(_v.size()) + " != ' + members.length + '");');
-      f('auto _p = _v.begin();');
-      _.each(members, function(names) {
-        f(mkRef(names) + ' = *_p++;');
+      f('else if (cb == 1.0) {');
+      f('return b;');
+      f('}');
+      f('else {');
+      f('TYPENAME out(a);');
+      _.each(rm, function(members, et) {
+        var ett = type.reg.types[et];
+        if (ett.isPtr()) return;
+        f('');
+        _.each(members, function(names) {
+          f('out.' + mkRef(names) + ' = interpolate(a.' + mkRef(names) + ', b.' + mkRef(names) + ', cb);');
+        });
       });
-      f('assert(_p == _v.end());');
+      f('return out;');
       f('}');
-    });
+      f('}');
+    }
   }
 };
 

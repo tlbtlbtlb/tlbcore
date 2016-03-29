@@ -50,6 +50,7 @@ struct jsonstr {
 
 ostream & operator<<(ostream &s, jsonstr const &obj);
 
+jsonstr interpolate(jsonstr const &a, jsonstr const &b, double cb);
 
 /*
   Skip past a value or member of an object, ie "foo":123,

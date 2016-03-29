@@ -36,3 +36,73 @@ static inline double tanh(double x)
   }
 }
 #endif
+
+static inline double interpolate(double const &a, double const &b, double cb)
+{
+  return a * (1.0-cb) + b * cb;
+}
+static inline float interpolate(float const &a, float const &b, double cb)
+{
+  return a * (1.0-cb) + b * cb;
+}
+
+static inline S64 interpolate(S64 const &a, S64 const &b, double cb)
+{
+  return a + S64((double)(b-a) * cb);
+}
+static inline S32 interpolate(S32 const &a, S32 const &b, double cb)
+{
+  return a + S32((double)(b-a) * cb);
+}
+
+static inline U64 interpolate(U64 const &a, U64 const &b, double cb)
+{
+  return (U64)((S64)a + S64((double)((S64)b-(S64)a) * cb));
+}
+static inline U32 interpolate(U32 const &a, U32 const &b, double cb)
+{
+  return (U32)((S32)a + S32((double)((S32)b-(S32)a) * cb));
+}
+
+static inline string interpolate(string const &a, string const &b, double cb)
+{
+  return (cb >= 0.5) ? b : a;
+}
+
+template<typename T>
+map<string, T> interpolate(map<string, T> const &a, map<string, T> const &b, double cb)
+{
+  return a; // WRITEME
+}
+
+template<typename T>
+vector<T> interpolate(vector<T> const &a, vector<T> const &b, double cb)
+{
+  if (cb == 0.0) {
+    return a;
+  }
+  else if (cb == 1.0) {
+    return b;
+  }
+  else {
+    assert(a.size() == b.size());
+    vector<T> ret(a.size());
+    for (size_t i = 0; i < a.size(); i++) {
+      ret[i] = interpolate(a[i], b[i], cb);
+    }
+    return ret;
+  }
+}
+
+static inline arma::Col<double> interpolate(arma::Col<double> const &a, arma::Col<double> const &b, double cb)
+{
+  return (1.0-cb)*a + cb*b;
+}
+static inline arma::Mat<double> interpolate(arma::Mat<double> const &a, arma::Mat<double> const &b, double cb)
+{
+  return (1.0-cb)*a + cb*b;
+}
+static inline arma::Row<double> interpolate(arma::Row<double> const &a, arma::Row<double> const &b, double cb)
+{
+  return (1.0-cb)*a + cb*b;
+}

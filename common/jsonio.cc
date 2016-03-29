@@ -155,6 +155,10 @@ int jsonstr::readFromFile(string const &fn)
   return -1;
 }
 
+jsonstr interpolate(jsonstr const &a, jsonstr const &b, double cb)
+{
+  return (cb >= 0.5) ? b : a;
+}
 
 
 /* ----------------------------------------------------------------------
