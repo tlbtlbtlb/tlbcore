@@ -259,9 +259,13 @@ StructCType.prototype.emitTypeDecl = function(f) {
   f('// IO');
   f('ostream & operator<<(ostream &s, const TYPENAME &obj);');
   if (!type.noSerialize) {
-    f('void wrJson(char *&s, const TYPENAME &obj);');
-    f('bool rdJson(const char *&s, TYPENAME &obj);');
-    f('size_t wrJsonSize(TYPENAME const &x);');
+    f('void wrJson(char *&s, TYPENAME const &obj);');
+    f('bool rdJson(char const *&s, TYPENAME &obj);');
+    f('void wrJsonSize(size_t &size, TYPENAME const &x);');
+
+    f('void wrJsonBulk(char *&s, vector<double> &bulkNumber, vector<TYPENAME> const &obj);');
+    f('bool rdJsonBulk(const char *&s, vector<double> &bulkNumber, vector<TYPENAME> &obj);');
+    f('void wrJsonBulkSize(size_t &size, size_t &bulkNumberSize, vector<TYPENAME> const &x);');
   }
 
   f('void packet_wr_typetag(packet &p, const TYPENAME &x);');
@@ -272,6 +276,16 @@ StructCType.prototype.emitTypeDecl = function(f) {
   CType.prototype.emitTypeDecl.call(type, f);
   f('');
 };
+
+function mkMemberRef(names) {
+  return _.map(names, function(namePart) {
+    if (_.isNumber(namePart)) {
+      return '[' + namePart + ']';
+    } else {
+      return '.' + namePart;
+    }
+  }).join('').substr(1);
+}
 
 StructCType.prototype.emitHostImpl = function(f) {
   var type = this;
@@ -399,16 +413,6 @@ StructCType.prototype.emitHostImpl = function(f) {
     type.emitPacketIo(f);
   }
 
-  function mkRef(names) {
-    return _.map(names, function(namePart) {
-      if (_.isNumber(namePart)) {
-        return '[' + namePart + ']';
-      } else {
-        return '.' + namePart;
-      }
-    }).join('').substr(1);
-  }
-
   if (!type.noSerialize) {
 
     var rm = type.getRecursiveMembers();
@@ -424,7 +428,7 @@ StructCType.prototype.emitHostImpl = function(f) {
         f('vector< ' + et + ' > _ret(' + members.length + ');')
         f('auto _p = _ret.begin();');
         _.each(members, function(names) {
-          f('*_p++ = ' + mkRef(names) + ';');
+          f('*_p++ = ' + mkMemberRef(names) + ';');
         });
         f('assert(_p == _ret.end());');
         f('return _ret;');
@@ -435,7 +439,7 @@ StructCType.prototype.emitHostImpl = function(f) {
         f('if (_v.size() != ' + members.length + ') throw runtime_error(string("TYPENAME/' + et + ' size_mismatch ") + to_string(_v.size()) + " != ' + members.length + '");');
         f('auto _p = _v.begin();');
         _.each(members, function(names) {
-          f(mkRef(names) + ' = *_p++;');
+          f(mkMemberRef(names) + ' = *_p++;');
         });
         f('assert(_p == _v.end());');
         f('}');
@@ -455,7 +459,7 @@ StructCType.prototype.emitHostImpl = function(f) {
         if (ett.isPtr()) return;
         f('');
         _.each(members, function(names) {
-          f('out.' + mkRef(names) + ' = interpolate(a.' + mkRef(names) + ', b.' + mkRef(names) + ', cb);');
+          f('out.' + mkMemberRef(names) + ' = interpolate(a.' + mkMemberRef(names) + ', b.' + mkMemberRef(names) + ', cb);');
         });
       });
       f('return out;');
@@ -547,24 +551,74 @@ StructCType.prototype.emitWrJson = function(f) {
   var type = this;
   function emitstr(s) {
     var b = new Buffer(s, 'utf8');
-    f(_.map(_.range(0, b.length), function(ni) {
+    f1(_.map(_.range(0, b.length), function(ni) {
       return '*s++ = ' + b[ni]+ ';';
     }).join(' ') + ' // ' + cgen.escapeCString(s));
+    f2('size += ' + (new Buffer(s, 'utf8').length + 2).toString() + ';');
   }
-  f('void wrJson(char *&s, const TYPENAME &obj) {');
+
+  f('void wrJson(char *&s, TYPENAME const &obj) {');
+  var f1 = f.child();
+  f('}');
+  f('void wrJsonSize(size_t &size, TYPENAME const &obj) {');
+  var f2 = f.child();
+  f('}');
+
   emitstr('{"__type":"' + type.jsTypename + '"');
   _.each(type.orderedNames, function(name, namei) {
     emitstr(',\"' + name + '\":');
-    f('wrJson(s, obj.' + name + ');');
+    f1('wrJson(s, obj.' + name + ');');
+    f2('wrJsonSize(size, obj.' + name + ');');
   });
-  f('*s++ = \'}\';');
+  f1('*s++ = \'}\';');
+  f2('size += 1;');
+
+  var rm = type.getRecursiveMembers();
+
+  f('void wrJsonBulk(char *&s,  vector<double> &bulkNumber, vector<TYPENAME> const &obj) {');
+  f1 = f.child();
+  f('}');
+  f('void wrJsonBulkSize(size_t &size, size_t &bulkNumberSize, vector<TYPENAME> const &obj) {');
+  f2 = f.child();
   f('}');
 
-  f('size_t wrJsonSize(const TYPENAME &obj) {');
-  f('return 12 + ' + (new Buffer(type.typename, 'utf8').length).toString() + ' + ' + _.map(type.orderedNames, function(name, namei) {
-    return (new Buffer(name, 'utf8').length + 4).toString() + '+wrJsonSize(obj.' + name + ')';
-  }).join(' + ') + ' + 1;');
-  f('}');
+  emitstr('{"__type":"vector_' + type.jsTypename + '"');
+  _.each(rm, function(members, et) {
+    var ett = type.reg.types[et];
+    _.each(members, function(names) {
+      if (ett.typename === 'double' || ett.typename === 'float' ||
+          ett.typename === 'S64' || ett.typename === 'S32' ||
+          ett.typename === 'U64' || ett.typename === 'U32') {
+        f1('s += snprintf(s, 50, ",{\\"bulkNumber\\":%lu,\\"size\\":%lu}", (unsigned long)bulkNumber.size(), (unsigned long)obj.size());');
+        f1('for (auto &it : obj) {')
+        f1('bulkNumber.push_back((double)it.' + mkMemberRef(names) + ');');
+        f1('}');
+
+        f2('size += 50;');
+        f2('bulkNumberSize += obj.size();');
+
+      }
+      else {
+        f1('{');
+        f1('vector< ' + ett.typename + ' > slice;');
+        f1('for (auto &it : obj) {')
+        f1('slice.push_back(it.' + mkMemberRef(names) + ');');
+        f1('}');
+        f1('wrJson(s, slice);');
+        f1('}');
+
+        f2('{');
+        f2('vector< ' + ett.typename + ' > slice;');
+        f2('for (auto &it : obj) {')
+        f2('slice.push_back(it.' + mkMemberRef(names) + ');');
+        f2('}');
+        f2('wrJsonSize(size, slice);');
+        f2('}');
+      }
+    });
+  });
+  f1('*s++ = \'}\';');
+  f2('size += 1;');
 };
 
 StructCType.prototype.emitRdJson = function(f) {

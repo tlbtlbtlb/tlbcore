@@ -93,16 +93,16 @@ bool jsonMatchKey(char const *&s, char const *pattern);
   To allow serializing your own types, add definitions of wrJsonSize, wrJson, and rdJson.
 */
 
-size_t wrJsonSize(bool const &value);
-size_t wrJsonSize(S32 const &value);
-size_t wrJsonSize(U32 const &value);
-size_t wrJsonSize(S64 const &value);
-size_t wrJsonSize(U64 const &value);
-size_t wrJsonSize(float const &value);
-size_t wrJsonSize(double const &value);
-size_t wrJsonSize(arma::cx_double const &value);
-size_t wrJsonSize(string const &value);
-size_t wrJsonSize(jsonstr const &value);
+void wrJsonSize(size_t &size, bool const &value);
+void wrJsonSize(size_t &size, S32 const &value);
+void wrJsonSize(size_t &size, U32 const &value);
+void wrJsonSize(size_t &size, S64 const &value);
+void wrJsonSize(size_t &size, U64 const &value);
+void wrJsonSize(size_t &size, float const &value);
+void wrJsonSize(size_t &size, double const &value);
+void wrJsonSize(size_t &size, arma::cx_double const &value);
+void wrJsonSize(size_t &size, string const &value);
+void wrJsonSize(size_t &size, jsonstr const &value);
 
 void wrJson(char *&s, bool const &value);
 void wrJson(char *&s, S32 const &value);
@@ -136,11 +136,11 @@ bool rdJson(const char *&s, jsonstr &value);
 // Pointers
 
 template<typename T>
-size_t wrJsonSize(shared_ptr<T> const &p) {
+void wrJsonSize(size_t &size, shared_ptr<T> const &p) {
   if (p) {
-    return wrJsonSize(*p);
+    wrJsonSize(size, *p);
   } else {
-    return 4; // null;
+    size += 4;// null;
   }
 }
 
@@ -158,17 +158,17 @@ void wrJson(char *&s, shared_ptr<T> const &p) {
 
 
 // Json - arma::Col
-template<typename T> size_t wrJsonSize(arma::Col<T> const &arr);
+template<typename T> void wrJsonSize(size_t &size, arma::Col<T> const &arr);
 template<typename T> void wrJson(char *&s, arma::Col<T> const &arr);
 template<typename T> bool rdJson(const char *&s, arma::Col<T> &arr);
 
 // Json - arma::Row
-template<typename T> size_t wrJsonSize(arma::Row<T> const &arr);
+template<typename T> void wrJsonSize(size_t &size, arma::Row<T> const &arr);
 template<typename T> void wrJson(char *&s, arma::Row<T> const &arr);
 template<typename T> bool rdJson(const char *&s, arma::Row<T> &arr);
 
 // Json - arma::Mat
-template<typename T> size_t wrJsonSize(arma::Mat<T> const &arr);
+template<typename T> void wrJsonSize(size_t &size, arma::Mat<T> const &arr);
 template<typename T> void wrJson(char *&s, arma::Mat<T> const &arr);
 template<typename T> bool rdJson(const char *&s, arma::Mat<T> &arr);
 
@@ -176,14 +176,25 @@ template<typename T> bool rdJson(const char *&s, arma::Mat<T> &arr);
   Json representation of various container templates.
 */
 
+template<typename T> void wrJsonSize(size_t &size, vector<T> const &arr);
+template<typename T> void wrJson(char *&s, vector<T> const &arr);
+template<typename T> void wrJsonSize(size_t &size, vector<T *> const &arr);
+template<typename T> void wrJson(char *&s, vector<T *> const &arr);
+template<typename T> bool rdJson(const char *&s, vector<T> &arr);
+template<typename T> bool rdJson(const char *&s, vector<T *> &arr);
+
+template<typename KT, typename VT> void wrJsonSize(size_t &size, map<KT, VT> const &arr);
+template<typename KT, typename VT> void wrJson(char *&s, map<KT, VT> const &arr);
+template<typename KT, typename VT> bool rdJson(const char *&s, map<KT, VT> &arr);
+
+
 // vector<T> or vector<T *>
 template<typename T>
-size_t wrJsonSize(vector<T> const &arr) {
-  size_t ret = 2;
+void wrJsonSize(size_t &size, vector<T> const &arr) {
+  size += 2 + arr.size();
   for (auto it = arr.begin(); it != arr.end(); it++) {
-    ret += wrJsonSize(*it) + 1;
+    wrJsonSize(size, *it);
   }
-  return ret;
 }
 
 template<typename T>
@@ -199,12 +210,11 @@ void wrJson(char *&s, vector<T> const &arr) {
 }
 
 template<typename T>
-size_t wrJsonSize(vector<T *> const &arr) {
-  size_t ret = 2;
+void wrJsonSize(size_t &size, vector<T *> const &arr) {
+  size += 2 + arr.size();
   for (auto it = arr.begin(); it != arr.end(); it++) {
-    ret += wrJsonSize(**it) + 1;
+    wrJsonSize(size, **it);
   }
-  return ret;
 }
 
 template<typename T>
@@ -278,12 +288,13 @@ bool rdJson(const char *&s, vector<T *> &arr) {
 // Json - map<KT, VT> and map<KT, VT *>
 
 template<typename KT, typename VT>
-size_t wrJsonSize(map<KT, VT> const &arr) {
-  size_t ret = 2;
+void wrJsonSize(size_t &size, map<KT, VT> const &arr) {
+  size += 2;
   for (auto it = arr.begin(); it != arr.end(); it++) {
-    ret += wrJsonSize(it->first) + wrJsonSize(it->second) + 2;
+    wrJsonSize(size, it->first);
+    wrJsonSize(size, it->second);
+    size += 2;
   }
-  return ret;
 }
 
 template<typename KT, typename VT>
@@ -335,12 +346,13 @@ bool rdJson(const char *&s, map<KT, VT> &arr) {
 }
 
 template<typename KT, typename VT>
-size_t wrJsonSize(map<KT, VT *> const &arr) {
-  size_t ret = 2;
+void wrJsonSize(size_t &size, map<KT, VT *> const &arr) {
+  size += 2;
   for (auto it = arr.begin(); it != arr.end(); it++) {
-    ret += wrJsonSize(it->first) + wrJsonSize(*it->second) + 2;
+    wrJsonSize(size, it->first);
+    wrJsonSize(size, *it->second);
+    size += 2;
   }
-  return ret;
 }
 
 template<typename KT, typename VT>
@@ -398,7 +410,8 @@ bool rdJson(const char *&s, map<KT, VT *> &arr) {
 
 template <typename T>
 jsonstr asJson(const T &value) {
-  size_t retSize = wrJsonSize(value);
+  size_t retSize = 0;
+  wrJsonSize(retSize, value);
   jsonstr ret;
   char *p = ret.startWrite(retSize);
   wrJson(p, value);
