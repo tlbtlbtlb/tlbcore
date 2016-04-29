@@ -520,9 +520,12 @@ ScriptProvider.prototype.start = function() {
         logio.E(self.fn, 'jsmin failed', ex);
         // data should be unchanged
       }
-      // 'foo' + 'bar' => 'foobar'
-      data = data.replace(/\'\+\'/g, '');
-      data = data.replace(/\"\+\"/g, '');
+      if (0) {
+        // 'foo' + 'bar' => 'foobar'
+        // Fails on a literal '+' though.
+        data = data.replace(/\'\+\'/g, '');
+        data = data.replace(/\"\+\"/g, '');
+      }
     } else {
       // Just minimal mininification: cut leading whitespace and blank lines
       data = data.replace(/\n\s+/g, '\n');
