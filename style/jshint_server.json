@@ -1,0 +1,14 @@
+{
+  "esversion": 6,
+  "boss":      true,
+	"node":      true,
+	"strict":    true,
+	"white":     true,
+	"smarttabs": true,
+	"maxlen":    200,
+	"newcap":    false,
+	"undef":     true,
+	"unused":    true,
+	"onecase":   true,
+	"indent":    2
+}
