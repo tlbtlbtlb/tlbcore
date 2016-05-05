@@ -140,6 +140,7 @@ function gotoCurrentHash() {
   gotoCurrentState();
 }
 
+
 function fmtHashOptions(pageid, o) {
   var humanUrl = $.humanUrl[pageid];
   if (humanUrl) {
@@ -1046,7 +1047,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       hd.mdX = md.x;
       hd.mdY = md.y;
       if (hd.dragging) {
-        hd.dragging(hd.mdX, hd.mdY);
+        hd.dragging(hd.mdX, hd.mdY, true);
       }
       m.emit('changed');
     }
@@ -1063,11 +1064,14 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     if (action && action.onUp) {
       action.onUp();
     }
-    if (hd.dragging && hd.dragCursor) {
-      top.css('cursor', 'default');
-      hd.dragCursor = null;
+    if (hd.dragging) {
+      if (hd.dragCursor) {
+        top.css('cursor', 'default');
+        hd.dragCursor = null;
+      }
+      hd.dragging(hd.mdX, hd.mdY, false);
+      hd.dragging = null;
     }
-    hd.dragging = null;
     m.emit('changed');
     return false;
   });
@@ -1078,6 +1082,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       hd.dragCursor = null;
     }
     if (hd.dragging) {
+      hd.dragging(null, null, false);
       hd.dragging = null;
       return true;
     }
