@@ -18,6 +18,7 @@ exports.isValidMessage = isValidMessage;
 exports.isSafeDirName = isSafeDirName;
 exports.shellQuote = shellQuote;
 exports.isValidToken = isValidToken;
+exports.isValidBase64 = isValidBase64;
 
 // ======================================================================
 
@@ -89,5 +90,11 @@ function shellQuote(str) {
 function isValidToken(token) {
   if (!(typeof token === 'string')) return false;
   if (!(/^[\w]+$/.test(token))) return false;
+  return true;
+}
+
+function isValidBase64(token) {
+  if (!(typeof token === 'string')) return false;
+  if (!(/^[A-Za-z0-9\/\=]+$/.test(token))) return false;
   return true;
 }
