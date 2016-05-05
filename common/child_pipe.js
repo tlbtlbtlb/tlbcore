@@ -3,6 +3,7 @@ var child_process = require('child_process');
 var logio = require('../web/logio');
 
 exports.ChildJsonPipe = ChildJsonPipe;
+exports.setupJsonIn = setupJsonIn;
 
 function ChildJsonPipe(execName, execArgs, execOptions) {
   var m = this;
@@ -20,14 +21,10 @@ function ChildJsonPipe(execName, execArgs, execOptions) {
         return;
       } else {
         datas.push(buf.slice(0, eol));
-        try {
-          var rep = JSON.parse(datas.join(''));
-          datas = [];
-          var repCb = m.queue.shift();
-          repCb.apply(null, rep);
-        } catch(ex) {
-          repCb(ex);
-        }
+        var rep = JSON.parse(datas.join(''));
+        datas = [];
+        var repCb = m.queue.shift();
+        repCb.apply(null, rep);
         buf = buf.slice(eol+1);
       }
     }
@@ -43,4 +40,24 @@ ChildJsonPipe.prototype.rpc = function(req, repCb) {
   m.queue.push(repCb);
   m.child.stdin.write(JSON.stringify(req));
   m.child.stdin.write('\n');
+}
+
+
+function setupJsonIn(stream, cb) {
+  var datas=[];
+  stream.on('data', function(buf) {
+    while (buf.length) {
+      var eol = buf.indexOf(10); // newline
+      if (eol < 0) {
+        datas.push(buf);
+        return;
+      } else {
+        datas.push(buf.slice(0, eol));
+        var rep = JSON.parse(datas.join(''));
+        datas = [];
+        cb(null, rep);
+        buf = buf.slice(eol+1);
+      }
+    }
+  });
 }
