@@ -5,10 +5,12 @@
 	"strict":    true,
 	"white":     true,
 	"smarttabs": true,
-	"maxlen":    200,
 	"newcap":    false,
 	"undef":     true,
-	"unused":    true,
+	"unused":    false,
 	"onecase":   true,
-	"indent":    2
+	"indent":    2,
+  "typed":     true,
+  "predef":    [
+  ]
 }
