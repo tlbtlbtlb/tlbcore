@@ -35,6 +35,19 @@ var Safety = {
   }
 };
 
+// Might want to write something that works without window.crypto
+function mkRandomToken(len) {
+  if (!len) len = 12;
+  var alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'; // Bitcoin's base52
+  var a = new Uint32Array(len);
+  window.crypto.getRandomValues(a);
+  var ret = [];
+  for (var i=0; i < len; i++) {
+    ret.push(alphabet.substr(a[i] % alphabet.length, 1));
+  }
+  return ret.join('');
+}
+
 /* ----------------------------------------------------------------------
    A simple one-page application framework
 */
