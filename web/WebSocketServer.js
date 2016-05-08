@@ -14,11 +14,10 @@
 
   handlers.tx({cmdReq: 'foo', fooInfo: ...})
 
-  Or create an RPC with
-
-  handlers.rpc({cmd: 'bar', barInfo: ...}, function(barRsp) {
-    barRsp is the response from the other end
-  });
+  Or do an RPC with
+    handlers.rpc('foo', 'bar', function(err, info) {
+    });
+  it will call req_foo on the other end with a callback which routes back to the callback above.
 
 
   Info:
@@ -32,7 +31,7 @@ var _                   = require('underscore');
 var logio               = require('./logio');
 var WebSocketHelper     = require('./WebSocketHelper');
 
-var verbose = 2;
+var verbose = 1;
 
 exports.mkWebSocketRpc = mkWebSocketRpc;
 
@@ -136,11 +135,11 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
       pending.add(rpcId, rspFunc);
       handlers.tx({rpcReq: rpcReq, rpcId: rpcId, rpcArgs: rpcArgs});
     };
-    handlers.callback = function(rpcReq) {
+    handlers.callback = function(rpcReq /* ... */) {
       if (arguments.length < 2) throw new Error('rpc: bad args');
+      var rpcId = pending.getNewId();
       var rspFunc = arguments[arguments.length - 1];
       var rpcArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
-      var rpcId = pending.getNewId();
       callbacks[rpcId] = rspFunc;
       handlers.tx({rpcReq: rpcReq, rpcId: rpcId, rpcArgs: rpcArgs});
     };
