@@ -1,4 +1,4 @@
-import sys, ujson
+import sys, ujson, traceback
 
 class stdio_server(object):
 
@@ -12,16 +12,28 @@ class stdio_server(object):
 
             cmdReq = msg.get('cmdReq', None)
             if cmdReq is not None:
-                cmdFunc = getattr(self, 'cmd_' + cmdReq)
-                cmdFunc(*msg.get('cmdArgs', []))
-                continue
+                try:
+                    cmdFunc = getattr(self, 'cmd_' + cmdReq)
+                    cmdFunc(*msg.get('cmdArgs', []))
+                    continue
+                except:
+                    exctype, value, tb = sys.exc_info()
+                    traceback.print_exception(exctype, value, tb, 10, sys.stderr)
+                    continue
 
             rpcReq = msg.get('rpcReq', None)
             if rpcReq is not None:
-                reqFunc = getattr(self, 'req_' + rpcReq)
-                rpcRet = reqFunc(*msg.get('rpcArgs'))
-                self.tx({'rpcId': msg['rpcId'], 'rpcRet': rpcRet })
-                continue
+                try:
+                    reqFunc = getattr(self, 'req_' + rpcReq)
+                    rpcRet = reqFunc(*msg.get('rpcArgs'))
+                    self.tx({'rpcId': msg['rpcId'], 'rpcRet': rpcRet })
+                    continue
+                except:
+                    exctype, value, tb = sys.exc_info()
+                    traceback.print_exception(exctype, value, tb, 10, sys.stderr)
+                    self.tx({'rpcId': msg['rpcId'], 'rpcRet': [str(exctype) + ': ' + str(value)] })
+                    continue
+
 
     def rx(self):
         rx_line = sys.stdin.readline()
