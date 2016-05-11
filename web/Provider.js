@@ -905,13 +905,21 @@ ProviderSet.prototype.handleRequest = function(req, res, suffix) {
     });
     res.write(self.asHtmlGzBuf, 'binary');
     logio.O(remote, self.toString() + ' (200 ' + contentType + ' len=' + this.asHtmlGzBuf.length + ' compressed)');
-  } else {
+  }
+  else if (self.asHtmlBuf) {
     res.writeHead(200, {
       'Content-Type': contentType,
       'Content-Length': self.asHtmlBuf.length.toString(),
       'Vary': 'Accept-Encoding'
     });
     res.write(self.asHtmlBuf, 'binary');
+    logio.O(remote, self.toString() + ' (200 ' + contentType + ' len=' + this.asHtmlBuf.length + ')');
+  }
+  else {
+    res.writeHead(503, {
+      'Content-Type': contentType,
+    });
+    res.write('temporarily unavailable', 'utf8');
     logio.O(remote, self.toString() + ' (200 ' + contentType + ' len=' + this.asHtmlBuf.length + ')');
   }
   res.end();
