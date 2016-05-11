@@ -579,6 +579,7 @@ $.fn.clearSuccessMessage = function() {
 var flashErrorMessageTimeout = null;
 
 $.flashErrorMessage = function(msg) {
+  console.log('Error', msg);
   var fem = $('#flashErrorMessage');
   if (fem.length === 0) {
     fem = $('<div id="flashErrorMessage">').appendTo(document.body);
@@ -981,7 +982,9 @@ BoxLayout.prototype.childBox = function(t, r, b, l) {
 */
 $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   var top = this;
-  top.maximizeCanvasResolution();
+  if (!o.autoSize) {
+    top.maximizeCanvasResolution();
+  }
   var canvas = top[0];
 
   var avgTime = null;
@@ -1105,9 +1108,29 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   });
 
   m.on('animate', function() {
+
+
     var t0 = Date.now();
     drawCount++;
     var ctx = canvas.getContext(o.contextStyle || '2d');
+
+    if (o.autoSize) {
+      var devicePixelRatio = window.devicePixelRatio || 1;
+      var backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
+                               ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1);
+      var ratio = devicePixelRatio / backingStoreRatio;
+      canvas.pixelRatio = ratio;
+      var cssWidth = $(canvas).width();
+      var cssHeight = $(canvas).height();
+      var canvasPixelWidth = Math.floor(cssWidth * ratio);
+      var canvasPixelHeight = Math.floor(cssHeight * ratio);
+      if (canvasPixelWidth != canvas.width || canvasPixelHeight != canvas.height) {
+        canvas.width = cssWidth * ratio;
+        canvas.height = cssHeight * ratio;
+        ctx = canvas.getContext(o.contextStyle || '2d'); // refetch context
+      }
+    };
+
     var pixelRatio = canvas.pixelRatio || 1;
     ctx.save();
     ctx.scale(pixelRatio, pixelRatio);
