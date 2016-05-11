@@ -7,6 +7,8 @@
     - Eliminate subclass
     - Eliminate rsvp
 
+  * Replace websocket & parent/child_pipe rpc protocol with http://www.jsonrpc.org/specification
+
 ### Dv
 
   * Get rid of foreachDv and DvRef. Instead, do dvCount / dvExport / dvImport.
