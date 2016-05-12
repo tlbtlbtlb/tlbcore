@@ -920,7 +920,7 @@ ProviderSet.prototype.handleRequest = function(req, res, suffix) {
       'Content-Type': contentType,
     });
     res.write('temporarily unavailable', 'utf8');
-    logio.O(remote, self.toString() + ' (200 ' + contentType + ' len=' + this.asHtmlBuf.length + ')');
+    logio.O(remote, self.toString() + ' (503 temporarily unavailable)');
   }
   res.end();
 };
