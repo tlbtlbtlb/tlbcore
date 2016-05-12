@@ -4,3 +4,6 @@
 [submodule "web/d3"]
 	path = web/d3
 	url = https://github.com/mbostock/d3.git
+[submodule "web/jQuery-contextMenu"]
+	path = web/jQuery-contextMenu
+	url = git@github.com:medialize/jQuery-contextMenu.git
