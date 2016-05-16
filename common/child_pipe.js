@@ -171,7 +171,9 @@ function mkChildProcessRpc(execCmd, execArgs, handlers) {
     handlers.shutdown = function() {
       shutdownRequested = true;
       logio.O(label, 'Closing pipe');
-      child.stdin.end();
+      if (child && child.stdin) {
+        child.stdin.end();
+      }
     };
     handlers.pending = pending;
     handlers.getPendingCount = function() {
