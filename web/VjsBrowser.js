@@ -527,7 +527,7 @@ $.fn.fmtErrorMessage = function(err) {
   }
 
   if (_.isString(err)) {
-    em.html(err);
+    em.text(err);
   }
   else if (!err) {
     em.html('');
@@ -1069,6 +1069,15 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     }
   });
 
+  top.on('mouseout', function(ev) {
+    hd.mdX = hd.mdY = null;
+    m.emit('changed');
+  });
+
+  top.on('mouseover', function(ev) {
+    m.emit('changed');
+  });
+
   top.on('mouseup', function(ev) {
     hd.mdX = hd.mdY = null;
     hd.buttonDown = false;
@@ -1091,6 +1100,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     m.emit('changed');
     return false;
   });
+
 
   $(window).on('mouseup.mkAnimatedCanvas', function(ev) {
     if (hd.dragCursor) {
