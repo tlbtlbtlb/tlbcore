@@ -990,6 +990,7 @@ BoxLayout.prototype.childBox = function(t, r, b, l) {
 */
 $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   var top = this;
+  if (top.length === 0) return;
   if (!o.autoSize) {
     top.maximizeCanvasResolution();
   }
@@ -1127,7 +1128,6 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
 
   m.on('animate', function() {
 
-
     var t0 = Date.now();
     drawCount++;
     var ctx = canvas.getContext(o.contextStyle || '2d');
@@ -1148,7 +1148,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
         canvas.height = cssHeight * ratio;
         ctx = canvas.getContext(o.contextStyle || '2d'); // refetch context
       }
-    };
+    }
 
     var pixelRatio = canvas.pixelRatio || 1;
     ctx.save();
