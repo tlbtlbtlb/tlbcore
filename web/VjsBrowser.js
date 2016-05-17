@@ -837,7 +837,7 @@ $.fn.animation = function(f, deltat) {
 $.fn.animation2 = function(m) {
   var top = this;
 
-  var lastTime = 0;
+  m.animation2LastTime = 0;
   var mChangeCounter = 0;
   var vChangeCounter = 0;
   var afActive = false;
@@ -847,7 +847,7 @@ $.fn.animation2 = function(m) {
     if (changesPending < 2) changesPending++;
     if (!afActive) {
       afActive = true;
-      lastTime = 0;
+      m.animation2LastTime = 0;
       window.requestAnimationFrame(wrap);
     }
   });
@@ -862,8 +862,8 @@ $.fn.animation2 = function(m) {
     if (vChangeCounter !== mChangeCounter) {
       vChangeCounter = mChangeCounter;
 
-      var dt = (lastTime ? Math.min(curTime - lastTime, 200) : 20) * 0.001;
-      lastTime = curTime;
+      var dt = (m.animation2LastTime ? Math.min(curTime - m.animation2LastTime, 200) : 20) * 0.001;
+      m.animation2LastTime = curTime;
       if (m.animate) m.animate(dt);
       m.emit('animate', dt);
       if (m.postAnimate) m.postAnimate(dt);
@@ -899,14 +899,22 @@ function BoxLayout(t, r, b, l, pixelRatio) {
   this.thinWidth = 1 / pixelRatio;
   if (pixelRatio >= 2) {
     this.lrgFont = '20px Arial';
+    this.lrgSize = 20;
     this.medFont = '10px Arial';
+    this.medSize = 10;
     this.smlFont = '9px Arial';
+    this.smlSize = 9;
     this.tinyFont = '7px Arial';
+    this.tinySize = 7;
   } else {
     this.lrgFont = '25px Arial';
+    this.lrgSize = 25;
     this.medFont = '12px Arial';
+    this.medSize = 12;
     this.smlFont = '10px Arial';
+    this.smlSize = 10;
     this.tinyFont = '8px Arial';
+    this.tinySize = 8;
   }
 }
 
@@ -1130,8 +1138,9 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
                                ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1);
       var ratio = devicePixelRatio / backingStoreRatio;
       canvas.pixelRatio = ratio;
-      var cssWidth = $(canvas).width();
-      var cssHeight = $(canvas).height();
+      var cssWidth = o.autoSizeToParent ? $(canvas).parent().width() : $(canvas).width();
+      var cssHeight = o.autoSizeToParent ? $(canvas).parent().height() : $(canvas).height();
+      if (0) console.log('autoSize', cssWidth, cssHeight);
       var canvasPixelWidth = Math.floor(cssWidth * ratio);
       var canvasPixelHeight = Math.floor(cssHeight * ratio);
       if (canvasPixelWidth != canvas.width || canvasPixelHeight != canvas.height) {
