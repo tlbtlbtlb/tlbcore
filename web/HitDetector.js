@@ -51,10 +51,12 @@ HitDetector.prototype.add = function(t, r, b, l, actions) {
   if (actions.onClick || actions.onDown || actions.onUp) {
     hd.hits.push({t: t, r: r, b :b, l: l, actions: actions});
   }
-  if (actions.draw) {
+  if (actions.draw || actions.drawDown) {
     hd.ctx.save();
-    if (!(hd.buttonDown && inside)) hd.ctx.globalAlpha = 0.5;
-    actions.draw();
+    var down = hd.buttonDown && inside;
+    if (!down) hd.ctx.globalAlpha = 0.5;
+    if (actions.draw) actions.draw();
+    if (down && actions.drawDown) actions.drawDown();
     hd.ctx.restore();
   }
   else if (actions.drawCustom) {
