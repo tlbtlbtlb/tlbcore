@@ -159,7 +159,7 @@ function fmtHashOptions(pageid, o) {
   if (humanUrl) {
     var optionsEnc = humanUrl.fmt(o);
     if (optionsEnc !== null) {
-      return '#' + pageid + '_' + encodeURIComponent(optionsEnc);
+      return '#' + pageid + '_' + encodeURIComponent(optionsEnc).replace('%3D', '=');
     }
   }
   var oStr = o ? JSON.stringify(o) : '';
@@ -1149,6 +1149,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
         ctx = canvas.getContext(o.contextStyle || '2d'); // refetch context
       }
     }
+    if (canvas.width === 0 || canvas.height === 0) return;
 
     var pixelRatio = canvas.pixelRatio || 1;
     ctx.save();
