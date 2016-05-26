@@ -42,6 +42,9 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
   var rxBinaries = [];
 
   setupHandlers();
+  if (handlers.start) {
+    handlers.start();
+  }
   if (handlers.grabAuth) {
     handlers.grabAuth(wsr.httpRequest);
   }
@@ -146,7 +149,6 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     handlers.tx = function(msg) {
       emitMsg(msg);
     };
-    if (handlers.start) handlers.start();
   }
 
   function emitMsg(msg) {

@@ -281,13 +281,20 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
       return;
     }
 
+    var handlers = handlersFunc();
+    if (handlers.capacityCheck) {
+      if (!handlers.capacityCheck()) {
+        logio.O(wsr.remoteLabel, 'Reject due to capacityCheck');
+        wsr.reject();
+        return;
+      }
+    }
     var wsc = wsr.accept(null, wsr.origin);
     if (!wsc) {
       logio.E('ws', 'wsr.accept failed');
       return;
     }
 
-    var handlers = handlersFunc();
     WebSocketServer.mkWebSocketRpc(wsr, wsc, handlers);
   }
 
