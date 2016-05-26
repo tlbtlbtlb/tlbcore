@@ -3,7 +3,9 @@ import sys, ujson, traceback
 class stdio_server(object):
 
     def __init__(self):
-        pass
+        self.pipein = sys.stdin
+        self.pipeout = sys.stdout
+        sys.stdout = sys.stderr   # so print works
 
     def run(self):
         while True:
@@ -36,7 +38,7 @@ class stdio_server(object):
 
 
     def rx(self):
-        rx_line = sys.stdin.readline()
+        rx_line = self.pipein.readline()
         if len(rx_line) == 0: return None # EOF
         msg = ujson.decode(rx_line)
         return msg
@@ -46,6 +48,6 @@ class stdio_server(object):
 
     def tx(self, msg):
         tx_line = ujson.encode(msg, escape_forward_slashes=False)
-        sys.stdout.write(tx_line)
-        sys.stdout.write('\n')
-        sys.stdout.flush()
+        self.pipeout.write(tx_line)
+        self.pipeout.write('\n')
+        self.pipeout.flush()
