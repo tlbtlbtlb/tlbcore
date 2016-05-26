@@ -159,7 +159,7 @@ function fmtHashOptions(pageid, o) {
   if (humanUrl) {
     var optionsEnc = humanUrl.fmt(o);
     if (optionsEnc !== null) {
-      return '#' + pageid + '_' + encodeURIComponent(optionsEnc).replace('%3D', '=');
+      return '#' + pageid + '_' + encodeURIComponent(optionsEnc).replace(/%3D/g, '=');
     }
   }
   var oStr = o ? JSON.stringify(o) : '';
