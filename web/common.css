@@ -155,7 +155,7 @@ blockquote {
     border-radius: 10px;
     border: 2px solid #558855;
 }
-.SuccessMessage {
+.successMessage {
     font-family: "Source Sans Pro", "Helvetica", "Arial", sans-serif;
     font-weight: bold;
     font-size: 24px;
