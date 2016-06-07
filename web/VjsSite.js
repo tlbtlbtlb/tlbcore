@@ -209,7 +209,10 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
 
   webServer.servers.push(httpServer);
 
-  var ws = new websocket.server({httpServer: httpServer});
+  var ws = new websocket.server({
+    httpServer: httpServer,
+    maxReceivedFrameSize: 1024*1024,
+  });
   ws.on('request', wsRequestHandler);
   webServer.servers.push(ws);
 

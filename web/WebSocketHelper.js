@@ -16,6 +16,7 @@ var _                   = require('underscore');
 exports.stringify = stringify;
 exports.parse = parse;
 exports.RpcPendingQueue = RpcPendingQueue;
+exports.isRpcProgressArgs = isRpcProgressArgs;
 
 function stringify(msg, binaries) {
 
@@ -145,6 +146,17 @@ RpcPendingQueue.prototype.get = function(rspId) {
   return null;
 };
 
+RpcPendingQueue.prototype.getPreserve = function(rspId) {
+  for (var i=0; i<this.pending.length; i++) {
+    if (this.pending[i] && this.pending[i].rspId === rspId) {
+      var ret = this.pending[i].rspFunc;
+      return ret;
+    }
+  }
+  return null;
+};
+
+
 RpcPendingQueue.prototype.add = function(rspId, rspFunc) {
   if (this.pending.length % 32 === 31) {
     this.pending = _.filter(this.pending, function(x) { return x !== null; });
@@ -156,3 +168,6 @@ RpcPendingQueue.prototype.add = function(rspId, rspFunc) {
   }
 };
 
+function isRpcProgressArgs(rpcRet) {
+  return (rpcRet.length > 0 && typeof rpcRet[0] === 'string' && rpcRet[0][0] === '*');
+}

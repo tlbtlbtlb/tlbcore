@@ -94,7 +94,9 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
       try {
         reqFunc.apply(handlers, msg.rpcArgs.concat([function(/* ... */) {
           var rpcRet = Array.prototype.slice.call(arguments, 0);
-          done = true;
+          if (!(rpcRet.length > 0 && rpcRet[0] === 'progress')) {
+            done = true;
+          }
           handlers.tx({ rpcId: msg.rpcId, rpcRet: rpcRet });
         }]));
       } catch(ex) {
@@ -106,8 +108,13 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
       }
     }
     else if (msg.rpcId) {
-      var rpcCb = callbacks[msg.rpcId];
-      if (!rpcCb) rpcCb = pending.get(msg.rpcId);
+      var rpcRet = msg.rpcRet || [];
+      var rpcCb;
+      if (rpcRet.length > 0 && rpcRet[0] === 'progress') {
+        rpcCb = pending.getPreserve(msg.rpcId);
+      } else {
+        rpcCb = pending.get(msg.rpcId);
+      }
       if (!rpcCb) {
         if (verbose >= 1) logio.E(handlers.label, 'Unknown response', msg.rpcId);
         return;
