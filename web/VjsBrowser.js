@@ -1037,7 +1037,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       if (deltas) {
         var scrollRate = Math.min(15, Math.max(Math.abs(deltas.x), Math.abs(deltas.y)));
         action.onScroll(deltas.x*scrollRate, deltas.y*scrollRate);
-        m.emit('changed');
+        requestAnimationFrame(redrawCanvas);
       }
       return false;
     }
@@ -1051,6 +1051,9 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
         hd.buttonDown = true;
         hd.mdX = md.x;
         hd.mdY = md.y;
+        hd.shiftKey = ev.shiftKey;
+        hd.altKey = ev.altKey;
+        hd.ctrlKey = ev.ctrlKey;
         if (action.onDown) {
           action.onDown(hd.mdX, hd.mdY, ev);
           if (hd.dragging && hd.dragCursor) {
@@ -1061,7 +1064,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
         }
       }
     }
-    m.emit('changed');
+    requestAnimationFrame(redrawCanvas);
     return false;
   });
 
@@ -1071,24 +1074,30 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     if (hd.buttonDown || hd.hoverActive || hd.dragging || (action && action.onHover)) {
       hd.mdX = md.x;
       hd.mdY = md.y;
+      hd.shiftKey = ev.shiftKey;
+      hd.altKey = ev.altKey;
+      hd.ctrlKey = ev.ctrlKey;
       if (hd.dragging) {
         hd.dragging(hd.mdX, hd.mdY, true);
       }
-      m.emit('changed');
+      requestAnimationFrame(redrawCanvas);
     }
   });
 
   top.on('mouseout', function(ev) {
     hd.mdX = hd.mdY = null;
-    m.emit('changed');
+    requestAnimationFrame(redrawCanvas);
   });
 
   top.on('mouseover', function(ev) {
-    m.emit('changed');
+    requestAnimationFrame(redrawCanvas);
   });
 
   top.on('mouseup', function(ev) {
     hd.mdX = hd.mdY = null;
+    hd.shiftKey = ev.shiftKey;
+    hd.altKey = ev.altKey;
+    hd.ctrlKey = ev.ctrlKey;
     hd.buttonDown = false;
     var md = eventOffsets(ev);
     var action = hd.find(md.x, md.y);
@@ -1106,7 +1115,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       hd.dragging(hd.mdX, hd.mdY, false);
       hd.dragging = null;
     }
-    m.emit('changed');
+    requestAnimationFrame(redrawCanvas);
     return false;
   });
 
@@ -1126,7 +1135,9 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     $(window).off('mouseup.mkAnimatedCanvas');
   });
 
-  m.on('animate', function() {
+  m.on('animate', redrawCanvas);
+
+  function redrawCanvas() {
 
     var t0 = Date.now();
     drawCount++;
@@ -1192,7 +1203,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     }
     hd.endDrawing();
     ctx.restore();
-  });
+  }
 };
 
 
