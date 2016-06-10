@@ -7,6 +7,7 @@ var util                = require('util');
 var http                = require('http');
 var https               = require('https');
 var fs                  = require('fs');
+var os                  = require('os');
 var url                 = require('url');
 var path                = require('path');
 var websocket           = require('websocket');
@@ -139,6 +140,38 @@ WebServer.prototype.setupStdContent = function(prefix) {
   webServer.setUrl(prefix+'spinner-lib/spinner24.gif', require.resolve('./spinner-lib/spinner24.gif'));
   webServer.setUrl(prefix+'spinner-lib/spinner32t.gif', require.resolve('./spinner-lib/spinner32t.gif'));
   webServer.setUrl(prefix+'images/icons.png', require.resolve('./images/ui-icons_888888_256x240.png'));
+
+  webServer.setUrl(prefix+'healthcheck', {
+    on: function() {},
+    isDir: function() { return false; },
+    getStats: function() { return {}; },
+    handleRequest: function(req, res, suffix) {
+      webServer.getContentStats(function(err, cs) {
+        if (err) {
+          res.writeHead(500, {'Content-Type': 'text/json'});
+          res.write(JSON.stringify({
+            status: 'fail',
+            timestamp: Date.now()*0.001,
+            hostname: os.hostname(),
+            results: [],
+          }));
+          res.end();
+          return;
+        }
+
+        res.writeHead(200, {'Content-Type': 'text/json'});
+        res.write(JSON.stringify({
+          status: 'success',
+          timestamp: Date.now()*0.001,
+          hostname: os.hostname(),
+          results: [],
+          // Don't leak this
+          // stats: cs,
+        }));
+        res.end();
+      });
+    }
+  });
 };
 
 WebServer.prototype.setupContent = function(dirs) {
