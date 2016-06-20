@@ -1455,7 +1455,7 @@ function errlog() {
     }
     if (stack) err += '\n' + stack.toString();
 
-    window.rconsole.tx({cmd: 'errlog', args: {err: err, ua: navigator.userAgent}});
+    window.rconsole.tx({cmdReq: 'errlog', cmdArgs: [{err: err, ua: navigator.userAgent}]});
   }
 }
 
