@@ -195,13 +195,13 @@ function withJsWrapUtils(f, typereg) {
     });
 
     f.jsBindings.push(function(f) {
-      f('tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "' + name + '"), FunctionTemplate::New(isolate, jsWrap_JSTYPE_' + name + ')->GetFunction());');
+      f('NODE_SET_PROTOTYPE_METHOD(tpl, "' + name + '", &jsWrap_JSTYPE_' + name + ');');
     });
   };
 
   f.emitJsMethodAlias = function(jsName, cName) {
     f.jsBindings.push(function(f) {
-      f('tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "' + jsName + '"), FunctionTemplate::New(isolate, jsWrap_JSTYPE_' + cName + ')->GetFunction());');
+      f('NODE_SET_PROTOTYPE_METHOD(tpl, "' + jsName + '", &jsWrap_JSTYPE_' + cName + ');');
     });
   };
 
