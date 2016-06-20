@@ -259,9 +259,9 @@ StructCType.prototype.emitTypeDecl = function(f) {
   f('// IO');
   f('ostream & operator<<(ostream &s, const TYPENAME &obj);');
   if (!type.noSerialize) {
-    f('void wrJson(char *&s, TYPENAME const &obj);');
-    f('bool rdJson(char const *&s, TYPENAME &obj);');
-    f('void wrJsonSize(size_t &size, TYPENAME const &x);');
+    f('void wrJson(char *&s, jsonblobs *blobs, TYPENAME const &obj);');
+    f('bool rdJson(char const *&s, jsonblobs *blobs, TYPENAME &obj);');
+    f('void wrJsonSize(size_t &size, jsonblobs *blobs, TYPENAME const &x);');
 
     f('void wrJsonBulk(char *&s, vector<double> &bulkNumber, vector<TYPENAME> const &obj);');
     f('bool rdJsonBulk(const char *&s, vector<double> &bulkNumber, vector<TYPENAME> &obj);');
@@ -557,64 +557,18 @@ StructCType.prototype.emitWrJson = function(f) {
     f2('size += ' + (new Buffer(s, 'utf8').length + 2).toString() + ';');
   }
 
-  f('void wrJson(char *&s, TYPENAME const &obj) {');
   var f1 = f.child();
   f('}');
-  f('void wrJsonSize(size_t &size, TYPENAME const &obj) {');
   var f2 = f.child();
   f('}');
 
   emitstr('{"__type":"' + type.jsTypename + '"');
   _.each(type.orderedNames, function(name, namei) {
     emitstr(',\"' + name + '\":');
-    f1('wrJson(s, obj.' + name + ');');
-    f2('wrJsonSize(size, obj.' + name + ');');
-  });
-  f1('*s++ = \'}\';');
-  f2('size += 1;');
 
-  var rm = type.getRecursiveMembers();
 
-  f('void wrJsonBulk(char *&s,  vector<double> &bulkNumber, vector<TYPENAME> const &obj) {');
-  f1 = f.child();
-  f('}');
-  f('void wrJsonBulkSize(size_t &size, size_t &bulkNumberSize, vector<TYPENAME> const &obj) {');
-  f2 = f.child();
-  f('}');
 
-  emitstr('{"__type":"vector_' + type.jsTypename + '"');
-  _.each(rm, function(members, et) {
-    var ett = type.reg.types[et];
-    _.each(members, function(names) {
-      if (ett.typename === 'double' || ett.typename === 'float' ||
-          ett.typename === 'S64' || ett.typename === 'S32' ||
-          ett.typename === 'U64' || ett.typename === 'U32') {
-        f1('s += snprintf(s, 50, ",{\\"bulkNumber\\":%lu,\\"size\\":%lu}", (unsigned long)bulkNumber.size(), (unsigned long)obj.size());');
-        f1('for (auto &it : obj) {')
-        f1('bulkNumber.push_back((double)it.' + mkMemberRef(names) + ');');
-        f1('}');
 
-        f2('size += 50;');
-        f2('bulkNumberSize += obj.size();');
-
-      }
-      else {
-        f1('{');
-        f1('vector< ' + ett.typename + ' > slice;');
-        f1('for (auto &it : obj) {')
-        f1('slice.push_back(it.' + mkMemberRef(names) + ');');
-        f1('}');
-        f1('wrJson(s, slice);');
-        f1('}');
-
-        f2('{');
-        f2('vector< ' + ett.typename + ' > slice;');
-        f2('for (auto &it : obj) {')
-        f2('slice.push_back(it.' + mkMemberRef(names) + ');');
-        f2('}');
-        f2('wrJsonSize(size, slice);');
-        f2('}');
-      }
     });
   });
   f1('*s++ = \'}\';');
@@ -630,7 +584,6 @@ StructCType.prototype.emitRdJson = function(f) {
   _.each(type.orderedNames, function(name) {
     if (!type.nameToType[name].isPtr()) {
       actions['"' + name + '" :'] = function() {
-        f('if (rdJson(s, obj.' + name + ')) {');
         f('jsonSkipSpace(s);');
         f('c = *s++;');
         f('if (c == \',\') continue;');
@@ -646,7 +599,6 @@ StructCType.prototype.emitRdJson = function(f) {
     f('if (c == \'}\') return typeOk;');
   };
 
-  f('bool rdJson(char const *&s, TYPENAME &obj) {');
   f('bool typeOk = false;');
   f('char c;');
   f('jsonSkipSpace(s);');
@@ -843,7 +795,6 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: ['string'], returnType: type, code: function(f) {
           f('const char *a0s = a0.c_str();');
-          f('bool ok = rdJson(a0s, ret);');
           f('if (!ok) return ThrowInvalidArgs(isolate);');
         }}
       ]);

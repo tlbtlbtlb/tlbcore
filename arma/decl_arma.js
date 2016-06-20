@@ -236,4 +236,9 @@ module.exports = function(typereg) {
   typereg.getType('arma::Row<arma::cx_double>').jsTypename = 'cx_rowvec';
   typereg.getType('arma::Mat<arma::cx_double>').jsTypename = 'cx_mat';
 
+
+  typereg.struct('ndarray',
+    ['partno', 'U64'],
+    ['dtype', 'string'],
+    ['shape', 'vector<U64>']);
 };
