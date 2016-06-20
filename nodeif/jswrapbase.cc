@@ -214,7 +214,7 @@ arma::Col<T> convJsToArmaCol(Isolate *isolate, Local<Value> itv) {
 
       arma::Col<T> ret(itLen);
       for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
-      delete itData;
+      delete [] itData;
       return ret;
     }
 
@@ -226,7 +226,7 @@ arma::Col<T> convJsToArmaCol(Isolate *isolate, Local<Value> itv) {
 
       arma::Col<T> ret(itLen);
       for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
-      delete itData;
+      delete [] itData;
       return ret;
     }
 
@@ -257,7 +257,7 @@ arma::Row<T> convJsToArmaRow(Isolate *isolate, Local<Value> itv) {
 
       arma::Row<T> ret(itLen);
       for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
-      delete itData;
+      delete [] itData;
       return ret;
     }
 
@@ -269,7 +269,7 @@ arma::Row<T> convJsToArmaRow(Isolate *isolate, Local<Value> itv) {
 
       arma::Row<T> ret(itLen);
       for (size_t i=0; i<itLen; i++) ret(i) = itData[i];
-      delete itData;
+      delete [] itData;
       return ret;
     }
 
@@ -446,4 +446,3 @@ template bool canConvJsToArmaRow<arma::cx_double>(Isolate *isolate, Local<Value>
 template bool canConvJsToArmaMat<arma::cx_double>(Isolate *isolate, Local<Value> it);
 //template arma::Mat<arma::cx_double> convJsToArmaMat<arma::cx_double>(Isolate *isolate, Local<Value> it, size_t nRows, size_t nCols);
 //template Local<Object> convArmaMatToJs<arma::cx_double>(Isolate *isolate, arma::Mat<arma::cx_double> const &it);
-
