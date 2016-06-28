@@ -299,14 +299,14 @@ bool jsonMatchKey(char const *&s, char const *pattern)
 
 string ndarray_dtype(const double &x)   { return "float64";}
 string ndarray_dtype(const float &x)    { return "float32";}
-string ndarray_dtype(const uint8_t &x)  { return "uint8";}
-string ndarray_dtype(const uint16_t &x) { return "uint16";}
-string ndarray_dtype(const uint32_t &x) { return "uint32";}
-string ndarray_dtype(const uint64_t &x) { return "uint64";}
-string ndarray_dtype(const int8_t &x)   { return "int8";}
-string ndarray_dtype(const int16_t &x)  { return "int16";}
-string ndarray_dtype(const int32_t &x)  { return "int32";}
-string ndarray_dtype(const int64_t &x)  { return "int64";}
+string ndarray_dtype(const U8 &x)  { return "uint8";}
+string ndarray_dtype(const U16 &x) { return "uint16";}
+string ndarray_dtype(const U32 &x) { return "uint32";}
+string ndarray_dtype(const U64 &x) { return "uint64";}
+string ndarray_dtype(const S8 &x)   { return "int8";}
+string ndarray_dtype(const S16 &x)  { return "int16";}
+string ndarray_dtype(const S32 &x)  { return "int32";}
+string ndarray_dtype(const S64 &x)  { return "int64";}
 string ndarray_dtype(const arma::cx_double &x)  { return "complex64";}
 
 /* ----------------------------------------------------------------------
@@ -829,7 +829,7 @@ ostream & operator<<(ostream &s, const jsonstr &obj)
 template<typename T>
 void wrJsonSize(size_t &size, jsonblobs *blobs, arma::Col<T> const &arr) {
   if (blobs) {
-    ndarray rep(9999, ndarray_dtype(arr[0]), vector<uint64_t>({arr.n_elem}));
+    ndarray rep(9999, ndarray_dtype(arr[0]), vector<U64>({arr.n_elem}));
     wrJsonSize(size, nullptr, rep);
   } else {
     size += 2 + arr.n_elem; // brackets, commas
@@ -842,7 +842,7 @@ void wrJsonSize(size_t &size, jsonblobs *blobs, arma::Col<T> const &arr) {
 template<typename T>
 void wrJson(char *&s, jsonblobs *blobs, arma::Col<T> const &arr) {
   if (blobs) {
-    ndarray rep(blobs->partCount(), ndarray_dtype(arr[0]), vector<uint64_t>({arr.n_elem}));
+    ndarray rep(blobs->partCount(), ndarray_dtype(arr[0]), vector<U64>({arr.n_elem}));
     blobs->setPartPtr(rep.partno, (u_char const *)&arr[0], arr.n_elem * sizeof(arr[0]));
     wrJson(s, nullptr, rep);
   } else {
