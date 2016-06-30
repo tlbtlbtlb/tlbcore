@@ -4,12 +4,12 @@ var assert              = require('assert');
 module.exports = function(typereg) {
   /*
      These are not correct prototypes: for example, they neglect that the functions are all in the arma namespace.
-     The real prototypes are most template functions.
+     The real prototypes are mostly template functions.
      But they're good enough for gen_marshall to construct a wrapper to call them this way.
      It seems too complicated to extract these from the armadillo header files
   */
   // u_int must come first so that C declarations are found properly, since it's the return type of other comparisons
-  _.each(['U64', 'double', 'S64', 'arma::cx_double'], function(et) {
+  _.each(['U32', 'U64', 'double', 'S64', 'arma::cx_double'], function(et) {
     var rTypename, cTypename, mTypename, srTypename, scTypename;
     var rType, cType, mType, srType, scType;
     _.each([0,2,3,4], function(rowFixed) {
@@ -76,7 +76,7 @@ module.exports = function(typereg) {
         cType.addDeclDependency(srType);
         cType.addDeclDependency(scType);
 
-        var isInteger = (et === 'S64' || et === 'U64');
+        var isInteger = (et === 'S64' || et === 'U64' || et == 'U32' || et == 'S32');
         var isComplex = (et === 'arma::cx_double');
         if (!isInteger) {
           typereg.scanCFunctions(mTypename + ' inv(' + mTypename + ' a);');
@@ -171,27 +171,27 @@ module.exports = function(typereg) {
             'arma::Col<ET> operator - (arma::Col<ET> a, arma::Col<ET> b);',
             //'ET operator - (ET a, ET b);',
 
-            'arma::Mat<U64> operator == (arma::Mat<ET> a, arma::Mat<ET> b);',
-            'arma::Col<U64> operator == (arma::Col<ET> a, arma::Col<ET> b);',
-            isComplex ? '' : 'arma::Mat<U64> operator >= (arma::Mat<ET> a, arma::Mat<ET> b);',
-            isComplex ? '' : 'arma::Col<U64> operator >= (arma::Col<ET> a, arma::Col<ET> b);',
-            isComplex ? '' : 'arma::Mat<U64> operator <= (arma::Mat<ET> a, arma::Mat<ET> b);',
-            isComplex ? '' : 'arma::Col<U64> operator <= (arma::Col<ET> a, arma::Col<ET> b);',
-            'arma::Mat<U64> operator != (arma::Mat<ET> a, arma::Mat<ET> b);',
-            'arma::Col<U64> operator != (arma::Col<ET> a, arma::Col<ET> b);',
-            isComplex ? '' : 'arma::Mat<U64> operator < (arma::Mat<ET> a, arma::Mat<ET> b);',
-            isComplex ? '' : 'arma::Col<U64> operator < (arma::Col<ET> a, arma::Col<ET> b);',
-            isComplex ? '' : 'arma::Mat<U64> operator > (arma::Mat<ET> a, arma::Mat<ET> b);',
-            isComplex ? '' : 'arma::Col<U64> operator > (arma::Col<ET> a, arma::Col<ET> b);',
+            'arma::Mat<U32> operator == (arma::Mat<ET> a, arma::Mat<ET> b);',
+            'arma::Col<U32> operator == (arma::Col<ET> a, arma::Col<ET> b);',
+            isComplex ? '' : 'arma::Mat<U32> operator >= (arma::Mat<ET> a, arma::Mat<ET> b);',
+            isComplex ? '' : 'arma::Col<U32> operator >= (arma::Col<ET> a, arma::Col<ET> b);',
+            isComplex ? '' : 'arma::Mat<U32> operator <= (arma::Mat<ET> a, arma::Mat<ET> b);',
+            isComplex ? '' : 'arma::Col<U32> operator <= (arma::Col<ET> a, arma::Col<ET> b);',
+            'arma::Mat<U32> operator != (arma::Mat<ET> a, arma::Mat<ET> b);',
+            'arma::Col<U32> operator != (arma::Col<ET> a, arma::Col<ET> b);',
+            isComplex ? '' : 'arma::Mat<U32> operator < (arma::Mat<ET> a, arma::Mat<ET> b);',
+            isComplex ? '' : 'arma::Col<U32> operator < (arma::Col<ET> a, arma::Col<ET> b);',
+            isComplex ? '' : 'arma::Mat<U32> operator > (arma::Mat<ET> a, arma::Mat<ET> b);',
+            isComplex ? '' : 'arma::Col<U32> operator > (arma::Col<ET> a, arma::Col<ET> b);',
             //'bool operator == (ET a, ET b);',
 
-            'arma::Row<U64> any(arma::Mat<U64> a);',
-            'U64 any(arma::Row<U64> a);',
-            'U64 any(arma::Col<U64> a);',
+            'arma::Row<U32> any(arma::Mat<U64> a);',
+            'bool any(arma::Row<U64> a);',
+            'bool any(arma::Col<U64> a);',
 
-            'arma::Row<U64> all(arma::Mat<U64> a);',
-            'U64 all(arma::Row<U64> a);',
-            'U64 all(arma::Col<U64> a);',
+            'arma::Row<U32> all(arma::Mat<U64> a);',
+            'bool all(arma::Row<U64> a);',
+            'bool all(arma::Col<U64> a);',
 
           ].join('\n').replace(/ET/g, et));
         }
