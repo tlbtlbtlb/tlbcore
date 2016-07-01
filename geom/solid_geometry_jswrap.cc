@@ -257,19 +257,18 @@ void jsInit_StlSolid(Handle<Object> exports) {
   tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "bboxHi"), &jsGet_StlSolid_bboxHi);
   tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "numFaces"), &jsGet_StlSolid_numFaces);
 
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toString"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_toString)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "inspect"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_inspect)->GetFunction());
+  NODE_SET_PROTOTYPE_METHOD(tpl, "toString", &jsWrap_StlSolid_toString);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "inspect", &jsWrap_StlSolid_inspect);
 
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "readBinaryFile"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_readBinaryFile)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "writeBinaryFile"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_writeBinaryFile)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "transform"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_transform)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "getStlMassProperties"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_getStlMassProperties)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "getIntersections"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_getIntersections)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "removeTinyFaces"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_removeTinyFaces)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "exportWebglMesh"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_exportWebglMesh)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "analyzeHole"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_analyzeHole)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "estimateVolume"), FunctionTemplate::New(isolate, &jsWrap_StlSolid_estimateVolume)->GetFunction());
-
+  NODE_SET_PROTOTYPE_METHOD(tpl, "readBinaryFile", &jsWrap_StlSolid_readBinaryFile);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "writeBinaryFile", &jsWrap_StlSolid_writeBinaryFile);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "transform", &jsWrap_StlSolid_transform);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "getStlMassProperties", &jsWrap_StlSolid_getStlMassProperties);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "getIntersections", &jsWrap_StlSolid_getIntersections);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "removeTinyFaces", &jsWrap_StlSolid_removeTinyFaces);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "exportWebglMesh", &jsWrap_StlSolid_exportWebglMesh);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "analyzeHole", &jsWrap_StlSolid_analyzeHole);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "estimateVolume", &jsWrap_StlSolid_estimateVolume);
   JsWrap_StlSolid::constructor.Reset(isolate, tpl->GetFunction());
   exports->Set(String::NewFromUtf8(isolate, "StlSolid"), tpl->GetFunction());
 }
@@ -385,11 +384,11 @@ void jsInit_StlFace(Handle<Object> exports) {
   tpl->SetClassName(String::NewFromUtf8(isolate, "StlFace"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "getArea"), FunctionTemplate::New(isolate, &jsWrap_StlFace_getArea)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "getE1"), FunctionTemplate::New(isolate, &jsWrap_StlFace_getE1)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "getE2"), FunctionTemplate::New(isolate, &jsWrap_StlFace_getE2)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "isDegenerate"), FunctionTemplate::New(isolate, &jsWrap_StlFace_isDegenerate)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "getCentroid"), FunctionTemplate::New(isolate, &jsWrap_StlFace_getCentroid)->GetFunction());
+  NODE_SET_PROTOTYPE_METHOD(tpl, "getArea", &jsWrap_StlFace_getArea);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "getE1", &jsWrap_StlFace_getE1);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "getE2", &jsWrap_StlFace_getE2);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "isDegenerate", &jsWrap_StlFace_isDegenerate);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "getCentroid", &jsWrap_StlFace_getCentroid);
 
   JsWrap_StlFace::constructor.Reset(isolate, tpl->GetFunction());
   exports->Set(String::NewFromUtf8(isolate, "StlFace"), tpl->GetFunction());
@@ -511,8 +510,8 @@ void jsInit_StlMassProperties(Handle<Object> exports) {
   tpl->SetClassName(String::NewFromUtf8(isolate, "StlMassProperties"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "toString"), FunctionTemplate::New(isolate, &jsWrap_StlMassProperties_toString)->GetFunction());
-  tpl->PrototypeTemplate()->Set(String::NewFromUtf8(isolate, "inspect"), FunctionTemplate::New(isolate, &jsWrap_StlMassProperties_inspect)->GetFunction());
+  NODE_SET_PROTOTYPE_METHOD(tpl, "toString", &jsWrap_StlMassProperties_toString);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "inspect", &jsWrap_StlMassProperties_inspect);
 
   tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "density"), &jsGet_StlMassProperties_density);
   tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "volume"), &jsGet_StlMassProperties_volume);

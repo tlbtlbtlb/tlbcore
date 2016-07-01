@@ -41,7 +41,7 @@ install.ubuntu ::
 	sudo apt-get update
 	sudo apt-get -y install git make python-software-properties python g++ make software-properties-common curl pwgen
 	sudo apt-get -y install nodejs
-	sudo apt-get -y install liblapack-dev pkg-config cmake libarmadillo-dev libzmqpp-dev
+	sudo apt-get -y install liblapack-dev pkg-config cmake libopenblas-dev liblapack-dev libarpack2-dev libarmadillo-dev libzmqpp-dev
 
 install.brew ::
 	brew install rename zopfli ffmpeg trash node tree ack hub git zmq zmqpp
