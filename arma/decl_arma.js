@@ -171,6 +171,7 @@ module.exports = function(typereg) {
             'arma::Col<ET> operator - (arma::Col<ET> a, arma::Col<ET> b);',
             //'ET operator - (ET a, ET b);',
 
+            // These fail on 64 bit installations with Arma 4.2, but work with with Arma 7.2.
             'arma::Mat<U64> operator == (arma::Mat<ET> a, arma::Mat<ET> b);',
             'arma::Col<U64> operator == (arma::Col<ET> a, arma::Col<ET> b);',
             isComplex ? '' : 'arma::Mat<U64> operator >= (arma::Mat<ET> a, arma::Mat<ET> b);',
