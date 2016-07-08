@@ -208,7 +208,7 @@ CType.prototype.refRecursiveMember = function(context) {
 
 CType.prototype.emitHeader = function(f) {
   var type = this;
-  f('#include "tlbcore/common/jsonio.h"');
+  f('#include "common/jsonio.h"');
   type.emitForwardDecl(f);
   _.each(type.getHeaderIncludes(), function(l) {
     f(l);
@@ -219,7 +219,7 @@ CType.prototype.emitHeader = function(f) {
 
 CType.prototype.emitHostCode = function(f) {
   var type = this;
-  f('#include "tlbcore/common/std_headers.h"');
+  f('#include "common/std_headers.h"');
   var fns = type.getFns();
   if (fns.typeHeader) {
     f('#include "' + fns.typeHeader + '"');
@@ -256,8 +256,8 @@ CType.prototype.emitJsWrapHeader = function(f) {
 
 CType.prototype.emitJsWrapCode = function(f) {
   var type = this;
-  f('#include "tlbcore/common/std_headers.h"');
-  f('#include "tlbcore/nodeif/jswrapbase.h"');
+  f('#include "common/std_headers.h"');
+  f('#include "nodebase/jswrapbase.h"');
   var fns = type.getFns();
   if (fns.typeHeader) {
     f('#include "' + fns.typeHeader + '"');
@@ -275,7 +275,7 @@ CType.prototype.emitJsWrapCode = function(f) {
   });
   f('#include "' + type.getFns().jsWrapHeader + '"');
   f('#include "vec_jsWrap.h"');
-  f('#include "build.src/map_string_jsonstr_jsWrap.h"');  
+  f('#include "build.src/map_string_jsonstr_jsWrap.h"');
   f('');
   type.emitJsWrapImpl(f);
 };

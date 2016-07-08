@@ -898,6 +898,7 @@ bool rdJson(const char *&s, jsonblobs *blobs, arma::Col<T> &arr) {
     if (arr_dtype == rep.dtype) {
       // FIXME: copy
       assert(0);
+      return false;
     }
     else {
       return false;

@@ -1,6 +1,6 @@
 #include "./std_headers.h"
 #include <node.h>
-#include "../nodeif/jswrapbase.h"
+#include "../nodebase/jswrapbase.h"
 
 static void ur_jumpConsistentHash(FunctionCallbackInfo<Value> const &args)
 {

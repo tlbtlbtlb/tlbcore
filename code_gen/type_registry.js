@@ -150,8 +150,8 @@ TypeRegistry.prototype.emitAll = function(files) {
 TypeRegistry.prototype.emitJsBoot = function(files) {
   var typereg = this;
   var f = files.getFile('jsboot_' + typereg.groupname + '.cc');
-  f('#include "tlbcore/common/std_headers.h"');
-  f('#include "tlbcore/nodeif/jswrapbase.h"');
+  f('#include "common/std_headers.h"');
+  f('#include "nodebase/jswrapbase.h"');
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
     if (type.hasJsWrapper()) {
@@ -183,8 +183,8 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
 TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
   var typereg = this;
   var f = files.getFile('functions_' + typereg.groupname + '_jsWrap.cc');
-  f('#include "tlbcore/common/std_headers.h"');
-  f('#include "tlbcore/nodeif/jswrapbase.h"');
+  f('#include "common/std_headers.h"');
+  f('#include "nodebase/jswrapbase.h"');
   f('#include "./symbolics_' + typereg.groupname + '.h"');
   _.each(typereg.extraJsWrapFuncsHeaders, f);
   f('/* Types known about:\n  ' + _.keys(typereg.types).join('\n  ') + '\n*/');
@@ -446,7 +446,7 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
   });
 
   var cl = files.getFile('symbolics_' + typereg.groupname + '.cc');
-  cl('#include "tlbcore/common/std_headers.h"');
+  cl('#include "common/std_headers.h"');
   cl('#include "./symbolics_' + typereg.groupname + '.h"');
 
   _.each(typereg.symbolics.c, function(func, funcname) {

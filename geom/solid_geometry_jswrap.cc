@@ -1,5 +1,5 @@
-#include "tlbcore/common/std_headers.h"
-#include "tlbcore/nodeif/jswrapbase.h"
+#include "common/std_headers.h"
+#include "nodebase/jswrapbase.h"
 #include "build.src/vec_jsWrap.h"
 #include "build.src/ivec_jsWrap.h"
 #include "build.src/mat_jsWrap.h"

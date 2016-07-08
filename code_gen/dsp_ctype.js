@@ -31,7 +31,7 @@ DspCType.prototype.getSynopsis = function() {
 
 DspCType.prototype.getHeaderIncludes = function() {
   var type = this;
-  return ['#include "tlbcore/common/dspcore.h"'].concat(CType.prototype.getHeaderIncludes.call(type));
+  return ['#include "common/dspcore.h"'].concat(CType.prototype.getHeaderIncludes.call(type));
 };
 
 DspCType.prototype.getAllZeroExpr = function() {
