@@ -80,6 +80,14 @@ function main() {
       }
       break;
 
+    case '--hostPrefix':
+      {
+        var argPrefix = process.argv[++argi];
+        var argHostname = process.argv[++argi];
+        webServer0.setPrefixHosts(argPrefix, [argHostname]);
+      }
+      break;
+
     default:
       sites.push(arg);
       break;

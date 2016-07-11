@@ -261,8 +261,14 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
     }
     if (0) logio.I(req.remoteLabel, req.url, req.urlParsed, req.headers);
 
-    var hostPrefix = webServer.hostPrefixes[req.urlParsed.hostname];
-    if (!hostPrefix) hostPrefix = '/';
+    // Host includes port number, hostname doesn't
+    var hostPrefix = webServer.hostPrefixes[req.urlParsed.host];
+    if (!hostPrefix) {
+      hostPrefix = webServer.hostPrefixes[req.urlParsed.hostname];
+    }
+    if (!hostPrefix) {
+      hostPrefix = '/';
+    }
 
     var fullPath = hostPrefix + decodeURIComponent(req.urlParsed.pathname.substr(1));
     var callid = req.method + ' ' + fullPath;
