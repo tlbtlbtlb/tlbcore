@@ -259,7 +259,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
       logio.E(req.remoteLabel, ex);
       Provider.emit500(res);
     }
-    if (0) logio.I(req.remoteLabel, req.url, req.urlParsed, req.headers);
+    if (verbose >= 3) logio.I(req.remoteLabel, req.url, req.urlParsed, req.headers);
 
     // Host includes port number, hostname doesn't
     var hostPrefix = webServer.hostPrefixes[req.urlParsed.host];
