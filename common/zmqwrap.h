@@ -12,7 +12,7 @@ zmqpp::context_t &get_process_zmq_context();
 template<typename T>
 void createZmqSocket(T &it, string const &sockType)
 {
-  if (it.sock) throw runtime_error("already bound");
+  if (it.sock) throw runtime_error("already created");
   if (sockType == "req") {
     it.sock = new zmqpp::socket(get_process_zmq_context(),zmqpp::socket_type::req);
   }

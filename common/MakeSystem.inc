@@ -1,6 +1,7 @@
 
 UNAME_SYSTEM := $(shell uname -s)
 UNAME_HOST := $(shell uname -n | sed -e 's/\..*//')
+UNAME_MACHINE := $(shell uname -m)
 
 printvar.% : ## Print named variable, eg "make printvar.UNAME_SYSTEM"
 	@echo $*=$($*)
