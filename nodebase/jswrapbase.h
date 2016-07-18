@@ -125,7 +125,7 @@ struct JsWrapGeneric : node::ObjectWrap {
       return scope.Escape(Undefined(isolate));
     }
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
-    Local<Object> instance = localConstructor->NewInstance(0, nullptr);
+    Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
       if (1) eprintf("NewInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
@@ -138,7 +138,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   static Local<Value> NewInstance(Isolate *isolate, shared_ptr<CONTENTS> _it) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
-    Local<Object> instance = localConstructor->NewInstance(0, nullptr);
+    Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
       if (1) eprintf("NewInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
@@ -152,7 +152,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   static Local<Value> MemberInstance(Isolate *isolate, shared_ptr<OWNER> _parent, CONTENTS *_ptr) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
-    Local<Object> instance = localConstructor->NewInstance(0, nullptr);
+    Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
       if (1) eprintf("MemberInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
@@ -165,7 +165,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   static Local<Value> DependentInstance(Isolate *isolate, Local<Value> _owner, CONTENTS const &_contents) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
-    Local<Object> instance = localConstructor->NewInstance(0, nullptr);
+    Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
       if (1) eprintf("DependentInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));

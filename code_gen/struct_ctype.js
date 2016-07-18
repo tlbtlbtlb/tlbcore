@@ -899,7 +899,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   if (!type.noStdValues && type.isCopyConstructable()) {
     _.each(['allZero', 'allNan'], function(name) {
       f.emitJsFactory(name, function(f) {
-        f('args.GetReturnValue().Set(Local<Value>(JsWrap_JSTYPE::NewInstance(isolate, TYPENAME::' + name + '())));');
+        f('args.GetReturnValue().Set(JsWrap_JSTYPE::NewInstance(isolate, TYPENAME::' + name + '()));');
       });
     });
   }
