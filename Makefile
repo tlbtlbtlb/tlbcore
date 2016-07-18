@@ -116,10 +116,6 @@ size ::
 logsize ::
 	node hackstats/updateSizeGraph.js nodeif/build/Release/*.o
 
-deploy:
-	git commit -am 'deploy' || echo commit failed
-	git push deploy master
-
 run:
 	node web/server.js doc
 
