@@ -37,7 +37,7 @@ DECL_TYPES := \
 # See https://github.com/nodesource/distributions
 .PHONY: install.ubuntu install.npm install.brew
 install.ubuntu ::
-	curl -sL https://deb.nodesource.com/setup_5.x | sudo -E bash -
+	curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
 	sudo apt-get update
 	sudo apt-get -y install git make python-software-properties python g++ make software-properties-common curl pwgen
 	sudo apt-get -y install nodejs
@@ -49,6 +49,11 @@ install.brew ::
 install.npm ::
 	sudo npm install -g underscore node-gyp jshint mocha uglify-js
 	sudo npm install -g hiredis redis marked websocket xmldom  eventemitter jquery jsmin2 async codemirror mori cookie scrypt
+
+install.armadillo ::
+	curl -L -O http://sourceforge.net/projects/arma/files/armadillo-7.200.2.tar.xz
+	tar xf armadillo-7.200.2.tar.xz
+	cd armadillo-7.200.2 && ./configure && make && sudo make install
 
 clean ::
 	rm -rf build.src
