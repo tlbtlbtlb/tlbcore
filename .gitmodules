@@ -1,6 +1,0 @@
-[submodule "web/jquery"]
-	path = web/jquery
-	url = https://github.com/jquery/jquery.git
-[submodule "web/jQuery-contextMenu"]
-	path = web/jQuery-contextMenu
-	url = git@github.com:medialize/jQuery-contextMenu.git
