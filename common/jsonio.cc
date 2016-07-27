@@ -56,10 +56,24 @@ jsonstr::endWrite(char *p)
   it.resize(n);
 }
 
+void
+jsonstr::useBlobs()
+{
+  if (!blobs) {
+    blobs = make_shared<jsonblobs>();
+  }
+}
+
 bool jsonstr::isNull()
 {
   return it == string("null") || it.size() == 0;
 }
+
+void jsonstr::setNull()
+{
+  it = "null";
+}
+
 
 /*
   writeToFile uses gzip by default.
@@ -315,10 +329,10 @@ string ndarray_dtype(const arma::cx_double &x)  { return "complex64";}
 
 // Json - bool
 
-void wrJsonSize(size_t &size, jsonblobs *blobs, bool const &value) {
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, bool const &value) {
   size += 5;
 }
-void wrJson(char *&s, jsonblobs *blobs, bool const &value) {
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, bool const &value) {
   if (value) {
     *s++ = 't';
     *s++ = 'r';
@@ -332,7 +346,7 @@ void wrJson(char *&s, jsonblobs *blobs, bool const &value) {
     *s++ = 'e';
   }
 }
-bool rdJson(const char *&s, jsonblobs *blobs, bool &value) {
+bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, bool &value) {
   u_char c;
   jsonSkipSpace(s);
   c = *s++;
@@ -373,14 +387,14 @@ bool rdJson(const char *&s, jsonblobs *blobs, bool &value) {
 
 // json - S32
 
-void wrJsonSize(size_t &size, jsonblobs *blobs, S32 const &value) {
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, S32 const &value) {
   if (value == 0) {
     size += 1;
   } else {
     size += 12;
   }
 }
-void wrJson(char *&s, jsonblobs *blobs, S32 const &value) {
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, S32 const &value) {
   if (value == 0) {
     *s++ = '0';
   }
@@ -388,7 +402,7 @@ void wrJson(char *&s, jsonblobs *blobs, S32 const &value) {
     s += snprintf(s, 12, "%d", value);
   }
 }
-bool rdJson(const char *&s, jsonblobs *blobs, S32 &value) {
+bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, S32 &value) {
   char *end = 0;
   jsonSkipSpace(s);
   value = strtol(s, &end, 10);
@@ -398,14 +412,14 @@ bool rdJson(const char *&s, jsonblobs *blobs, S32 &value) {
 
 // json - U32
 
-void wrJsonSize(size_t &size, jsonblobs *blobs, U32 const &value) {
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, U32 const &value) {
   if (value == 0) {
     size += 1;
   } else {
     size += 12;
   }
 }
-void wrJson(char *&s, jsonblobs *blobs, U32 const &value) {
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, U32 const &value) {
   if (value == 0) {
     *s++ = '0';
   }
@@ -413,7 +427,7 @@ void wrJson(char *&s, jsonblobs *blobs, U32 const &value) {
     s += snprintf(s, 12, "%u", value);
   }
 }
-bool rdJson(const char *&s, jsonblobs *blobs, U32 &value) {
+bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, U32 &value) {
   char *end = 0;
   jsonSkipSpace(s);
   value = strtoul(s, &end, 10);
@@ -423,14 +437,14 @@ bool rdJson(const char *&s, jsonblobs *blobs, U32 &value) {
 
 // json - S64
 
-void wrJsonSize(size_t &size, jsonblobs *blobs, S64 const &value) {
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, S64 const &value) {
   if (value == 0) {
     size += 1;
   } else {
     size += 20;
   }
 }
-void wrJson(char *&s, jsonblobs *blobs, S64 const &value) {
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, S64 const &value) {
   if (value == 0) {
     *s++ = '0';
   }
@@ -438,7 +452,7 @@ void wrJson(char *&s, jsonblobs *blobs, S64 const &value) {
     s += snprintf(s, 20, "%lld", value);
   }
 }
-bool rdJson(const char *&s, jsonblobs *blobs, S64 &value) {
+bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, S64 &value) {
   char *end = 0;
   jsonSkipSpace(s);
   value = strtol(s, &end, 18);
@@ -448,14 +462,14 @@ bool rdJson(const char *&s, jsonblobs *blobs, S64 &value) {
 
 // json - U64
 
-void wrJsonSize(size_t &size, jsonblobs *blobs, U64 const &value) {
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, U64 const &value) {
   if (value == 0) {
     size += 1;
   } else {
     size += 20;
   }
 }
-void wrJson(char *&s, jsonblobs *blobs, U64 const &value) {
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, U64 const &value) {
   if (value == 0) {
     *s++ = '0';
   }
@@ -463,7 +477,7 @@ void wrJson(char *&s, jsonblobs *blobs, U64 const &value) {
     s += snprintf(s, 20, "%llu", value);
   }
 }
-bool rdJson(const char *&s, jsonblobs *blobs, U64 &value) {
+bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, U64 &value) {
   char *end = 0;
   jsonSkipSpace(s);
   value = strtoul(s, &end, 18);
@@ -474,14 +488,14 @@ bool rdJson(const char *&s, jsonblobs *blobs, U64 &value) {
 
 // json - float
 
-void wrJsonSize(size_t &size, jsonblobs *blobs, float const &value) {
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, float const &value) {
   if (value == 0.0f) {
     size += 1;
   } else {
     size += 20;
   }
 }
-void wrJson(char *&s, jsonblobs *blobs, float const &value) {
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, float const &value) {
   if (value == 0.0f) {
     *s++ = '0';
   }
@@ -489,7 +503,7 @@ void wrJson(char *&s, jsonblobs *blobs, float const &value) {
     s += snprintf(s, 20, "%.9g", value);
   }
 }
-bool rdJson(const char *&s, jsonblobs *blobs, float &value) {
+bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, float &value) {
   char *end = 0;
   jsonSkipSpace(s);
   value = strtof(s, &end);
@@ -500,14 +514,14 @@ bool rdJson(const char *&s, jsonblobs *blobs, float &value) {
 
 // json - double
 
-void wrJsonSize(size_t &size, jsonblobs *blobs, double const &value) {
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, double const &value) {
   if (value == 0.0 || value == 1.0) {
     size += 1;
   } else {
     size += 25;
   }
 }
-void wrJson(char *&s, jsonblobs *blobs, double const &value) {
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, double const &value) {
   if (value == 0.0) {
     // Surprisingly powerful optimization, since zero is so common
     *s++ = '0';
@@ -522,7 +536,7 @@ void wrJson(char *&s, jsonblobs *blobs, double const &value) {
     s += snprintf(s, 25, "%.17g", value);
   }
 }
-bool rdJson(const char *&s, jsonblobs *blobs, double &value) {
+bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, double &value) {
   char *end = 0;
   jsonSkipSpace(s);
   if (s[0] == '0' && (s[1] == ',' || s[1] == '}' || s[1] == ']')) {
@@ -538,7 +552,7 @@ bool rdJson(const char *&s, jsonblobs *blobs, double &value) {
 
 // json - string
 
-void wrJsonSize(size_t &size, jsonblobs *blobs, string const &value) {
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, string const &value) {
   size += 2;
   for (auto vi : value) {
     u_char c = vi;
@@ -556,7 +570,7 @@ void wrJsonSize(size_t &size, jsonblobs *blobs, string const &value) {
     }
   }
 }
-void wrJson(char *&s, jsonblobs *blobs, string const &value) {
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, string const &value) {
   *s++ = 0x22;
 #if JSONIO_USE_MULTIBYTE
   mbstate_t mbs;
@@ -616,7 +630,7 @@ void wrJson(char *&s, jsonblobs *blobs, string const &value) {
   }
   *s++ = 0x22;
 }
-bool rdJson(const char *&s, jsonblobs *blobs, string &value) {
+bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, string &value) {
   u_char c;
   jsonSkipSpace(s);
   c = *s++;
@@ -690,16 +704,25 @@ bool rdJson(const char *&s, jsonblobs *blobs, string &value) {
 // json -- jsonstr
 // These are just passed verbatim to the stream
 
-void wrJsonSize(size_t &size, jsonblobs *blobs, jsonstr const &value) {
-  size += value.it.size();
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, jsonstr const &value) {
+  if (value.it.size() == 0) {
+    size += 4;
+  } else {
+    size += value.it.size();
+  }
 }
 
-void wrJson(char *&s, jsonblobs *blobs, jsonstr const &value) {
-  memcpy(s, value.it.data(), value.it.size());
-  s += value.it.size();
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, jsonstr const &value) {
+  if (value.it.size() == 0) {
+    memcpy(s, "null", 4);
+    s += 4;
+  } else {
+    memcpy(s, value.it.data(), value.it.size());
+    s += value.it.size();
+  }
 }
 
-bool rdJson(char const *&s, jsonblobs *blobs, jsonstr &value) {
+bool rdJson(char const *&s, shared_ptr<jsonblobs> const &blobs, jsonstr &value) {
   jsonSkipSpace(s);
   char const *begin = s;
   if (!jsonSkipValue(s)) {
@@ -707,19 +730,20 @@ bool rdJson(char const *&s, jsonblobs *blobs, jsonstr &value) {
     return false;
   }
   value.it = string(begin, s);
+  value.blobs = blobs;
   if (0) eprintf("rdJson: read `%s'\n", value.it.c_str());
   return true;
 }
 
 // cx_double - json
 
-void wrJsonSize(size_t &size, jsonblobs *blobs, arma::cx_double const &value)
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::cx_double const &value)
 {
   size += 8 + 8 + 1;
   wrJsonSize(size, blobs, value.real());
   wrJsonSize(size, blobs, value.imag());
 }
-void wrJson(char *&s, jsonblobs *blobs, arma::cx_double const &value)
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, arma::cx_double const &value)
 {
   *s++ = '{';
   *s++ = '"';
@@ -741,7 +765,7 @@ void wrJson(char *&s, jsonblobs *blobs, arma::cx_double const &value)
   wrJson(s, blobs, value.imag());
   *s++ = '}';
 }
-bool rdJson(const char *&s, jsonblobs *blobs, arma::cx_double &value)
+bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::cx_double &value)
 {
   double value_real = 0.0, value_imag = 0.0;
 
@@ -827,7 +851,7 @@ ostream & operator<<(ostream &s, const jsonstr &obj)
 
 // Json - arma::Col
 template<typename T>
-void wrJsonSize(size_t &size, jsonblobs *blobs, arma::Col<T> const &arr) {
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Col<T> const &arr) {
   if (blobs) {
     ndarray rep(9999, ndarray_dtype(arr[0]), vector<U64>({arr.n_elem}));
     wrJsonSize(size, nullptr, rep);
@@ -840,10 +864,12 @@ void wrJsonSize(size_t &size, jsonblobs *blobs, arma::Col<T> const &arr) {
 }
 
 template<typename T>
-void wrJson(char *&s, jsonblobs *blobs, arma::Col<T> const &arr) {
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Col<T> const &arr) {
   if (blobs) {
-    ndarray rep(blobs->partCount(), ndarray_dtype(arr[0]), vector<U64>({arr.n_elem}));
-    blobs->setPartPtr(rep.partno, (u_char const *)&arr[0], arr.n_elem * sizeof(arr[0]));
+    size_t partno = 0;
+    u_char *partp = blobs->mkPart(arr.n_elem * sizeof(arr[0]), partno);
+    ndarray rep(partno, ndarray_dtype(arr[0]), vector<U64>({arr.n_elem}));
+    memcpy(partp, arr.memptr(), arr.n_elem * sizeof(arr[0]));
     wrJson(s, nullptr, rep);
   } else {
     *s++ = '[';
@@ -858,7 +884,7 @@ void wrJson(char *&s, jsonblobs *blobs, arma::Col<T> const &arr) {
 }
 
 template<typename T>
-bool rdJson(const char *&s, jsonblobs *blobs, arma::Col<T> &arr) {
+bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Col<T> &arr) {
   jsonSkipSpace(s);
   if (*s == '[') {
     s++;
@@ -892,13 +918,13 @@ bool rdJson(const char *&s, jsonblobs *blobs, arma::Col<T> &arr) {
   }
   else if (*s == '{' && blobs) {
     ndarray rep;
-    rdJson(s, nullptr, rep);
+    if (!rdJson(s, nullptr, rep)) return false;
     arr.set_size(rep.shape[0]);
     string arr_dtype = ndarray_dtype(arr[0]);
-    if (arr_dtype == rep.dtype) {
-      // FIXME: copy
-      assert(0);
-      return false;
+    auto partdata = blobs->getPart(rep.partno);
+    if (arr_dtype == rep.dtype && partdata.second == arr.n_elem * sizeof(arr[0])) {
+      memcpy(arr.memptr(), partdata.first, arr.n_elem * sizeof(arr[0]));
+      return true;
     }
     else {
       return false;
@@ -912,7 +938,7 @@ bool rdJson(const char *&s, jsonblobs *blobs, arma::Col<T> &arr) {
 
 // Json - arma::Row
 template<typename T>
-void wrJsonSize(size_t &size, jsonblobs *blobs, arma::Row<T> const &arr) {
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Row<T> const &arr) {
   // FIXME: blobs
   size += 2 + arr.n_elem;
   for (size_t i = 0; i < arr.n_elem; i++) {
@@ -921,7 +947,7 @@ void wrJsonSize(size_t &size, jsonblobs *blobs, arma::Row<T> const &arr) {
 }
 
 template<typename T>
-void wrJson(char *&s, jsonblobs *blobs, arma::Row<T> const &arr) {
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Row<T> const &arr) {
   // FIXME: blobs
   *s++ = '[';
   bool sep = false;
@@ -934,7 +960,7 @@ void wrJson(char *&s, jsonblobs *blobs, arma::Row<T> const &arr) {
 }
 
 template<typename T>
-bool rdJson(const char *&s, jsonblobs *blobs, arma::Row<T> &arr) {
+bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Row<T> &arr) {
   jsonSkipSpace(s);
   // FIXME: blobs
   if (*s != '[') return false;
@@ -968,7 +994,7 @@ bool rdJson(const char *&s, jsonblobs *blobs, arma::Row<T> &arr) {
 
 // Json - arma::Mat
 template<typename T>
-void wrJsonSize(size_t &size, jsonblobs *blobs, arma::Mat<T> const &arr) {
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Mat<T> const &arr) {
   // FIXME: blobs
   size += 2 + arr.n_elem;
   for (size_t i = 0; i < arr.n_elem; i++) {
@@ -977,7 +1003,7 @@ void wrJsonSize(size_t &size, jsonblobs *blobs, arma::Mat<T> const &arr) {
 }
 
 template<typename T>
-void wrJson(char *&s, jsonblobs *blobs, arma::Mat<T> const &arr) {
+void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Mat<T> const &arr) {
   // FIXME: blobs
   *s++ = '[';
   for (size_t ei = 0; ei < arr.n_elem; ei++) {
@@ -988,7 +1014,7 @@ void wrJson(char *&s, jsonblobs *blobs, arma::Mat<T> const &arr) {
 }
 
 template<typename T>
-bool rdJson(const char *&s, jsonblobs *blobs, arma::Mat<T> &arr) {
+bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Mat<T> &arr) {
   jsonSkipSpace(s);
   // FIXME: blobs
   if (*s != '[') return false;
@@ -1053,62 +1079,62 @@ bool rdJson(const char *&s, jsonblobs *blobs, arma::Mat<T> &arr) {
 
 // Explicit template instantiation here, to save compilation time elsewhere
 
-template void wrJsonSize<double>(size_t &size, jsonblobs *blobs, arma::Col<double> const &arr);
-template void wrJson<double>(char *&s, jsonblobs *blobs, arma::Col<double> const &arr);
-template bool rdJson<double>(const char *&s, jsonblobs *blobs, arma::Col<double> &arr);
+template void wrJsonSize<double>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Col<double> const &arr);
+template void wrJson<double>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Col<double> const &arr);
+template bool rdJson<double>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Col<double> &arr);
 
-template void wrJsonSize<double>(size_t &size, jsonblobs *blobs, arma::Row<double> const &arr);
-template void wrJson<double>(char *&s, jsonblobs *blobs, arma::Row<double> const &arr);
-template bool rdJson<double>(const char *&s, jsonblobs *blobs, arma::Row<double> &arr);
+template void wrJsonSize<double>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Row<double> const &arr);
+template void wrJson<double>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Row<double> const &arr);
+template bool rdJson<double>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Row<double> &arr);
 
-template void wrJsonSize<double>(size_t &size, jsonblobs *blobs, arma::Mat<double> const &arr);
-template void wrJson<double>(char *&s, jsonblobs *blobs, arma::Mat<double> const &arr);
-template bool rdJson<double>(const char *&s, jsonblobs *blobs, arma::Mat<double> &arr);
+template void wrJsonSize<double>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Mat<double> const &arr);
+template void wrJson<double>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Mat<double> const &arr);
+template bool rdJson<double>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Mat<double> &arr);
 
-template void wrJsonSize<float>(size_t &size, jsonblobs *blobs, arma::Col<float> const &arr);
-template void wrJson<float>(char *&s, jsonblobs *blobs, arma::Col<float> const &arr);
-template bool rdJson<float>(const char *&s, jsonblobs *blobs, arma::Col<float> &arr);
+template void wrJsonSize<float>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Col<float> const &arr);
+template void wrJson<float>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Col<float> const &arr);
+template bool rdJson<float>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Col<float> &arr);
 
-template void wrJsonSize<float>(size_t &size, jsonblobs *blobs, arma::Row<float> const &arr);
-template void wrJson<float>(char *&s, jsonblobs *blobs, arma::Row<float> const &arr);
-template bool rdJson<float>(const char *&s, jsonblobs *blobs, arma::Row<float> &arr);
+template void wrJsonSize<float>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Row<float> const &arr);
+template void wrJson<float>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Row<float> const &arr);
+template bool rdJson<float>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Row<float> &arr);
 
-template void wrJsonSize<float>(size_t &size, jsonblobs *blobs, arma::Mat<float> const &arr);
-template void wrJson<float>(char *&s, jsonblobs *blobs, arma::Mat<float> const &arr);
-template bool rdJson<float>(const char *&s, jsonblobs *blobs, arma::Mat<float> &arr);
+template void wrJsonSize<float>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Mat<float> const &arr);
+template void wrJson<float>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Mat<float> const &arr);
+template bool rdJson<float>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Mat<float> &arr);
 
-template void wrJsonSize<S64>(size_t &size, jsonblobs *blobs, arma::Col<S64> const &arr);
-template void wrJson<S64>(char *&s, jsonblobs *blobs, arma::Col<S64> const &arr);
-template bool rdJson<S64>(const char *&s, jsonblobs *blobs, arma::Col<S64> &arr);
+template void wrJsonSize<S64>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Col<S64> const &arr);
+template void wrJson<S64>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Col<S64> const &arr);
+template bool rdJson<S64>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Col<S64> &arr);
 
-template void wrJsonSize<S64>(size_t &size, jsonblobs *blobs, arma::Row<S64> const &arr);
-template void wrJson<S64>(char *&s, jsonblobs *blobs, arma::Row<S64> const &arr);
-template bool rdJson<S64>(const char *&s, jsonblobs *blobs, arma::Row<S64> &arr);
+template void wrJsonSize<S64>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Row<S64> const &arr);
+template void wrJson<S64>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Row<S64> const &arr);
+template bool rdJson<S64>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Row<S64> &arr);
 
-template void wrJsonSize<S64>(size_t &size, jsonblobs *blobs, arma::Mat<S64> const &arr);
-template void wrJson<S64>(char *&s, jsonblobs *blobs, arma::Mat<S64> const &arr);
-template bool rdJson<S64>(const char *&s, jsonblobs *blobs, arma::Mat<S64> &arr);
+template void wrJsonSize<S64>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Mat<S64> const &arr);
+template void wrJson<S64>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Mat<S64> const &arr);
+template bool rdJson<S64>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Mat<S64> &arr);
 
-template void wrJsonSize<U64>(size_t &size, jsonblobs *blobs, arma::Col<U64> const &arr);
-template void wrJson<U64>(char *&s, jsonblobs *blobs, arma::Col<U64> const &arr);
-template bool rdJson<U64>(const char *&s, jsonblobs *blobs, arma::Col<U64> &arr);
+template void wrJsonSize<U64>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Col<U64> const &arr);
+template void wrJson<U64>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Col<U64> const &arr);
+template bool rdJson<U64>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Col<U64> &arr);
 
-template void wrJsonSize<U64>(size_t &size, jsonblobs *blobs, arma::Row<U64> const &arr);
-template void wrJson<U64>(char *&s, jsonblobs *blobs, arma::Row<U64> const &arr);
-template bool rdJson<U64>(const char *&s, jsonblobs *blobs, arma::Row<U64> &arr);
+template void wrJsonSize<U64>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Row<U64> const &arr);
+template void wrJson<U64>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Row<U64> const &arr);
+template bool rdJson<U64>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Row<U64> &arr);
 
-template void wrJsonSize<U64>(size_t &size, jsonblobs *blobs, arma::Mat<U64> const &arr);
-template void wrJson<U64>(char *&s, jsonblobs *blobs, arma::Mat<U64> const &arr);
-template bool rdJson<U64>(const char *&s, jsonblobs *blobs, arma::Mat<U64> &arr);
+template void wrJsonSize<U64>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Mat<U64> const &arr);
+template void wrJson<U64>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Mat<U64> const &arr);
+template bool rdJson<U64>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Mat<U64> &arr);
 
-template void wrJsonSize<arma::cx_double>(size_t &size, jsonblobs *blobs, arma::Col<arma::cx_double> const &arr);
-template void wrJson<arma::cx_double>(char *&s, jsonblobs *blobs, arma::Col<arma::cx_double> const &arr);
-template bool rdJson<arma::cx_double>(const char *&s, jsonblobs *blobs, arma::Col<arma::cx_double> &arr);
+template void wrJsonSize<arma::cx_double>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Col<arma::cx_double> const &arr);
+template void wrJson<arma::cx_double>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Col<arma::cx_double> const &arr);
+template bool rdJson<arma::cx_double>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Col<arma::cx_double> &arr);
 
-template void wrJsonSize<arma::cx_double>(size_t &size, jsonblobs *blobs, arma::Row<arma::cx_double> const &arr);
-template void wrJson<arma::cx_double>(char *&s, jsonblobs *blobs, arma::Row<arma::cx_double> const &arr);
-template bool rdJson<arma::cx_double>(const char *&s, jsonblobs *blobs, arma::Row<arma::cx_double> &arr);
+template void wrJsonSize<arma::cx_double>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Row<arma::cx_double> const &arr);
+template void wrJson<arma::cx_double>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Row<arma::cx_double> const &arr);
+template bool rdJson<arma::cx_double>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Row<arma::cx_double> &arr);
 
-template void wrJsonSize<arma::cx_double>(size_t &size, jsonblobs *blobs, arma::Mat<arma::cx_double> const &arr);
-template void wrJson<arma::cx_double>(char *&s, jsonblobs *blobs, arma::Mat<arma::cx_double> const &arr);
-template bool rdJson<arma::cx_double>(const char *&s, jsonblobs *blobs, arma::Mat<arma::cx_double> &arr);
+template void wrJsonSize<arma::cx_double>(size_t &size, shared_ptr<jsonblobs> const &blobs, arma::Mat<arma::cx_double> const &arr);
+template void wrJson<arma::cx_double>(char *&s, shared_ptr<jsonblobs> const &blobs, arma::Mat<arma::cx_double> const &arr);
+template bool rdJson<arma::cx_double>(const char *&s, shared_ptr<jsonblobs> const &blobs, arma::Mat<arma::cx_double> &arr);

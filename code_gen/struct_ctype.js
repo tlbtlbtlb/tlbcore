@@ -259,13 +259,13 @@ StructCType.prototype.emitTypeDecl = function(f) {
   f('// IO');
   f('ostream & operator<<(ostream &s, const TYPENAME &obj);');
   if (!type.noSerialize) {
-    f('void wrJson(char *&s, jsonblobs *blobs, TYPENAME const &obj);');
-    f('bool rdJson(char const *&s, jsonblobs *blobs, TYPENAME &obj);');
-    f('void wrJsonSize(size_t &size, jsonblobs *blobs, TYPENAME const &x);');
+    f('void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, TYPENAME const &obj);');
+    f('bool rdJson(char const *&s, shared_ptr<jsonblobs> const &blobs, TYPENAME &obj);');
+    f('void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, TYPENAME const &x);');
 
-    f('void wrJsonBulk(char *&s, jsonblobs *blobs, vector<TYPENAME> const &obj);');
-    f('bool rdJsonBulk(const char *&s, jsonblobs *blobs, vector<TYPENAME> &obj);');
-    f('void wrJsonBulkSize(size_t &size, jsonblobs *blobs, vector<TYPENAME> const &x);');
+    f('void wrJsonBulk(char *&s, shared_ptr<jsonblobs> const &blobs, vector<TYPENAME> const &obj);');
+    f('bool rdJsonBulk(const char *&s, shared_ptr<jsonblobs> const &blobs, vector<TYPENAME> &obj);');
+    f('void wrJsonBulkSize(size_t &size, shared_ptr<jsonblobs> const &blobs, vector<TYPENAME> const &x);');
   }
 
   f('void packet_wr_typetag(packet &p, const TYPENAME &x);');
@@ -549,6 +549,7 @@ StructCType.prototype.emitPacketIo = function(f) {
 
 StructCType.prototype.emitWrJson = function(f) {
   var type = this;
+  var sep;
   function emitstr(s) {
     var b = new Buffer(s, 'utf8');
     f1(_.map(_.range(0, b.length), function(ni) {
@@ -558,16 +559,23 @@ StructCType.prototype.emitWrJson = function(f) {
   }
 
   if (1) {
-    f('void wrJson(char *&s, jsonblobs *blobs, TYPENAME const &obj) {');
+    f('void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, TYPENAME const &obj) {');
     var f1 = f.child();
     f('}');
-    f('void wrJsonSize(size_t &size, jsonblobs *blobs, TYPENAME const &obj) {');
+    f('void wrJsonSize(size_t &size, shared_ptr<jsonblobs> const &blobs, TYPENAME const &obj) {');
     var f2 = f.child();
     f('}');
 
-    emitstr('{"__type":"' + type.jsTypename + '"');
+    sep = '';
+    if (!type.omitTypeTag) {
+      emitstr('{"__type":"' + type.jsTypename + '"');
+      sep = ',';
+    } else {
+      emitstr('{');
+    }
     _.each(type.orderedNames, function(name, namei) {
-      emitstr(',\"' + name + '\":');
+      emitstr(sep + '\"' + name + '\":');
+      sep = ',';
       f1('wrJson(s, blobs, obj.' + name + ');');
       f2('wrJsonSize(size, blobs, obj.' + name + ');');
     });
@@ -578,10 +586,10 @@ StructCType.prototype.emitWrJson = function(f) {
   if (1) {
     var rm = type.getRecursiveMembers();
 
-    f('void wrJsonBulk(char *&s, jsonblobs *blobs, vector<TYPENAME> const &obj) {');
+    f('void wrJsonBulk(char *&s, shared_ptr<jsonblobs> const &blobs, vector<TYPENAME> const &obj) {');
     f1 = f.child();
     f('}');
-    f('void wrJsonBulkSize(size_t &size, jsonblobs *blobs, vector<TYPENAME> const &obj) {');
+    f('void wrJsonBulkSize(size_t &size, shared_ptr<jsonblobs> const &blobs, vector<TYPENAME> const &obj) {');
     f2 = f.child();
     f('}');
 
@@ -593,14 +601,13 @@ StructCType.prototype.emitWrJson = function(f) {
             ett.typename === 'S64' || ett.typename === 'S32' ||
             ett.typename === 'U64' || ett.typename === 'U32') {
           f1('{');
-          f1('size_t partno = blobs->partCount();');
+          f1('size_t partno=0;');
+          f1('u_char *bulkdata = blobs->mkPart(obj.size() * sizeof(' + ett.typename + '), partno);');
           f1('s += snprintf(s, 100, ",{\\"__type\\":\\"ndbulk\\":\\"partno\\":%zu,\\"shape\\":[%zu],\\"dtype\\":\\"' + ett.typename + '\\"}", partno, obj.size());');
-          f1('auto bulkdata = new ' + ett.typename + '[obj.size()];')
+          f1('' + ett.typename + ' *p = (' + ett.typename + ' *) bulkdata;');
           f1('for (size_t i=0; i<obj.size(); i++) {');
-          f1('bulkdata[i] = obj[i].' + mkMemberRef(names) + ';');
+          f1('p[i] = obj[i].' + mkMemberRef(names) + ';');
           f1('}');
-          f1('blobs->setPartPtr(partno, (u_char const *)bulkdata, obj.size() * sizeof(' + ett.typename + '));');
-          //f1('blobs->addFree(bulkdata);');
           f1('}');
           f2('size += 100;');
         }
@@ -651,8 +658,12 @@ StructCType.prototype.emitRdJson = function(f) {
     f('if (c == \'}\') return typeOk;');
   };
 
-  f('bool rdJson(char const *&s, jsonblobs *blobs, TYPENAME &obj) {');
-  f('bool typeOk = false;');
+  f('bool rdJson(char const *&s, shared_ptr<jsonblobs> const &blobs, TYPENAME &obj) {');
+  if (type.omitTypeTag) {
+    f('bool typeOk = true;');
+  } else {
+    f('bool typeOk = false;');
+  }
   f('char c;');
   f('jsonSkipSpace(s);');
   f('c = *s++;');
