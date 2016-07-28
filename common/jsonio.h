@@ -28,8 +28,8 @@ struct jsonblobs {
   ~jsonblobs()
   {
     parts.clear();
-    for (auto it : freelist) {
-      delete it;
+    for (auto &it : freelist) {
+      it.first(it.second);
     }
   }
   jsonblobs(const jsonblobs &other) = delete;
@@ -38,7 +38,7 @@ struct jsonblobs {
   u_char *mkPart(size_t size, size_t &partno) {
     partno = parts.size();
     u_char *ptr = new u_char[size];
-    freelist.push_back(ptr);
+    freelist.push_back(make_pair(std::function<void(void *)>(&free), ptr));
     parts.push_back(make_pair(ptr, size));
     return ptr;
   }
@@ -46,13 +46,19 @@ struct jsonblobs {
   {
     parts.push_back(make_pair(ptr, size));
   }
+  void addExternalPart(u_char *ptr, size_t size, std::function<void(void *)> freefunc, void *freeptr)
+  {
+    parts.push_back(make_pair(ptr, size));
+    freelist.push_back(make_pair(freefunc, freeptr));
+  }
+
   pair<u_char *, size_t> getPart(size_t partno) {
     return parts[partno];
   }
   size_t partCount() { return parts.size(); }
 
   vector< pair<u_char *, size_t> > parts;
-  vector<u_char *> freelist;
+  vector< pair<std::function<void(void *)>, void *> >freelist;
 };
 
 struct jsonstr {

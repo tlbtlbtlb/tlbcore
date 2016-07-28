@@ -1,16 +1,33 @@
 /*
   About ZMQ: http://zguide.zeromq.org/page:all
-  About zmqpp, the C++ wrapper around ZMQ: http://zeromq.github.io/zmqpp/
+    api: http://api.zeromq.org/4-1:_start
 */
 #include "./std_headers.h"
 #include "zmqwrap.h"
 #include "build.src/jsonrpcreq_decl.h"
 #include "build.src/jsonrpcrep_decl.h"
 
-zmqpp::context_t &get_process_zmq_context()
+void *get_process_zmq_context()
 {
-  static zmqpp::context_t context;
+  static void *context;
+  if (!context) {
+    context = zmq_ctx_new();
+  }
   return context;
+}
+
+void
+zmqwrap_msg_free(void *p)
+{
+  zmq_msg_t *m = (zmq_msg_t *)p;
+  zmq_msg_close(m);
+  delete m;
+}
+
+void zmqwrap_free_jsonblobs_keepalive(void *data, void *hint)
+{
+  zmqwrap_jsonblobs_keepalive * ka = (zmqwrap_jsonblobs_keepalive *)hint;
+  delete ka;
 }
 
 

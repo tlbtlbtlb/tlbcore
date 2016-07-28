@@ -20,7 +20,7 @@
         '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/libxml2'
       ],
       'libraries+': [
-        '-L/usr/local/lib', '-larmadillo', '-lz', '-lzmq', '-lzmqpp'
+        '-L/usr/local/lib', '-larmadillo', '-lz', '-lzmq'
       ]
     }, {
       'make_global_settings': [
@@ -31,7 +31,7 @@
         '/usr/include/libxml2'
       ],
       'libraries+': [
-        '-L/usr/local/lib', '-larmadillo', '-lz', '-lzmq', '-lzmqpp'
+        '-L/usr/local/lib', '-larmadillo', '-lz', '-lzmq'
       ],
       'cflags_cc!': [
         '-fno-rtti', '-fno-exceptions', '-fno-tree-vrp'
