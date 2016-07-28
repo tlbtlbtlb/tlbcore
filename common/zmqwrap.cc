@@ -17,16 +17,16 @@ void *get_process_zmq_context()
 }
 
 void
-zmqwrap_msg_free(void *p)
+zmqwrapMsgFree(void *p)
 {
   zmq_msg_t *m = (zmq_msg_t *)p;
   zmq_msg_close(m);
   delete m;
 }
 
-void zmqwrap_free_jsonblobs_keepalive(void *data, void *hint)
+void zmqwrapFreeJsonblobsKeepalive(void *data, void *hint)
 {
-  zmqwrap_jsonblobs_keepalive * ka = (zmqwrap_jsonblobs_keepalive *)hint;
+  ZmqwrapJsonblobsKeepalive * ka = (ZmqwrapJsonblobsKeepalive *)hint;
   delete ka;
 }
 
@@ -46,7 +46,7 @@ ZmqRpcServer::~ZmqRpcServer()
 
 void ZmqRpcServer::bind(string endpoint, string sockType)
 {
-  bindZmqSocket(*this, endpoint, sockType);
+  zmqwrapBindSocket(*this, endpoint, sockType);
   eprintf("Listening on %s\n", endpoint.c_str());
 }
 
@@ -63,7 +63,7 @@ void ZmqRpcServer::join()
 void ZmqRpcServer::cancel()
 {
   eprintf("Close %s...\n", sockDesc.c_str());
-  closeZmqSocket(*this);
+  zmqwrapCloseSocket(*this);
   // WRITEME
 }
 
@@ -72,13 +72,13 @@ void ZmqRpcServer::rpcMain()
 {
   while (!networkFailure) {
     jsonrpcreq rx;
-    if (!rxZmqJson(*this, rx)) continue;
+    if (!zmqwrapRxJson(*this, rx)) continue;
     auto f = api[rx.method];
     if (!f) {
       eprintf("%s: method %s not found\n", sockDesc.c_str(), rx.method.c_str());
       jsonrpcrep errtx;
       toJson(errtx.error, "method not found");
-      txZmqJson(*this, errtx);
+      zmqwrapTxJson(*this, errtx);
       continue;
     }
 
@@ -87,6 +87,6 @@ void ZmqRpcServer::rpcMain()
 
     f(rx, tx);
 
-    txZmqJson(*this, tx);
+    zmqwrapTxJson(*this, tx);
   }
 }

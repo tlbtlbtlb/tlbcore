@@ -34,7 +34,7 @@ struct ZmqRpcServer {
 
 
 template<typename T>
-void createZmqSocket(T &it, string const &sockType)
+void zmqwrapCreateSocket(T &it, string const &sockType)
 {
   if (it.sock) throw runtime_error("already created");
   if (sockType == "req") {
@@ -44,12 +44,12 @@ void createZmqSocket(T &it, string const &sockType)
     it.sock = zmq_socket(get_process_zmq_context(), ZMQ_REP);
   }
   else {
-    throw runtime_error("createZmqSocket: Unknown sockType");
+    throw runtime_error("zmqwrapCreateSocket: Unknown sockType");
   }
 }
 
 template<typename T>
-void closeZmqSocket(T &it)
+void zmqwrapCloseSocket(T &it)
 {
   if (it.sock) {
     zmq_close(it.sock);
@@ -59,7 +59,7 @@ void closeZmqSocket(T &it)
 }
 
 template<typename T>
-void labelZmqSocket(T &it)
+void zmqwrapLabelSocket(T &it)
 {
   string ret;
   assert(it.sock);
@@ -70,25 +70,25 @@ void labelZmqSocket(T &it)
 }
 
 template<typename T>
-void bindZmqSocket(T &it, string endpoint, string sockType) {
-  createZmqSocket(it, sockType);
+void zmqwrapBindSocket(T &it, string endpoint, string sockType) {
+  zmqwrapCreateSocket(it, sockType);
   if (zmq_bind(it.sock, endpoint.c_str()) < 0) {
     throw runtime_error(stringprintf("zmq_bind to %s: %s", endpoint.c_str(), zmq_strerror(errno)));
   }
-  labelZmqSocket(it);
+  zmqwrapLabelSocket(it);
 }
 
 template<typename T>
-void connectZmqSocket(T &it, string endpoint, string sockType) {
-  createZmqSocket(it, sockType);
+void zmqwrapConnectSocket(T &it, string endpoint, string sockType) {
+  zmqwrapCreateSocket(it, sockType);
   if (zmq_connect(it.sock, endpoint.c_str()) < 0) {
     throw runtime_error(stringprintf("zmq_connect to %s: %s", endpoint.c_str(), zmq_strerror(errno)));
   }
-  labelZmqSocket(it);
+  zmqwrapLabelSocket(it);
 }
 
 template<typename T>
-void setTimeoutZmqSocket(T &it, int recvTimeout, int sendTimeout) {
+void zmqwrapSetSocketTimeout(T &it, int recvTimeout, int sendTimeout) {
   assert(it.sock);
   if (recvTimeout != 0) {
     if (zmq_setsockopt(it.sock, (int)ZMQ_RCVTIMEO, &recvTimeout, sizeof(int)) < 0) {
@@ -102,17 +102,17 @@ void setTimeoutZmqSocket(T &it, int recvTimeout, int sendTimeout) {
   }
 }
 
-struct zmqwrap_jsonblobs_keepalive {
-  zmqwrap_jsonblobs_keepalive(shared_ptr<jsonblobs> const &_it) : it(_it) {}
+struct ZmqwrapJsonblobsKeepalive {
+  ZmqwrapJsonblobsKeepalive(shared_ptr<jsonblobs> const &_it) : it(_it) {}
 
   shared_ptr<jsonblobs> it;
 };
 
-void zmqwrap_free_jsonblobs_keepalive(void *data, void *hint);
+void zmqwrapFreeJsonblobsKeepalive(void *data, void *hint);
 
 
 template<typename T>
-void txZmq(T &it, jsonstr &json)
+void zmqwrapTx(T &it, jsonstr &json)
 {
   int rc;
   size_t partCount = json.blobs ? json.blobs->partCount() : 1;
@@ -133,8 +133,8 @@ void txZmq(T &it, jsonstr &json)
     for (size_t i=1; i < partCount; i++) {
       auto part = json.blobs->getPart(i);
       zmq_msg_t m1;
-      auto ka = new zmqwrap_jsonblobs_keepalive(json.blobs);
-      zmq_msg_init_data(&m1, (void *)part.first, part.second, &zmqwrap_free_jsonblobs_keepalive, (void *)ka);
+      auto ka = new ZmqwrapJsonblobsKeepalive(json.blobs);
+      zmq_msg_init_data(&m1, (void *)part.first, part.second, &zmqwrapFreeJsonblobsKeepalive, (void *)ka);
       rc = zmq_msg_send(&m1, it.sock, i + 1 < partCount ? ZMQ_SNDMORE : 0);
       if (0) eprintf("txZmq(m1): rc=%d\n", rc);
       if (rc < 0) {
@@ -148,18 +148,18 @@ void txZmq(T &it, jsonstr &json)
 }
 
 template<typename T, typename DATA>
-void txZmqJson(T &it, DATA const &tx)
+void zmqwrapTxJson(T &it, DATA const &tx)
 {
   jsonstr json;
   json.useBlobs();
   toJson(json, tx);
-  txZmq(it, json);
+  zmqwrapTx(it, json);
 }
 
-void zmqwrap_msg_free(void *p);
+void zmqwrapMsgFree(void *p);
 
 template<typename T>
-bool rxZmq(T &it, jsonstr &json, bool dontBlock=false)
+bool zmqwrapRx(T &it, jsonstr &json, bool dontBlock=false)
 {
   int rcvFlags = dontBlock ? ZMQ_DONTWAIT : 0;
   zmq_msg_t m0;
@@ -201,17 +201,17 @@ bool rxZmq(T &it, jsonstr &json, bool dontBlock=false)
       it.networkFailure = true;
       return false;
     }
-    json.blobs->addExternalPart((u_char *)zmq_msg_data(m1), zmq_msg_size(m1), zmqwrap_msg_free, (void *)m1);
+    json.blobs->addExternalPart((u_char *)zmq_msg_data(m1), zmq_msg_size(m1), zmqwrapMsgFree, (void *)m1);
   }
 
   return true;
 }
 
 template<typename T, typename DATA>
-bool rxZmqJson(T &it, DATA &rx, bool dontBlock=false)
+bool zmqwrapRxJson(T &it, DATA &rx, bool dontBlock=false)
 {
   jsonstr json;
-  if (!rxZmq(it, json, dontBlock)) {
+  if (!zmqwrapRx(it, json, dontBlock)) {
     return false;
   }
   if (!fromJson(json, rx)) {
