@@ -44,9 +44,9 @@ ZmqRpcServer::~ZmqRpcServer()
 
 
 
-void ZmqRpcServer::bind(string endpoint, string sockType)
+void ZmqRpcServer::bind(string endpoint)
 {
-  zmqwrapBindSocket(*this, endpoint, sockType);
+  zmqwrapBindSocket(*this, endpoint, "rep");
   eprintf("Listening on %s\n", endpoint.c_str());
 }
 
@@ -89,4 +89,28 @@ void ZmqRpcServer::rpcMain()
 
     zmqwrapTxJson(*this, tx);
   }
+}
+
+// ------------------------
+
+ZmqRpcClient::ZmqRpcClient()
+{
+}
+
+ZmqRpcClient::~ZmqRpcClient()
+{
+  zmqwrapCloseSocket(*this);
+}
+
+void ZmqRpcClient::connect(string endpoint)
+{
+  zmqwrapBindSocket(*this, endpoint, "req");
+  eprintf("Connected to %s\n", endpoint.c_str());
+}
+
+bool ZmqRpcClient::rpc(jsonrpcreq const &tx, jsonrpcrep &rx)
+{
+  zmqwrapTxJson(*this, tx);
+  if (!zmqwrapRxJson(*this, rx)) return false;
+  return true;
 }

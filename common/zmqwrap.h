@@ -17,7 +17,7 @@ struct jsonblobs;
 struct ZmqRpcServer {
   ZmqRpcServer();
   ~ZmqRpcServer();
-  void bind(string endpoint, string sockType);
+  void bind(string endpoint);
   void start();
   void join();
   void cancel();
@@ -31,6 +31,20 @@ struct ZmqRpcServer {
   size_t txCnt = 0, rxCnt = 0;
   std::thread rpcThread;
 };
+
+struct ZmqRpcClient {
+  ZmqRpcClient();
+  ~ZmqRpcClient();
+  void connect(string endpoint);
+
+  bool rpc(jsonrpcreq const &tx, jsonrpcrep &rx);
+
+  void *sock = nullptr;
+  string sockDesc;
+  bool networkFailure = false;
+  size_t txCnt = 0, rxCnt = 0;
+};
+
 
 
 template<typename T>
