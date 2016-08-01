@@ -3,15 +3,12 @@ var assert              = require('assert');
 
 module.exports = function(typereg) {
 
-  var jsonrpcreq = typereg.struct('jsonrpcreq',
+  var jsonrpcmsg = typereg.struct('jsonrpcmsg',
     ['method', 'string'],
-    ['params', 'jsonstr']);
-  jsonrpcreq.omitTypeTag = true;
-
-  var jsonrpcrep = typereg.struct('jsonrpcrep',
     ['error', 'jsonstr'],
+    ['id', 'jsonstr'],
+    ['params', 'jsonstr'],
     ['result', 'jsonstr'],
     ['log_msgs', 'vector<string>']);
-  jsonrpcrep.omitTypeTag = true;
-
+  jsonrpcmsg.omitTypeTag = true;
 };
