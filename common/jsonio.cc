@@ -64,7 +64,7 @@ jsonstr::useBlobs()
   }
 }
 
-bool jsonstr::isNull()
+bool jsonstr::isNull() const
 {
   return it == string("null") || it.size() == 0;
 }
@@ -455,7 +455,7 @@ void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, S64 const &value) {
 bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, S64 &value) {
   char *end = 0;
   jsonSkipSpace(s);
-  value = strtol(s, &end, 18);
+  value = strtol(s, &end, 10);
   s = end;
   return true;
 }
@@ -480,7 +480,7 @@ void wrJson(char *&s, shared_ptr<jsonblobs> const &blobs, U64 const &value) {
 bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, U64 &value) {
   char *end = 0;
   jsonSkipSpace(s);
-  value = strtoul(s, &end, 18);
+  value = strtoul(s, &end, 10);
   s = end;
   return true;
 }
@@ -681,6 +681,9 @@ bool rdJson(const char *&s, shared_ptr<jsonblobs> const &blobs, string &value) {
           for (int mbi=0; mbi < mblen; mbi++) {
             value.push_back(mb[mbi]);
           }
+        }
+        else {
+          value.push_back(c);
         }
       }
       // WRITEME: handle other escapes

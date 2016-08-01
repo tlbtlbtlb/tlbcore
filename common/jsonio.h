@@ -81,7 +81,7 @@ struct jsonstr {
   void useBlobs();
   void setNull();
 
-  bool isNull();
+  bool isNull() const;
 
   // Read and write to files.
   // Read returns -1 with errno=ENOENT if not found.
@@ -492,7 +492,7 @@ bool fromJson(string const &ss, shared_ptr<jsonblobs> const &blobs, T &value) {
 template <typename T>
 bool fromJson(jsonstr const &sj, T &value) {
   const char *s = sj.it.c_str();
-  return rdJson(s, nullptr, value);
+  return rdJson(s, sj.blobs, value);
 }
 
 template <typename T>
