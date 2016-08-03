@@ -49,7 +49,7 @@ static void zmqwrapFreeJsonblobsKeepalive(void *data, void *hint)
 
 ZmqRpcAgent::ZmqRpcAgent()
 {
-  verbose = 2;
+  //verbose = 2;
 }
 
 ZmqRpcAgent::~ZmqRpcAgent()
