@@ -20,52 +20,67 @@ extern FILE *zmqLogFile;
 
 typedef std::function<void(jsonrpcmsg const &)> ZmqRpcMsgFunc;
 
-struct ZmqRpcAgent {
-  ZmqRpcAgent();
-  ~ZmqRpcAgent();
+struct ZmqSock {
+  ZmqSock();
+  ~ZmqSock();
+
+  void openSocket(int type);
   void closeSocket();
   void bindSocket(string endpoint);
+  void labelSocket();
   void connectSocket(string endpoint);
   void setSocketTimeout(int recvTimeout, int sendTimeout);
-  void stop();
-  void join();
-  void labelSocket();
-  bool isActive() {
-    return sock && !networkFailure && !shouldStop;
-  }
+  bool isActive() const { return sock != nullptr && !networkFailure; }
 
-
+  void zmqTx(zmq_msg_t &m, bool more);
   void zmqTx(string const &s, bool more);
   void zmqTx(vector<string> const &s, bool more);
   void zmqTxDelim();
   void zmqTx(jsonstr const &s, bool more);
 
+  bool zmqRx(zmq_msg_t &m);
   bool zmqRx(string &s);
   bool zmqRx(vector<string> &v);
   bool zmqRx(jsonstr &json, bool allowBlobs);
-  bool zmqMore();
-
+  bool zmqRxMore();
 
 
   void *sock = nullptr;
   string sockDesc;
   bool networkFailure = false;
+  int verbose = 0;
+
+};
+
+struct ZmqRpcAgent {
+  ZmqRpcAgent();
+  ~ZmqRpcAgent();
+  void stop();
+  void join();
+  bool isActive() {
+    return mainSock.isActive() && !shouldStop;
+  }
+
+  ZmqSock mainSock;
   bool shouldStop = false;
   size_t txCnt = 0, rxCnt = 0;
   size_t idCnt = 485;
   int verbose = 0;
 
+  string mbSockName;
+  ZmqSock mbSockIn;
+  ZmqSock mbSockOut;
+
   std::mutex mtx;
-  std::thread sockRxThread;
+  std::thread sockThread;
 };
 
 struct ZmqRpcRouter : ZmqRpcAgent {
   ZmqRpcRouter();
   ~ZmqRpcRouter();
 
-  void openSocket();
   void start();
-  void routerRxMain();
+  void routerMain();
 
   void addApi(string const &method, std::function<void(jsonstr const &params, std::function<void(jsonstr const &error, jsonstr const &result)>)>);
 
@@ -88,9 +103,8 @@ struct ZmqRpcDealer : ZmqRpcAgent {
   ZmqRpcDealer();
   ~ZmqRpcDealer();
 
-  void openSocket();
   void start();
-  void dealerRxMain();
+  void dealerMain();
 
   void zmqTxRpcReq(string const &method, string const &id, jsonstr const &params);
   bool zmqRxRpcRep(string &id, jsonstr &error, jsonstr &result);

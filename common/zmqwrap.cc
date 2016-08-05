@@ -47,86 +47,25 @@ static void zmqwrapFreeJsonblobsKeepalive(void *data, void *hint)
 
 // ----------------------------------------
 
+static int mbSockCounter;
+
 ZmqRpcAgent::ZmqRpcAgent()
 {
-  //verbose = 2;
+  verbose = 2;
+  mbSockName = string("inproc://rpcmb") + to_string(mbSockCounter++);
+  mbSockOut.openSocket(ZMQ_PAIR);
+  mbSockOut.bindSocket(mbSockName);
 }
 
 ZmqRpcAgent::~ZmqRpcAgent()
 {
-  closeSocket();
-}
-
-void
-ZmqRpcRouter::openSocket()
-{
-  sock = zmq_socket(get_process_zmq_context(), ZMQ_ROUTER);
-}
-
-void
-ZmqRpcDealer::openSocket()
-{
-  sock = zmq_socket(get_process_zmq_context(), ZMQ_DEALER);
-}
-
-
-void
-ZmqRpcAgent::closeSocket()
-{
-  if (sock) {
-    zmq_close(sock);
-    sock = nullptr;
-  }
-  sockDesc = "(closed)";
-}
-
-void ZmqRpcAgent::labelSocket()
-{
-  string ret;
-  assert(sock);
-  char ep_buf[256];
-  size_t ep_len = 256;
-  zmq_getsockopt(sock, ZMQ_LAST_ENDPOINT, (void *)ep_buf, &ep_len);
-  sockDesc = ep_buf;
-}
-
-void ZmqRpcAgent::bindSocket(string endpoint)
-{
-  if (zmq_bind(sock, endpoint.c_str()) < 0) {
-    throw runtime_error(stringprintf("zmq_bind to %s: %s", endpoint.c_str(), zmq_strerror(errno)));
-  }
-  labelSocket();
-  eprintf("Bound to %s\n", endpoint.c_str());
-}
-
-void ZmqRpcAgent::connectSocket(string endpoint)
-{
-  if (zmq_connect(sock, endpoint.c_str()) < 0) {
-    throw runtime_error(stringprintf("zmq_connect to %s: %s", endpoint.c_str(), zmq_strerror(errno)));
-  }
-  labelSocket();
-  eprintf("Connect to %s\n", endpoint.c_str());
-}
-
-
-void ZmqRpcAgent::setSocketTimeout(int recvTimeout, int sendTimeout)
-{
-  assert(sock);
-  if (recvTimeout != 0) {
-    if (zmq_setsockopt(sock, (int)ZMQ_RCVTIMEO, &recvTimeout, sizeof(int)) < 0) {
-      throw runtime_error(stringprintf("zmq_setsockopt(RECV_TIMEOUT): %s", zmq_strerror(errno)));
-    }
-  }
-  if (sendTimeout != 0) {
-    if (zmq_setsockopt(sock, (int)ZMQ_SNDTIMEO, &sendTimeout, sizeof(int)) < 0) {
-      throw runtime_error(stringprintf("zmq_setsockopt(SEND_TIMEOUT): %s", zmq_strerror(errno)));
-    }
-  }
+  mainSock.closeSocket();
+  mbSockOut.closeSocket();
 }
 
 ZmqRpcRouter::ZmqRpcRouter()
 {
-  openSocket();
+  mainSock.openSocket(ZMQ_ROUTER);
 }
 
 ZmqRpcRouter::~ZmqRpcRouter()
@@ -135,7 +74,7 @@ ZmqRpcRouter::~ZmqRpcRouter()
 
 ZmqRpcDealer::ZmqRpcDealer()
 {
-  openSocket();
+  mainSock.openSocket(ZMQ_DEALER);
 }
 
 ZmqRpcDealer::~ZmqRpcDealer()
@@ -145,27 +84,26 @@ ZmqRpcDealer::~ZmqRpcDealer()
 
 void ZmqRpcRouter::start()
 {
-  sockRxThread = std::thread(&ZmqRpcRouter::routerRxMain, this);
+  sockThread = std::thread(&ZmqRpcRouter::routerMain, this);
 }
 
 
 void ZmqRpcDealer::start()
 {
-  sockRxThread = std::thread(&ZmqRpcDealer::dealerRxMain, this);
+  sockThread = std::thread(&ZmqRpcDealer::dealerMain, this);
 }
 
 void ZmqRpcAgent::stop()
 {
   shouldStop = true;
   join();
-  closeSocket();
+  mainSock.closeSocket();
 }
-
 
 void ZmqRpcAgent::join()
 {
-  if (sockRxThread.joinable()) {
-    sockRxThread.join();
+  if (sockThread.joinable()) {
+    sockThread.join();
   }
 }
 
@@ -187,58 +125,122 @@ void ZmqRpcDealer::rpc(string method, jsonstr &params, std::function<void(jsonst
   }
   eprintf("ZmqRpcDealer::rpc(id=%s)\n", id.c_str());
 
-  zmqTxRpcReq(method, id, params);
-}
-
-void
-ZmqRpcRouter::routerRxMain()
-{
-  while (sock && !networkFailure && !shouldStop) {
-
-    string address;
-    string method;
-    string id;
-    jsonstr params;
-    if (!zmqRxRpcReq(address, method, id, params)) continue;
-
-    auto f = api[method];
-    if (!f) {
-      eprintf("%s: method %s not found\n", sockDesc.c_str(), method.c_str());
-      jsonstr error;
-      toJson(error, "method not found");
-      jsonstr result;
-      zmqTxRpcRep(address, id, error, result);
-      continue;
-    }
-
-    auto cb = std::bind(&ZmqRpcRouter::zmqTxRpcRep, this, address, id, std::placeholders::_1, std::placeholders::_2);
-    f(params, cb);
+  {
+    unique_lock<mutex> lock(mtx);
+    mbSockOut.zmqTx(method, true);
+    mbSockOut.zmqTx(id, true);
+    mbSockOut.zmqTx(params, false);
   }
 }
 
 void
-ZmqRpcDealer::dealerRxMain()
+ZmqRpcRouter::routerMain()
 {
-  while (sock && !networkFailure && !shouldStop) {
+  mbSockIn.openSocket(ZMQ_PAIR);
+  mbSockIn.connectSocket(mbSockName);
 
-    string id;
-    jsonstr error;
-    jsonstr result;
-    if (!zmqRxRpcRep(id, error, result)) continue;
+  while (mainSock.isActive() && mbSockIn.isActive() && !shouldStop) {
 
-    std::function<void(jsonstr const &, jsonstr const &)> cb;
-    {
-      unique_lock<mutex> lock(mtx);
-      auto cbIter = replyCallbacks.find(id);
-      if (cbIter != replyCallbacks.end()) {
-        cb = cbIter->second;
-        if (error.it != "\"progress\"") {
-          replyCallbacks.erase(cbIter);
-        }
+    zmq_pollitem_t items[2];
+    memset(&items, 0, sizeof(items));
+    items[0].socket = mainSock.sock;
+    items[0].events = ZMQ_POLLIN;
+    items[1].socket = mbSockIn.sock;
+    items[1].events = ZMQ_POLLIN;
+    int poll_rc = zmq_poll(items, 2, -1);
+    if (poll_rc < 0) {
+      throw runtime_error(stringprintf("zmq_poll[%s, %s] %s", mainSock.sockDesc.c_str(), mbSockName.c_str(), zmq_strerror(errno)));
+    }
+    eprintf("routerMain: zmq_poll %d items[0].revents=0x%x items[1].revents=0x%x\n", poll_rc, items[0].revents, items[1].revents);
+
+    if (items[0].revents & ZMQ_POLLIN) {
+      string address;
+      string method;
+      string id;
+      jsonstr params;
+      if (!zmqRxRpcReq(address, method, id, params)) continue;
+
+      auto f = api[method];
+      if (!f) {
+        eprintf("%s: method %s not found\n", mainSock.sockDesc.c_str(), method.c_str());
+        jsonstr error;
+        toJson(error, "method not found");
+        jsonstr result;
+
+        mainSock.zmqTx(address, true);
+        //zmqTxDelim();
+        mainSock.zmqTx(id, true);
+        mainSock.zmqTx(error, true);
+        mainSock.zmqTx(result, false);
+        txCnt++;
+        continue;
+      }
+
+      auto cb = std::bind(&ZmqRpcRouter::zmqTxRpcRep, this, address, id, std::placeholders::_1, std::placeholders::_2);
+      f(params, cb);
+    }
+    if (items[1].revents & ZMQ_POLLIN) {
+      while (true) {
+        zmq_msg_t msg;
+        if (!mbSockIn.zmqRx(msg)) break;
+        bool more = mbSockIn.zmqRxMore();
+        mainSock.zmqTx(msg, more);
+        if (!more) break;
       }
     }
-    if (cb) {
-      cb(error, result);
+  }
+  mbSockIn.closeSocket();
+}
+
+void
+ZmqRpcDealer::dealerMain()
+{
+  mbSockIn.openSocket(ZMQ_PAIR);
+  mbSockIn.connectSocket(mbSockName);
+
+  while (mainSock.isActive() &&  mbSockIn.isActive() && !shouldStop) {
+
+    zmq_pollitem_t items[2];
+    memset(&items, 0, sizeof(items));
+    items[0].socket = mainSock.sock;
+    items[0].events = ZMQ_POLLIN;
+    items[1].socket = mbSockIn.sock;
+    items[1].events = ZMQ_POLLIN;
+    int poll_rc = zmq_poll(items, 2, -1);
+    if (poll_rc < 0) {
+      throw runtime_error(stringprintf("zmq_poll[%s, %s] %s", mainSock.sockDesc.c_str(), mbSockName.c_str(), zmq_strerror(errno)));
+    }
+    eprintf("dealerMain: zmq_poll %d items[0].revents=0x%x items[1].revents=0x%x\n", poll_rc, items[0].revents, items[1].revents);
+
+    if (items[0].revents & ZMQ_POLLIN) {
+      string id;
+      jsonstr error;
+      jsonstr result;
+      if (!zmqRxRpcRep(id, error, result)) continue;
+
+      std::function<void(jsonstr const &, jsonstr const &)> cb;
+      {
+        unique_lock<mutex> lock(mtx);
+        auto cbIter = replyCallbacks.find(id);
+        if (cbIter != replyCallbacks.end()) {
+          cb = cbIter->second;
+          if (error.it != "\"progress\"") {
+            replyCallbacks.erase(cbIter);
+          }
+        }
+      }
+      if (cb) {
+        cb(error, result);
+      }
+    }
+    if (items[1].revents & ZMQ_POLLIN) {
+      while (true) {
+        zmq_msg_t msg;
+        if (!mbSockIn.zmqRx(msg)) break;
+        bool more = mbSockIn.zmqRxMore();
+        mainSock.zmqTx(msg, more);
+        if (!more) break;
+      }
     }
   }
 }
@@ -249,49 +251,131 @@ ZmqRpcDealer::dealerRxMain()
 bool ZmqRpcRouter::zmqRxRpcReq(string &address, string &method, string &id, jsonstr &params)
 {
   if (verbose>=2) eprintf("ZmqRpcRouter::zmqRxRpcReq\n");
-  if (!zmqRx(address)) return false;
-  if (!zmqMore()) return false;
-  if (!zmqRx(method)) return false;
-  if (!zmqMore()) return false;
-  if (!zmqRx(id)) return false;
-  if (!zmqMore()) return false;
-  if (!zmqRx(params, true)) return false;
+  if (!mainSock.zmqRx(address)) return false;
+  if (!mainSock.zmqRxMore()) return false;
+  if (!mainSock.zmqRx(method)) return false;
+  if (!mainSock.zmqRxMore()) return false;
+  if (!mainSock.zmqRx(id)) return false;
+  if (!mainSock.zmqRxMore()) return false;
+  if (!mainSock.zmqRx(params, true)) return false;
   return true;
 }
 
 void ZmqRpcRouter::zmqTxRpcRep(string const &address, string const &id, jsonstr const &error, jsonstr const &result)
 {
-  zmqTx(address, true);
+  mbSockOut.zmqTx(address, true);
   //zmqTxDelim();
-  zmqTx(id, true);
-  zmqTx(error, true);
-  zmqTx(result, false);
+  mbSockOut.zmqTx(id, true);
+  mbSockOut.zmqTx(error, true);
+  mbSockOut.zmqTx(result, false);
   txCnt++;
 }
 
 
 void ZmqRpcDealer::zmqTxRpcReq(string const &method, string const &id, jsonstr const &params)
 {
-  zmqTx(method, true);
-  zmqTx(id, true);
-  zmqTx(params, false);
+  mbSockOut.zmqTx(method, true);
+  mbSockOut.zmqTx(id, true);
+  mbSockOut.zmqTx(params, false);
   txCnt++;
 }
 
 bool ZmqRpcDealer::zmqRxRpcRep(string &id, jsonstr &error, jsonstr &result)
 {
-  if (!zmqRx(id)) return false;
-  if (!zmqMore()) return false;
-  if (!zmqRx(error, false)) return false;
-  if (!zmqMore()) return false;
-  if (!zmqRx(result, true)) return false;
+  if (!mainSock.zmqRx(id)) return false;
+  if (!mainSock.zmqRxMore()) return false;
+  if (!mainSock.zmqRx(error, false)) return false;
+  if (!mainSock.zmqRxMore()) return false;
+  if (!mainSock.zmqRx(result, true)) return false;
   return true;
 }
 
 
-  // --------------
+// --------------
 
-void ZmqRpcAgent::zmqTx(string const &s, bool more)
+ZmqSock::ZmqSock()
+{
+}
+
+ZmqSock::~ZmqSock()
+{
+  closeSocket();
+}
+
+
+void
+ZmqSock::openSocket(int type)
+{
+  if (sock != nullptr) throw runtime_error("socket already open");
+  sock = zmq_socket(get_process_zmq_context(), type);
+}
+
+
+void
+ZmqSock::closeSocket()
+{
+  if (sock) {
+    zmq_close(sock);
+    sock = nullptr;
+  }
+  sockDesc = "(closed)";
+}
+
+void ZmqSock::labelSocket()
+{
+  string ret;
+  assert(sock);
+  char ep_buf[256];
+  size_t ep_len = 256;
+  zmq_getsockopt(sock, ZMQ_LAST_ENDPOINT, (void *)ep_buf, &ep_len);
+  sockDesc = ep_buf;
+}
+
+void ZmqSock::bindSocket(string endpoint)
+{
+  if (zmq_bind(sock, endpoint.c_str()) < 0) {
+    throw runtime_error(stringprintf("zmq_bind to %s: %s", endpoint.c_str(), zmq_strerror(errno)));
+  }
+  labelSocket();
+  eprintf("Bound to %s\n", endpoint.c_str());
+}
+
+void ZmqSock::connectSocket(string endpoint)
+{
+  if (zmq_connect(sock, endpoint.c_str()) < 0) {
+    throw runtime_error(stringprintf("zmq_connect to %s: %s", endpoint.c_str(), zmq_strerror(errno)));
+  }
+  labelSocket();
+  eprintf("Connect to %s\n", endpoint.c_str());
+}
+
+void ZmqSock::setSocketTimeout(int recvTimeout, int sendTimeout)
+{
+  assert(sock);
+  if (recvTimeout != 0) {
+    if (zmq_setsockopt(sock, (int)ZMQ_RCVTIMEO, &recvTimeout, sizeof(int)) < 0) {
+      throw runtime_error(stringprintf("zmq_setsockopt(RECV_TIMEOUT): %s", zmq_strerror(errno)));
+    }
+  }
+  if (sendTimeout != 0) {
+    if (zmq_setsockopt(sock, (int)ZMQ_SNDTIMEO, &sendTimeout, sizeof(int)) < 0) {
+      throw runtime_error(stringprintf("zmq_setsockopt(SEND_TIMEOUT): %s", zmq_strerror(errno)));
+    }
+  }
+}
+
+
+void ZmqSock::zmqTx(zmq_msg_t &m, bool more)
+{
+  if (networkFailure) return;
+  int rc = zmq_msg_send(&m, sock, more ? ZMQ_SNDMORE : 0);
+  if (rc  < 0) {
+    eprintf("%s: zmqTx: send failed: %s\n", sockDesc.c_str(), zmq_strerror(errno));
+    networkFailure = true;
+  }
+}
+
+void ZmqSock::zmqTx(string const &s, bool more)
 {
   if (verbose>=2) eprintf("zmqTx: `%s` len=%zu more=%d\n", s.c_str(), s.size(), more?1:0);
   if (networkFailure) return;
@@ -307,7 +391,7 @@ void ZmqRpcAgent::zmqTx(string const &s, bool more)
   }
 }
 
-void ZmqRpcAgent::zmqTx(vector<string> const &v, bool more)
+void ZmqSock::zmqTx(vector<string> const &v, bool more)
 {
   if (verbose>=2) eprintf("zmqTx: vector<string> len=%zu more=%d\n", v.size(), more?1:0);
   for (size_t i=0; i<v.size(); i++) {
@@ -315,7 +399,7 @@ void ZmqRpcAgent::zmqTx(vector<string> const &v, bool more)
   }
 }
 
-void ZmqRpcAgent::zmqTxDelim()
+void ZmqSock::zmqTxDelim()
 {
   if (verbose>=2) eprintf("zmqTx: delim more=%d\n", 1);
   zmq_msg_t m;
@@ -330,7 +414,7 @@ void ZmqRpcAgent::zmqTxDelim()
   }
 }
 
-void ZmqRpcAgent::zmqTx(jsonstr const &s, bool more)
+void ZmqSock::zmqTx(jsonstr const &s, bool more)
 {
   size_t partCount = s.blobs ? s.blobs->partCount() : 1;
 
@@ -358,7 +442,22 @@ void ZmqRpcAgent::zmqTx(jsonstr const &s, bool more)
 
 // ------------------------------------------
 
-bool ZmqRpcAgent::zmqRx(string &s)
+bool ZmqSock::zmqRx(zmq_msg_t &m)
+{
+  zmq_msg_init(&m);
+  int rc = zmq_msg_recv(&m, sock, 0);
+  if (rc < 0 && errno == EWOULDBLOCK) {
+    return false;
+  }
+  else if (rc < 0) {
+    eprintf("%s: rxZmq: recv failed: %s\n", sockDesc.c_str(), zmq_strerror(errno));
+    networkFailure = true;
+    return false;
+  }
+  return true;
+}
+
+bool ZmqSock::zmqRx(string &s)
 {
   zmq_msg_t m;
   zmq_msg_init(&m);
@@ -378,24 +477,24 @@ bool ZmqRpcAgent::zmqRx(string &s)
   return true;
 }
 
-bool ZmqRpcAgent::zmqRx(vector<string> &v)
+bool ZmqSock::zmqRx(vector<string> &v)
 {
   while (true) {
     string s;
     zmqRx(s);
     if (s.size() == 0) break;
     v.push_back(s);
-    if (!zmqMore()) break;
+    if (!zmqRxMore()) break;
   }
   if (verbose>=2) eprintf("zmqRx: vector<string> len=%zu\n", v.size());
   return true;
 }
 
-bool ZmqRpcAgent::zmqRx(jsonstr &json, bool allowBlobs)
+bool ZmqSock::zmqRx(jsonstr &json, bool allowBlobs)
 {
   zmqRx(json.it);
   if (allowBlobs) {
-    while (zmqMore()) {
+    while (zmqRxMore()) {
       if (!json.blobs) json.useBlobs();
 
       zmq_msg_t *m = new zmq_msg_t;
@@ -414,7 +513,7 @@ bool ZmqRpcAgent::zmqRx(jsonstr &json, bool allowBlobs)
   return true;
 }
 
-bool ZmqRpcAgent::zmqMore()
+bool ZmqSock::zmqRxMore()
 {
   int more = 0;
   size_t more_size = sizeof(more);
