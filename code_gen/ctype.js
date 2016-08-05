@@ -126,7 +126,11 @@ CType.prototype.getHeaderIncludes = function() {
     }
   });
   _.each(type.extraHeaderIncludes, function(hdr) {
-    ret.push('#include "' + hdr + '"');
+    if (/^</.test(hdr)) {
+      ret.push('#include ' + hdr + '');
+    } else {
+      ret.push('#include "' + hdr + '"');
+    }
   });
   return ret;
 };
