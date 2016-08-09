@@ -1,3 +1,9 @@
+/*
+ Might be able to replace this and parent_pipe.py with npm package python-shell
+   or python-runner
+   
+*/
+
 var _ = require('underscore');
 var child_process = require('child_process');
 var logio = require('../web/logio');
