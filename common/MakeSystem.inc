@@ -6,6 +6,9 @@ UNAME_MACHINE := $(shell uname -m)
 printvar.% : ## Print named variable, eg "make printvar.UNAME_SYSTEM"
 	@echo $*=$($*)
 
+printenv :
+	env
+
 
 .PHONY: help
 help: force ## Show make targets
