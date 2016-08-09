@@ -47,12 +47,13 @@ static void zmqwrapFreeJsonblobsKeepalive(void *data, void *hint)
 
 // ----------------------------------------
 
-static int mbSockCounter;
+static int agentIdCounter;
 
 ZmqRpcAgent::ZmqRpcAgent()
 {
-  verbose = 2;
-  mbSockName = string("inproc://rpcmb") + to_string(mbSockCounter++);
+  verbose = 0;
+  agentId = string("a") + to_string(agentIdCounter++);
+  mbSockName = string("inproc://") + agentId;
   mbSockOut.openSocket(ZMQ_PAIR);
   mbSockOut.bindSocket(mbSockName);
 }
@@ -66,6 +67,7 @@ ZmqRpcAgent::~ZmqRpcAgent()
 ZmqRpcRouter::ZmqRpcRouter()
 {
   mainSock.openSocket(ZMQ_ROUTER);
+  //mainSock.setSocketTimeout(100, 100);
 }
 
 ZmqRpcRouter::~ZmqRpcRouter()
@@ -95,9 +97,12 @@ void ZmqRpcDealer::start()
 
 void ZmqRpcAgent::stop()
 {
-  shouldStop = true;
-  join();
-  mainSock.closeSocket();
+  if (!shouldStop) {
+    shouldStop = true;
+    mbSockOut.zmqTx(string(""), false);
+    join();
+    mainSock.closeSocket();
+  }
 }
 
 void ZmqRpcAgent::join()
@@ -115,7 +120,6 @@ void ZmqRpcRouter::addApi(string const &method, std::function<void(jsonstr const
 
 void ZmqRpcDealer::rpc(string method, jsonstr &params, std::function<void(jsonstr const error, jsonstr const &result)> cb)
 {
-  eprintf("ZmqRpcDealer::rpc(method=%s params=%s)\n", method.c_str(), params.it.c_str());
   string id;
   if (cb) {
     unique_lock<mutex> lock(mtx);
@@ -123,13 +127,14 @@ void ZmqRpcDealer::rpc(string method, jsonstr &params, std::function<void(jsonst
     idCnt++;
     replyCallbacks[id] = cb;
   }
-  eprintf("ZmqRpcDealer::rpc(id=%s)\n", id.c_str());
+  if (verbose >= 1) eprintf("%s: ZmqRpcDealer::rpc(method=%s id=%s params=%s)\n", agentId.c_str(), method.c_str(), id.c_str(), params.it.c_str());
 
   {
     unique_lock<mutex> lock(mtx);
     mbSockOut.zmqTx(method, true);
     mbSockOut.zmqTx(id, true);
     mbSockOut.zmqTx(params, false);
+    txCnt++;
   }
 }
 
@@ -151,7 +156,8 @@ ZmqRpcRouter::routerMain()
     if (poll_rc < 0) {
       throw runtime_error(stringprintf("zmq_poll[%s, %s] %s", mainSock.sockDesc.c_str(), mbSockName.c_str(), zmq_strerror(errno)));
     }
-    eprintf("routerMain: zmq_poll %d items[0].revents=0x%x items[1].revents=0x%x\n", poll_rc, items[0].revents, items[1].revents);
+    if (shouldStop) break;
+    if (verbose >= 3) eprintf("%s: routerMain: zmq_poll %d items[0].revents=0x%x items[1].revents=0x%x\n", agentId.c_str(), poll_rc, items[0].revents, items[1].revents);
 
     if (items[0].revents & ZMQ_POLLIN) {
       string address;
@@ -159,10 +165,11 @@ ZmqRpcRouter::routerMain()
       string id;
       jsonstr params;
       if (!zmqRxRpcReq(address, method, id, params)) continue;
+      rxCnt++;
 
       auto f = api[method];
       if (!f) {
-        eprintf("%s: method %s not found\n", mainSock.sockDesc.c_str(), method.c_str());
+        eprintf("%s: %s: method %s not found\n", agentId.c_str(), mainSock.sockDesc.c_str(), method.c_str());
         jsonstr error;
         toJson(error, "method not found");
         jsonstr result;
@@ -183,7 +190,7 @@ ZmqRpcRouter::routerMain()
       while (true) {
         zmq_msg_t msg;
         if (!mbSockIn.zmqRx(msg)) break;
-        bool more = mbSockIn.zmqRxMore();
+        bool more = !!zmq_msg_more(&msg);
         mainSock.zmqTx(msg, more);
         if (!more) break;
       }
@@ -210,13 +217,15 @@ ZmqRpcDealer::dealerMain()
     if (poll_rc < 0) {
       throw runtime_error(stringprintf("zmq_poll[%s, %s] %s", mainSock.sockDesc.c_str(), mbSockName.c_str(), zmq_strerror(errno)));
     }
-    eprintf("dealerMain: zmq_poll %d items[0].revents=0x%x items[1].revents=0x%x\n", poll_rc, items[0].revents, items[1].revents);
+    if (shouldStop) break;
+    if (verbose >= 3) eprintf("%s: dealerMain: zmq_poll %d items[0].revents=0x%x items[1].revents=0x%x\n", agentId.c_str(), poll_rc, items[0].revents, items[1].revents);
 
     if (items[0].revents & ZMQ_POLLIN) {
       string id;
       jsonstr error;
       jsonstr result;
       if (!zmqRxRpcRep(id, error, result)) continue;
+      rxCnt++;
 
       std::function<void(jsonstr const &, jsonstr const &)> cb;
       {
@@ -230,6 +239,7 @@ ZmqRpcDealer::dealerMain()
         }
       }
       if (cb) {
+        if (verbose >= 1) eprintf("%s: ZmqRpcDealer::rpc reply(id=%s error=%s result=%s)\n", agentId.c_str(), id.c_str(), error.it.c_str(), result.it.c_str());
         cb(error, result);
       }
     }
@@ -237,12 +247,13 @@ ZmqRpcDealer::dealerMain()
       while (true) {
         zmq_msg_t msg;
         if (!mbSockIn.zmqRx(msg)) break;
-        bool more = mbSockIn.zmqRxMore();
+        bool more = !!zmq_msg_more(&msg);
         mainSock.zmqTx(msg, more);
         if (!more) break;
       }
     }
   }
+  mbSockIn.closeSocket();
 }
 
 
@@ -251,13 +262,14 @@ ZmqRpcDealer::dealerMain()
 bool ZmqRpcRouter::zmqRxRpcReq(string &address, string &method, string &id, jsonstr &params)
 {
   if (verbose>=2) eprintf("ZmqRpcRouter::zmqRxRpcReq\n");
-  if (!mainSock.zmqRx(address)) return false;
-  if (!mainSock.zmqRxMore()) return false;
-  if (!mainSock.zmqRx(method)) return false;
-  if (!mainSock.zmqRxMore()) return false;
-  if (!mainSock.zmqRx(id)) return false;
-  if (!mainSock.zmqRxMore()) return false;
-  if (!mainSock.zmqRx(params, true)) return false;
+  bool more = false;
+  if (!mainSock.zmqRx(address, more)) return false;
+  if (!more) return false;
+  if (!mainSock.zmqRx(method, more)) return false;
+  if (!more) return false;
+  if (!mainSock.zmqRx(id, more)) return false;
+  if (!more) return false;
+  if (!mainSock.zmqRx(params, true, more)) return false;
   return true;
 }
 
@@ -282,11 +294,12 @@ void ZmqRpcDealer::zmqTxRpcReq(string const &method, string const &id, jsonstr c
 
 bool ZmqRpcDealer::zmqRxRpcRep(string &id, jsonstr &error, jsonstr &result)
 {
-  if (!mainSock.zmqRx(id)) return false;
-  if (!mainSock.zmqRxMore()) return false;
-  if (!mainSock.zmqRx(error, false)) return false;
-  if (!mainSock.zmqRxMore()) return false;
-  if (!mainSock.zmqRx(result, true)) return false;
+  bool more = false;
+  if (!mainSock.zmqRx(id, more)) return false;
+  if (!more) return false;
+  if (!mainSock.zmqRx(error, false, more)) return false;
+  if (!more) return false;
+  if (!mainSock.zmqRx(result, true, more)) return false;
   return true;
 }
 
@@ -457,71 +470,50 @@ bool ZmqSock::zmqRx(zmq_msg_t &m)
   return true;
 }
 
-bool ZmqSock::zmqRx(string &s)
+bool ZmqSock::zmqRx(string &s, bool &more)
 {
   zmq_msg_t m;
-  zmq_msg_init(&m);
-
-  int rc = zmq_msg_recv(&m, sock, 0);
-  if (0) eprintf("rxZmq(m0): rc=%d\n", rc);
-  if (rc < 0 && errno == EWOULDBLOCK) {
-    return false;
-  }
-  else if (rc < 0) {
-    eprintf("%s: rxZmq: recv failed: %s\n", sockDesc.c_str(), zmq_strerror(errno));
-    networkFailure = true;
+  if (!zmqRx(m)) {
+    more = false;
     return false;
   }
   s.assign((char *)zmq_msg_data(&m), zmq_msg_size(&m));
+  more = !!zmq_msg_more(&m);
+  zmq_msg_close(&m);
   if (verbose>=2) eprintf("zmqRx: string `%s` len=%zu\n", s.c_str(), s.size());
   return true;
 }
 
-bool ZmqSock::zmqRx(vector<string> &v)
+bool ZmqSock::zmqRx(vector<string> &v, bool &more)
 {
   while (true) {
     string s;
-    zmqRx(s);
+    zmqRx(s, more);
     if (s.size() == 0) break;
     v.push_back(s);
-    if (!zmqRxMore()) break;
+    if (!more) break;
   }
   if (verbose>=2) eprintf("zmqRx: vector<string> len=%zu\n", v.size());
   return true;
 }
 
-bool ZmqSock::zmqRx(jsonstr &json, bool allowBlobs)
+bool ZmqSock::zmqRx(jsonstr &json, bool allowBlobs, bool &more)
 {
-  zmqRx(json.it);
+  zmqRx(json.it, more);
   if (allowBlobs) {
-    while (zmqRxMore()) {
+    while (more) {
       if (!json.blobs) json.useBlobs();
 
-      zmq_msg_t *m = new zmq_msg_t;
-      zmq_msg_init(m);
-      int rc = zmq_msg_recv(m, sock, 0);
-      if (rc < 0) {
-        eprintf("%s: rxZmq: recv failed: %s\n", sockDesc.c_str(), zmq_strerror(errno));
-        networkFailure = true;
+      zmq_msg_t *mp = new zmq_msg_t;
+      if (!zmqRx(*mp)) {
+        more = false;
         return false;
       }
-      if (verbose>=2) eprintf("zmqRx: blob len=%zu\n", (size_t)zmq_msg_size(m));
-      json.blobs->addExternalPart((u_char *)zmq_msg_data(m), zmq_msg_size(m), zmqwrapMsgFree, (void *)m);
+      more = !!zmq_msg_more(mp);
+      if (verbose>=2) eprintf("zmqRx: blob len=%zu\n", (size_t)zmq_msg_size(mp));
+      json.blobs->addExternalPart((u_char *)zmq_msg_data(mp), zmq_msg_size(mp), zmqwrapMsgFree, (void *)mp);
     }
   }
   if (verbose>=2) eprintf("zmqRx: jsonstr %s\n", json.it.c_str());
   return true;
-}
-
-bool ZmqSock::zmqRxMore()
-{
-  int more = 0;
-  size_t more_size = sizeof(more);
-  int rc = zmq_getsockopt(sock, ZMQ_RCVMORE, &more, &more_size);
-  if (0) eprintf("zmq_getsockopt(m1): rc=%d more=%d more_size=%zu\n", rc, more, more_size);
-  if (rc < 0 && more_size != sizeof(more)) {
-    throw runtime_error(stringprintf("zmq_getsockopt(ZMQ_RCVMORE): %s", zmq_strerror(errno)));
-  }
-  if (verbose>=2) eprintf("zmqMore: %d\n", more);
-  return !!more;
 }

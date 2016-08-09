@@ -39,11 +39,9 @@ struct ZmqSock {
   void zmqTx(jsonstr const &s, bool more);
 
   bool zmqRx(zmq_msg_t &m);
-  bool zmqRx(string &s);
-  bool zmqRx(vector<string> &v);
-  bool zmqRx(jsonstr &json, bool allowBlobs);
-  bool zmqRxMore();
-
+  bool zmqRx(string &s, bool &more);
+  bool zmqRx(vector<string> &v, bool &more);
+  bool zmqRx(jsonstr &json, bool allowBlobs, bool &more);
 
   void *sock = nullptr;
   string sockDesc;
@@ -67,6 +65,7 @@ struct ZmqRpcAgent {
   size_t idCnt = 485;
   int verbose = 0;
 
+  string agentId;
   string mbSockName;
   ZmqSock mbSockIn;
   ZmqSock mbSockOut;
