@@ -45,14 +45,26 @@ module.exports = function(typereg) {
           }
         }
         else if (et === 'S64') {
-          typereg.aliasType(rType, 'arma::irowvec');
-          typereg.aliasType(cType, 'arma::ivec');
-          typereg.aliasType(mType, 'arma::imat');
+          if (!rowFixed) {
+            typereg.aliasType(rType, 'arma::irowvec');
+          }
+          if (!colFixed) {
+            typereg.aliasType(cType, 'arma::ivec');
+          }
+          if (!colFixed && !rowFixed) {
+            typereg.aliasType(mType, 'arma::imat');
+          }
         }
         else if (et === 'cx_double') {
-          typereg.aliasType(rType, 'arma::cx_rowvec');
-          typereg.aliasType(cType, 'arma::cx_vec');
-          typereg.aliasType(mType, 'arma::cx_mat');
+          if (!rowFixed) {
+            typereg.aliasType(rType, 'arma::cx_rowvec');
+          }
+          if (!colFixed) {
+            typereg.aliasType(cType, 'arma::cx_vec');
+          }
+          if (!colFixed && !rowFixed) {
+            typereg.aliasType(mType, 'arma::cx_mat');
+          }
         }
 
         srType.noSerialize = true;
@@ -218,21 +230,25 @@ module.exports = function(typereg) {
   typereg.getType('arma::Col<double>::fixed<2>').jsTypename = 'vec2';
   typereg.getType('arma::Col<double>::fixed<3>').jsTypename = 'vec3';
   typereg.getType('arma::Col<double>::fixed<4>').jsTypename = 'vec4';
+
   typereg.getType('arma::Col<S64>').jsTypename = 'ivec';
   typereg.getType('arma::Col<S64>::fixed<2>').jsTypename = 'ivec2';
   typereg.getType('arma::Col<S64>::fixed<3>').jsTypename = 'ivec3';
   typereg.getType('arma::Col<S64>::fixed<4>').jsTypename = 'ivec4';
-  typereg.getType('arma::Row<double>').jsTypename = 'rowvec';
+
+
   typereg.getType('arma::Mat<double>').jsTypename = 'mat';
   typereg.getType('arma::Mat<double>::fixed<2,2>').jsTypename = 'mat22';
   typereg.getType('arma::Mat<double>::fixed<3,3>').jsTypename = 'mat33';
   typereg.getType('arma::Mat<double>::fixed<4,4>').jsTypename = 'mat44';
+
+  typereg.getType('arma::Mat<S64>').jsTypename = 'imat';
   typereg.getType('arma::Mat<S64>::fixed<2,2>').jsTypename = 'imat22';
   typereg.getType('arma::Mat<S64>::fixed<3,3>').jsTypename = 'imat33';
   typereg.getType('arma::Mat<S64>::fixed<4,4>').jsTypename = 'imat44';
-  typereg.getType('arma::Col<S64>').jsTypename = 'ivec';
+
+  typereg.getType('arma::Row<double>').jsTypename = 'rowvec';
   typereg.getType('arma::Row<S64>').jsTypename = 'irowvec';
-  typereg.getType('arma::Mat<S64>').jsTypename = 'imat';
   typereg.getType('arma::Col<arma::cx_double>').jsTypename = 'cx_vec';
   typereg.getType('arma::Row<arma::cx_double>').jsTypename = 'cx_rowvec';
   typereg.getType('arma::Mat<arma::cx_double>').jsTypename = 'cx_mat';

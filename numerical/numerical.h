@@ -94,15 +94,19 @@ vector<T> interpolate(vector<T> const &a, vector<T> const &b, double cb)
   }
 }
 
-static inline arma::Col<double> interpolate(arma::Col<double> const &a, arma::Col<double> const &b, double cb)
+
+template<typename T>
+arma::Col<T> interpolate(arma::Col<T> const &a, arma::Col<T> const &b, double cb)
 {
-  return (1.0-cb)*a + cb*b;
+  return a + ((b-a) * cb);
 }
-static inline arma::Mat<double> interpolate(arma::Mat<double> const &a, arma::Mat<double> const &b, double cb)
+template<typename T>
+arma::Mat<T> interpolate(arma::Mat<T> const &a, arma::Mat<T> const &b, double cb)
 {
-  return (1.0-cb)*a + cb*b;
+  return a + ((b-a) * cb);
 }
-static inline arma::Row<double> interpolate(arma::Row<double> const &a, arma::Row<double> const &b, double cb)
+template<typename T>
+arma::Row<T> interpolate(arma::Row<T> const &a, arma::Row<T> const &b, double cb)
 {
-  return (1.0-cb)*a + cb*b;
+  return a + ((b-a) * cb);
 }
