@@ -87,6 +87,7 @@ CType.prototype.getFns = function() {
     typeHeader: type.noHostCode ? undefined : base + '_decl.h',
     jsWrapHeader: base + '_jsWrap.h',
     jsWrapCode: base + '_jsWrap.cc',
+    rosCode: base + '_ros.h',
   };
 };
 
@@ -105,6 +106,9 @@ CType.prototype.emitAll = function(files) {
   }
   if (fns.jsWrapCode) {
     type.emitJsWrapCode(gen_utils.withJsWrapUtils(files.getFile(fns.jsWrapCode).child({TYPENAME: type.typename, JSTYPE: type.jsTypename}), type.reg));
+  }
+  if (fns.rosCode) {
+    type.emitRosCode(files.getFile(fns.rosCode).child({TYPENAME: type.typename, JSTYPE: type.jsTypename}));
   }
 };
 
@@ -283,6 +287,55 @@ CType.prototype.emitJsWrapCode = function(f) {
   f('');
   type.emitJsWrapImpl(f);
 };
+
+CType.prototype.emitRosCode = function(f) {
+  var type = this;
+  f('#include <ros/ros.h>');
+  f('namespace ros {');
+  f('namespace serialization {');
+
+  f('template<> struct Serializer<TYPENAME> {');
+
+  f('template<typename Stream> inline static void write(Stream &stream, TYPENAME const &t) {')
+  f('jsonstr json;');
+  f('json.useBlobs();');
+  f('toJson(json, t);');
+  f('stream.next(json.it);');
+  f('size_t partCount = json.blobs->partCount();');
+  f('stream.next((uint32_t)partCount);');
+  f('for (size_t i=1; i < partCount; i++) {');
+  f('auto part = s.blobs->getPart(i);');
+  f('stream.next((uint32_t)part.second);');
+  f('memcpy(stream.advance((uint32_t)part.second), (void *)part.first, part.second);');
+  f('}');
+  f('}');
+
+  f('template<typename Stream> inline static void read(Stream &stream, TYPENAME &t) {')
+  f('jsonstr json;');
+  f('stream.next(json.it);');
+  f('uint32_t partCount = 0;');
+  f('stream.next(partCount);');
+  f('if (partCount > 1) json.useBlobs();');
+  f('for (size_t i=1; i < partCount; i++) {');
+  f('uint32_t partSize = 0;');
+  f('stream.next(partSize);');
+  f('json.blobs->addExternalPart(stream.advance(partSize), partSize);');
+  f('}');
+  f('if (!fromJson(json, t)) throw new runtime_error("deserializing TYPENAME: fromJson failed");');
+  f('}');
+
+  f('inline static uint32_t serializedLength(TYPENAME const &t) {')
+  f('size_t size = 0;');
+  f('wrJsonSize(size, nullptr, t);');
+  f('return (uint32_t)size;');
+  f('}');
+
+
+  f('};');
+
+  f('}'); // namespace serialization
+  f('}'); // namespace ros
+}
 
 CType.prototype.emitJsTestImpl = function(f) {
 };

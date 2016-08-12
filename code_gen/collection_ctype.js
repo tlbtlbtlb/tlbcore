@@ -683,7 +683,8 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         f.emitArgSwitch([
           {args: ['string'], returnType: type, code: function(f) {
             f('const char *a0s = a0.c_str();');
-            f('bool ok = rdJson(a0s, nullptr, ret);');
+            f('shared_ptr<jsonblobs> blobs;');
+            f('bool ok = rdJson(a0s, blobs, ret);');
             f('if (!ok) return ThrowInvalidArgs(isolate);');
           }}
         ]);
