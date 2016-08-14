@@ -51,7 +51,7 @@ AsyncEventQueueImpl::AsyncEventQueueImpl(uv_loop_t *loop, Local<Function> _onMes
       self->q.pop_front();
       lock.unlock();
       // WRITEME: should we handle blobs somewhere?
-      Local<Value> jsMsg = convStringToJsBuffer(isolate, msg.it);
+      Local<Value> jsMsg = convJsonstrToJs(isolate, msg);
       onMessageLocal->Call(recvLocal, 1, &jsMsg);
     }
   });
