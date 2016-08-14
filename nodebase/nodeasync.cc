@@ -29,7 +29,7 @@ void AsyncCallbacks::emitraw(string const &eventName, jsonstr const &it)
 
 AsyncEventQueueImpl::AsyncEventQueueImpl(uv_loop_t *loop, Local<Function> _onMessage)
 {
-  eprintf("AsyncEventQueueImpl constructor\n");
+  if (0) eprintf("AsyncEventQueueImpl constructor\n");
   uva.data = (void *)this;
   onMessage.Reset(v8::Isolate::GetCurrent(), _onMessage);
 
@@ -61,9 +61,9 @@ AsyncEventQueueImpl::AsyncEventQueueImpl(uv_loop_t *loop, Local<Function> _onMes
 
 AsyncEventQueueImpl::~AsyncEventQueueImpl()
 {
-  eprintf("AsyncEventQueueImpl destructor\n");
+  if (0) eprintf("AsyncEventQueueImpl destructor\n");
   uv_close((uv_handle_t *)&uva, [](uv_handle_t *uva1) {
-    eprintf("AsyncEventQueueImpl destructor close callback\n");
+    if (0) eprintf("AsyncEventQueueImpl destructor close callback\n");
     // ???
   });
 }
