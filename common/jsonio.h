@@ -449,6 +449,43 @@ bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, map<KT, VT *> &arr) {
 }
 
 
+
+
+template<typename FIRST, typename SECOND>
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, pair<FIRST, SECOND> const &it) {
+  size += 3;
+  wrJsonSize(size, blobs, it.first);
+  wrJsonSize(size, blobs, it.second);
+}
+
+template<typename FIRST, typename SECOND>
+void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, pair<FIRST, SECOND> const &it) {
+  *s++ = '[';
+  wrJson(s, blobs, it.first);
+  *s++ = ',';
+  wrJson(s, blobs, it.second);
+  *s++ = ']';
+}
+
+template<typename FIRST, typename SECOND>
+bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, pair<FIRST, SECOND> &it) {
+  jsonSkipSpace(s);
+  if (*s != '[') return false;
+  s++;
+  jsonSkipSpace(s);
+  if (!rdJson(s, blobs, it.first)) return false;
+  jsonSkipSpace(s);
+  if (*s != ',') return false;
+  s++;
+  jsonSkipSpace(s);
+  if (!rdJson(s, blobs, it.second)) return false;
+  jsonSkipSpace(s);
+  if (*s != ']') return false;
+  s++;
+  return true;
+}
+
+
 /*
   The high level API is asJson and fromJson
 */
