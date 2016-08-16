@@ -108,7 +108,7 @@ struct ZmqRpcDealer : ZmqRpcAgent {
   void zmqTxRpcReq(string const &method, string const &id, jsonstr const &params);
   bool zmqRxRpcRep(string &id, jsonstr &error, jsonstr &result);
 
-  void rpc(string method, jsonstr &params, std::function<void(jsonstr const error, jsonstr const &result)> cb);
+  void rpc(string method, jsonstr &params, std::function<void(jsonstr const &error, jsonstr const &result)> cb);
 
   size_t outstandingCount() {
     std::unique_lock<std::mutex> lock(mtx);

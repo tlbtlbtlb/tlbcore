@@ -118,7 +118,7 @@ void ZmqRpcRouter::addApi(string const &method, std::function<void(jsonstr const
   api[method] = f;
 }
 
-void ZmqRpcDealer::rpc(string method, jsonstr &params, std::function<void(jsonstr const error, jsonstr const &result)> cb)
+void ZmqRpcDealer::rpc(string method, jsonstr &params, std::function<void(jsonstr const &error, jsonstr const &result)> cb)
 {
   string id;
   if (cb) {

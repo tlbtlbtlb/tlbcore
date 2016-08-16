@@ -140,6 +140,7 @@ Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it)
 
   Local<Value> itJs = convStringToJs(isolate, it.it);
   Local<Value> ret = gJSON_parse->Call(gJSON, 1, &itJs);
+  // WRITEME someday: This would be the place to handle ndarrays, if the jsonstr has blobs
   return ret;
 }
 
