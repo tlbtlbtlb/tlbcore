@@ -1,4 +1,5 @@
 #pragma once
+#include <mutex>
 
 /*
   This helps make callbacks to JS code, triggerable from C++.
