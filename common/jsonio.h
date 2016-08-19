@@ -57,6 +57,11 @@ struct jsonblobs {
   }
   size_t partCount() { return parts.size(); }
 
+  void writeFile(FILE *fp);
+  void readFile(FILE *fp);
+  void writeFile(string const &fn);
+  void readFile(string const &fn);
+
   vector< pair<u_char *, size_t> > parts;
   vector< pair<std::function<void(void *)>, void *> >freelist;
 };

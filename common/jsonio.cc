@@ -1062,8 +1062,8 @@ bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, arma::Mat<T> &arr) {
     case 9: n_rows = 3; n_cols = 3; break;
     case 16: n_rows = 4; n_cols = 4; break;
     default:
-      throw runtime_error(stringprintf("rdJson(arma::Mat %dx%d): Couldn't deduce size for %d-elem js arr",
-                                       (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size()));
+      throw fmt_runtime_error("rdJson(arma::Mat %dx%d): Couldn't deduce size for %d-elem js arr",
+                              (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size());
     }
   }
   else if (n_rows == 0) {
@@ -1082,8 +1082,8 @@ bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, arma::Mat<T> &arr) {
     n_rows = 1; n_cols = 1;
   }
   else {
-    throw runtime_error(stringprintf("rdJson(arma::Mat %dx%d): Couldn't match up with %d-elem js arr",
-                                     (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size()));
+    throw fmt_runtime_error("rdJson(arma::Mat %dx%d): Couldn't match up with %d-elem js arr",
+                                     (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size());
   }
   if (0) eprintf("rdJson(arma::Mat): %dx%d -> %dx%d (from %lu)\n", (int)arr.n_rows, (int)arr.n_cols, (int)n_rows, (int)n_cols, (u_long)tmparr.size());
   arr.set_size(n_rows, n_cols);
@@ -1154,3 +1154,67 @@ template bool rdJson<arma::cx_double>(const char *&s, shared_ptr<jsonblobs> &blo
 template void wrJsonSize<arma::cx_double>(size_t &size, shared_ptr<jsonblobs> &blobs, arma::Mat<arma::cx_double> const &arr);
 template void wrJson<arma::cx_double>(char *&s, shared_ptr<jsonblobs> &blobs, arma::Mat<arma::cx_double> const &arr);
 template bool rdJson<arma::cx_double>(const char *&s, shared_ptr<jsonblobs> &blobs, arma::Mat<arma::cx_double> &arr);
+
+// -------------------------
+
+void jsonblobs::writeFile(FILE *fp)
+{
+  size_t partsCountLocal = parts.size();
+  fwrite(&partsCountLocal, sizeof(partsCountLocal), 1, fp);
+  for (auto &it : parts) {
+    size_t partSizeLocal = it.second;
+    fwrite(&partSizeLocal, sizeof(partSizeLocal), 1, fp);
+  }
+  for (auto &it : parts) {
+    fwrite(it.first, 1, it.second, fp);
+  }
+}
+
+void jsonblobs::readFile(FILE *fp)
+{
+  size_t rc;
+  size_t partsCountLocal = 0;
+  rc = fread(&partsCountLocal, sizeof(partsCountLocal), 1, fp);
+  if (rc != 1) throw fmt_runtime_error("jsonblobs::readFile read %zu/1", rc);
+  vector<size_t> partSizesLocal(partsCountLocal);
+  for (auto &it : partSizesLocal) {
+    rc = fread(&it, sizeof(size_t), 1, fp);
+    if (rc != 1) throw fmt_runtime_error("jsonblobs::readFile read %zu/1", rc);
+  }
+  for (auto it : partSizesLocal) {
+    size_t partno;
+    u_char *buf = mkPart(it, partno);
+    rc = fread(buf, 1, it, fp);
+    if (rc != it) throw fmt_runtime_error("jsonblobs::readFile read %zu/%zu", rc, it);
+  }
+}
+
+void jsonblobs::writeFile(string const &fn)
+{
+  FILE *fp = fopen(fn.c_str(), "wb");
+  if (!fp) throw fmt_runtime_error("jsonblobs::writeFile %s: %s", fn.c_str(), strerror(errno));
+  try {
+    writeFile(fp);
+  }
+  catch (...) {
+    fclose(fp);
+    fp = nullptr;
+    throw;
+  }
+  if (fp) fclose(fp);
+}
+
+void jsonblobs::readFile(string const &fn)
+{
+  FILE *fp = fopen(fn.c_str(), "rb");
+  if (!fp) throw fmt_runtime_error("jsonblobs::readFile %s: %s", fn.c_str(), strerror(errno));
+  try {
+    readFile(fp);
+  }
+  catch (...) {
+    fclose(fp);
+    fp = nullptr;
+    throw;
+  }
+  if (fp) fclose(fp);
+}

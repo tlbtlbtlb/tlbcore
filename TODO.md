@@ -1,5 +1,11 @@
 # TODO
 
+### jsonio:
+  - write rdJsonBulk
+  - blobs should be named, rather than indexed. partno=>partid. Can just be random, or maybe if I wanted to share blobs they could be a hash
+  -   unordered_map<string, shared_ptr<u_char *> >
+  
+
 ### Common
 
   * Clean up MoreUnderscore:

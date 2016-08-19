@@ -392,7 +392,7 @@ void packet_wr_typetag(packet &p, vector<T> const &x) {
 
 template<typename T>
 void packet_wr_value(packet &p, vector<T> const &x) {
-  if (!(x.size() < 0x3fffffff)) throw runtime_error(stringprintf("Unreasonable size %lu", (u_long)x.size()));
+  if (!(x.size() < 0x3fffffff)) throw fmt_runtime_error("Unreasonable size %lu", (u_long)x.size());
   p.add((uint32_t)x.size());
   for (size_t i=0; i<x.size(); i++) {
     p.add(x[i]);
@@ -410,7 +410,7 @@ template<typename T>
 void packet_rd_value(packet &p, vector<T> &x) {
   uint32_t size;
   p.get(size);
-  if (!(size < 0x3fffffff)) throw runtime_error(stringprintf("Unreasonable size %lu", (u_long)size));
+  if (!(size < 0x3fffffff)) throw fmt_runtime_error("Unreasonable size %lu", (u_long)size);
   if (size > p.remaining() / sizeof(T)) throw packet_rd_overrun_err(size*sizeof(T) - p.remaining());
   x.resize(size);
   for (size_t i=0; i<x.size(); i++) {
