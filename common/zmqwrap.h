@@ -38,7 +38,7 @@ struct ZmqSock {
   void zmqTxDelim();
   void zmqTx(jsonstr const &s, bool more);
 
-  bool zmqRx(zmq_msg_t &m);
+  bool zmqRx(zmq_msg_t &m, bool &more);
   bool zmqRx(string &s, bool &more);
   bool zmqRx(vector<string> &v, bool &more);
   bool zmqRx(jsonstr &json, bool allowBlobs, bool &more);
@@ -72,6 +72,7 @@ struct ZmqRpcAgent {
 
   std::mutex mtx;
   std::thread sockThread;
+  std::thread::id sockThreadId;
 };
 
 struct ZmqRpcRouter : ZmqRpcAgent {
@@ -82,9 +83,6 @@ struct ZmqRpcRouter : ZmqRpcAgent {
   void routerMain();
 
   void addApi(string const &method, std::function<void(jsonstr const &params, std::function<void(jsonstr const &error, jsonstr const &result)>)>);
-
-  bool zmqRxRpcReq(string &address, string &method, string &id, jsonstr &params);
-  void zmqTxRpcRep(string const &address, string const &id, jsonstr const &error, jsonstr const &result);
 
   std::unordered_map<
     string, // method
@@ -105,15 +103,12 @@ struct ZmqRpcDealer : ZmqRpcAgent {
   void start();
   void dealerMain();
 
-  void zmqTxRpcReq(string const &method, string const &id, jsonstr const &params);
-  bool zmqRxRpcRep(string &id, jsonstr &error, jsonstr &result);
-
-  void rpc(string method, jsonstr &params, std::function<void(jsonstr const &error, jsonstr const &result)> cb);
+  void rpc(string const &method, jsonstr &params, std::function<void(jsonstr const &error, jsonstr const &result)> const &cb, double timeout=0.0);
 
   size_t outstandingCount() {
     std::unique_lock<std::mutex> lock(mtx);
     return replyCallbacks.size();
   }
 
-  std::unordered_map<string, std::function<void(jsonstr const &error, jsonstr const &result)> > replyCallbacks;
+  std::unordered_map<string, shared_ptr<struct ZmqRpcOut> > replyCallbacks;
 };
