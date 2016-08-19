@@ -593,7 +593,10 @@ StructCType.prototype.emitWrJson = function(f) {
     f2 = f.child();
     f('}');
 
-    emitstr('{"__type":"vector_' + type.jsTypename + '"');
+    emitstr('{"__type":"bulk_vector_' + type.jsTypename + '"');
+    f1('s += snprintf(s, 40, ",\\"__bulk_size\\":%zu", obj.size());')
+    f2('size += 40;');
+
     _.each(rm, function(members, et) {
       var ett = type.reg.types[et];
       _.each(members, function(names) {
@@ -603,7 +606,7 @@ StructCType.prototype.emitWrJson = function(f) {
           f1('{');
           f1('size_t partno=0;');
           f1('u_char *bulkdata = blobs->mkPart(obj.size() * sizeof(' + ett.typename + '), partno);');
-          f1('s += snprintf(s, 100, ",{\\"__type\\":\\"ndbulk\\":\\"partno\\":%zu,\\"shape\\":[%zu],\\"dtype\\":\\"' + ett.typename + '\\"}", partno, obj.size());');
+          f1('s += snprintf(s, 100, ",{\\"' + mkMemberRef(names) + '\\":{\\"__type\\":\\"ndbulk\\":\\"partno\\":%zu,\\"shape\\":[%zu],\\"dtype\\":\\"' + ett.typename + '\\"}", partno, obj.size());');
           f1('' + ett.typename + ' *p = (' + ett.typename + ' *) bulkdata;');
           f1('for (size_t i=0; i<obj.size(); i++) {');
           f1('p[i] = obj[i].' + mkMemberRef(names) + ';');
@@ -617,6 +620,7 @@ StructCType.prototype.emitWrJson = function(f) {
           f1('for (auto &it : obj) {')
           f1('slice.push_back(it.' + mkMemberRef(names) + ');');
           f1('}');
+          f1('s += snprintf(s, 100, ",\\"' + mkMemberRef(names) + '\\":");');
           f1('wrJson(s, blobs, slice);');
           f1('}');
 
@@ -684,6 +688,7 @@ StructCType.prototype.emitRdJson = function(f) {
   f('return false;');
   f('}');
 
+  // WRITME: rdJsonBulk
 
   function emitPrefix(prefix) {
 
