@@ -208,6 +208,23 @@ stringprintf(const char *format,...)
   return ret;
 }
 
+
+std::runtime_error
+fmt_runtime_error(const char *format,...)
+{
+  va_list ap;
+  va_start(ap, format);
+  char *str = nullptr;
+  int str_len = vasprintf(&str, format, ap);
+  va_end(ap);
+  if (str_len < 0) return runtime_error("fmt_runtime_error failed");
+
+  string ret = string(str);
+  free(str);
+  return std::runtime_error(ret);
+}
+
+
 #if !defined(WIN32)
 int
 fdprintf(int fd, const char *format, ...)
