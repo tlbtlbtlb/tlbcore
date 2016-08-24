@@ -289,59 +289,6 @@ $.fn.exec = function(f, a, b, c, d, e) {
   return this;
 };
 
-$.fn.formSetExamples = function(options) {
-  var f = this;
-  this.find('.formHint').hide();
-  // Note: you must include 'type="text"' in the tag, even though it's the default
-  this.find('input[type="text"]').add('textarea').each(function(index, input) {
-    input = $(input);
-    if (input.val() === '') {
-
-      if (input.attr('example') && !input.hasClass('inputChanged')) {
-        input.addClass('inputExample');
-        input.val(input.attr('example'));
-      }
-
-      input.bind('focus', function(e) {
-        if (input.attr('example') && input.val() === input.attr('example') && !input.hasClass('inputChanged')) {
-          input.val('');
-          input.removeClass('inputError inputExample');
-        }
-        input.addClass('inputChanged');
-        f.find('.formHint').hide();
-        input.closest('tr,*').find('.formHint').show();
-      });
-
-      input.bind('mouseover', function(e) {
-        f.find('.formHint').hide();
-        input.closest('tr,*').find('.formHint').show();
-      });
-
-      input.bind('blur', function(e) {
-        input.closest('tr,*').find('.formHint').hide();
-        if (input.val() === '' && input.attr('example') && input.hasClass('inputChanged')) {
-          input.addClass('inputExample');
-          input.val(input.attr('example'));
-        }
-      });
-
-      input.bind('mouseout', function(e) {
-        input.closest('tr,*').find('.formHint').hide();
-      });
-
-      input.bind('keypress', function(e) {
-        input.addClass('inputChanged');
-      });
-    }
-  });
-  return this;
-};
-
-$.fn.formClearExamples = function() {
-  this.find('.inputExample').val('').removeClass('inputExample');
-  return this;
-};
-
 $.fn.formEnableSubmits = function() {
   this.find("input[type=submit]").attr('disabled', false);
   return this;
