@@ -309,7 +309,7 @@ ZmqRpcDealer::dealerMain()
           auto ipIter = replyCallbacks.find(address[0]);
           if (ipIter != replyCallbacks.end()) {
             ip = ipIter->second;
-            if (error.it == "\"progress\"") {
+            if (error.it == "\"progress\"" || error.it.substr(0, 2) == "\"*") {
               ip->progressTime = realtime();
             }
             else if (error.it == "\"keepalive\"") {
