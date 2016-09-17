@@ -427,15 +427,6 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
   if (!type.noSerialize) {
     f('Handle<Value> jsToJSON_JSTYPE(Isolate *isolate, const TYPENAME &it) {');
     f('EscapableHandleScope scope(isolate);');
-    f('if (fastJsonFlag) {');
-    f('string fjbItem = asJson(it).it;');
-    f('if (fjbItem.size() > 20) {');
-    f('Local<Object> ret = Object::New(isolate);');
-    f('ret->Set(String::NewFromUtf8(isolate, "__wsType"), String::NewFromUtf8(isolate, "jsonString"));');
-    f('ret->Set(String::NewFromUtf8(isolate, "json"), convStringToJs(isolate, fjbItem));');
-    f('return scope.Escape(ret);');
-    f('}');
-    f('}');
 
     if (type.templateName === 'vector') {
       f('Local<Array> ret = Array::New(isolate, it.size());');

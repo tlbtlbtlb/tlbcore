@@ -30,8 +30,6 @@
 using namespace node;
 using namespace v8;
 
-extern bool fastJsonFlag;
-
 void ThrowInvalidArgs(Isolate *isolate);
 void ThrowInvalidThis(Isolate *isolate);
 void ThrowTypeError(Isolate *isolate, char const *s);

@@ -5,14 +5,7 @@ var ur                  = require('ur');
 
 function wshPipe(msg) {
   var binaries = [];
-  var json;
-  if (JSON.withFastJson) {
-    JSON.withFastJson(function() {
-      json = WebSocketHelper.stringify(msg, binaries);
-    });
-  } else {
-    json = WebSocketHelper.stringify(msg, binaries);
-  }
+  var json = WebSocketHelper.stringify(msg, binaries);
   var msg2 = WebSocketHelper.parse(json, binaries);
   return msg2;
 }

@@ -26,9 +26,6 @@
 
 ### nodeif
 
-* Clean up:
-   - Is fastJson still useful? I think it's only used when sending large arrays to the browser via binary blobs in websocket. But do I do this?
-
 ### geom
 
  * Get rid of solid_geometry.cc. Do it all in JS.

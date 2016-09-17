@@ -4,11 +4,6 @@
 
 using namespace arma;
 
-bool fastJsonFlag;
-
-
-
-
 
 void ThrowInvalidArgs(Isolate *isolate) {
   isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid arguments")));

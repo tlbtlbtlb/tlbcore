@@ -160,14 +160,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
 
   function emitMsg(msg) {
     var binaries = [];
-    var json;
-    if (JSON.withFastJson) {
-      JSON.withFastJson(function() {
-        json = WebSocketHelper.stringify(msg, binaries);
-      });
-    } else {
-      json = WebSocketHelper.stringify(msg, binaries);
-    }
+    var json = WebSocketHelper.stringify(msg, binaries);
     _.each(binaries, function(data) {
       // See http://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer
       // and http://nodejs.org/api/buffer.html

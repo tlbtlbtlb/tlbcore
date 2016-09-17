@@ -78,10 +78,7 @@ function stringify(msg, binaries) {
 function parse(json, binaries) {
   var msg = JSON.parse(json, function(k, v) {
     if (_.isObject(v) && v.__wsType) {
-      if (v.__wsType === 'jsonString') {
-        return JSON.parse(v.json);
-      }
-      else if (v.__wsType === 'ArrayBuffer') {
+      if (v.__wsType === 'ArrayBuffer') {
         return binaries[v.binaryIndex];
       }
       else if (v.__wsType === 'DataView') {
