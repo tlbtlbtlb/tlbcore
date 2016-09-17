@@ -1,2 +1,1 @@
-import common.args
-args = common.args
+from .common import args, zmq_serialize
