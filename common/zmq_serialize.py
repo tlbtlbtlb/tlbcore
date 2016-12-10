@@ -1,16 +1,16 @@
 """
 Helpers to serialize Gym data types over zmq.
+TODO: rewrite using python `json` rather than `ujson`, using its object hooks.
+Either make part of gym, or avoid importing gym if not needed
 """
-import math, logging, random
+import math, logging, six
 import numpy as np
 import ujson
+from . import shortid
 import gym, gym.spaces
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-def mk_random_cookie():
-    return ''.join([random.choice('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz') for x in range(12)])
 
 def dump_msg(msg):
     """
@@ -35,7 +35,10 @@ def dump_msg(msg):
     """
     parts = [None]
     msg1 = _dump_msg1(msg, parts)
-    parts[0] = ujson.dumps(msg1, escape_forward_slashes=False)
+    if six.PY3:
+        parts[0] = bytes(ujson.dumps(msg1, escape_forward_slashes=False, ensure_ascii=False), 'utf8')
+    else:
+        parts[0] = ujson.dumps(msg1, escape_forward_slashes=False, ensure_ascii=False)
     return parts
 
 def _dump_msg1(o, parts):
