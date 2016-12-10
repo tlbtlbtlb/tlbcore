@@ -837,57 +837,73 @@ $.fn.animation2 = function(m) {
 
   Use .snap or .snap5 to snap a coordinate to the corner or center of a device pixel
 */
-function BoxLayout(t, r, b, l, pixelRatio) {
-  this.boxT = this.canvasT = t;
-  this.boxR = this.canvasR = r;
-  this.boxB = this.canvasB = b;
-  this.boxL = this.canvasL = l;
-  this.pixelRatio = pixelRatio;
-  this.thinWidth = 1 / pixelRatio;
+function BoxLayout(t, r, b, l, pixelRatio, o) {
+  var lo = this;
+  if (!o) o = {};
+  lo.boxT = lo.canvasT = t;
+  lo.boxR = lo.canvasR = r;
+  lo.boxB = lo.canvasB = b;
+  lo.boxL = lo.canvasL = l;
+  lo.pixelRatio = pixelRatio;
+  lo.thinWidth = 1 / pixelRatio;
   if (pixelRatio >= 2) {
-    this.lrgFont = '20px Arial';
-    this.lrgSize = 20;
-    this.medFont = '10px Arial';
-    this.medSize = 10;
-    this.smlFont = '9px Arial';
-    this.smlSize = 9;
-    this.tinyFont = '7px Arial';
-    this.tinySize = 7;
+    lo.lrgFont = '20px Arial';
+    lo.lrgSize = 20;
+    lo.tooltipFont = '12px Arial';
+    lo.tooltipSize = 12;
+    lo.medFont = '10px Arial';
+    lo.medSize = 10;
+    lo.smlFont = '9px Arial';
+    lo.smlSize = 9;
+    lo.tinyFont = '7px Arial';
+    lo.tinySize = 7;
   } else {
-    this.lrgFont = '25px Arial';
-    this.lrgSize = 25;
-    this.medFont = '12px Arial';
-    this.medSize = 12;
-    this.smlFont = '10px Arial';
-    this.smlSize = 10;
-    this.tinyFont = '8px Arial';
-    this.tinySize = 8;
+    lo.lrgFont = '25px Arial';
+    lo.lrgSize = 25;
+    lo.tooltipFont = '12px Arial';
+    lo.tooltipSize = 12;
+    lo.medFont = '12px Arial';
+    lo.medSize = 12;
+    lo.smlFont = '10px Arial';
+    lo.smlSize = 10;
+    lo.tinyFont = '8px Arial';
+    lo.tinySize = 8;
   }
+  lo.tooltipPadding = o.comfy ? 3 : 0;
+  lo.tooltipFillStyle = 'rgba(255,255,202,0.9)';
+  lo.tooltipTextStyle = '#000023';
 }
 
 BoxLayout.prototype.snap = function(x) {
-  return Math.round(x * this.pixelRatio) / this.pixelRatio;
+  var lo = this;
+  return Math.round(x * lo.pixelRatio) / lo.pixelRatio;
 };
 BoxLayout.prototype.snap5 = function(x) {
-  return (Math.round(x * this.pixelRatio - 0.5) + 0.5) / this.pixelRatio;
+  var lo = this;
+return (Math.round(x * lo.pixelRatio - 0.5) + 0.5) / lo.pixelRatio;
 };
 BoxLayout.prototype.child = function(changes) {
+  var lo = this;
   if (changes) {
-    return _.extend(Object.create(this), changes);
+    return _.extend(Object.create(lo), changes);
   } else {
-    return Object.create(this);
+    return Object.create(lo);
   }
 };
 BoxLayout.prototype.toString = function() {
-  return 'box(' + this.boxL.toFixed(1) + ',' + this.boxT.toFixed(1) + ',' + this.boxR.toFixed(1) + ',' + this.boxB.toFixed(1) + ')';
+  var lo = this;
+  return 'box(' + lo.boxL.toFixed(1) + ',' + lo.boxT.toFixed(1) + ',' + lo.boxR.toFixed(1) + ',' + lo.boxB.toFixed(1) + ')';
 };
-BoxLayout.prototype.childBox = function(t, r, b, l) {
-  var ret = Object.create(this);
-  ret.boxT = t;
-  ret.boxR = r;
-  ret.boxB = b;
-  ret.boxL = l;
-  return ret;
+BoxLayout.prototype.childBox = function(t, r, b, l, o) {
+  var lo2 = Object.create(this);
+  lo2.boxT = t;
+  lo2.boxR = r;
+  lo2.boxB = b;
+  lo2.boxL = l;
+  if (o) {
+    _.extend(lo2, o);
+  }
+  return lo2;
 };
 
 
@@ -1120,7 +1136,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     hd.beginDrawing(ctx);
     var cw = canvas.width / pixelRatio;
     var ch = canvas.height / pixelRatio;
-    var lo = new BoxLayout(0, cw, ch, 0, pixelRatio);
+    var lo = new BoxLayout(0, cw, ch, 0, pixelRatio, o);
 
     ctx.clearRect(0, 0, cw, ch);
     ctx.lineWidth = 1.0;

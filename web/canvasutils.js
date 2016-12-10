@@ -6,11 +6,11 @@
 function drawTooltip(ctx, lo, x, y, str) {
   ctx.tooltipLayer(function() {
     var lines = str.split('\n');
-    ctx.font = '12px Arial';
+    ctx.font = lo.tooltipFont;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
-    var lineH = 20;
-    var textW = _.reduce(lines, function(prevMax, line) { return Math.max(prevMax, ctx.measureText(str).width); }, 20);
+    var lineH = lo.tooltipSize * 1.6;
+    var textW = _.reduce(lines, function(prevMax, line) { return Math.max(prevMax, ctx.measureText(line).width); }, 20);
     var textH = lineH * lines.length;
 
     if (y < lo.boxT + textH + 10) { // close to top, show below
@@ -18,28 +18,27 @@ function drawTooltip(ctx, lo, x, y, str) {
     } else {
       y -= textH/2 + 10;
     }
-    if (x < lo.boxL + 10) {
-      x = lo.boxL + 10;
-    }
-    else if (x > lo.boxR - 10 - textW) {
-      x = lo.boxR - 10 - textW;
-    }
+    y = Math.min(y, lo.boxB-textH/2-5);
+    y = Math.max(y, lo.boxT+textH/2+5);
 
-    var ttL = x - 6;
-    var ttR = x + 6 + textW;
-    var ttT = y - textH/2;
-    var ttB = y + textH/2 + 2;
+    x = Math.min(x, lo.boxR - 10 - textW);
+    x = Math.max(x, lo.boxL + 10);
+
+    var ttL = x - 6 - lo.tooltipPadding;
+    var ttR = x + 6 + textW + lo.tooltipPadding;
+    var ttT = y - textH/2 + lo.tooltipPadding;
+    var ttB = y + textH/2 + 2 + lo.tooltipPadding;
     ctx.beginPath();
     ctx.moveTo(ttL, ttT);
     ctx.lineTo(ttR, ttT);
     ctx.lineTo(ttR, ttB);
     ctx.lineTo(ttL, ttB);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(255,255,202,0.9)';
+    ctx.fillStyle = lo.tooltipFillStyle;
     ctx.fill();
-    ctx.fillStyle = '#000023';
+    ctx.fillStyle = lo.tooltipTextStyle;
     _.each(lines, function(line, lineIndex) {
-      ctx.fillText(line, x, ttT + 10 + lineH * lineIndex);
+      ctx.fillText(line, x, ttT + lineH * (lineIndex+0.5));
     });
   });
 }
