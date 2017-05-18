@@ -869,6 +869,9 @@ function BoxLayout(t, r, b, l, pixelRatio, o) {
     lo.tinyFont = '8px Arial';
     lo.tinySize = 8;
   }
+  lo.sizeFont = function(s) {
+    return s.toFixed(0) + 'px Arial';
+  };
   lo.tooltipPadding = o.comfy ? 3 : 0;
   lo.tooltipFillStyle = 'rgba(255,255,202,0.9)';
   lo.tooltipTextStyle = '#000023';
@@ -1100,8 +1103,9 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
 
   m.on('animate', redrawCanvas);
 
-  function redrawCanvas() {
+  m.on('makeMovie', makeMovie);
 
+  function redrawCanvas() {
     var t0 = Date.now();
     drawCount++;
     var ctx = canvas.getContext(o.contextStyle || '2d');
@@ -1125,9 +1129,11 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     }
     if (canvas.width === 0 || canvas.height === 0) return;
 
+
     var pixelRatio = canvas.pixelRatio || 1;
     ctx.save();
     ctx.scale(pixelRatio, pixelRatio);
+
     ctx.curLayer = function(f) { return f(); };
     ctx.textLayer = mkDeferQ();
     ctx.buttonLayer = mkDeferQ();
@@ -1138,7 +1144,12 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     var ch = canvas.height / pixelRatio;
     var lo = new BoxLayout(0, cw, ch, 0, pixelRatio, o);
 
-    ctx.clearRect(0, 0, cw, ch);
+    if (o.bgFillStyle) {
+      ctx.fillStyle = o.bgFillStyle;
+      ctx.fillRect(0, 0, cw, ch);
+    } else {
+      ctx.clearRect(0, 0, cw, ch);
+    }
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = '#000000';
     ctx.fillStyle = '#000000';
@@ -1166,6 +1177,70 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     }
     hd.endDrawing();
     ctx.restore();
+  }
+
+  function makeMovie(movieOptions) {
+    console.log('makeMovie called', movieOptions);
+
+    movieOptions.onBegin({el: top});
+
+    if (movieOptions.cmd === 'start') {
+      var cropInfo = movieOptions.crop ? movieOptions.crop(canvas.width, canvas.height) : null;
+      if (!cropInfo) {
+        cropInfo = {width: Math.floor(canvas.width/2)*2, height: Math.floor(canvas.height/2)*2, left:0, top: 0}
+      }
+      var createMovieReq = new FormData();
+      var createMovieRsp = null;
+      if (cropInfo) {
+        createMovieReq.append('crop', cropInfo.width.toFixed(0) + ':' + cropInfo.height.toFixed(0) + ':' + cropInfo.left.toFixed(0) + ':' + cropInfo.top.toFixed(0));
+      }
+      var createMovieXhr = new XMLHttpRequest();
+      createMovieXhr.open('POST', 'create_movie', true);
+      createMovieXhr.onload = function(e) {
+        if (0) console.log('create_movie returns', createMovieXhr.response);
+        createMovieRsp = JSON.parse(createMovieXhr.response);
+        hd.movieId = createMovieRsp.movie_id;
+        movieOptions.onDone(null, {movieId: hd.movieId, el: top});
+      };
+      movieOptions.pending += 1;
+      createMovieXhr.send(createMovieReq);
+    }
+    else if (movieOptions.cmd === 'frame') {
+      var origLoadPendingTot = m.loadPendingTot;
+      var tmpBgFillStyle = o.bgFillStyle;
+      o.bgFillStyle = '#ffffff';
+      redrawCanvas();
+      o.bgFillStyle = tmpBgFillStyle;
+      // toBlob not in Safari?
+      if (m.loadPendingTot > origLoadPendingTot) {
+        movieOptions.onDone('loadPending', {})
+      }
+      else {
+        canvas.toBlob(function(blob) {
+          var addFrameReq = new FormData();
+          addFrameReq.append('frame_data', blob);
+          addFrameReq.append('framei', movieOptions.framei);
+          addFrameReq.append('movie_id', hd.movieId);
+          var addFrameXhr = new XMLHttpRequest();
+          addFrameXhr.open('POST', 'add_frame', true);
+          addFrameXhr.onload = function(e) {
+            movieOptions.onDone(null, {});
+          };
+          addFrameXhr.send(addFrameReq);
+
+        }, 'image/jpeg', 0.98);
+      }
+    }
+    else if (movieOptions.cmd === 'end') {
+      var endMovieReq = new FormData();
+      endMovieReq.append('movie_id', hd.movieId);
+      var endMovieXhr = new XMLHttpRequest();
+      endMovieXhr.open('POST', 'end_movie', true);
+      endMovieXhr.onload = function(e) {
+        movieOptions.onDone(null, {movieUrl: 'download_movie?movie_id=' + hd.movieId});
+      };
+      endMovieXhr.send(endMovieReq);
+    }
   }
 };
 
@@ -1492,5 +1567,13 @@ function pageSetupFromHash(reloadKey, contentMac) {
   setupConsole(reloadKey, contentMac);
   setupClicks();
   gotoCurrentHash();
+  startHistoryPoll();
+}
+
+function pageSetupFull(reloadKey, contentMac, pageid, options) {
+  setupConsole(reloadKey, contentMac);
+  setupClicks();
+  replaceLocationHash(pageid, options);
+  gotoCurrentState();
   startHistoryPoll();
 }
