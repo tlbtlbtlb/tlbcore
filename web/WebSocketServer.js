@@ -1,3 +1,4 @@
+/* globals console, process, exports, require, Buffer, Uint8Array */
 'use strict';
 /*
   The server side (nodejs) of a WebSocket connection.
@@ -80,7 +81,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
         if (verbose >= 1) logio.E(handlers.label, 'Unknown cmdReq in', msg);
         return;
       }
-      if (verbose >= 2) logio.I(handlers.label, 'cmd', msg.cmdReq, msg.cmdArgs)
+      if (verbose >= 2) logio.I(handlers.label, 'cmd', msg.cmdReq, msg.cmdArgs);
       cmdFunc.apply(handlers, msg.cmdArgs);
     }
     else if (msg.rpcReq) {
@@ -90,7 +91,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
         return;
       }
       var done = false;
-      if (verbose >= 2) logio.I(handlers.label, 'rpc', msg.rpcReq, msg.rpcArgs)
+      if (verbose >= 2) logio.I(handlers.label, 'rpc', msg.rpcReq, msg.rpcArgs);
       try {
         reqFunc.apply(handlers, msg.rpcArgs.concat([function(/* ... */) {
           var rpcRet = Array.prototype.slice.call(arguments, 0);
@@ -119,7 +120,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
         if (verbose >= 1) logio.E(handlers.label, 'Unknown response', msg.rpcId);
         return;
       }
-      if (verbose >= 2) logio.I(handlers.label, 'return', msg.rpcRet)
+      if (verbose >= 2) logio.I(handlers.label, 'return', msg.rpcRet);
       rpcCb.apply(handlers, msg.rpcRet);
     }
     else if (msg.hello) {

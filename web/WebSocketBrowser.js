@@ -111,7 +111,7 @@ function mkWebSocketRpc(wsc, handlers) {
         if (verbose >= 1) console.log(wsc.url, 'Unknown response', msg.rpcId);
         return;
       }
-      if (verbose >= 2) console.log('rpcId=', msg.rpcId, 'rpcRet=', msg.rpcRet)
+      if (verbose >= 2) console.log('rpcId=', msg.rpcId, 'rpcRet=', msg.rpcRet);
       rpcCb.apply(handlers, msg.rpcRet);
 
       if (interactivePending && pending.pendingCount < 3) {
@@ -139,7 +139,7 @@ function mkWebSocketRpc(wsc, handlers) {
       var rpcId = pending.getNewId();
       var rpcArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
       var rpcCb = arguments[arguments.length - 1];
-      if (verbose >= 2) console.log('rpcReq=', rpcReq, 'rpcArgs=', rpcArgs)
+      if (verbose >= 2) console.log('rpcReq=', rpcReq, 'rpcArgs=', rpcArgs);
 
       pending.add(rpcId, rpcCb);
       handlers.tx({rpcReq: rpcReq, rpcId: rpcId, rpcArgs: rpcArgs});
