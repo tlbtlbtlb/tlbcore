@@ -135,3 +135,6 @@ push.%: .gitfiles
 
 cross.%: push.%
 	ssh $* 'cd tlbcore && env NODE_PATH=/usr/lib/node_modules make'
+
+lint :: ## Lint js code
+	jshint --reporter unix $(foreach dir,$(JS_SRCDIRS),$(dir)/*.js)
