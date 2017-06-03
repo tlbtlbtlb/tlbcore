@@ -89,6 +89,11 @@ function main() {
       break;
 
     default:
+      if (arg === '-') {
+        console.log('Invalid argument', arg)
+        return
+      }
+
       sites.push(arg);
       break;
     }
@@ -101,8 +106,6 @@ function main() {
       port: 8000
     });
   }
-
-  if (0) console.log(servers);
 
   VjsRepl.setupReplServer();
   VjsRepl.addToContext('webServer0', webServer0);
