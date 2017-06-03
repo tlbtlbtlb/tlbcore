@@ -56,42 +56,8 @@ function parseToken(token) {
 }
 
 
-function mkRandomStream() {
-  var randChunk = '';
-  var readPos = 0;
-  var counter = 0;
-  var fd = fs.openSync('/dev/urandom', 'r', 511); // mode is octal 0777
-
-  function nextChunk() {
-    var readAns = fs.readSync(fd, 64, readPos, 'ascii');
-    randChunk = readAns[0];
-    readPos += readAns[1];
-    counter = 0;
-  }
-
-  nextChunk();
-
-  return function() {
-    var t = Date.now();
-    if (randChunk.length !== 64) throw new Error('No randomness yet, randChunk=' + util.inspect(randChunk));
-    while (1) {
-      var h = crypto.createHmac('sha1', 'argh');
-      h.update(randChunk + ' ' + t + ' ' + counter, 'ascii');
-      if (counter === 100) nextChunk();
-      counter++;
-      var mac = h.digest('base64');
-      // remove non-alphanumerics
-      mac = mac.replace(/[^a-zA-Z0-9]/g, '');
-      if (mac.length >= 24) return mac.substr(0, 24);
-    }
-  };
-}
-
-var generateCookie1 = mkRandomStream();
-
 function generateCookie() {
-  return generateCookie1();
+  return crypto.randomBytes(18).toString('base64').replace(/\//g,'x').replace(/\+/g,'y');
 }
 
 // ----------------------------------------------------------------------
-
