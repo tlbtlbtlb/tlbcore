@@ -1,6 +1,6 @@
 import sys, ujson, traceback
 
-class stdio_server(object):
+class StdioServer(object):
 
     def __init__(self):
         self.pipein = sys.stdin
@@ -12,28 +12,17 @@ class stdio_server(object):
             msg = self.rx()
             if msg is None: break
 
-            cmdReq = msg.get('cmdReq', None)
-            if cmdReq is not None:
+            method = msg.get('method', None)
+            if method is not None:
                 try:
-                    cmdFunc = getattr(self, 'cmd_' + cmdReq)
-                    cmdFunc(*msg.get('cmdArgs', []))
+                    methodFunc = getattr(self, 'rpc_' + method)
+                    result = methodFunc(*msg.get('params'))
+                    self.tx({'id': msg['id'], 'result': result, 'error': None})
                     continue
                 except:
                     exctype, value, tb = sys.exc_info()
                     traceback.print_exception(exctype, value, tb, 10, sys.stderr)
-                    continue
-
-            rpcReq = msg.get('rpcReq', None)
-            if rpcReq is not None:
-                try:
-                    reqFunc = getattr(self, 'req_' + rpcReq)
-                    rpcRet = reqFunc(*msg.get('rpcArgs'))
-                    self.tx({'rpcId': msg['rpcId'], 'rpcRet': rpcRet })
-                    continue
-                except:
-                    exctype, value, tb = sys.exc_info()
-                    traceback.print_exception(exctype, value, tb, 10, sys.stderr)
-                    self.tx({'rpcId': msg['rpcId'], 'rpcRet': [str(exctype) + ': ' + str(value)] })
+                    self.tx({'id': msg['id'], 'error': str(exctype) + ': ' + str(value) })
                     continue
 
 
@@ -42,9 +31,6 @@ class stdio_server(object):
         if len(rx_line) == 0: return None # EOF
         msg = ujson.decode(rx_line)
         return msg
-
-    def cmd(self, cmdReq, *cmdArgs):
-        self.tx({ 'cmdReq': cmdReq, 'cmdArgs': cmdArgs })
 
     def tx(self, msg):
         tx_line = ujson.encode(msg, escape_forward_slashes=False)
