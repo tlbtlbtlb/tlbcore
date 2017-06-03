@@ -1,3 +1,4 @@
+/* globals console, process, exports, require */
 'use strict';
 /*
   It's reasonable to use this behind nginx. See http://nginx.org/en/docs/
@@ -237,7 +238,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
   else {
     throw new Error('Unknown proto ' + serverInfo.proto);
   }
-  console.log('Listening on ' + serverInfo.host + ':' + serverInfo.port + ' (' + serverInfo.proto + ')');
+  console.log('Listening on ' + serverInfo.proto + '://'+ serverInfo.host + ':' + serverInfo.port);
   httpServer.listen(serverInfo.port, serverInfo.host);
 
   webServer.servers.push(httpServer);
@@ -430,10 +431,10 @@ WebServer.prototype.mkConsoleHandler = function() {
       if (self.contentMac) {
         var sameContent = webServer.findByContentMac(self.contentMac);
         if (!sameContent.length) {
-          logio.I(self.label, 'Obsolete contentMac (suggesting reload)', self.contentMac)
+          logio.I(self.label, 'Obsolete contentMac (suggesting reload)', self.contentMac);
           self.cmd('reload', {});
         } else {
-          logio.I(self.label, 'Valid contentMac', self.contentMac)
+          logio.I(self.label, 'Valid contentMac', self.contentMac);
         }
       }
     }

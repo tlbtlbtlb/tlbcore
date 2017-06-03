@@ -1,4 +1,4 @@
-
+/* globals exports, DataView */
 
 exports.sha256 = sha256;
 
@@ -13,10 +13,10 @@ function bufferToHex(buffer) {
   var ret = [];
   var view = new DataView(buffer);
   for (var i = 0; i < view.byteLength; i += 4) {
-    var value = view.getUint32(i)
-    var stringValue = value.toString(16)
-    var padding = '00000000'
-    var paddedValue = (padding + stringValue).slice(-padding.length)
+    var value = view.getUint32(i);
+    var stringValue = value.toString(16);
+    var padding = '00000000';
+    var paddedValue = (padding + stringValue).slice(-padding.length);
     ret.push(paddedValue);
   }
   return ret.join("");

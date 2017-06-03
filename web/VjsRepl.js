@@ -1,3 +1,4 @@
+/* globals console, process, exports, require */
 'use strict';
 var _                   = require('underscore');
 var net                 = require('net');
@@ -64,4 +65,3 @@ function setupReplServer() {
   }).listen(5001, '127.0.0.1');
   console.log('Use "rlwrap nc 127.0.0.1 5001" for a repl');
 }
-

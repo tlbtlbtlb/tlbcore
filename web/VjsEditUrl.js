@@ -32,23 +32,23 @@ $.startEditUrl = function() {
         console.log('CodeMirror stored in window.cm0 for your convenience');
       }
       return false;
+    }
 
-      function saveOptions() {
-        var optionsStr2 = cm.getValue();
-        var options2 = {};
-        try {
-          options2 = JSON.parse(optionsStr2);
-        } catch(ex) {
-          console.log(ex);
-          return;
-        }
-        eu.remove();
-        replaceLocationHash(pageid, options2);
-        gotoCurrentState();
+    function saveOptions() {
+      var optionsStr2 = cm.getValue();
+      var options2 = {};
+      try {
+        options2 = JSON.parse(optionsStr2);
+      } catch(ex) {
+        console.log(ex);
+        return;
       }
-      function closeEdit() {
-        eu.remove();
-      }
+      eu.remove();
+      replaceLocationHash(pageid, options2);
+      gotoCurrentState();
+    }
+    function closeEdit() {
+      eu.remove();
     }
   });
 };

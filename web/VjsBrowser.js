@@ -1187,7 +1187,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     if (movieOptions.cmd === 'start') {
       var cropInfo = movieOptions.crop ? movieOptions.crop(canvas.width, canvas.height) : null;
       if (!cropInfo) {
-        cropInfo = {width: Math.floor(canvas.width/2)*2, height: Math.floor(canvas.height/2)*2, left:0, top: 0}
+        cropInfo = {width: Math.floor(canvas.width/2)*2, height: Math.floor(canvas.height/2)*2, left:0, top: 0};
       }
       var createMovieReq = new FormData();
       var createMovieRsp = null;
@@ -1213,7 +1213,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       o.bgFillStyle = tmpBgFillStyle;
       // toBlob not in Safari?
       if (m.loadPendingTot > origLoadPendingTot) {
-        movieOptions.onDone('loadPending', {})
+        movieOptions.onDone('loadPending', {});
       }
       else {
         canvas.toBlob(function(blob) {
@@ -1418,7 +1418,7 @@ function setupConsole(reloadKey, contentMac) {
 
   // Create remote console over a websocket connection
   if (window.enableRemoteConsole) {
-    console.log('setupConsole reload', reloadKey, contentMac)
+    console.log('setupConsole reload', reloadKey, contentMac);
     window.rconsole = mkWebSocket('console', {
       start: function() {
         if (reloadKey) {
@@ -1438,7 +1438,7 @@ function setupConsole(reloadKey, contentMac) {
       }
     });
   } else {
-    console.log('setupConsole noreload', reloadKey, contentMac)
+    console.log('setupConsole noreload', reloadKey, contentMac);
   }
 }
 
