@@ -24,7 +24,8 @@ class StdioServer(object):
                     traceback.print_exception(exctype, value, tb, 10, sys.stderr)
                     self.tx({'id': msg['id'], 'error': str(exctype) + ': ' + str(value) })
                     continue
-
+    def rpc_handshake(self):
+        return 'handshake'
 
     def rx(self):
         rx_line = self.pipein.readline()
