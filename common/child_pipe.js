@@ -2,11 +2,8 @@ var _ = require('underscore');
 var async = require('async');
 var child_process = require('child_process');
 var logio = require('../web/logio');
-var WebSocketHelper = require('../web/WebSocketHelper');
 
 exports.ChildJsonPipe = ChildJsonPipe;
-
-var verbose = 1;
 
 function ChildJsonPipe(execName, execArgs, execOptions, commOptions) {
   var m = this;
@@ -86,17 +83,30 @@ ChildJsonPipe.prototype.tx = function(childi, req) {
 
 ChildJsonPipe.prototype.handleRx = function(childi, rx) {
   var m = this;
-  var repInfo = m.queues[childi].shift();
-  if (repInfo.id === rx.id) {
-    if (rx.error) {
+  var q = m.queues[childi];
+  var repInfo = null;
+  for (var qi=0; qi<q.length; qi++) {
+    if (q[qi].id === rx.id) {
+      repInfo = q[qi];
+      if (!(rx.error && rx.error === 'progress')) {
+        q.splice(qi, 1);
+      }
+    }
+  }
+  if (repInfo) {
+    if (rx.error && rx.error === 'progress') {
+      if (m.verbose>=2) logio.E(m.baseName + childi.toString(), 'rx', repInfo.method, 'progress', Date.now()-repInfo.t0)
+      repInfo.cb('progress', rx.result);
+    }
+    else if (rx.error) {
       if (m.verbose>=1) logio.E(m.baseName + childi.toString(), 'rx', repInfo.method, rx.error, Date.now()-repInfo.t0)
       repInfo.cb(new Error(rx.error), rx.result);
     } else {
-      if (m.verbose>=1) logio.I(m.baseName + childi.toString(), repInfo.method, Date.now()-repInfo.t0)
+      if (m.verbose>=2) logio.I(m.baseName + childi.toString(), repInfo.method, Date.now()-repInfo.t0)
       repInfo.cb(null, rx.result);
     }
   } else {
-    logio.E(m.baseName + childi.toString(), 'Unknown id', rx, 'Expected', repInfo.id);
+    logio.E(m.baseName + childi.toString(), 'Unknown id', rx);
   }
 }
 

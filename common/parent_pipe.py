@@ -14,18 +14,24 @@ class StdioServer(object):
 
             method = msg.get('method', None)
             if method is not None:
+                self.current_id = msg['id']
                 try:
                     methodFunc = getattr(self, 'rpc_' + method)
                     result = methodFunc(*msg.get('params'))
                     self.tx({'id': msg['id'], 'result': result, 'error': None})
+                    self.current_id = None
                     continue
                 except:
                     exctype, value, tb = sys.exc_info()
                     traceback.print_exception(exctype, value, tb, 10, sys.stderr)
-                    self.tx({'id': msg['id'], 'error': str(exctype) + ': ' + str(value) })
+                    self.tx({'id': msg['id'], 'error': str(value) })
+                    self.current_id = None
                     continue
     def rpc_handshake(self):
         return 'handshake'
+
+    def progress(self, result):
+        self.tx({'id': self.current_id, 'error': 'progress', result: result})
 
     def rx(self):
         rx_line = self.pipein.readline()
