@@ -1,9 +1,11 @@
 var _ = require('underscore');
 var async = require('async');
+var path = require('path');
 var child_process = require('child_process');
 var logio = require('../web/logio');
 
 exports.ChildJsonPipe = ChildJsonPipe;
+exports.sshify = sshify;
 
 function ChildJsonPipe(execName, execArgs, execOptions, commOptions) {
   var m = this;
@@ -12,10 +14,12 @@ function ChildJsonPipe(execName, execArgs, execOptions, commOptions) {
     // WRITEME: create a SHM or shared mmapped file with the child, for passing large
     // numerical arrays around.
   }
-  if (commOptions.sshHost) {
-    // WRITEME: rewrite execArgs to ssh to the host
-  }
   m.baseName = commOptions.baseName || execName;
+  if (commOptions.sshHost) {
+    execArgs = sshify(execName, execArgs, commOptions.sshHost);
+    execName = 'ssh';
+    m.baseName = commOptions.sshHost + '$' + m.baseName;
+  }
   m.verbose = commOptions.verbose || 0;
   var nChildren = commOptions.nChildren || 1;
 
@@ -44,7 +48,9 @@ function ChildJsonPipe(execName, execArgs, execOptions, commOptions) {
       }
     });
     m.children[childi].on('close', function(code, signal) {
-      logio.I(m.baseName + childi.toString(), 'close, code=', code, 'signal=', signal);
+      if (m.verbose >= 1 || code != 0) {
+        logio.I(m.baseName + childi.toString(), 'close, code=', code, 'signal=', signal);
+      }
       m.handleClose(childi);
     });
     m.children[childi].on('error', function(err) {
@@ -139,3 +145,20 @@ ChildJsonPipe.prototype.handleClose = function(childi) {
     repInfo.cb('Connection closed', null);
   }
 };
+
+/*
+  Convert a list of args into an ssh command line
+  ie, sshify('python', 'foo.py', 'remote') => ['remote', 'cd dir && python foo.py']
+*/
+function sshify(execName, execArgs, sshHost) {
+  var relDir = path.relative(process.env.HOME, process.cwd());
+
+  var newArgs = _.map(execArgs, function(a) {
+    if (/^[-_a-z0-9\/\.]+$/.exec(a)) {
+      return a;
+    } else {
+      return '"' + a.replace(/[^-_a-z0-9\/\. @]/, '\\$&') + '"';
+    }
+  })
+  return [sshHost, 'cd ' + relDir + ' && source /etc/profile && ' + execName + ' ' + newArgs.join(' ')]
+}
