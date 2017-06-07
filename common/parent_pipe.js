@@ -45,6 +45,14 @@ ParentJsonPipe.prototype.tx = function(tx) {
   m.stdout.write('\n');
 };
 
+ParentJsonPipe.prototype.emitInParent = function() {
+  var m = this;
+  m.tx({
+    cmd: 'emit',
+    params: arguments,
+  });
+};
+
 ParentJsonPipe.prototype.handleRx = function(rx) {
   var m = this;
 
