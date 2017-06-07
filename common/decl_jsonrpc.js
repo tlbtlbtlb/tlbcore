@@ -6,7 +6,7 @@ module.exports = function(typereg) {
   var jsonrpcmsg = typereg.struct('jsonrpcmsg',
     ['method', 'string'],
     ['error', 'jsonstr'],
-    ['id', 'jsonstr'],
+    ['id', 'int'],
     ['params', 'jsonstr'],
     ['result', 'jsonstr'],
     ['log_msgs', 'vector<string>']);
