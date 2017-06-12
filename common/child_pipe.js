@@ -47,7 +47,15 @@ function ChildJsonPipe(execName, execArgs, execOptions, o) {
           return;
         } else {
           datas.push(buf.slice(0, eol));
-          var rep = JSON.parse(datas.join(''));
+          try {
+            var rep = JSON.parse(datas.join(''));
+          }
+          catch(ex) {
+            console.log('Error parsing', datas.join(''));
+            datas = [];
+            buf = buf.slice(eol+1);
+            continue;
+          }
           datas = [];
           m.handleRx(childi, rep);
           buf = buf.slice(eol+1);
@@ -64,7 +72,7 @@ function ChildJsonPipe(execName, execArgs, execOptions, o) {
     m.children[childi].on('close', function(code, signal) {
       if (m.verbose >= 1 || code != 0) {
         logio.I(m.baseName + childi.toString(), 'close, code=', code, 'signal=', signal);
-        logio.I(m.baseName + childi.toString(), m.logs);
+        //logio.I(m.baseName + childi.toString(), m.logs);
       }
       m.handleClose(childi);
       m.emit('close', code, signal);
@@ -173,7 +181,7 @@ ChildJsonPipe.prototype.handleClose = function(childi) {
   m.children[childi] = null;
   while (m.queues[childi].length > 0) {
     var repInfo = m.queues[childi].shift();
-    repInfo.cb('Connection closed', null);
+    repInfo.cb('closed', null);
   }
 };
 

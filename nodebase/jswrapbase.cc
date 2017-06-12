@@ -442,3 +442,36 @@ template bool canConvJsToArmaRow<arma::cx_double>(Isolate *isolate, Local<Value>
 template bool canConvJsToArmaMat<arma::cx_double>(Isolate *isolate, Local<Value> it);
 //template arma::Mat<arma::cx_double> convJsToArmaMat<arma::cx_double>(Isolate *isolate, Local<Value> it, size_t nRows, size_t nCols);
 //template Local<Object> convArmaMatToJs<arma::cx_double>(Isolate *isolate, arma::Mat<arma::cx_double> const &it);
+
+
+
+
+void
+jsCallbackInvoke(FunctionCallbackInfo<Value> const &args)
+{
+  Isolate *isolate = args.GetIsolate();
+  HandleScope scope(isolate);
+
+  External *data_ext = External::Cast(*args.Data());
+
+  std::function<void(jsonstr const &err, jsonstr const &result)> *f = static_cast<std::function<void(jsonstr const &err, jsonstr const &result)> *>(data_ext->Value());
+  if (0) eprintf("jsCallbackInvoke: %p %p\n", data_ext, f);
+  if (args.Length() == 1) {
+    (*f)(convJsToJsonstr(isolate, args[0]), jsonstr("{}"));
+  }
+  else if (args.Length() == 2) {
+    (*f)(convJsToJsonstr(isolate, args[0]), convJsToJsonstr(isolate, args[1]));
+  }
+  else {
+    ThrowInvalidArgs(isolate);
+  }
+}
+
+void
+jsCallbackCleanup(WeakCallbackInfo<CallbackFunction_jsonstr_jsonstr> const &args)
+{
+  CallbackFunction_jsonstr_jsonstr *data_ext = args.GetParameter();
+  std::function<void(jsonstr const &err, jsonstr const &result)> *f = static_cast<std::function<void(jsonstr const &err, jsonstr const &result)> *>(data_ext);
+  if (0) eprintf("jsCallbackCleanup: delete %p %p\n", data_ext, f);
+  delete f;
+}

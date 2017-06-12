@@ -4,17 +4,20 @@
 #include "./nodeasync.h"
 #include <mutex>
 #include <uv.h>
+using namespace v8;
 
-
-struct AsyncEventQueueImpl {
+struct AsyncEventQueueImpl : AsyncEventQueueApi {
 
   AsyncEventQueueImpl(AsyncCallbacks *_owner);
   ~AsyncEventQueueImpl();
 
   void start();
   void push(string const &eventName, jsonstr const &it);
-  void deliver();
+  void deliver_queued();
   void on(string const &eventName, Local<Value> cb);
+
+  void sync_emit(string const &eventName, Local<Value> arg);
+  void sync_emit(string const &eventName);
 
   AsyncCallbacks *owner;
   uv_async_t uva;
@@ -25,21 +28,6 @@ struct AsyncEventQueueImpl {
 
 
 
-AsyncCallbacks::AsyncCallbacks()
-{
-}
-
-AsyncCallbacks::~AsyncCallbacks()
-{
-}
-
-void AsyncCallbacks::emitraw(string const &eventName, jsonstr const &it)
-{
-  if (impl) {
-    impl->push(eventName, it);
-  }
-}
-
 void AsyncCallbacks::on(string const &eventName, Local<Value> _onMessage)
 {
   call_once(implInitOnce, [this]() {
@@ -47,6 +35,15 @@ void AsyncCallbacks::on(string const &eventName, Local<Value> _onMessage)
     impl->start();
   });
   impl->on(eventName, _onMessage);
+}
+
+
+
+void AsyncCallbacks::sync_emit(string const &eventName, Local<Value> arg)
+{
+  if (impl) {
+    impl->sync_emit(eventName, arg);
+  }
 }
 
 
@@ -80,17 +77,17 @@ void AsyncEventQueueImpl::start()
 
   uv_async_init(loop, &uva, [](uv_async_t* uva1) {
     auto self = reinterpret_cast<AsyncEventQueueImpl*>(uva1->data);
-    self->deliver();
+    self->deliver_queued();
   });
   uv_unref((uv_handle_t *)&uva);
 }
 
-void AsyncEventQueueImpl::deliver()
+void AsyncEventQueueImpl::deliver_queued()
 {
   /*
     This part gets called from the uv event loop, when it should be OK to call v8 ops.
   */
-  Isolate *isolate = v8::Isolate::GetCurrent();
+  Isolate *isolate = Isolate::GetCurrent();
   HandleScope scope(isolate);
 
   Local<Value> recvLocal = Undefined(isolate);
@@ -117,10 +114,41 @@ void AsyncEventQueueImpl::deliver()
   }
 }
 
+void AsyncEventQueueImpl::sync_emit(string const &eventName, Local<Value> arg)
+{
+  Isolate *isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+
+  Local<Value> recvLocal = Undefined(isolate);
+
+  auto &cbs = nameToCbs[eventName];
+
+  for (auto &cb : cbs) {
+    Local<Function> cbLocal = Local<Function>::New(isolate, *cb);
+    // WRITEME: should we handle blobs somewhere?
+    cbLocal->Call(recvLocal, 1, &arg);
+  }
+}
+
+void AsyncEventQueueImpl::sync_emit(string const &eventName)
+{
+  Isolate *isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+  Local<Value> recvLocal = Undefined(isolate);
+
+  auto &cbs = nameToCbs[eventName];
+
+  for (auto &cb : cbs) {
+    Local<Function> cbLocal = Local<Function>::New(isolate, *cb);
+    cbLocal->Call(recvLocal, 0, nullptr);
+  }
+}
+
+
 void AsyncEventQueueImpl::on(string const &eventName, Local<Value> cb)
 {
   shared_ptr< Persistent<Function> > cbPersistent = make_shared< Persistent<Function> >();
-  cbPersistent->Reset(v8::Isolate::GetCurrent(), Local<Function>::Cast(cb));
+  cbPersistent->Reset(Isolate::GetCurrent(), Local<Function>::Cast(cb));
   unique_lock<mutex> lock(qMutex);
   nameToCbs[eventName].push_back(cbPersistent);
 }
