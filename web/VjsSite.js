@@ -384,7 +384,9 @@ WebServer.prototype.reloadAllBrowsers = function(reloadKey) {
   var webServer = this;
   _.each(webServer.allConsoleHandlers, function(ch) {
     if (ch.reloadKey === reloadKey) {
-      ch.cmd('reload', {});
+      if (ch.reloadCb) {
+        ch.reloadCb('reload');
+      }
     }
   });
 };
@@ -413,7 +415,7 @@ WebServer.prototype.mkConsoleHandler = function() {
       var self = this;
       webServer.allConsoleHandlers = _.filter(webServer.allConsoleHandlers, function(other) { return other !== self; });
     },
-    cmd_errlog: function(msg) {
+    rpc_errlog: function(msg, cb) {
       var self = this;
       logio.E(self.label, 'Errors in ' + msg.ua);
       var err = msg.err;
@@ -423,8 +425,9 @@ WebServer.prototype.mkConsoleHandler = function() {
         }
         console.log(err.replace(/^/mg, '    '));
       }
+      cb(null);
     },
-    cmd_reloadOn: function(msg) {
+    rpc_reloadOn: function(msg, cb) {
       var self = this;
       self.reloadKey = msg.reloadKey;
       self.contentMac = msg.contentMac;
@@ -432,9 +435,10 @@ WebServer.prototype.mkConsoleHandler = function() {
         var sameContent = webServer.findByContentMac(self.contentMac);
         if (!sameContent.length) {
           logio.I(self.label, 'Obsolete contentMac (suggesting reload)', self.contentMac);
-          self.cmd('reload', {});
+          cb('reload');
         } else {
           logio.I(self.label, 'Valid contentMac', self.contentMac);
+          self.reloadCb = cb;
         }
       }
     }

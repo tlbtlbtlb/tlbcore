@@ -7,8 +7,7 @@
   Call mkWebSocketRpc(aWebSocketRequest, aWebSocketConnection, handlers)
 
   handlers should be {
-    cmd_foo: function(msg) { do something }
-    req_bar: function(msg, cb) { do something, then call cb(answer); to reply }
+    rpc_bar: function(msg, cb) { do something, then call cb(answer); to reply }
   }
   This module also fills in some new fields in handlers, like .tx = a function to send on the websocket, and .label = a name for it useful for logging
   So you can initiate a one-way command with
@@ -18,7 +17,7 @@
   Or do an RPC with
     handlers.rpc('foo', 'bar', function(err, info) {
     });
-  it will call req_foo on the other end with a callback which routes back to the callback above.
+  it will call rpc_foo on the other end with a callback which routes back to the callback above.
 
 
   Info:
@@ -75,57 +74,45 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
   }
 
   function handleMsg(msg) {
-    if (msg.cmdReq) {
-      var cmdFunc = handlers['cmd_' + msg.cmdReq];
-      if (!cmdFunc) {
-        if (verbose >= 1) logio.E(handlers.label, 'Unknown cmdReq in', msg);
-        return;
-      }
-      if (verbose >= 2) logio.I(handlers.label, 'cmd', msg.cmdReq, msg.cmdArgs);
-      cmdFunc.apply(handlers, msg.cmdArgs);
-    }
-    else if (msg.rpcReq) {
-      var reqFunc = handlers['req_' + msg.rpcReq];
-      if (!reqFunc) {
-        if (verbose >= 1) logio.E(handlers.label, 'Unknown rpcReq in ', msg);
+    if (msg.method) {
+      var f = handlers['rpc_' + msg.method];
+      if (!f) {
+        if (verbose >= 1) logio.E(handlers.label, 'Unknown method in ', msg);
+        handlers.tx({id: msg.id, error: 'unknownMethod'});
         return;
       }
       var done = false;
-      if (verbose >= 2) logio.I(handlers.label, 'rpc', msg.rpcReq, msg.rpcArgs);
+      if (verbose >= 2) logio.I(handlers.label, 'rpc', msg.method, msg.params);
       try {
-        reqFunc.apply(handlers, msg.rpcArgs.concat([function(/* ... */) {
-          var rpcRet = Array.prototype.slice.call(arguments, 0);
-          if (!WebSocketHelper.isRpcProgressArgs(rpcRet)) {
+        f.apply(handlers, msg.params.concat([function(error, /* ... */) {
+          var result = Array.prototype.slice.call(arguments, 1);
+          if (!WebSocketHelper.isRpcProgressError(error)) {
             done = true;
           }
-          handlers.tx({ rpcId: msg.rpcId, rpcRet: rpcRet });
+          handlers.tx({ id: msg.id, error: error, result: result });
         }]));
       } catch(ex) {
         logio.E(handlers.label, 'Error handling', msg, ex);
         if (!done) {
           done = true;
-          handlers.tx({rpcId: msg.rpcId, rpcRet: [ex.toString()]});
+          handlers.tx({id: msg.id, error: ex.toString()});
         }
       }
     }
-    else if (msg.rpcId) {
-      var rpcRet = msg.rpcRet || [];
-      var rpcCb;
-      if (WebSocketHelper.isRpcProgressArgs(rpcRet)) {
-        rpcCb = pending.getPreserve(msg.rpcId);
+    else if (msg.id) {
+      var result = msg.result || [];
+      var cb;
+      if (WebSocketHelper.isRpcProgressError(msg.error)) {
+        cb = pending.getPreserve(msg.id);
       } else {
-        rpcCb = pending.get(msg.rpcId);
+        cb = pending.get(msg.id);
       }
-      if (!rpcCb) {
-        if (verbose >= 1) logio.E(handlers.label, 'Unknown response', msg.rpcId);
+      if (!cb) {
+        if (verbose >= 1) logio.E(handlers.label, 'Unknown response', msg.id);
         return;
       }
-      if (verbose >= 2) logio.I(handlers.label, 'return', msg.rpcRet);
-      rpcCb.apply(handlers, msg.rpcRet);
-    }
-    else if (msg.hello) {
-      handlers.hello = msg.hello;
-      if (handlers.onHello) handlers.onHello();
+      if (verbose >= 2) logio.I(handlers.label, 'return', msg.error, msg.result);
+      cb.apply(handlers, [msg.error].concat(msg.result));
     }
     else {
       if (verbose >= 1) logio.E(handlers.label, 'Unknown message', msg);
@@ -134,25 +121,13 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
 
   function setupHandlers() {
     handlers.remoteLabel = handlers.label = wsr.remoteLabel;
-    handlers.cmd = function(cmdReq /*...*/) {
-      var args = Array.prototype.slice.call(arguments, 1);
-      handlers.tx({cmdReq: cmdReq, cmdArgs: args});
-    };
-    handlers.rpc = function(rpcReq /* ... */) {
+    handlers.rpc = function(method /* ... */) {
       if (arguments.length < 2) throw new Error('rpc: bad args');
-      var rpcId = pending.getnewId();
-      var rspFunc = arguments[arguments.length - 1];
-      var rpcArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
-      pending.add(rpcId, rspFunc);
-      handlers.tx({rpcReq: rpcReq, rpcId: rpcId, rpcArgs: rpcArgs});
-    };
-    handlers.callback = function(rpcReq /* ... */) {
-      if (arguments.length < 2) throw new Error('rpc: bad args');
-      var rpcId = pending.getNewId();
-      var rspFunc = arguments[arguments.length - 1];
-      var rpcArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
-      callbacks[rpcId] = rspFunc;
-      handlers.tx({rpcReq: rpcReq, rpcId: rpcId, rpcArgs: rpcArgs});
+      var id = pending.getnewId();
+      var cb = arguments[arguments.length - 1];
+      var params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
+      pending.add(id, cb);
+      handlers.tx({method: method, id: id, params: params});
     };
     handlers.tx = function(msg) {
       emitMsg(msg);

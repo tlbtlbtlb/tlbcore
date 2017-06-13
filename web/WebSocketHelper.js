@@ -16,7 +16,7 @@ var _                   = require('underscore');
 exports.stringify = stringify;
 exports.parse = parse;
 exports.RpcPendingQueue = RpcPendingQueue;
-exports.isRpcProgressArgs = isRpcProgressArgs;
+exports.isRpcProgressError = isRpcProgressError;
 
 function stringify(msg, binaries) {
 
@@ -165,6 +165,6 @@ RpcPendingQueue.prototype.add = function(rspId, rspFunc) {
   }
 };
 
-function isRpcProgressArgs(rpcRet) {
-  return (rpcRet.length > 0 && (rpcRet[0] === 'progress' || (typeof rpcRet[0] === 'string' && rpcRet[0][0] === '*')));
+function isRpcProgressError(error) {
+  return typeof error === 'string' && (error === 'progress' || error[0] === '*');
 }

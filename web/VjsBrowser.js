@@ -1423,15 +1423,17 @@ function setupConsole(reloadKey, contentMac) {
       start: function() {
         if (reloadKey) {
           // Ask the server to tell us to reload. Look for reloadKey in VjsSite.js for the control flow.
-          this.cmd('reloadOn', {reloadKey: reloadKey, contentMac: contentMac});
+          this.rpc('reloadOn', {
+            reloadKey: reloadKey,
+            contentMac: contentMac
+          }, function(msg) {
+            console.log('Reload');
+            window.location.reload(true);
+          });
         }
       },
       close: function() {
         window.rconsole = null;
-      },
-      cmd_reload: function(msg) { // server is asking us to reload, because it knows that javascript files have changed
-        console.log('Reload');
-        window.location.reload(true);
       },
       cmd_flashError: function(msg) {
         $.flashErrorMessage(msg.err);

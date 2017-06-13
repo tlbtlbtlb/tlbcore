@@ -73,96 +73,73 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
   }
 
   function handleMsg(msg) {
-    if (msg.cmdReq) {
-      var cmdFunc = handlers['cmd_' + msg.cmdReq];
-      if (!cmdFunc) {
-        if (verbose >= 1) console.log(wscUrl, 'Unknown cmd', msg.cmdReq);
-        return;
-      }
-      cmdFunc.apply(handlers, msg.cmdArgs);
-    }
-    else if (msg.rpcReq) {
-      var reqFunc = handlers['req_' + msg.rpcReq];
-      if (!reqFunc) {
-        if (verbose >= 1) console.log(wscUrl, 'Unknown rpcReq', msg.rpcReq);
+    if (msg.method) {
+      var f = handlers['rpc_' + msg.method];
+      if (!f) {
+        if (verbose >= 1) console.log(wscUrl, 'Unknown method', msg.method);
         return;
       }
       var done = false;
       try {
-        reqFunc.apply(handlers, msg.rpcArgs.concat([function(err /* ... */) {
-          var rpcRet = Array.prototype.slice.call(arguments, 0);
-          if (!WebSocketHelper.isRpcProgressArgs(rpcRet)) {
+        f.apply(handlers, msg.params.concat([function(error /* ... */) {
+          var result = Array.prototype.slice.call(arguments, 1);
+          if (!WebSocketHelper.isRpcProgressError(error)) {
             done = true;
           }
-          handlers.tx({ rpcId: msg.rpcId, rpcRet: rpcRet });
+          handlers.tx({ id: msg.id, error: error, result: result });
         }]));
       } catch(ex) {
         if (!done) {
           done = true;
-          handlers.tx({ rpcId: msg.rpcId, rpcRet: [ex.toString()] });
+          handlers.tx({ id: msg.id, error: ex.toString() });
         }
       }
     }
-    else if (msg.rpcId) {
-      var rpcRet = msg.rpcRet || [];
-      var rpcCb;
-      if (WebSocketHelper.isRpcProgressArgs(rpcRet)) {
-        rpcCb = pending.getPreserve(msg.rpcId);
+    else if (msg.id) {
+      var result = msg.result || [];
+      var cb;
+      if (WebSocketHelper.isRpcProgressError(msg.error)) {
+        cb = pending.getPreserve(msg.id);
       } else {
-        rpcCb = pending.get(msg.rpcId);
+        cb = pending.get(msg.id);
       }
-      if (!rpcCb) {
-        if (verbose >= 1) console.log(wscUrl, 'Unknown response', msg.rpcId);
+      if (!cb) {
+        if (verbose >= 1) console.log(wscUrl, 'Unknown response', msg.id);
         return;
       }
-      if (verbose >= 2) console.log('rpcId=', msg.rpcId, 'rpcRet=', msg.rpcRet);
-      rpcCb.apply(handlers, msg.rpcRet);
+      if (verbose >= 2) console.log('id=', msg.id, 'result=', result);
+      cb.apply(handlers, [msg.error].concat(msg.result));
 
       if (interactivePending && pending.pendingCount < 3) {
         var tip = interactivePending;
         interactivePending = null;
-        handlers.rpc.apply(handlers, [tip.rpcReq].concat(tip.rpcArgs, [tip.rpcCb]));
+        handlers.rpc.apply(handlers, [tip.method].concat(tip.params, [tip.cb]));
       }
     }
 
-    else if (msg.hello) {
-      handlers.hello = msg.hello;
-      if (handlers.onHello) handlers.onHello();
-    }
     else {
       if (verbose >= 1) console.log(wscUrl, 'Unknown message', msg);
     }
   }
 
   function setupHandlers() {
-    handlers.cmd = function(cmdReq /* ... */) {
-      var cmdArgs = Array.prototype.slice.call(arguments, 1);
-      handlers.tx({cmdReq: cmdReq, cmdArgs: cmdArgs});
-    };
-    handlers.rpc = function(rpcReq /* ... */) {
-      var rpcId = pending.getNewId();
-      var rpcArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
-      var rpcCb = arguments[arguments.length - 1];
-      if (verbose >= 2) console.log('rpcReq=', rpcReq, 'rpcArgs=', rpcArgs);
+    handlers.rpc = function(method /* ... */) {
+      var id = pending.getNewId();
+      var params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
+      var cb = arguments[arguments.length - 1];
+      if (verbose >= 2) console.log('method=', method, 'params=', params);
 
-      pending.add(rpcId, rpcCb);
-      handlers.tx({rpcReq: rpcReq, rpcId: rpcId, rpcArgs: rpcArgs});
+      pending.add(id, cb);
+      handlers.tx({method: method, id: id, params: params});
     };
-    handlers.interactiveRpc = function(rpcReq /* ... */) {
+    handlers.interactiveRpc = function(method /* ... */) {
       if (pending.pendingCount < 3) {
         return handlers.rpc.apply(handlers, arguments);
       }
-      var rpcCb = arguments[arguments.length - 1];
-      var rpcArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
+      var cb = arguments[arguments.length - 1];
+      var params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
       // overwrite any previous one
-      interactivePending = {rpcReq: rpcReq, rpcArgs: rpcArgs, rpcCb: rpcCb};
-    };
-    handlers.callback = function(rpcReq /* ... */) {
-      var rpcId = pending.getNewId();
-      var rpcCb = arguments[arguments.length - 1];
-      var rpcArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
-      callbacks[rpcId] = rpcCb;
-      handlers.tx({rpcReq: rpcReq, rpcId: rpcId, rpcArgs: rpcArgs});
+      interactivePending = {method: method, params: params, cb: cb};
     };
     handlers.tx = function(msg) {
       if (txQueue) {
