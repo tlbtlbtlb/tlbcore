@@ -60,6 +60,7 @@ AsyncEventQueueImpl::~AsyncEventQueueImpl()
 {
   if (1) eprintf("AsyncEventQueueImpl destructor\n");
   if (uva.data) {
+    uva.data = nullptr;
     uv_close((uv_handle_t *)&uva, [](uv_handle_t *uva1) {
       if (1) eprintf("AsyncEventQueueImpl destructor close callback\n");
       // ???
@@ -134,6 +135,7 @@ void AsyncEventQueueImpl::sync_emit(string const &eventName)
 {
   Isolate *isolate = Isolate::GetCurrent();
   HandleScope scope(isolate);
+
   Local<Value> recvLocal = Undefined(isolate);
 
   auto &cbs = nameToCbs[eventName];
@@ -147,8 +149,11 @@ void AsyncEventQueueImpl::sync_emit(string const &eventName)
 
 void AsyncEventQueueImpl::on(string const &eventName, Local<Value> cb)
 {
+  Isolate *isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+
   shared_ptr< Persistent<Function> > cbPersistent = make_shared< Persistent<Function> >();
-  cbPersistent->Reset(Isolate::GetCurrent(), Local<Function>::Cast(cb));
+  cbPersistent->Reset(isolate, Local<Function>::Cast(cb));
   unique_lock<mutex> lock(qMutex);
   nameToCbs[eventName].push_back(cbPersistent);
 }

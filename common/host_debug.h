@@ -99,4 +99,7 @@ extern FILE *debug_tslog;
   } while (0)
 
 
+runtime_error uv_error(string const &context, int rc);
+
+
 #endif

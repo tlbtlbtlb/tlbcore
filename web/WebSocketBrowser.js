@@ -89,7 +89,9 @@ function mkWebSocketRpc(wsc, handlers) {
       try {
         reqFunc.apply(handlers, msg.rpcArgs.concat([function(err /* ... */) {
           var rpcRet = Array.prototype.slice.call(arguments, 0);
-          if (err !== 'progress') done = true;
+          if (!WebSocketHelper.isRpcProgressArgs(rpcRet)) {
+            done = true;
+          }
           handlers.tx({ rpcId: msg.rpcId, rpcRet: rpcRet });
         }]));
       } catch(ex) {

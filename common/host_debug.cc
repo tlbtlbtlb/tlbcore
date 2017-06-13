@@ -1,4 +1,5 @@
 #include "./std_headers.h"
+#include <uv.h>
 
 FILE *debug_tslog;
 
@@ -61,6 +62,10 @@ void _etsdprintf(const char *debugname, const char *fmt, ...)
   va_end(ap);
 }
 
+runtime_error uv_error(string const &context, int rc)
+{
+  return runtime_error(context + string(": rc=") + to_string(rc) + string(" ") + uv_strerror(rc));
+}
 
 #ifdef notyet
 void _uplogj(const char *debugname, json const &x)

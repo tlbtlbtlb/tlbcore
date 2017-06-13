@@ -95,7 +95,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
       try {
         reqFunc.apply(handlers, msg.rpcArgs.concat([function(/* ... */) {
           var rpcRet = Array.prototype.slice.call(arguments, 0);
-          if (!(rpcRet.length > 0 && rpcRet[0] === 'progress')) {
+          if (!WebSocketHelper.isRpcProgressArgs(rpcRet)) {
             done = true;
           }
           handlers.tx({ rpcId: msg.rpcId, rpcRet: rpcRet });
@@ -111,7 +111,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     else if (msg.rpcId) {
       var rpcRet = msg.rpcRet || [];
       var rpcCb;
-      if (rpcRet.length > 0 && rpcRet[0] === 'progress') {
+      if (WebSocketHelper.isRpcProgressArgs(rpcRet)) {
         rpcCb = pending.getPreserve(msg.rpcId);
       } else {
         rpcCb = pending.get(msg.rpcId);

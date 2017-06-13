@@ -166,5 +166,5 @@ RpcPendingQueue.prototype.add = function(rspId, rspFunc) {
 };
 
 function isRpcProgressArgs(rpcRet) {
-  return (rpcRet.length > 0 && typeof rpcRet[0] === 'string' && rpcRet[0][0] === '*');
+  return (rpcRet.length > 0 && (rpcRet[0] === 'progress' || (typeof rpcRet[0] === 'string' && rpcRet[0][0] === '*')));
 }
