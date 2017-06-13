@@ -7,7 +7,7 @@ module.exports = function(typereg) {
     ['method', 'string'],
     ['error', 'jsonstr'],
     ['id', 'int'],
-    ['params', 'jsonstr'],
+    ['params', 'vector<jsonstr>'],
     ['result', 'jsonstr'],
     ['log_msgs', 'vector<string>']);
   jsonrpcmsg.omitTypeTag = true;

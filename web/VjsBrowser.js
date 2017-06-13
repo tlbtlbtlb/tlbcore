@@ -1435,8 +1435,9 @@ function setupConsole(reloadKey, contentMac) {
       close: function() {
         window.rconsole = null;
       },
-      cmd_flashError: function(msg) {
+      rpc_flashError: function(msg, cb) {
         $.flashErrorMessage(msg.err);
+        cb(null);
       }
     });
   } else {
