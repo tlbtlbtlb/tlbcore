@@ -1555,8 +1555,7 @@ function mkWebSocket(path, handlers) {
   // WRITEME: detect vendor-prefixed WebSocket.
   // WRITEME: Give some appropriately dire error message if websocket not found or fails to connect
   if (0) console.log('Opening websocket to', wsUrl);
-  var wsc = new WebSocket(wsUrl);
-  return WebSocketBrowser.mkWebSocketRpc(wsc, handlers);
+  return WebSocketBrowser.mkWebSocketClientRpc(wsUrl, handlers);
 }
 
 /* ----------------------------------------------------------------------

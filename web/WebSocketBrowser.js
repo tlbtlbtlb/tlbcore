@@ -7,10 +7,10 @@ var WebSocketHelper     = require('WebSocketHelper');
 
 var verbose = 1;
 
-exports.mkWebSocketRpc = mkWebSocketRpc;
+exports.mkWebSocketClientRpc = mkWebSocketClientRpc;
 
 
-function mkWebSocketRpc(wsc, handlers) {
+function mkWebSocketClientRpc(wscUrl, handlers) {
   var txQueue = [];
   var pending = new WebSocketHelper.RpcPendingQueue();
   var callbacks = {};
@@ -19,11 +19,14 @@ function mkWebSocketRpc(wsc, handlers) {
   var interactivePending = null;
   var reopenBackoff = 1000; // milliseconds
 
+  var wsc = null;
+
   setupWsc();
   setupHandlers();
   return handlers;
 
   function setupWsc() {
+    wsc = new WebSocket(wscUrl);
     wsc.binaryType = 'arraybuffer';
 
     wsc.onmessage = function(event) {
@@ -33,12 +36,12 @@ function mkWebSocketRpc(wsc, handlers) {
       } else {
         var msg = WebSocketHelper.parse(event.data, rxBinaries);
         rxBinaries = [];
-        if (verbose >= 2) console.log(wsc.url + ' >', msg);
+        if (verbose >= 2) console.log(wscUrl + ' >', msg);
         handleMsg(msg);
       }
     };
     wsc.onopen = function(event) {
-      if (verbose >= 2) console.log(wsc.url + ' Opened');
+      if (verbose >= 2) console.log(wscUrl + ' Opened');
       if (txQueue) {
         _.each(txQueue, function(m) {
           emitMsg(m);
@@ -53,18 +56,17 @@ function mkWebSocketRpc(wsc, handlers) {
         handlers.close();
       }
 
-      if (verbose >= 2) console.log(wsc.url + ' Closed');
+      if (verbose >= 2) console.log(wscUrl + ' Closed');
       txQueue = [];
       if (!shutdownRequested) {
         if (handlers.reopen) {
           handlers.reopen();
         } else {
           setTimeout(function() {
-            if (verbose >= 1) console.log('Reopening socket to ' + wsc.url);
-            wsc = new WebSocket(wsc.url);
-            setupWsc(wsc);
+            if (verbose >= 1) console.log('Reopening socket to ' + wscUrl);
+            setupWsc();
           }, reopenBackoff);
-          reopenBackoff = Math.min(30000, reopenBackoff*2);
+          reopenBackoff = Math.min(5000, reopenBackoff*2);
         }
       }
     };
@@ -74,7 +76,7 @@ function mkWebSocketRpc(wsc, handlers) {
     if (msg.cmdReq) {
       var cmdFunc = handlers['cmd_' + msg.cmdReq];
       if (!cmdFunc) {
-        if (verbose >= 1) console.log(wsc.url, 'Unknown cmd', msg.cmdReq);
+        if (verbose >= 1) console.log(wscUrl, 'Unknown cmd', msg.cmdReq);
         return;
       }
       cmdFunc.apply(handlers, msg.cmdArgs);
@@ -82,7 +84,7 @@ function mkWebSocketRpc(wsc, handlers) {
     else if (msg.rpcReq) {
       var reqFunc = handlers['req_' + msg.rpcReq];
       if (!reqFunc) {
-        if (verbose >= 1) console.log(wsc.url, 'Unknown rpcReq', msg.rpcReq);
+        if (verbose >= 1) console.log(wscUrl, 'Unknown rpcReq', msg.rpcReq);
         return;
       }
       var done = false;
@@ -110,7 +112,7 @@ function mkWebSocketRpc(wsc, handlers) {
         rpcCb = pending.get(msg.rpcId);
       }
       if (!rpcCb) {
-        if (verbose >= 1) console.log(wsc.url, 'Unknown response', msg.rpcId);
+        if (verbose >= 1) console.log(wscUrl, 'Unknown response', msg.rpcId);
         return;
       }
       if (verbose >= 2) console.log('rpcId=', msg.rpcId, 'rpcRet=', msg.rpcRet);
@@ -128,7 +130,7 @@ function mkWebSocketRpc(wsc, handlers) {
       if (handlers.onHello) handlers.onHello();
     }
     else {
-      if (verbose >= 1) console.log(wsc.url, 'Unknown message', msg);
+      if (verbose >= 1) console.log(wscUrl, 'Unknown message', msg);
     }
   }
 
@@ -171,8 +173,9 @@ function mkWebSocketRpc(wsc, handlers) {
     };
     handlers.shutdown = function() {
       shutdownRequested = true;
-      console.log('Closing websocket to', wsc.url);
+      console.log('Closing websocket to', wscUrl);
       wsc.close();
+      wsc = null;
     };
     handlers.pending = pending;
     handlers.getPendingCount = function() {
@@ -186,9 +189,9 @@ function mkWebSocketRpc(wsc, handlers) {
     var json = WebSocketHelper.stringify(msg, binaries);
     _.each(binaries, function(data) {
       wsc.send(data);
-      if (verbose >= 3) console.log(wsc.url + ' < binary length=', data.byteLength);
+      if (verbose >= 3) console.log(wscUrl + ' < binary length=', data.byteLength);
     });
-    if (verbose >= 2) console.log(wsc.url + ' <', json);
+    if (verbose >= 2) console.log(wscUrl + ' <', json);
     wsc.send(json);
   }
 
