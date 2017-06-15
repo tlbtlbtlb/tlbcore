@@ -203,11 +203,6 @@ string JsWrapGeneric<CONTENTS>::constructorName;
 
 
 
-typedef std::function<void(jsonstr const &err, jsonstr const &result)> CallbackFunction_jsonstr_jsonstr;
-
-void jsCallbackInvoke(FunctionCallbackInfo<Value> const &args);
-void jsCallbackCleanup(WeakCallbackInfo<CallbackFunction_jsonstr_jsonstr> const &args);
-
 struct JsSignalHandlers {
   vector< v8::Persistent<v8::Function> > handlers;
 };

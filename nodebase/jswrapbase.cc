@@ -445,7 +445,7 @@ template bool canConvJsToArmaMat<arma::cx_double>(Isolate *isolate, Local<Value>
 
 
 
-
+# if 0
 void
 jsCallbackInvoke(FunctionCallbackInfo<Value> const &args)
 {
@@ -454,7 +454,7 @@ jsCallbackInvoke(FunctionCallbackInfo<Value> const &args)
 
   External *data_ext = External::Cast(*args.Data());
 
-  std::function<void(jsonstr const &err, jsonstr const &result)> *f = static_cast<std::function<void(jsonstr const &err, jsonstr const &result)> *>(data_ext->Value());
+  auto f = static_cast<std::function<void(jsonstr const &err, jsonstr const &result)> *>(data_ext->Value());
   if (0) eprintf("jsCallbackInvoke: %p %p\n", data_ext, f);
   if (args.Length() == 1) {
     (*f)(convJsToJsonstr(isolate, args[0]), jsonstr("{}"));
@@ -471,7 +471,8 @@ void
 jsCallbackCleanup(WeakCallbackInfo<CallbackFunction_jsonstr_jsonstr> const &args)
 {
   CallbackFunction_jsonstr_jsonstr *data_ext = args.GetParameter();
-  std::function<void(jsonstr const &err, jsonstr const &result)> *f = static_cast<std::function<void(jsonstr const &err, jsonstr const &result)> *>(data_ext);
-  if (0) eprintf("jsCallbackCleanup: delete %p %p\n", data_ext, f);
+  auto f = static_cast<std::function<void(jsonstr const &err, jsonstr const &result)> *>(data_ext);
+  if (0) eprintf("jsCallbackCleanup: delete %p\n", data_ext);
   delete f;
 }
+#endif
