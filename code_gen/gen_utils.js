@@ -77,8 +77,17 @@ function withJsWrapUtils(f, typereg) {
       f(ifSep + 'if (args.Length() ' + (argSet.ignoreExtra ? '>=' : '==') + ' ' + argSet.args.length +
         _.map(argSet.args, function(argTypename, argi) {
           var m;
-          if (argTypename === 'Object') {
+          if (argTypename === 'Value') {
+            return '';
+          }
+          else if (argTypename === 'Object') {
             return ' && args[' + argi + ']->IsObject()';
+          }
+          else if (argTypename === 'Array') {
+            return ' && args[' + argi + ']->IsArray()';
+          }
+          else if (argTypename === 'Function') {
+            return ' && args[' + argi + ']->IsFunction()';
           }
           else if (m = /^conv:(.*)$/.exec(argTypename)) {
             var argType = typereg.getType(m[1]);
@@ -99,8 +108,17 @@ function withJsWrapUtils(f, typereg) {
 
       _.each(argSet.args, function(argTypename, argi) {
         var m;
-        if (argTypename === 'Object') {
-          f('Local<Object> a' + argi + ' = args[' + argi + ']->ToObject();');
+        if (argTypename === 'Value') {
+          f('Local<Value> a' + argi + ' = args[' + argi + '];');
+        }
+        else if (argTypename === 'Object') {
+          f('Local<Object> a' + argi + ' = args[' + argi + ']->ToObject(isolate);');
+        }
+        else if (argTypename === 'Array') {
+          f('Local<Array> a' + argi + ' = Local<Array>::Cast(args[' + argi + ']);');
+        }
+        else if (argTypename === 'Function') {
+          f('Local<Function> a' + argi + ' = Local<Function>::Cast(args[' + argi + ']);');
         }
         else if (m = /^conv:(.*)$/.exec(argTypename)) {
           var argType = typereg.getType(m[1]);
