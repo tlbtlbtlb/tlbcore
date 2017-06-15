@@ -181,6 +181,10 @@ CollectionCType.prototype.getJsToCppTest = function(valueExpr, o) {
       ret = '((JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr) ? ' + ret + ' : ' +
         'canConvJsToMapStringJsonstr(isolate, ' + valueExpr + '))';
     }
+    else if (type.templateName === 'vector' && type.templateArgs[0] === 'string') {
+      ret = '((JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr) ? ' + ret + ' : ' +
+        'canConvJsToVectorString(isolate, ' + valueExpr + '))';
+    }
   }
   return ret;
 };
@@ -227,6 +231,10 @@ CollectionCType.prototype.getJsToCppExpr = function(valueExpr, o) {
     else if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
       ret = '((JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr) ? ' + ret + ' : ' +
         'convJsToMapStringJsonstr(isolate, ' + valueExpr + '))';
+    }
+    else if (type.templateName === 'vector' && type.templateArgs[0] === 'string') {
+      ret = '((JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr) ? ' + ret + ' : ' +
+        'convJsToVectorString(isolate, ' + valueExpr + '))';
     }
   }
   return ret;
@@ -280,8 +288,16 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         }},
         {args: ['double'], code: function(f) {
           f('thisObj->assignConstruct((size_t)a0);');
-        }}
-      ]);
+        }}].concat(type.templateArgs[0] === 'string' ? [
+        {args: ['Array'], code: function(f) {
+          f(`
+            thisObj->assignDefault();
+            for (uint32_t i = 0; i < a0->Length(); i++) {
+              thisObj->it->push_back(convJsToString(isolate, a0->Get(i)));
+            }
+          `);
+        }}]
+        : []));
     });
   }
   else if (type.templateName === 'arma::Col' ||
@@ -769,7 +785,7 @@ CollectionCType.prototype.emitJsTestImpl = function(f) {
       f('assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5]");');
       f('});');
     }
-    
+
     f('it("should allow pushBack", function() {');
     f('var t1 = new ur.JSTYPE();');
     f('t1.pushBack(1.5);');

@@ -61,10 +61,16 @@ bool canConvJsToCxDouble(Isolate *isolate, Local<Value> it);
 arma::cx_double convJsToCxDouble(Isolate *isolate, Local<Value> it);
 Local<Object> convCxDoubleToJs(Isolate *isolate, arma::cx_double const &it);
 
+// vector<string> conversion
+bool canConvJsToVectorString(Isolate *isolate, Local<Value> itv);
+vector<string> convJsToVectorString(Isolate *isolate, Local<Value> itv);
+Local<Value> convVectorStringToJs(Isolate *isolate, vector<string> const &it);
+
+
 // map<string, jsonstr> conversion
 bool canConvJsToMapStringJsonstr(Isolate *isolate, Local<Value> itv);
 map<string, jsonstr> convJsToMapStringJsonstr(Isolate *isolate, Local<Value> itv);
-Local<Value> convJsonstrToJs(Isolate *isolate, map<string, jsonstr> const &it);
+Local<Value> convMapStringJsonstrToJs(Isolate *isolate, map<string, jsonstr> const &it);
 
 // jsonstr conversion
 bool canConvJsToJsonstr(Isolate *isolate, Local<Value> value);

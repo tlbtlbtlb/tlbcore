@@ -140,6 +140,36 @@ Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it)
 }
 
 /* ----------------------------------------------------------------------
+  vector<string> I/O
+*/
+
+bool canConvJsToVectorString(Isolate *isolate, Local<Value> itv) {
+  if (itv->IsArray()) return true;
+  return false;
+}
+vector<string> convJsToVectorString(Isolate *isolate, Local<Value> itv) {
+  if (itv->IsArray()) {
+    vector<string> ret;
+
+    Local<Array> it = Local<Array>::Cast(itv);
+    for (size_t i = 0; i < it->Length(); i++) {
+      ret.push_back(convJsToString(isolate, it->Get(i)));
+    }
+    return ret;
+  }
+  throw runtime_error("convJsToVectorString: not an array");
+}
+
+Local<Value> convVectorStringToJs(Isolate *isolate, vector<string> const &it) {
+  Local<Array> ret = Array::New(isolate, (int)it.size());
+  for (size_t i=0; i < it.size(); i++) {
+    ret->Set((uint32_t)i, convStringToJs(isolate, it[i]));
+  }
+  return Local<Value>::Cast(ret);
+}
+
+
+/* ----------------------------------------------------------------------
   map<string, jsonstr> I/O
 */
 
@@ -171,7 +201,9 @@ map<string, jsonstr> convJsToMapStringJsonstr(Isolate *isolate, Local<Value> itv
   throw runtime_error("convJsToMapStringJsonstr: not an object");
 }
 
-
+Local<Value> convMapStringJsonstrToJs(Isolate *isolate, map<string, jsonstr> const &it) {
+  throw runtime_error("convMapStringJsonstrToJs: WRITEME");
+}
 
 // ----------------------------------------------------------------------
 
@@ -442,37 +474,3 @@ template bool canConvJsToArmaRow<arma::cx_double>(Isolate *isolate, Local<Value>
 template bool canConvJsToArmaMat<arma::cx_double>(Isolate *isolate, Local<Value> it);
 //template arma::Mat<arma::cx_double> convJsToArmaMat<arma::cx_double>(Isolate *isolate, Local<Value> it, size_t nRows, size_t nCols);
 //template Local<Object> convArmaMatToJs<arma::cx_double>(Isolate *isolate, arma::Mat<arma::cx_double> const &it);
-
-
-
-# if 0
-void
-jsCallbackInvoke(FunctionCallbackInfo<Value> const &args)
-{
-  Isolate *isolate = args.GetIsolate();
-  HandleScope scope(isolate);
-
-  External *data_ext = External::Cast(*args.Data());
-
-  auto f = static_cast<std::function<void(jsonstr const &err, jsonstr const &result)> *>(data_ext->Value());
-  if (0) eprintf("jsCallbackInvoke: %p %p\n", data_ext, f);
-  if (args.Length() == 1) {
-    (*f)(convJsToJsonstr(isolate, args[0]), jsonstr("{}"));
-  }
-  else if (args.Length() == 2) {
-    (*f)(convJsToJsonstr(isolate, args[0]), convJsToJsonstr(isolate, args[1]));
-  }
-  else {
-    ThrowInvalidArgs(isolate);
-  }
-}
-
-void
-jsCallbackCleanup(WeakCallbackInfo<CallbackFunction_jsonstr_jsonstr> const &args)
-{
-  CallbackFunction_jsonstr_jsonstr *data_ext = args.GetParameter();
-  auto f = static_cast<std::function<void(jsonstr const &err, jsonstr const &result)> *>(data_ext);
-  if (0) eprintf("jsCallbackCleanup: delete %p\n", data_ext);
-  delete f;
-}
-#endif
