@@ -9,12 +9,14 @@ describe('CodeGen', function() {
     var files = new cgen.FileGen('/tmp/');
     var cg = files.getFile('cgen_test.h');
     var o = cg.child({XXX: '37'});
-    o('int test1() {');
-    o('return 7 + XXX;');
-    o('while (1) {}');
-    o('foo(1,');
-    o('2,3);');
-    o('}');
+    o(`
+      int test1() {
+        return 7 + XXX;
+        while (1) {}
+        foo(1,
+          2,3);
+        }
+    `);
     cg.end();
 
     var l = fs.readFileSync('/tmp/cgen_test.h', 'utf8');

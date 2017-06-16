@@ -150,53 +150,74 @@ TypeRegistry.prototype.emitAll = function(files) {
 TypeRegistry.prototype.emitJsBoot = function(files) {
   var typereg = this;
   var f = files.getFile('jsboot_' + typereg.groupname + '.cc');
-  f('#include "common/std_headers.h"');
-  f('#include "nodebase/jswrapbase.h"');
+  f(`
+    #include "common/std_headers.h"
+    #include "nodebase/jswrapbase.h"
+  `);
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
     if (type.hasJsWrapper()) {
-      f('void jsInit_' + type.jsTypename + '(Handle<Object> exports);');
+      f(`
+        void jsInit_${ type.jsTypename }(Handle<Object> exports);
+      `);
     }
   });
-  f('void jsInit_functions(Handle<Object> exports);');
-  f('Isolate *isolate = Isolate::GetCurrent();');
+  f(`
+    void jsInit_functions(Handle<Object> exports);
+    Isolate *isolate = Isolate::GetCurrent();
+  `);
   var schemas = typereg.getSchemas();
-  f('static Handle<Value> getSchemas() {');
-  // WRITEME: if this is a common thing, make a wrapper function
-  f('return Script::Compile(String::NewFromUtf8(isolate, "("' + cgen.escapeCJson(schemas) + '")"), String::NewFromUtf8(isolate, "binding:script"))->Run();');
-  f('}');
-  f('');
+  f(`
+    static Handle<Value> getSchemas() {
+      return Script::Compile(String::NewFromUtf8(isolate, "(" ${ cgen.escapeCJson(schemas) } ")"), String::NewFromUtf8(isolate, "binding:script"))->Run();
+    }
+  `);
 
-  f('void jsBoot(Handle<Object> exports) {');
+  f(`
+    void jsBoot(Handle<Object> exports) {
+  `);
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
     if (type.hasJsWrapper()) {
-      f('jsInit_' + type.jsTypename + '(exports);');
+      f(`
+        jsInit_${ type.jsTypename }(exports);
+        `);
     }
   });
-  f('jsInit_functions(exports);');
-  f('exports->Set(String::NewFromUtf8(isolate, "schemas"), getSchemas());');
-  f('}');
+  f(`
+      jsInit_functions(exports);
+      exports->Set(String::NewFromUtf8(isolate, "schemas"), getSchemas());
+    }
+  `);
   f.end();
 };
 
 TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
   var typereg = this;
-  var f = files.getFile('functions_' + typereg.groupname + '_jsWrap.cc');
-  f('#include "common/std_headers.h"');
-  f('#include "nodebase/jswrapbase.h"');
-  f('#include "./symbolics_' + typereg.groupname + '.h"');
+  var f = files.getFile(`functions_${ typereg.groupname }_jsWrap.cc`);
+  f(`
+    #include "common/std_headers.h"
+    #include "nodebase/jswrapbase.h"
+    #include "./symbolics_${ typereg.groupname }.h"
+  `);
   _.each(typereg.extraJsWrapFuncsHeaders, f);
-  f('/* Types known about:\n  ' + _.keys(typereg.types).join('\n  ') + '\n*/');
+  f(`
+    /* Types known about:
+      ${ _.keys(typereg.types).join('\n  ') }
+    */
+  `);
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
     var fns = type.getFns();
     if (fns.jsWrapHeader) {
-      f('#include "' + fns.jsWrapHeader + '"');
+      f(`
+        #include "${ fns.jsWrapHeader }"
+      `);
     }
   });
-  f('');
-  f('using namespace arma;');
+  f(`
+    using namespace arma;
+  `);
 
   typereg.emitFunctionWrappers(f);
   f.end();
@@ -205,34 +226,40 @@ TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
 TypeRegistry.prototype.emitGypFile = function(files) {
   var typereg = this;
   var f = files.getFile('sources_' + typereg.groupname + '.gypi');
-  f('{');
-  f('"sources": [');
-  f('\"' + 'functions_' + typereg.groupname + '_jsWrap.cc' + '\",'); // put first since compilation is slowest
+  f(`
+    {
+      "sources": [
+        "functions_${ typereg.groupname }_jsWrap.cc",
+  `);
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
     var fns = type.getFns();
     if (fns.hostCode) {
-      f('\"' + fns.hostCode + '\",');
+      f(`"${ fns.hostCode }",`);
     }
     if (fns.jsWrapCode) {
-      f('\"' + fns.jsWrapCode + '\",');
+      f(`"${ fns.jsWrapCode }",`);
     }
   });
-  f('\"' + 'jsboot_' + typereg.groupname + '.cc' + '\",');
-  f('\"' + 'symbolics_' + typereg.groupname + '.cc' + '\",');
-  f(']');
-  f('}');
+  f(`
+        "jsboot_${ typereg.groupname }.cc",
+        "symbolics_${ typereg.groupname }.cc",
+      ]
+    }
+  `);
 
 };
 
 
 TypeRegistry.prototype.emitMochaFile = function(files) {
   var typereg = this;
-  var f = files.getFile('test_' + typereg.groupname + '.js');
-  f('var _ = require("underscore");');
-  f('var ur = require("ur");');
-  f('var util = require("util");');
-  f('var assert = require("assert");');
+  var f = files.getFile(`test_${ typereg.groupname }.js`);
+  f(`
+    var _ = require("underscore");
+    var ur = require("ur");
+    var util = require("util");
+    var assert = require("assert");
+  `);
 
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
@@ -253,45 +280,65 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
       if (!funcInfosByTemplate[funcInfo.funcTemplate]) funcInfosByTemplate[funcInfo.funcTemplate] = [];
       funcInfosByTemplate[funcInfo.funcTemplate].push(funcInfo);
     });
-    f('/* funcInfosByTemplate: ' + jsFuncname + '\n' + util.inspect(funcInfosByTemplate) + '\n*/');
+    f(`
+      /* funcInfosByTemplate: ${ jsFuncname }
+         ${ util.inspect(funcInfosByTemplate) }
+      */
+    `);
 
     _.each(funcInfosByTemplate, function(funcInfosThisTemplate, funcTemplate) {
       var funcTemplateType = (funcTemplate !== '') ? typereg.getType(funcTemplate) : null;
       var jsScopedFuncname = jsFuncname + (funcTemplateType ? '_' + funcTemplateType.jsTypename : '');
 
-      f('void jsWrap_' + jsScopedFuncname + '(FunctionCallbackInfo<Value> const &args) {');
-      f('Isolate *isolate = args.GetIsolate();');
-      f('HandleScope scope(isolate);');
+      f(`
+        void jsWrap_${ jsScopedFuncname }(FunctionCallbackInfo<Value> const &args) {
+          Isolate *isolate = args.GetIsolate();
+          HandleScope scope(isolate);
+      `);
       _.each(funcInfosThisTemplate, function(funcInfo) {
-        f('// ' + funcInfo.desc);
+        f(`
+          // ${ funcInfo.desc}
+        `);
 
-        f('if (args.Length() == ' + funcInfo.args.length +
-          _.map(funcInfo.args, function(argInfo, argi) {
-            var argType = typereg.types[argInfo.typename];
-            return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {});
-          }).join('') +
-          ') {');
+        f(`
+          if (args.Length() == ${ funcInfo.args.length } ${
+            _.map(funcInfo.args, function(argInfo, argi) {
+              var argType = typereg.types[argInfo.typename];
+              return ' && ' + argType.getJsToCppTest(`args[${ argi }]`, {});
+            }).join('')
+          }) {
+        `);
 
         var callargs = [];
 
         _.each(funcInfo.args, function(argInfo, argi) {
           var argType = typereg.types[argInfo.typename];
-          f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']', {}) + ';');
-          callargs.push('a' + argi);
+          f(`
+            ${ argType.getArgTempDecl('a' + argi) } = ${ argType.getJsToCppExpr('args[' + argi + ']', {}) };
+          `);
+          callargs.push(`a${ argi }`);
         });
 
-        f('try {');
+        f(`
+          try {
+        `);
         if (funcInfo.returnType === 'void') {
-          f(funcInfo.funcInvocation + '(' + callargs.join(', ') + ');');
-          f('return;');
+          f(`
+            ${ funcInfo.funcInvocation }(${ callargs.join(', ') });
+            return;
+          `);
         }
         else if (funcInfo.returnType === 'buffer') {
-          f('string ret = ' + funcInfo.funcInvocation + '(' + callargs.join(', ') + ');');
-          f('args.GetReturnValue().Set(convStringToJsBuffer(isolate, ret));');
-          f('return;');
+          f(`
+            string ret = ${ funcInfo.funcInvocation }(${ callargs.join(', ') });
+            args.GetReturnValue().Set(convStringToJsBuffer(isolate, ret));
+            return;
+          `);
         }
         else if (funcInfo.returnType === undefined) {
-          f('// No return type');
+          f(`
+            // No return type
+          `);
         }
         else {
           var returnType = typereg.getType(funcInfo.returnType);
@@ -299,34 +346,44 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
             throw new Error('No such type ' + funcInfo.returnType + ' for ' + jsFuncname);
           }
 
-          f(returnType.typename + ' ret = ' + gen_utils.getFunctionCallExpr(funcInfo.funcInvocation, callargs) + ';');
-          f('args.GetReturnValue().Set(' + typereg.types[returnType.typename].getCppToJsExpr('ret') + ');');
-          f('return;');
+          f(`
+            ${ returnType.typename } ret = ${ gen_utils.getFunctionCallExpr(funcInfo.funcInvocation, callargs) };
+            args.GetReturnValue().Set(${ typereg.types[returnType.typename].getCppToJsExpr('ret') });
+            return;
+          `);
         }
-        f('} catch (exception &ex) {');
-        f('return ThrowTypeError(isolate, ex.what());');
-        f('}');
-        f('}');
+        f(`
+            } catch (exception &ex) {
+              return ThrowTypeError(isolate, ex.what());
+            }
+          }
+        `);
       });
-      f('if (0) eprintf("Args.length=%d, about to throw invalid args\\n", (int)args.Length());');
-      f('return ThrowInvalidArgs(isolate);');
-      f('}');
+      f(`
+        if (0) eprintf("Args.length=%d, about to throw invalid args\\n", (int)args.Length());
+          return ThrowInvalidArgs(isolate);
+        }
+      `);
 
       if (funcTemplateType) { // make it a factory function
-        initFuncs.push('exports->Get(String::NewFromUtf8(isolate, "' + funcTemplateType.jsTypename + '"))->ToObject()->Set(String::NewFromUtf8(isolate, "' + jsFuncname + '"), FunctionTemplate::New(isolate, &jsWrap_' + jsScopedFuncname + ')->GetFunction());');
+        initFuncs.push(`exports->Get(String::NewFromUtf8(isolate, "${ funcTemplateType.jsTypename }"))->ToObject()->Set(String::NewFromUtf8(isolate, "${ jsFuncname }"), FunctionTemplate::New(isolate, &jsWrap_${ jsScopedFuncname })->GetFunction());`);
       } else {
-        initFuncs.push('exports->Set(String::NewFromUtf8(isolate, "' + jsFuncname + '"), FunctionTemplate::New(isolate, &jsWrap_' + jsScopedFuncname + ')->GetFunction());');
+        initFuncs.push(`exports->Set(String::NewFromUtf8(isolate, "${ jsFuncname }"), FunctionTemplate::New(isolate, &jsWrap_${ jsScopedFuncname })->GetFunction());`);
       }
     });
   });
 
-  f('void jsInit_functions(Handle<Object> exports) {');
-  f('Isolate *isolate = Isolate::GetCurrent();');
+  f(`
+    void jsInit_functions(Handle<Object> exports) {
+      Isolate *isolate = Isolate::GetCurrent();
+  `);
   _.each(initFuncs, function(s) {
     f(s);
   });
 
-  f('}');
+  f(`
+    }
+  `);
 
 };
 
@@ -446,15 +503,17 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
   });
 
   var cl = files.getFile('symbolics_' + typereg.groupname + '.cc');
-  cl('#include "common/std_headers.h"');
-  cl('#include "./symbolics_' + typereg.groupname + '.h"');
+  cl(`
+    #include "common/std_headers.h"
+    #include "./symbolics_${ typereg.groupname }.h"
+  `);
 
   _.each(typereg.symbolics.c, function(func, funcname) {
     func.emitDecl(hl);
     func.emitDefn(cl);
   });
 
-  var jsl = files.getFile('symbolics_' + typereg.groupname + '.js');
+  var jsl = files.getFile(`symbolics_${ typereg.groupname }.js`);
 
   _.each(typereg.symbolics.js, function(func, funcname) {
     func.emitDefn(jsl);

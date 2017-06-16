@@ -131,9 +131,9 @@ CType.prototype.getHeaderIncludes = function() {
   });
   _.each(type.extraHeaderIncludes, function(hdr) {
     if (/^</.test(hdr)) {
-      ret.push('#include ' + hdr + '');
+      ret.push(`#include ${ hdr }`);
     } else {
-      ret.push('#include "' + hdr + '"');
+      ret.push(`#include "${ hdr }"`);
     }
   });
   return ret;
@@ -227,16 +227,16 @@ CType.prototype.emitHeader = function(f) {
 
 CType.prototype.emitHostCode = function(f) {
   var type = this;
-  f('#include "common/std_headers.h"');
+  f(`#include "common/std_headers.h"`);
   var fns = type.getFns();
   if (fns.typeHeader) {
-    f('#include "' + fns.typeHeader + '"');
+    f(`#include "${ fns.typeHeader }"`);
   }
   _.each(type.getDefnDependencies(), function(othertype) {
     othertype = type.reg.getType(othertype);
     var fns = othertype.getFns();
     if (fns && fns.typeHeader) {
-      f('#include "' + fns.typeHeader + '"');
+      f(`#include "${ fns.typeHeader }"`);
     }
   });
   f('');
@@ -252,11 +252,11 @@ CType.prototype.emitJsWrapHeader = function(f) {
     othertype = type.reg.getType(othertype);
     var fns = othertype.getFns();
     if (fns && fns.typeHeader) {
-      f('#include "' + fns.typeHeader + '"');
+      f(`#include "${ fns.typeHeader }"`);
     }
   });
   _.each(type.extraJsWrapHeaderIncludes, function(include) {
-    f('#include "' + include + '"');
+    f(`#include "${ include }"`);
   });
 
   type.emitJsWrapDecl(f);
@@ -264,77 +264,82 @@ CType.prototype.emitJsWrapHeader = function(f) {
 
 CType.prototype.emitJsWrapCode = function(f) {
   var type = this;
-  f('#include "common/std_headers.h"');
-  f('#include "nodebase/jswrapbase.h"');
+  f(`
+    #include "common/std_headers.h"
+    #include "nodebase/jswrapbase.h"
+  `);
   var fns = type.getFns();
   if (fns.typeHeader) {
-    f('#include "' + fns.typeHeader + '"');
+    f(`#include "${ fns.typeHeader }"`);
   }
   if (fns.jsWrapHeader) {
-    f('#include "' + fns.jsWrapHeader + '"');
+    f(`#include "${ fns.jsWrapHeader }"`);
   }
-  f('/* declDependencies = ' + _.map(type.getDeclDependencies(), function(ot) { return ot.typename; }) + ' */');
+  f(`
+    /* declDependencies = ${ _.map(type.getDeclDependencies(), function(ot) { return ot.typename; }) } */
+  `);
   _.each(type.getDeclDependencies(), function(othertype) {
     othertype = type.reg.getType(othertype);
     var fns = othertype.getFns();
     if (fns && fns.jsWrapHeader) {
-      f('#include "' + fns.jsWrapHeader + '"');
+      f(`#include "${ fns.jsWrapHeader }"`);
     }
   });
-  f('#include "' + type.getFns().jsWrapHeader + '"');
-  f('#include "vec_jsWrap.h"');
-  f('#include "build.src/map_string_jsonstr_jsWrap.h"');
-  f('');
+  f(`
+    #include "${ type.getFns().jsWrapHeader }"
+    #include "vec_jsWrap.h"
+    #include "build.src/map_string_jsonstr_jsWrap.h"
+  `);
   type.emitJsWrapImpl(f);
 };
 
 CType.prototype.emitRosCode = function(f) {
   var type = this;
-  f('#include <ros/ros.h>');
-  f('namespace ros {');
-  f('namespace serialization {');
+  f(`
+    #include <ros/ros.h>
+    namespace ros {
+      namespace serialization {
 
-  f('template<> struct Serializer<TYPENAME> {');
+        template<> struct Serializer<TYPENAME> {
 
-  f('template<typename Stream> inline static void write(Stream &stream, TYPENAME const &t) {')
-  f('jsonstr json;');
-  f('json.useBlobs();');
-  f('toJson(json, t);');
-  f('stream.next(json.it);');
-  f('size_t partCount = json.blobs->partCount();');
-  f('stream.next((uint32_t)partCount);');
-  f('for (size_t i=1; i < partCount; i++) {');
-  f('auto part = s.blobs->getPart(i);');
-  f('stream.next((uint32_t)part.second);');
-  f('memcpy(stream.advance((uint32_t)part.second), (void *)part.first, part.second);');
-  f('}');
-  f('}');
+          template<typename Stream> inline static void write(Stream &stream, TYPENAME const &t) {
+            jsonstr json;
+            json.useBlobs();
+            toJson(json, t);
+            stream.next(json.it);
+            size_t partCount = json.blobs->partCount();
+            stream.next((uint32_t)partCount);
+            for (size_t i=1; i < partCount; i++) {
+              auto part = s.blobs->getPart(i);
+              stream.next((uint32_t)part.second);
+              memcpy(stream.advance((uint32_t)part.second), (void *)part.first, part.second);
+            }
+          }
 
-  f('template<typename Stream> inline static void read(Stream &stream, TYPENAME &t) {')
-  f('jsonstr json;');
-  f('stream.next(json.it);');
-  f('uint32_t partCount = 0;');
-  f('stream.next(partCount);');
-  f('if (partCount > 1) json.useBlobs();');
-  f('for (size_t i=1; i < partCount; i++) {');
-  f('uint32_t partSize = 0;');
-  f('stream.next(partSize);');
-  f('json.blobs->addExternalPart(stream.advance(partSize), partSize);');
-  f('}');
-  f('if (!fromJson(json, t)) throw new runtime_error("deserializing TYPENAME: fromJson failed");');
-  f('}');
+          template<typename Stream> inline static void read(Stream &stream, TYPENAME &t) {
+            jsonstr json;
+            stream.next(json.it);
+            uint32_t partCount = 0;
+            stream.next(partCount);
+            if (partCount > 1) json.useBlobs();
+            for (size_t i=1; i < partCount; i++) {
+              uint32_t partSize = 0;
+              stream.next(partSize);
+              json.blobs->addExternalPart(stream.advance(partSize), partSize);
+            }
+            if (!fromJson(json, t)) throw new runtime_error("deserializing TYPENAME: fromJson failed");
+          }
 
-  f('inline static uint32_t serializedLength(TYPENAME const &t) {')
-  f('size_t size = 0;');
-  f('wrJsonSize(size, nullptr, t);');
-  f('return (uint32_t)size;');
-  f('}');
+          inline static uint32_t serializedLength(TYPENAME const &t) {
+            size_t size = 0;
+            wrJsonSize(size, nullptr, t);
+            return (uint32_t)size;
+          }
+        };
 
-
-  f('};');
-
-  f('}'); // namespace serialization
-  f('}'); // namespace ros
+      }
+    }
+  `);
 }
 
 CType.prototype.emitJsTestImpl = function(f) {

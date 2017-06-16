@@ -18,11 +18,13 @@ PrimitiveCType.prototype.getFns = function() {
 };
 
 PrimitiveCType.prototype.emitJsWrapDecl = function(f) {
-  f('char const * getTypeVersionString(TYPENAME const &);');
-  f('char const * getTypeName(TYPENAME const &);');
-  f('char const * getJsTypeName(TYPENAME const &);');
-  f('char const * getSchema(TYPENAME const &);');
-  f('void addSchemas(TYPENAME const &, map<string, jsonstr> &);');
+  f(`
+    char const * getTypeVersionString(TYPENAME const &);
+    char const * getTypeName(TYPENAME const &);
+    char const * getJsTypeName(TYPENAME const &);
+    char const * getSchema(TYPENAME const &);
+    void addSchemas(TYPENAME const &, map<string, jsonstr> &);
+  `);
 };
 
 
@@ -109,9 +111,9 @@ PrimitiveCType.prototype.getFormalParameter = function(varname) {
   switch (type.typename) {
   case 'string':
   case 'jsonstr':
-    return type.typename + ' const &' + varname;
+    return `${ type.typename } const &${ varname }`;
   default:
-    return type.typename + ' ' + varname;
+    return `${ type.typename } ${ varname }`;
   }
 };
 
@@ -120,9 +122,9 @@ PrimitiveCType.prototype.getArgTempDecl = function(varname) {
   switch (type.typename) {
   case 'X_string':
   case 'X_jsonstr':
-    return type.typename + ' const &' + varname;
+    return `${ type.typename } const &${ varname }`;
   default:
-    return type.typename + ' ' + varname;
+    return `${ type.typename } ${ varname }`;
   }
 };
 
@@ -140,17 +142,17 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
   case 'U64':
   case 'float':
   case 'double':
-    return '((' + valueExpr + ')->IsNumber())';
+    return `((${ valueExpr })->IsNumber())`;
   case 'bool':
-    return '((' + valueExpr + ')->IsBoolean())';
+    return `((${ valueExpr })->IsBoolean())`;
   case 'string':
-    return 'canConvJsToString(isolate, ' + valueExpr + ')';
+    return `canConvJsToString(isolate, ${ valueExpr })`;
   case 'char const *':
-    return 'canConvJsToString(isolate, ' + valueExpr + ')';
+    return `canConvJsToString(isolate, ${ valueExpr })`;
   case 'arma::cx_double':
-    return 'canConvJsToCxDouble(isolate, ' + valueExpr + ')';
+    return `canConvJsToCxDouble(isolate, ${ valueExpr })`;
   case 'jsonstr':
-    return 'true';
+    return `true`;
   default:
     throw new Error('Unknown primitive type');
   }
@@ -164,17 +166,17 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   case 'S64':
   case 'U64':
   case 'double':
-    return '((' + valueExpr + ')->NumberValue())';
+    return `((${ valueExpr })->NumberValue())`;
   case 'bool':
-    return '((' + valueExpr + ')->BooleanValue())';
+    return `((${ valueExpr })->BooleanValue())`;
   case 'string':
-    return 'convJsToString(isolate, ' + valueExpr + ')';
+    return `convJsToString(isolate, ${ valueExpr })`;
   case 'char const *':
-    return 'convJsToString(isolate, ' + valueExpr + ').c_str()';
+    return `convJsToString(isolate, ${ valueExpr }).c_str()`;
   case 'jsonstr':
-    return 'convJsToJsonstr(isolate, ' + valueExpr + ')';
+    return `convJsToJsonstr(isolate, ${ valueExpr })`;
   case 'arma::cx_double':
-    return 'convJsToCxDouble(isolate, ' + valueExpr + ')';
+    return `convJsToCxDouble(isolate, ${ valueExpr })`;
   default:
     throw new Error('Unknown primitive type');
   }
@@ -189,19 +191,19 @@ PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerE
   case 'U64':
   case 'float':
   case 'double':
-    return 'Number::New(isolate, ' + valueExpr + ')';
+    return `Number::New(isolate, ${ valueExpr })`;
   case 'bool':
-    return 'Boolean::New(isolate, ' + valueExpr + ')';
+    return `Boolean::New(isolate, ${ valueExpr })`;
   case 'string':
-    return 'convStringToJs(isolate, ' + valueExpr + ')';
+    return `convStringToJs(isolate, ${ valueExpr })`;
   case 'char const *':
-    return 'convStringToJs(isolate, string(' + valueExpr + '))';
+    return `convStringToJs(isolate, string(${ valueExpr }))`;
   case 'jsonstr':
-    return 'convJsonstrToJs(isolate, ' + valueExpr + ')';
+    return `convJsonstrToJs(isolate, ${ valueExpr })`;
   case 'arma::cx_double':
-    return 'convCxDoubleToJs(isolate, ' + valueExpr + ')';
+    return `convCxDoubleToJs(isolate, ${ valueExpr })`;
   case 'void':
-    return 'Undefined(isolate)';
+    return `Undefined(isolate)`;
   default:
     throw new Error('Unknown primitive type');
   }

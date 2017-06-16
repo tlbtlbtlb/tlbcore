@@ -54,12 +54,12 @@ DspFormat.prototype.maxPrim = function() {
 
 DspFormat.prototype.dspType = function() {
   if (this.qa === 32 && this.qb === 0) return 'int';
-  return 'dsp' + this.qa.toString(10) + this.qb.toString(10);
+  return `dsp${ this.qa.toString(10) }${ this.qb.toString(10) }`;
 };
 
 DspFormat.prototype.constantExpr = function(value) {
   if (this.qa === 32 && this.qb === 0) return Math.floor(value).toString(10);
-  return 'DSP' + this.qa.toString(10) + this.qb.toString(10) + '(' + value.toString(10) + ')';
+  return `DSP${ this.qa.toString(10) }${ this.qb.toString(10) }(${ value.toString(10) })`;
 };
 
 
@@ -87,45 +87,63 @@ function genConv(f, xt, rt, sat, rnd) {
   if (sat) mods+='sat';
   if (rnd) mods+='rnd';
 
-  f('static inline ' + rt.dspType() + ' conv' + mods + '_' + xt.dspType() + '_' + rt.dspType() + '(' + xt.dspType() + ' x) {');
+  f(`
+    static inline ${ rt.dspType() } conv${ mods }_${ xt.dspType() }_${ rt.dspType() }(${ xt.dspType() } x) {
+  `);
 
   // declare variables
-  f(xt.primType() + ' x_prim;');
-  f(rt.primType() + ' r_prim;');
+  f(`
+    ${ xt.primType() } x_prim;
+    ${ rt.primType() } r_prim;
+  `);
 
   // convert x to primitive type
-  f('x_prim = (' + xt.primType() + ')x;');
+  f(`
+    x_prim = (${ xt.primType() })x;
+  `);
 
   // Round, if needed
   if (rnd && rt.qb < xt.qb) {
     var rndbits = xt.qb - rt.qb;
     var rndval = xt.primConst((1<<rndbits)-1);
     // Not quite correct: convrnd is only 32 bits, so if I'm converting way down (like dsp460 -> dsp824) it loses
-    f('x_prim += (convrnd_generator_u' + nextWidth(Math.max(32, rndbits)) + '() & ' + rndval + ');');
+    f(`
+      x_prim += (convrnd_generator_u${ nextWidth(Math.max(32, rndbits)) }() & ${ rndval });
+    `);
   }
 
   // Shift right
   if (xt.qb > rt.qb) {
-    f('x_prim >>= ' + (xt.qb - rt.qb) + ';');
+    f(`
+      x_prim >>= ${ xt.qb - rt.qb };
+    `);
   }
 
   // Saturate
   if (sat && xt.qa > rt.qa) {
     var maxval = xt.primConst(Math.pow(2, (rt.qt - Math.max(0, rt.qb - xt.qb) - 1)) - 1);
-    f('if (x_prim > ' + maxval.toString(10) + ') return ' + maxval.toString(10) + ';');
-    f('if (x_prim < -' + maxval.toString(10) + ') return -' + maxval.toString(10) + ';');
+    f(`
+      if (x_prim > ${ maxval.toString(10) }) return ${ maxval.toString(10) };
+      if (x_prim < -${ maxval.toString(10) }) return -${  maxval.toString(10) };
+    `);
   }
 
   // Convert to final
-  f('r_prim = (' + rt.primType() + ')x_prim;');
+  f(`
+    r_prim = (${ rt.primType() })x_prim;
+  `);
 
   // Shift left
   if (xt.qb < rt.qb) {
-    f('r_prim <<= ' + (rt.qb - xt.qb) + ';');
+    f(`
+      r_prim <<= ${ rt.qb - xt.qb} ;
+    `);
   }
 
-  f('return (' + rt.dspType() + ')r_prim;');
-  f('}');
+  f(`
+      return (${ rt.dspType() })r_prim;
+    }
+  `);
 }
 
 function genConvAll(f, xt, rt) {
@@ -147,13 +165,15 @@ function genMul(f, xt, yt, rt, sat, rnd) {
 
   var pt = mulResultType(xt, yt);
 
-  f('static inline ' + rt.dspType() + ' mul' + mods + '_' + xt.dspType() + '_' + yt.dspType() + '_' + rt.dspType() + '(' + xt.dspType() + ' x, ' + yt.dspType() + ' y) {');
-  f(pt.primType() + ' x_prim = (' + pt.primType() + ')(' + xt.primType() + ')x;');
-  f(pt.primType() + ' y_prim = (' + pt.primType() + ')(' + yt.primType() + ')y;');
+  f(`
+    static inline ${ rt.dspType() } mul${ mods }_${ xt.dspType() }_${ yt.dspType() }_${ rt.dspType() }(${ xt.dspType() } x, ${ yt.dspType() } y) {
+      ${ pt.primType() } x_prim = (${ pt.primType() })( ${ xt.primType() })x;
+      ${ pt.primType() } y_prim = (${ pt.primType() })( ${ yt.primType() })y;
 
-  f(pt.primType() + ' p_prim = x_prim * y_prim;');
-  f('return conv' + mods + '_' + pt.dspType() + '_' + rt.dspType() + '(p_prim);');
-  f('}');
+      ${ pt.primType() } p_prim = x_prim * y_prim;
+      return conv${ mods }_${ pt.dspType() }_${ rt.dspType() }(p_prim);
+    }
+  `);
 }
 
 function genMulAll(f, xt, yt, rt) {
@@ -195,9 +215,15 @@ def gen_interp(f, valt, fract):
 */
 
 function genUnaryAll(f, xt) {
-  f('static inline ' + xt.dspType() + ' abs_' + xt.dspType() + '(' + xt.dspType() + ' x) {');
-  f('if ((' + xt.primType() + ')x < 0) return (' + xt.dspType() + ')(-(' + xt.primType() + ')x); else return x;');
-  f('}');
+  f(`
+    static inline ${ xt.dspType() } abs_${ xt.dspType() }(${ xt.dspType() } x) {
+      if ((${ xt.primType() })x < 0) {
+        return (${ xt.dspType() })(-(${ xt.primType() })x);
+      } else {
+        return x;
+      }
+    }
+  `);
 }
 
 function genAll(f) {

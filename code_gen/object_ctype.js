@@ -17,20 +17,20 @@ ObjectCType.prototype.getFns = function() {
 };
 
 ObjectCType.prototype.getSynopsis = function() {
-  return '(' + this.typename + ')';
+  return `(${ this.typename })`;
 };
 
 
 ObjectCType.prototype.getAllZeroExpr = function() {
-  return 'nullptr';
+  return `nullptr`;
 };
 
 ObjectCType.prototype.getAllNanExpr = function() {
-  return 'nullptr';
+  return `nullptr`;
 };
 
 ObjectCType.prototype.getExampleValueJs = function() {
-  return 'null';
+  return `null`;
 };
 
 ObjectCType.prototype.isPod = function() {
@@ -39,40 +39,38 @@ ObjectCType.prototype.isPod = function() {
 
 ObjectCType.prototype.getFormalParameter = function(varname) {
   var type = this;
-  return 'shared_ptr< ' + type.baseType.typename + ' > ' + varname;
+  return `shared_ptr< ${ type.baseType.typename } > ${ varname}`;
 };
 
 ObjectCType.prototype.getArgTempDecl = function(varname) {
   var type = this;
-  return 'shared_ptr< ' + type.baseType.typename + ' > ' + varname;
+  return `shared_ptr< ${ type.baseType.typename } > ${ varname}`;
 };
 
 ObjectCType.prototype.getVarDecl = function(varname) {
   var type = this;
-  return 'shared_ptr< ' + type.baseType.typename + ' > ' + varname;
+  return `shared_ptr< ${ type.baseType.typename } > ${ varname }`;
 };
 
 ObjectCType.prototype.getJsToCppTest = function(valueExpr, o) {
   var type = this;
-  return '(JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr)';
+  return `(JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr }) != nullptr)`;
 };
 
 ObjectCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   var type = this;
-  return 'JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ')';
+  return `JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr })`;
 };
 
 ObjectCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerExpr) {
   var type = this;
   if (parentExpr) {
-    return 'JsWrap_' + type.jsTypename + '::MemberInstance(isolate, ' + parentExpr + ', &(' + valueExpr + '))';
+    return `JsWrap_${ type.jsTypename }::MemberInstance(isolate, ${ parentExpr }, &(${ valueExpr }))`;
   }
   else if (ownerExpr) {
-    return 'JsWrap_' + type.jsTypename + '::DependentInstance(isolate, ' + ownerExpr + ', &(' + valueExpr + '))';
+    return `JsWrap_${ type.jsTypename }::DependentInstance(isolate, ${ ownerExpr }, &(${ valueExpr }))`;
   }
   else {
-    return 'JsWrap_' + type.jsTypename + '::NewInstance(isolate, ' + valueExpr + ')';
+    return `JsWrap_${ type.jsTypename }::NewInstance(isolate, ${ valueExpr })`;
   }
 };
-
-

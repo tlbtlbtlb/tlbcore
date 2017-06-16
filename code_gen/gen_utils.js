@@ -109,16 +109,24 @@ function withJsWrapUtils(f, typereg) {
       _.each(argSet.args, function(argTypename, argi) {
         var m;
         if (argTypename === 'Value') {
-          f('Local<Value> a' + argi + ' = args[' + argi + '];');
+          f(`
+            Local<Value> a${ argi } = args[${ argi }];
+          `);
         }
         else if (argTypename === 'Object') {
-          f('Local<Object> a' + argi + ' = args[' + argi + ']->ToObject(isolate);');
+          f(`
+            Local<Object> a${ argi } = args[${ argi }]->ToObject(isolate);
+          `);
         }
         else if (argTypename === 'Array') {
-          f('Local<Array> a' + argi + ' = Local<Array>::Cast(args[' + argi + ']);');
+          f(`
+            Local<Array> a${ argi } = Local<Array>::Cast(args[${ argi }]);
+          `);
         }
         else if (argTypename === 'Function') {
-          f('Local<Function> a' + argi + ' = Local<Function>::Cast(args[' + argi + ']);');
+          f(`
+            Local<Function> a${ argi } = Local<Function>::Cast(args[${ argi }]);
+          `);
         }
         else if (m = /^conv:(.*)$/.exec(argTypename)) {
           var argType = typereg.getType(m[1]);
@@ -135,24 +143,34 @@ function withJsWrapUtils(f, typereg) {
 
       if (argSet.returnType) {
         if (argSet.returnType === 'buffer') {
-          f('string ret;');
+          f(`
+            string ret;
+            `);
           argSet.code(f);
-          f('args.GetReturnValue().Set(convStringToJsBuffer(isolate, ret));');
-          f('return;');
+          f(`
+            args.GetReturnValue().Set(convStringToJsBuffer(isolate, ret));
+            return;
+          `);
         } else {
           var returnType = typereg.getType(argSet.returnType);
           if (returnType.isStruct() || returnType.isCollection()) {
-            f('shared_ptr< ' + returnType.typename + ' > ret_ptr = make_shared< ' + returnType.typename + ' >();');
-            f(returnType.typename + ' &ret = *ret_ptr;');
+            f(`
+              shared_ptr< ${ returnType.typename } > ret_ptr = make_shared< ${ returnType.typename } >();
+              ${ returnType.typename } &ret = *ret_ptr;
+            `);
             argSet.code(f);
-            f('args.GetReturnValue().Set(' + returnType.getCppToJsExpr('ret_ptr') + ');');
-            f('return;');
+            f(`
+              args.GetReturnValue().Set(${ returnType.getCppToJsExpr('ret_ptr') });
+              return;
+            `);
           }
           else {
             f(returnType.typename + ' ret;');
             argSet.code(f);
-            f('args.GetReturnValue().Set(' + returnType.getCppToJsExpr('ret') + ');');
-            f('return;');
+            f(`
+              args.GetReturnValue().Set(${ returnType.getCppToJsExpr('ret') });
+              return;
+            `);
           }
         }
       } else {
@@ -173,149 +191,204 @@ function withJsWrapUtils(f, typereg) {
       }).join(',') + (argSet.ignoreExtra ? '...' : '') + ')';
     }).join(' or ');
 
-    f('return ThrowTypeError(isolate, "Invalid arguments: expected ' + acceptable + '");');
-    f('}');
+    f(`
+      return ThrowTypeError(isolate, "Invalid arguments: expected ${ acceptable }");
+      }
+    `);
   };
 
   f.emitJsWrap = function(fn, contents) {
-    f('static void jsWrap_' + fn + '(FunctionCallbackInfo<Value> const &args) {');
-    f('Isolate *isolate = args.GetIsolate();');
-    f('HandleScope scope(isolate);');
+    f(`
+      static void jsWrap_${ fn }(FunctionCallbackInfo<Value> const &args) {
+        Isolate *isolate = args.GetIsolate();
+        HandleScope scope(isolate);
+    `);
     f(contents);
-    f('}');
+    f(`
+      }
+    `);
   };
 
   f.emitJsNew = function() {
-    f('void jsNew_JSTYPE(FunctionCallbackInfo<Value> const &args) {');
-    f('Isolate *isolate = args.GetIsolate();');
-    f('HandleScope scope(isolate);');
-    f('if (!(args.Holder()->InternalFieldCount() > 0)) return ThrowInvalidThis(isolate);');
-    f('JsWrap_JSTYPE* thisObj = new JsWrap_JSTYPE(args.GetIsolate());');
-    f('jsConstructor_JSTYPE(thisObj, args);');
-    f('}');
-    f('');
-  };
+    f(`
+      void jsNew_JSTYPE(FunctionCallbackInfo<Value> const &args) {
+        Isolate *isolate = args.GetIsolate();
+        HandleScope scope(isolate);
+        if (!(args.Holder()->InternalFieldCount() > 0)) return ThrowInvalidThis(isolate);
+        JsWrap_JSTYPE* thisObj = new JsWrap_JSTYPE(args.GetIsolate());
+        jsConstructor_JSTYPE(thisObj, args);
+      }
+    `);
+    };
 
   f.emitJsConstructor = function(contents) {
-    f('void jsConstructor_JSTYPE(JsWrap_JSTYPE *thisObj, FunctionCallbackInfo<Value> const &args) {');
-    f('Isolate *isolate = args.GetIsolate();');
-    f('HandleScope scope(isolate);');
+    f(`
+      void jsConstructor_JSTYPE(JsWrap_JSTYPE *thisObj, FunctionCallbackInfo<Value> const &args) {
+        Isolate *isolate = args.GetIsolate();
+        HandleScope scope(isolate);
+    `);
     f(contents);
-    f('thisObj->Wrap2(args.This());');
-    f('args.GetReturnValue().Set(args.This());');
-    f('}');
+    f(`
+        thisObj->Wrap2(args.This());
+        args.GetReturnValue().Set(args.This());
+      }
+    `);
   };
 
   f.emitJsMethod = function(name, contents) {
     f.emitJsWrap('JSTYPE_' + name, function(f) {
-      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
+      f(`
+        JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());
+      `);
       f(contents);
     });
 
     f.jsBindings.push(function(f) {
-      f('NODE_SET_PROTOTYPE_METHOD(tpl, "' + name + '", &jsWrap_JSTYPE_' + name + ');');
+      f(`
+        NODE_SET_PROTOTYPE_METHOD(tpl, "${ name }", &jsWrap_JSTYPE_${ name });
+      `);
     });
   };
 
   f.emitJsMethodAlias = function(jsName, cName) {
     f.jsBindings.push(function(f) {
-      f('NODE_SET_PROTOTYPE_METHOD(tpl, "' + jsName + '", &jsWrap_JSTYPE_' + cName + ');');
+      f(`
+        NODE_SET_PROTOTYPE_METHOD(tpl, "${ jsName }", &jsWrap_JSTYPE_${ cName });
+      `);
     });
   };
 
   f.emitJsFactory = function(name, contents) {
     f.emitJsWrap('JSTYPE_' + name, contents);
     f.jsConstructorBindings.push(function(f) {
-      f('tpl->GetFunction()->Set(String::NewFromUtf8(isolate, "' + name + '"), FunctionTemplate::New(isolate, jsWrap_JSTYPE_' + name + ')->GetFunction());');
+      f(`
+        tpl->GetFunction()->Set(String::NewFromUtf8(isolate, "${ name }"), FunctionTemplate::New(isolate, jsWrap_JSTYPE_${ name })->GetFunction());
+      `);
     });
   };
 
   f.emitJsAccessors = function(name, o) {
     if (o.get) {
-      f('static void jsGet_JSTYPE_' + name + '(Local<String> name, PropertyCallbackInfo<Value> const &args) {');
-      f('Isolate *isolate = args.GetIsolate();');
-      f('HandleScope scope(isolate);');
-      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
+      f(`
+        static void jsGet_JSTYPE_${ name }(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+          Isolate *isolate = args.GetIsolate();
+          HandleScope scope(isolate);
+          JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());
+      `);
       f(o.get);
-      f('}');
+      f(`
+        }
+      `);
     }
     if (o.set) {
-      f('static void jsSet_JSTYPE_' + name + '(Local<String> name, Local<Value> value, PropertyCallbackInfo<void> const &args) {');
-      f('Isolate *isolate = args.GetIsolate();');
-      f('HandleScope scope(isolate);');
-      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
+      f(`
+        static void jsSet_JSTYPE_${ name }(Local<String> name, Local<Value> value, PropertyCallbackInfo<void> const &args) {
+          Isolate *isolate = args.GetIsolate();
+          HandleScope scope(isolate);
+          JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());
+      `);
       f(o.set);
-      f('}');
+      f(`
+        }
+      `);
     }
     f('');
 
     f.jsBindings.push(function(f) {
       if (o.get && o.set) {
-        f('tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "' + name + '"), ' +
-          '&jsGet_JSTYPE_' + name + ', ' +
-          '&jsSet_JSTYPE_' + name + ');');
+        f(`
+          tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "${ name }"),
+            &jsGet_JSTYPE_${ name },
+            &jsSet_JSTYPE_${ name });
+        `);
       }
       else if (o.get) {
-        f('tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "' + name + '"), ' +
-          '&jsGet_JSTYPE_' + name + ');');
+        f(`
+          tpl->PrototypeTemplate()->SetAccessor(String::NewFromUtf8(isolate, "${ name }"),
+            &jsGet_JSTYPE_${ name });
+        `);
       }
     });
   };
 
   f.emitJsNamedAccessors = function(o) {
     if (o.get) {
-      f('static void jsGetNamed_JSTYPE(Local<String> name, PropertyCallbackInfo<Value> const &args) {');
-      f('Isolate *isolate = args.GetIsolate();');
-      f('HandleScope scope(isolate);');
-      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
-      f('string key = convJsToString(isolate, name);');
+      f(`
+        static void jsGetNamed_JSTYPE(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+          Isolate *isolate = args.GetIsolate();
+          HandleScope scope(isolate);
+          JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());
+          string key = convJsToString(isolate, name);
+      `);
       f(o.get);
-      f('}');
+      f(`
+        }
+      `);
     }
     if (o.set) {
-      f('static void jsSetNamed_JSTYPE(Local<String> name, Local<Value> value, PropertyCallbackInfo<Value> const &args) {');
-      f('Isolate *isolate = args.GetIsolate();');
-      f('HandleScope scope(isolate);');
-      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
-      f('string key = convJsToString(isolate, name);');
+      f(`
+        static void jsSetNamed_JSTYPE(Local<String> name, Local<Value> value, PropertyCallbackInfo<Value> const &args) {
+          Isolate *isolate = args.GetIsolate();
+          HandleScope scope(isolate);
+          JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());
+          string key = convJsToString(isolate, name);
+      `);
       f(o.set);
-      f('}');
+      f(`
+        }
+      `);
     }
     f('');
 
     f.jsBindings.push(function(f) {
       if (o.get && o.set) {
-        f('tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE, jsSetNamed_JSTYPE);');
+        f(`
+          tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE, jsSetNamed_JSTYPE);
+        `);
       }
       else if (o.get) {
-        f('tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE);');
+        f(`
+          tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_JSTYPE);
+        `);
       }
     });
   };
 
   f.emitJsIndexedAccessors = function(o) {
     if (o.get) {
-      f('static void jsGetIndexed_JSTYPE(unsigned int index, PropertyCallbackInfo<Value> const &args) {');
-      f('Isolate *isolate = args.GetIsolate();');
-      f('HandleScope scope(isolate);');
-      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
+      f(`
+        static void jsGetIndexed_JSTYPE(unsigned int index, PropertyCallbackInfo<Value> const &args) {
+          Isolate *isolate = args.GetIsolate();
+          HandleScope scope(isolate);
+          JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());
+      `);
       f(o.get);
-      f('}');
+      f(`
+        }
+      `);
     }
     if (o.set) {
-      f('static void jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, PropertyCallbackInfo<Value> const &args) {');
-      f('Isolate *isolate = args.GetIsolate();');
-      f('HandleScope scope(isolate);');
-      f('JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());');
+      f(`
+        static void jsSetIndexed_JSTYPE(unsigned int index, Local<Value> value, PropertyCallbackInfo<Value> const &args) {
+          Isolate *isolate = args.GetIsolate();
+          HandleScope scope(isolate);
+          JsWrap_JSTYPE* thisObj = node::ObjectWrap::Unwrap<JsWrap_JSTYPE>(args.This());
+      `);
       f(o.set);
-      f('}');
+      f(`
+        }
+      `);
     }
     f.jsBindings.push(function(f) {
       if (o.get && o.set) {
-        f('tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_JSTYPE, jsSetIndexed_JSTYPE);');
+        f(`
+          tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_JSTYPE, jsSetIndexed_JSTYPE);
+        `);
       }
       else if (o.get) {
-        f('tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_JSTYPE);');
+        f(`
+          tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_JSTYPE);
+        `);
       }
     });
     f('');
@@ -325,9 +398,11 @@ function withJsWrapUtils(f, typereg) {
     _.each(f.jsBindings, function(binding) {
       binding(f);
     });
-    f('JsWrap_JSTYPE::constructor.Reset(isolate, tpl->GetFunction());');
-    f('JsWrap_JSTYPE::constructorName = "JSTYPE";');
-    f('exports->Set(String::NewFromUtf8(isolate, "JSTYPE"), tpl->GetFunction());');
+    f(`
+      JsWrap_JSTYPE::constructor.Reset(isolate, tpl->GetFunction());
+      JsWrap_JSTYPE::constructorName = "JSTYPE";
+      exports->Set(String::NewFromUtf8(isolate, "JSTYPE"), tpl->GetFunction());
+    `);
     _.each(f.jsConstructorBindings, function(binding) {
       binding(f);
     });

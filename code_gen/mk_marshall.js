@@ -45,8 +45,12 @@ function main() {
                               ['bar', 'int'],
                               ['buz', 'double']);
       if (0) {
-        ts.addConstructorCode('eprintf("Construct TestStruct %p\\n", this);');
-        ts.addDestructorCode('eprintf("Destruct TestStruct %p\\n", this);');
+        ts.addConstructorCode(`
+          eprintf("Construct TestStruct %p\\n", this);
+        `);
+        ts.addDestructorCode(`
+          eprintf("Destruct TestStruct %p\\n", this);
+        `);
       }
 
       typereg.struct('TestStructString',

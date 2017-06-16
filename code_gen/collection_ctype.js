@@ -24,7 +24,7 @@ function CollectionCType(reg, typename) {
   _.each(typename, function(c) {
     if (c === '<') {
       if (type.templateArgs[argi]) {
-        if (depth == 0) {
+        if (depth === 0) {
           argi ++;
           c = null;
         } else {
@@ -77,17 +77,18 @@ function CollectionCType(reg, typename) {
   if (0) console.log('template', typename, type.templateName, type.templateArgs);
 }
 CollectionCType.prototype = Object.create(CType.prototype);
-CollectionCType.prototype.isCollection = function() { return true; };
+CollectionCType.prototype.isCollection = function() { return true; }
 
 
 CollectionCType.prototype.emitTypeDecl = function(f) {
   var type = this;
-  f('');
-  f('char const * getTypeVersionString(TYPENAME const &);');
-  f('char const * getTypeName(TYPENAME const &);');
-  f('char const * getJsTypeName(TYPENAME const &);');
-  f('char const * getSchema(TYPENAME const &);');
-  f('void addSchemas(TYPENAME const &, map<string, jsonstr> &);');
+  f(`
+  char const * getTypeVersionString(TYPENAME const &);
+  char const * getTypeName(TYPENAME const &);
+  char const * getJsTypeName(TYPENAME const &);
+  char const * getSchema(TYPENAME const &);
+  void addSchemas(TYPENAME const &, map<string, jsonstr> &);
+  `);
 };
 
 CollectionCType.prototype.emitHostImpl = function(f) {
@@ -99,14 +100,16 @@ CollectionCType.prototype.emitHostImpl = function(f) {
     members: []
   };
 
-  f('char const * getTypeVersionString(TYPENAME const &it) { return "TYPENAME:1"; }');
-  f('char const * getTypeName(TYPENAME const &it) { return "TYPENAME"; }');
-  f('char const * getJsTypeName(TYPENAME const &it) { return "' + type.jsTypename + '"; }');
-  f('char const * getSchema(TYPENAME const &it) { return "' + cgen.escapeCString(JSON.stringify(schema)) + '"; }');
-  f('void addSchemas(TYPENAME const &it, map<string, jsonstr> &all) {');
-  f('if (!all["' + type.jsTypename + '"].isNull()) return;');
-  f('all["' + type.jsTypename + '"] = jsonstr(getSchema(it));');
-  f('}');
+  f(`
+  char const * getTypeVersionString(TYPENAME const &it) { return "TYPENAME:1"; }
+  char const * getTypeName(TYPENAME const &it) { return "TYPENAME"; }
+  char const * getJsTypeName(TYPENAME const &it) { return "${type.jsTypename}"; }
+  char const * getSchema(TYPENAME const &it) { return "${cgen.escapeCString(JSON.stringify(schema))}"; }
+  void addSchemas(TYPENAME const &it, map<string, jsonstr> &all) {
+    if (!all["${type.jsTypename}"].isNull()) return;
+    all["${type.jsTypename}"] = jsonstr(getSchema(it));
+  }
+  `);
 
 };
 
@@ -266,17 +269,22 @@ CollectionCType.prototype.getMemberTypes = function() {
 
 CollectionCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
-  f('typedef JsWrapGeneric< TYPENAME > JsWrap_JSTYPE;');
-  f('void jsConstructor_JSTYPE(JsWrap_JSTYPE *it, FunctionCallbackInfo<Value> const &args);');
-  f('Handle<Value> jsToJSON_JSTYPE(Isolate *isolate, TYPENAME const &it);');
+  f(`
+  typedef JsWrapGeneric< TYPENAME > JsWrap_JSTYPE;
+  void jsConstructor_JSTYPE(JsWrap_JSTYPE *it, FunctionCallbackInfo<Value> const &args);
+  Handle<Value> jsToJSON_JSTYPE(Isolate *isolate, TYPENAME const &it);
+  `);
 };
 
 CollectionCType.prototype.emitJsWrapImpl = function(f) {
   var type = this;
 
-  f('/*\ntemplateName = "' + type.templateName + '"' + '\n' +
-    'templateArgs = "' + util.inspect(type.templateArgs) + '"\n' +
-    '*/');
+  f(`
+    /*
+      templateName = ${type.templateName}
+      templateArgs = ${util.inspect(type.templateArgs)}
+    */
+  `);
 
   f.emitJsNew();
 
@@ -445,36 +453,44 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f('EscapableHandleScope scope(isolate);');
 
     if (type.templateName === 'vector') {
-      f('Local<Array> ret = Array::New(isolate, it.size());');
-      f('for (size_t i=0; i<it.size(); i++) {');
-      f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
-      f('}');
-      f('return scope.Escape(ret);');
+      f(`
+      Local<Array> ret = Array::New(isolate, it.size());
+      for (size_t i=0; i<it.size(); i++) {
+        ret->Set(i, ${type.templateArgTypes[0].getCppToJsExpr('it[i]')});
+      }
+      return scope.Escape(ret);
+      `);
     }
     else if (type.templateName === 'arma::Col' ||
              type.templateName === 'arma::Row' ||
              type.templateName === 'arma::Col::fixed' ||
              type.templateName === 'arma::Row::fixed') {
-      f('Local<Array> ret = Array::New(isolate, it.n_elem);');
-      f('for (size_t i=0; i<it.n_elem; i++) {');
-      f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
-      f('}');
-      f('return scope.Escape(ret);');
+      f(`
+      Local<Array> ret = Array::New(isolate, it.n_elem);
+      for (size_t i=0; i<it.n_elem; i++) {
+        ret->Set(i, ${type.templateArgTypes[0].getCppToJsExpr('it[i]')});
+      }
+      return scope.Escape(ret);
+      `);
     }
     else if (type.templateName === 'arma::Mat' ||
              type.templateName === 'arma::Mat::fixed') {
-      f('Local<Array> ret = Array::New(isolate, it.n_elem);');
-      f('for (size_t i=0; i<it.n_elem; i++) {');
-      f('ret->Set(i, ' + type.templateArgTypes[0].getCppToJsExpr('it[i]') + ');');
-      f('}');
-      f('return scope.Escape(ret);');
+      f(`
+      Local<Array> ret = Array::New(isolate, it.n_elem);
+      for (size_t i=0; i<it.n_elem; i++) {
+        ret->Set(i, ${type.templateArgTypes[0].getCppToJsExpr('it[i]')});
+      }
+      return scope.Escape(ret);
+      `);
     }
     else if (type.templateName === 'map' && type.templateArgs[0] === 'string') {
-      f('Local<Object> ret = Object::New(isolate);');
-      f('for (TYPENAME::const_iterator i=it.begin(); i!=it.end(); i++) {');
-      f('ret->Set(' + type.templateArgTypes[0].getCppToJsExpr('i->first') + ', ' + type.templateArgTypes[1].getCppToJsExpr('i->second') + ');');
-      f('}');
-      f('return scope.Escape(ret);');
+      f(`
+      Local<Object> ret = Object::New(isolate);
+      for (TYPENAME::const_iterator i=it.begin(); i!=it.end(); i++) {
+        ret->Set(${ type.templateArgTypes[0].getCppToJsExpr('i->first') }, ${ type.templateArgTypes[1].getCppToJsExpr('i->second') });
+      }
+      return scope.Escape(ret);
+      `);
     }
     else {
       f('return scope.Escape(Undefined(isolate));');
@@ -494,21 +510,25 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     var valueType = type.reg.types[type.templateArgs[1]];
     f.emitJsNamedAccessors({
       get: function(f) {
-        f('TYPENAME::iterator iter = thisObj->it->find(key);');
         // return an empty handle if not found, will be looked up on prototype chain
         // It doesn't work if you return Undefined
-        f('if (iter == thisObj->it->end()) return;');
-        f('args.GetReturnValue().Set(Local<Value>(' + type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisObj->it') + '));');
+        f(`
+        TYPENAME::iterator iter = thisObj->it->find(key);
+        if (iter == thisObj->it->end()) return;
+        args.GetReturnValue().Set(Local<Value>(${ type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisObj->it') }));
+        `);
       },
       set: function(f) {
-        f('if (' + valueType.getJsToCppTest('value', {conv: true}) + ') {');
-        f(type.templateArgs[1] + ' cvalue(' + valueType.getJsToCppExpr('value', {conv: true}) + ');');
-        f('(*thisObj->it)[key] = cvalue;');
-        f('args.GetReturnValue().Set(value);');
-        f('}');
-        f('else {');
-        f('return ThrowTypeError(isolate, "Expected ' + valueType.typename + '");');
-        f('}');
+        f(`
+        if (${valueType.getJsToCppTest('value', {conv: true})}) {
+           ${type.templateArgs[1]} cvalue(${valueType.getJsToCppExpr('value', {conv: true})});
+           (*thisObj->it)[key] = cvalue;
+           args.GetReturnValue().Set(value);
+        }
+        else {
+          return ThrowTypeError(isolate, "Expected ${valueType.typename}");
+        }
+        `);
       }
     });
   }
@@ -549,19 +569,27 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
     f.emitJsIndexedAccessors({
       get: function(f) {
-        f('if (index >= thisObj->it->n_elem) return args.GetReturnValue().Set(Undefined(isolate));');
-        f('args.GetReturnValue().Set(' + elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it') + ');');
+        f(`
+        if (index >= thisObj->it->n_elem) {
+          return args.GetReturnValue().Set(Undefined(isolate));
+        }
+        args.GetReturnValue().Set(${elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it')});
+        `);
       },
       set: function(f) {
-        f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(isolate, stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
-        f('if (' + elType.getJsToCppTest('value', {conv: true}) + ') {');
-        f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value', {conv: true}) + ');');
-        f('(*thisObj->it)(index) = cvalue;');
-        f('args.GetReturnValue().Set(value);');
-        f('}');
-        f('else {');
-        f('return ThrowTypeError(isolate, "Expected ' + elType.typename + '");');
-        f('}');
+        f(`
+        if (index >= thisObj->it->n_elem) {
+          return ThrowRuntimeError(isolate, stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());
+        }
+        if (${elType.getJsToCppTest('value', {conv: true})}) {
+          ${type.templateArgs[0]} cvalue(${elType.getJsToCppExpr('value', {conv: true})});
+          (*thisObj->it)(index) = cvalue;
+          args.GetReturnValue().Set(value);
+        }
+        else {
+          return ThrowTypeError(isolate, "Expected ${elType.typename}");
+        }
+        `);
       }
     });
   }
@@ -600,19 +628,25 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
     f.emitJsIndexedAccessors({
       get: function(f) {
-        f('if (index >= thisObj->it->n_elem) args.GetReturnValue().Set(Undefined(isolate));');
-        f('args.GetReturnValue().Set(' + elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it') + ');');
+        f(`
+        if (index >= thisObj->it->n_elem) {
+          args.GetReturnValue().Set(Undefined(isolate));
+        }
+        args.GetReturnValue().Set(${ elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it') });
+        `);
       },
       set: function(f) {
-        f('if (index >= thisObj->it->n_elem) return ThrowRuntimeError(isolate, stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());');
-        f('if (' + elType.getJsToCppTest('value', {conv: true}) + ') {');
-        f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value', {conv: true}) + ');');
-        f('(*thisObj->it)(index) = cvalue;');
-        f('args.GetReturnValue().Set(value);');
-        f('}');
-        f('else {');
-        f('return ThrowTypeError(isolate, "Expected ' + elType.typename + '");');
-        f('}');
+        f(`
+        if (index >= thisObj->it->n_elem) return ThrowRuntimeError(isolate, stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());
+        if (${ elType.getJsToCppTest('value', {conv: true}) }) {
+          ${ type.templateArgs[0] } cvalue(${ elType.getJsToCppExpr('value', {conv: true}) });
+          (*thisObj->it)(index) = cvalue;
+          args.GetReturnValue().Set(value);
+        }
+        else {
+          return ThrowTypeError(isolate, "Expected ${ elType.typename }");
+        }
+        `);
       }
     });
 
@@ -626,19 +660,25 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
     f.emitJsIndexedAccessors({
       get: function(f) {
-        f('if (index > thisObj->it->size()) args.GetReturnValue().Set(Undefined(isolate));');
-        f('args.GetReturnValue().Set(' + type.reg.types[type.templateArgs[0]].getCppToJsExpr('(*thisObj->it)[index]', 'thisObj->it') + ');');
+        f(`
+        if (index > thisObj->it->size()) {
+          args.GetReturnValue().Set(Undefined(isolate));
+        }
+        args.GetReturnValue().Set(${ type.reg.types[type.templateArgs[0]].getCppToJsExpr('(*thisObj->it)[index]', 'thisObj->it') });
+        `);
       },
       set: function(f) {
         var elType = type.reg.types[type.templateArgs[0]];
-        f('if (' + elType.getJsToCppTest('value', {conv: true}) + ') {');
-        f(type.templateArgs[0] + ' cvalue(' + elType.getJsToCppExpr('value', {conv: true}) + ');');
-        f('(*thisObj->it)[index] = cvalue;');
-        f('args.GetReturnValue().Set(value);');
-        f('}');
-        f('else {');
-        f('return ThrowTypeError(isolate, "Expected ' + elType.typename + '");');
-        f('}');
+        f(`
+        if (${ elType.getJsToCppTest('value', {conv: true}) }) {
+          ${ type.templateArgs[0] } cvalue(${ elType.getJsToCppExpr('value', {conv: true}) });
+          (*thisObj->it)[index] = cvalue;
+          args.GetReturnValue().Set(value);
+        }
+        else {
+          return ThrowTypeError(isolate, "Expected ${ elType.typename }");
+        }
+        `);
       }
     });
 
@@ -689,10 +729,12 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitJsFactory('fromString', function() {
         f.emitArgSwitch([
           {args: ['string'], returnType: type, code: function(f) {
-            f('const char *a0s = a0.c_str();');
-            f('shared_ptr<jsonblobs> blobs;');
-            f('bool ok = rdJson(a0s, blobs, ret);');
-            f('if (!ok) return ThrowInvalidArgs(isolate);');
+            f(`
+            const char *a0s = a0.c_str();
+            shared_ptr<jsonblobs> blobs;
+            bool ok = rdJson(a0s, blobs, ret);
+            if (!ok) return ThrowInvalidArgs(isolate);
+            `);
           }}
         ]);
       });
@@ -702,11 +744,13 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitJsMethod('toPacket', function() {
         f.emitArgSwitch([
           {args: [], code: function(f) {
-            f('packet wr;');
-            f('wr.add_checked(*thisObj->it);');
-            f('Local<Value> retbuf = node::Buffer::New(isolate, wr.size()).ToLocalChecked();');
-            f('memcpy(node::Buffer::Data(retbuf), wr.rd_ptr(), wr.size());');
-            f('args.GetReturnValue().Set(retbuf);');
+            f(`
+            packet wr;
+            wr.add_checked(*thisObj->it);
+            Local<Value> retbuf = node::Buffer::New(isolate, wr.size()).ToLocalChecked();
+            memcpy(node::Buffer::Data(retbuf), wr.rd_ptr(), wr.size());
+            args.GetReturnValue().Set(retbuf);
+            `);
           }}
         ]);
       });
@@ -715,12 +759,14 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         f.emitJsFactory('fromPacket', function() {
           f.emitArgSwitch([
             {args: ['string'], returnType: type, code: function(f) {
-              f('packet rd(a0);');
-              f('try {');
-              f('rd.get_checked(ret);');
-              f('} catch(exception &ex) {');
-              f('return ThrowRuntimeError(isolate, ex.what());');
-              f('};');
+              f(`
+              packet rd(a0);
+              try {
+                rd.get_checked(ret);
+              } catch(exception &ex) {
+                return ThrowRuntimeError(isolate, ex.what());
+              }
+              `);
             }}
           ]);
         });
@@ -730,14 +776,17 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
 
   if (1) { // Setup template and prototype
-    f('void jsInit_JSTYPE(Handle<Object> exports) {');
-    f('Isolate *isolate = Isolate::GetCurrent();');
-    f('Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, jsNew_JSTYPE);');
-    f('tpl->SetClassName(String::NewFromUtf8(isolate, "JSTYPE"));');
-    f('tpl->InstanceTemplate()->SetInternalFieldCount(1);');
+    f(`
+    void jsInit_JSTYPE(Handle<Object> exports) {
+    Isolate *isolate = Isolate::GetCurrent();
+    Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, jsNew_JSTYPE);
+    tpl->SetClassName(String::NewFromUtf8(isolate, "JSTYPE"));
+    tpl->InstanceTemplate()->SetInternalFieldCount(1);
+    `);
     f.emitJsBindings();
-    f('}');
-    f('');
+    f(`
+    }
+    `);
   }
 
 };
@@ -755,54 +804,65 @@ CollectionCType.prototype.emitJsTestImpl = function(f) {
     f('var t1 = ' + type.getExampleValueJs() + ';');
     f('var t1s = t1.toString();');
     if (!type.noSerialize) {
-      f('var t2 = ur.JSTYPE.fromString(t1s);');
-      f('assert.strictEqual(t1.toString(), t2.toString());');
+      f(`
+      var t2 = ur.JSTYPE.fromString(t1s);
+      assert.strictEqual(t1.toString(), t2.toString());
+      `);
     }
 
     if (!type.noPacket) {
-      f('var t1b = t1.toPacket();');
-      f('var t3 = ur.JSTYPE.fromPacket(t1b);');
-      f('assert.strictEqual(t1.toString(), t3.toString());');
+      f(`
+      var t1b = t1.toPacket();
+      var t3 = ur.JSTYPE.fromPacket(t1b);
+      assert.strictEqual(t1.toString(), t3.toString());
+      `);
     }
   }
   f('});');
 
   if (type.templateName === 'vector' && type.templateArgs[0] === 'double') {
     if (0) { // not yet
-      f('it("should accept vanilla arrays", function() {');
-      f('var t1 = new ur.JSTYPE([1.5,2,2.5]);');
-      f('t1.pushBack(2.75);');
-      f('assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5,2.75]");');
-      f('});');
+      f(`
+      it("should accept vanilla arrays", function() {
+        var t1 = new ur.JSTYPE([1.5,2,2.5]);
+        t1.pushBack(2.75);
+        assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5,2.75]");
+      });
 
-      f('it("should accept Float64 arrays", function() {');
-      f('var t1 = new ur.JSTYPE(new Float64Array([1.5,2,2.5]));');
-      f('assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5]");');
-      f('});');
+      it("should accept Float64 arrays", function() {
+        var t1 = new ur.JSTYPE(new Float64Array([1.5,2,2.5]));
+        assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5]");
+      });
 
-      f('it("should accept Float32 arrays", function() {');
-      f('var t1 = new ur.JSTYPE(new Float32Array([1.5,2,2.5]));');
-      f('assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5]");');
-      f('});');
+      it("should accept Float32 arrays", function() {
+        var t1 = new ur.JSTYPE(new Float32Array([1.5,2,2.5]));
+        assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5]");
+      });
+      `);
     }
 
-    f('it("should allow pushBack", function() {');
-    f('var t1 = new ur.JSTYPE();');
-    f('t1.pushBack(1.5);');
-    f('t1.pushBack(2.5);');
-    f('assert.strictEqual(t1.toJsonString(), "[1.5,2.5]");');
-    f('});');
+    f(`
+    it("should allow pushBack", function() {
+      var t1 = new ur.JSTYPE();
+      t1.pushBack(1.5);
+      t1.pushBack(2.5);
+      assert.strictEqual(t1.toJsonString(), "[1.5,2.5]");
+    });
+    `);
   }
 
   if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
-    f('it("should accept objects", function() {');
-    f('var t1 = new ur.JSTYPE({a: 1, b: "foo",c:{d:1}});');
-    f('assert.strictEqual(t1.toJsonString(), "{\\"a\\":1,\\"b\\":\\"foo\\",\\"c\\":{\\"d\\":1}}");');
-    f('});');
+    f(`
+    it("should accept objects", function() {
+      var t1 = new ur.JSTYPE({a: 1, b: "foo",c:{d:1}});
+      assert.strictEqual(t1.toJsonString(), "{\\"a\\":1,\\"b\\":\\"foo\\",\\"c\\":{\\"d\\":1}}");
+    });
+    `);
 
   }
 
-
-  f('});');
+  f(`
+  });
+  `);
 
 };

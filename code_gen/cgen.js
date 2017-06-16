@@ -35,16 +35,17 @@ function mkCodeGen(filename, subs) {
     if (/(WARNING|ERROR)/.test(code)) {
       console.log(code);
     }
+    _.each(code.trim().split('\n'), function(code) {
+      code = code.replace(subsPattern, function(m) {
+        if (m in subs) {
+          return subs[m];
+        } else {
+          return m;
+        }
+      });
 
-    code = code.replace(subsPattern, function(m) {
-      if (m in subs) {
-        return subs[m];
-      } else {
-        return m;
-      }
+      contents.push(code.trim() + '\n');
     });
-
-    contents.push(code.trim() + '\n');
   }
 
   function expandContents(dst) {
@@ -186,5 +187,3 @@ FileGen.prototype.end = function() {
     cg.end();
   });
 };
-
-

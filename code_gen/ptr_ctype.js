@@ -24,51 +24,51 @@ PtrCType.prototype.getFns = function() {
 };
 
 PtrCType.prototype.getSynopsis = function() {
-  return '(' + this.typename + ')';
+  return `(${ this.typename })`;
 };
 
 PtrCType.prototype.getAllZeroExpr = function() {
-  return 'nullptr';
+  return `nullptr`;
 };
 
 PtrCType.prototype.getAllNanExpr = function() {
-  return 'nullptr';
+  return `nullptr`;
 };
 
 PtrCType.prototype.getExampleValueJs = function() {
-  return 'null';
+  return `null`;
 };
 
 PtrCType.prototype.getFormalParameter = function(varname) {
   var type = this;
-  return 'shared_ptr< ' + type.baseType.typename + ' > ' + varname;
+  return `shared_ptr< ${ type.baseType.typename } > ${ varname }`;
 };
 
 PtrCType.prototype.getArgTempDecl = function(varname) {
   var type = this;
-  return 'shared_ptr< ' + type.baseType.typename + ' > ' + varname;
+  return `shared_ptr< ${ type.baseType.typename } > ${ varname }`;
 };
 
 PtrCType.prototype.getVarDecl = function(varname) {
   var type = this;
-  return 'shared_ptr< ' + type.baseType.typename + ' > ' + varname;
+  return `shared_ptr< ${ type.baseType.typename } > ${ varname }`;
 };
 
 PtrCType.prototype.getJsToCppTest = function(valueExpr, o) {
   var type = this;
-  return '(JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr)';
+  return `(JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr }) != nullptr)`;
 };
 
 PtrCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   var type = this;
-  return 'JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ')';
+  return `JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr })`;
 };
 
 PtrCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
   if (ownerExpr) {
-    return 'JsWrap_' + type.jsTypename + '::MemberInstance(isolate, ' + ownerExpr + ', &(' + valueExpr + '))';
+    return `JsWrap_${ type.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, &(${ valueExpr }))`;
   } else {
-    return 'JsWrap_' + type.jsTypename + '::NewInstance(isolate, ' + valueExpr + ')';
+    return `JsWrap_${ type.jsTypename }::NewInstance(isolate, ${ valueExpr })`;
   }
 };
