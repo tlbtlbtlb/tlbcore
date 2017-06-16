@@ -11,5 +11,7 @@
 	"indent":    2,
   "typed":     true,
   "predef":    [
+      "describe",
+      "it"
   ]
 }

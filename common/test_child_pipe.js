@@ -50,7 +50,7 @@ describe('ChildPipe', function() {
           function(pdone) {
             cp.rpc('test2', ['abc', 'def', {'ghi': 'jkl', 'mno': {}}], function(err, v) {
               assert.equal(err, null);
-              assert.deepEqual(v, [['abc', 'def', {'ghi': 'jkl', 'mno': {}}], 'foo'])
+              assert.deepEqual(v, [['abc', 'def', {'ghi': 'jkl', 'mno': {}}], 'foo']);
               pdone();
             });
           }

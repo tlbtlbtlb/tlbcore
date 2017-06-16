@@ -2,6 +2,7 @@
   Basic browser infrastructore for tlbcore.
   We stick a lot of stuff in jquery's $.XXX namespace
 */
+/* globals HitDetector */
 var _                   = require('underscore');
 var WebSocketBrowser    = require('WebSocketBrowser');
 
