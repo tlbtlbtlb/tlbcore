@@ -1,5 +1,6 @@
 var _ = require('underscore');
 var assert = require('assert');
+var path = require('path');
 var async = require('async');
 var child_pipe = require('./child_pipe');
 var logio = require('../web/logio');
@@ -17,12 +18,13 @@ if (0) describe('ChildPipe.sshify', function() {
 
 });
 
+var tlbcoreDir = path.dirname(path.dirname(require.resolve('./child_pipe')))
 
 describe('ChildPipe', function() {
   it('should work', function(done) {
 
-    var cp1 = new child_pipe.ChildJsonPipe('python', ['common/child_pipe_test_slave.py'], {}, {nChildren: 3, verbose: 0});
-    var cp2 = new child_pipe.ChildJsonPipe('node', ['common/child_pipe_test_slave.js'], {}, {nChildren: 2, verbose: 0});
+    var cp1 = new child_pipe.ChildJsonPipe('python', [path.join(tlbcoreDir, 'common/child_pipe_test_slave.py')], {}, {nChildren: 3, verbose: 0});
+    var cp2 = new child_pipe.ChildJsonPipe('node', [path.join(tlbcoreDir, 'common/child_pipe_test_slave.js')], {}, {nChildren: 2, verbose: 0});
     async.each([cp1, cp2], function(cp, done1) {
       cp.handshake(function(err) {
         if (err) return done(err);
