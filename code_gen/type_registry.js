@@ -84,14 +84,14 @@ TypeRegistry.prototype.object = function(typename) {
 
 TypeRegistry.prototype.struct = function(typename /* varargs */) {
   var typereg = this;
-  if (typename in typereg.types) throw (typename + ' already defined');
+  if (typename in typereg.types) throw new Error(`${ typename } already defined`);
   var t = new StructCType(typereg, typename);
   typereg.types[typename] = t;
   t.addArgs(arguments, 1);
 
   var ptrType = new PtrCType(typereg, t);
   typereg.types[ptrType.typename] = ptrType;
-  typereg.types['shared_ptr< ' + typename + ' >'] = ptrType;
+  typereg.types[`shared_ptr< ${ typename } >`] = ptrType;
 
   return t;
 };
@@ -102,14 +102,14 @@ TypeRegistry.prototype.template = function(typename) {
   var t = new CollectionCType(typereg, typename);
   typereg.types[typename] = t;
   var ptrTypename = typename + '*';
-  var sharedPtrTypename = 'shared_ptr< ' + typename + ' >';
+  var sharedPtrTypename = `shared_ptr< ${ typename } >`;
   typereg.types[sharedPtrTypename] = typereg.types[ptrTypename] = new PtrCType(typereg, t);
   return t;
 };
 
 TypeRegistry.prototype.dsp = function(lbits, rbits) {
   var typereg = this;
-  var typename = 'dsp' + lbits.toString() + rbits.toString();
+  var typename = `dsp${ lbits.toString() }${ rbits.toString() }`;
   if (typename in typereg.types) return typereg.types[typename];
   var t = new DspCType(typereg, lbits, rbits);
   typereg.types[typename] = t;
@@ -149,7 +149,7 @@ TypeRegistry.prototype.emitAll = function(files) {
 
 TypeRegistry.prototype.emitJsBoot = function(files) {
   var typereg = this;
-  var f = files.getFile('jsboot_' + typereg.groupname + '.cc');
+  var f = files.getFile(`jsboot_${ typereg.groupname }.cc`);
   f(`
     #include "common/std_headers.h"
     #include "nodebase/jswrapbase.h"
@@ -400,7 +400,7 @@ TypeRegistry.prototype.getSchemas = function() {
 
 TypeRegistry.prototype.emitSchema = function(files) {
   var typereg = this;
-  var f = files.getFile('schema_' + typereg.groupname + '.json');
+  var f = files.getFile(`schema_${ typereg.groupname }.json`);
   var schemas = typereg.getSchemas();
   f(JSON.stringify(schemas));
 };
@@ -413,7 +413,7 @@ TypeRegistry.prototype.getNamedType = function(typename) {
       if (0) console.log('Creating template', typename);
       type = new CollectionCType(typereg, typename);
     }
-    if (!type) throw new Error('No pattern for type ' + typename);
+    if (!type) throw new Error(`No pattern for type ${ typename }`);
     typereg.types[typename] = type;
   }
   return type;
@@ -436,7 +436,7 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
     });
   }
   var typenameExpr = _.map(typenames, escapeRegexp).join('|');
-  var typeExpr = '(' + typenameExpr + ')' + '(\\s*|\\s+const\\s*&\\s*|\\s*&\\s*)';
+  var typeExpr = `(${ typenameExpr })(\\s*|\\s+const\\s*&\\s*|\\s*&\\s*)`;
   var argExpr = typeExpr + '(\\w+)';
   var funcnameExpr = '\\w+|operator\\s*[^\\s\\w]+';
 
@@ -483,14 +483,14 @@ TypeRegistry.prototype.scanCHeader = function(fn) {
   var typereg = this;
   var rawFile = fs.readFileSync(fn, 'utf8');
   typereg.scanCFunctions(rawFile);
-  typereg.extraJsWrapFuncsHeaders.push('#include "' + fn + '"');
+  typereg.extraJsWrapFuncsHeaders.push(`#include "${ fn }"`);
 };
 
 TypeRegistry.prototype.emitSymbolics = function(files) {
   var typereg = this;
 
   // For now put them all in one file. It might make sense to split out at some point
-  var hl = files.getFile('symbolics_' + typereg.groupname + '.h');
+  var hl = files.getFile(`symbolics_${ typereg.groupname }.h`);
 
   // Make a list of all includes: collect all types for all functions, then collect the customerIncludes for each type, and remove dups
   var allIncludes = _.uniq(_.flatten(_.map(_.flatten(_.map(typereg.symbolics.c, function(func) { return func.getAllTypes(); })), function(typename) {
@@ -502,7 +502,7 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
     hl(incl);
   });
 
-  var cl = files.getFile('symbolics_' + typereg.groupname + '.cc');
+  var cl = files.getFile(`symbolics_${ typereg.groupname }.cc`);
   cl(`
     #include "common/std_headers.h"
     #include "./symbolics_${ typereg.groupname }.h"

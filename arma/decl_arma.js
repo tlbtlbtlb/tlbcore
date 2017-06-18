@@ -16,11 +16,11 @@ module.exports = function(typereg) {
       _.each([0,2,3,4], function(colFixed) {
         if (rowFixed && colFixed && rowFixed !== colFixed) return;
 
-        rTypename = 'arma::Row<' + et + '>' + (rowFixed ? '::fixed<'+rowFixed+'>' : '');
-        cTypename = 'arma::Col<' + et + '>' + (colFixed ? '::fixed<'+colFixed+'>' : '');
-        mTypename = 'arma::Mat<' + et + '>' + ((colFixed && rowFixed) ? '::fixed<' + rowFixed + ',' + colFixed + '>' : '');
-        srTypename = 'arma::subview_row<' + et + '>';
-        scTypename = 'arma::subview_col<' + et + '>';
+        rTypename = `arma::Row<${ et }>${ rowFixed ? `::fixed<${ rowFixed }>` : '' }`;
+        cTypename = `arma::Col<${ et }>${ colFixed ? `::fixed<${ colFixed }>` : '' }`;
+        mTypename = `arma::Mat<${ et }>${ (colFixed && rowFixed) ? `::fixed<${ rowFixed },${ colFixed }>` : '' }`;
+        srTypename = `arma::subview_row<${ et }>`;
+        scTypename = `arma::subview_col<${ et }>`;
         rType = typereg.template(rTypename);
         cType = typereg.template(cTypename);
         mType = typereg.template(mTypename);
@@ -29,17 +29,17 @@ module.exports = function(typereg) {
 
         if (et === 'double') {
           if (rowFixed) {
-            typereg.aliasType(rType, 'arma::rowvec' + rowFixed.toString());
+            typereg.aliasType(rType, `arma::rowvec${ rowFixed.toString() }`);
           } else {
             typereg.aliasType(rType, 'arma::rowvec');
           }
           if (colFixed) {
-            typereg.aliasType(cType, 'arma::vec' + colFixed.toString());
+            typereg.aliasType(cType, `arma::vec${ colFixed.toString() }`);
           } else {
             typereg.aliasType(cType, 'arma::vec');
           }
           if (colFixed && rowFixed) {
-            typereg.aliasType(mType, 'arma::mat' + rowFixed.toString() + colFixed.toString());
+            typereg.aliasType(mType, `arma::mat${ rowFixed.toString() }${ colFixed.toString()}`);
           } else {
             typereg.aliasType(mType, 'arma::mat');
           }
@@ -91,135 +91,158 @@ module.exports = function(typereg) {
         var isInteger = (et === 'S64' || et === 'U64');
         var isComplex = (et === 'arma::cx_double');
         if (!isInteger) {
-          typereg.scanCFunctions(mTypename + ' inv(' + mTypename + ' a);');
+          typereg.scanCFunctions(`${ mTypename } inv(${ mTypename } a);`);
         }
 
         if (!rowFixed && !colFixed) {
           typereg.scanCFunctions([
-            'ET accu(arma::Col<ET> a);',
-            'ET accu(arma::Mat<ET> a);',
-            'ET dot(arma::Col<ET> a, arma::Col<ET> b);',
-            'ET cdot(arma::Col<ET> a, arma::Col<ET> b);',
-
-            isInteger ? '' : 'ET cond(arma::Mat<ET> a);',
-            isInteger ? '' : 'ET det(arma::Mat<ET> a);',
-            isInteger ? '' : 'ET norm_dot(arma::Col<ET> a, arma::Col<ET> b);',
-            isInteger ? '' : 'ET norm(arma::Col<ET> a, int p);',
-            isInteger ? '' : 'ET norm(arma::Mat<ET> a, int p);',
-
-            //'ET rank(arma::Mat<ET> a);',
-            //'ET rank(arma::Mat<ET> a, double tol);',
-            'ET trace(arma::Mat<ET> a);',
-
-            isComplex ? '' : 'arma::Col<ET> abs(arma::Col<ET> a);',
-
-            // Why don't these work with complex?
-            isComplex ? '' : 'arma::Col<ET> linspace< arma::Col<ET> >(ET a, ET b, int n);',
-            isComplex ? '' : 'arma::Mat<ET> linspace< arma::Mat<ET> >(ET a, ET b, int n);',
-
-            // Algebra
-            isInteger ? '' : 'bool solve(arma::Mat<ET> &x, arma::Mat<ET> a, arma::Mat<ET> b);',
-            isInteger ? '' : 'arma::Col<ET> solve(arma::Mat<ET> a, arma::Col<ET> b);',
-
+            `
+              ${ et } accu(arma::Col<${ et }> a);
+              ${ et } accu(arma::Mat<${ et }> a);
+              ${ et } dot(arma::Col<${ et }> a, arma::Col<${ et }> b);
+              ${ et } cdot(arma::Col<${ et }> a, arma::Col<${ et }> b);
+            `,
+            isInteger ? '' : `
+              ${ et } cond(arma::Mat<${ et }> a);
+              ${ et } det(arma::Mat<${ et }> a);
+              ${ et } norm_dot(arma::Col<${ et }> a, arma::Col<${ et }> b);
+              ${ et } norm(arma::Col<${ et }> a, int p);
+              ${ et } norm(arma::Mat<${ et }> a, int p);
+              ${ et } trace(arma::Mat<${ et }> a);
+            `,
+            //'${ et } rank(arma::Mat<${ et }> a);',
+            //'${ et } rank(arma::Mat<${ et }> a, double tol);',
+            isComplex ? '' : `
+              arma::Col<${ et }> abs(arma::Col<${ et }> a);
+              // Why don't these work with complex?
+              arma::Col<${ et }> linspace< arma::Col<${ et }> >(${ et } a, ${ et } b, int n);
+              arma::Mat<${ et }> linspace< arma::Mat<${ et }> >(${ et } a, ${ et } b, int n);
+            `,
+            isInteger ? '' : `
+              // Algebra
+              bool solve(arma::Mat<${ et }> &x, arma::Mat<${ et }> a, arma::Mat<${ et }> b);
+              arma::Col<${ et }> solve(arma::Mat<${ et }> a, arma::Col<${ et }> b);
+            `,
             // simple
-            'ET min(arma::Col<ET> a);',
-            'ET max(arma::Col<ET> a);',
-            'arma::Col<ET> min(arma::Mat<ET> a, int dim);',
-            'arma::Col<ET> max(arma::Mat<ET> a, int dim);',
-            'ET prod(arma::Col<ET> a);',
-            'arma::Col<ET> prod(arma::Mat<ET> a, int dim);',
-            'ET sum(arma::Col<ET> a);',
-            'arma::Col<ET> sum(arma::Mat<ET> a, int dim);',
-            'ET mean(arma::Col<ET> a);',
-            'arma::Col<ET> mean(arma::Mat<ET> a, int dim);',
-            'ET median(arma::Col<ET> a);',
-            'arma::Col<ET> median(arma::Mat<ET> a, int dim);',
-            'ET stddev(arma::Col<ET> a);',
-            isComplex ? '' : 'arma::Col<ET> stddev(arma::Mat<ET> a, int dim);',
-            'ET var(arma::Col<ET> a);',
-            isComplex ? '' : 'arma::Col<ET> var(arma::Mat<ET> a, int dim);',
+            `
+              ${ et } min(arma::Col<${ et }> a);
+              ${ et } max(arma::Col<${ et }> a);
+              arma::Col<${ et }> min(arma::Mat<${ et }> a, int dim);
+              arma::Col<${ et }> max(arma::Mat<${ et }> a, int dim);
+              ${ et } prod(arma::Col<${ et }> a);
+              arma::Col<${ et }> prod(arma::Mat<${ et }> a, int dim);
+              ${ et } sum(arma::Col<${ et }> a);
+              arma::Col<${ et }> sum(arma::Mat<${ et }> a, int dim);
+              ${ et } mean(arma::Col<${ et }> a);
+              arma::Col<${ et }> mean(arma::Mat<${ et }> a, int dim);
+              ${ et } median(arma::Col<${ et }> a);
+              arma::Col<${ et }> median(arma::Mat<${ et }> a, int dim);
+              ${ et } stddev(arma::Col<${ et }> a);
+              ${ et } var(arma::Col<${ et }> a);
+            `,
+            isComplex ? '' : `
+              arma::Col<${ et }> stddev(arma::Mat<${ et }> a, int dim);
+            `,
+            isComplex ? '' : `
+              arma::Col<${ et }> var(arma::Mat<${ et }> a, int dim);
+            `,
+            `
+              bool all(arma::Col<${ et }> a);
+              bool any(arma::Col<${ et }> a);
 
-            'bool all(arma::Col<ET> a);',
-            'bool any(arma::Col<ET> a);',
+              arma::Col<${ et }> conv(arma::Col<${ et }> a, arma::Col<${ et }> b);
+              arma::Col<${ et }> cor(arma::Col<${ et }> a, arma::Col<${ et }> b);
+              arma::Col<${ et }> cor(arma::Col<${ et }> a);
+              arma::Mat<${ et }> arma::cov(arma::Col<${ et }> a, arma::Col<${ et }> b);
+              arma::Mat<${ et }> arma::cov(arma::Col<${ et }> a);
+              arma::Col<${ et }> cross(arma::Col<${ et }> a, arma::Col<${ et }> b);
+              arma::Col<${ et }> cumsum(arma::Col<${ et }> a);
+              arma::Mat<${ et }> diagmat(arma::Col<${ et }> a);
 
-            'arma::Col<ET> conv(arma::Col<ET> a, arma::Col<ET> b);',
-            'arma::Col<ET> cor(arma::Col<ET> a, arma::Col<ET> b);',
-            'arma::Col<ET> cor(arma::Col<ET> a);',
-            'arma::Mat<ET> arma::cov(arma::Col<ET> a, arma::Col<ET> b);',
-            'arma::Mat<ET> arma::cov(arma::Col<ET> a);',
-            'arma::Col<ET> cross(arma::Col<ET> a, arma::Col<ET> b);',
-            'arma::Col<ET> cumsum(arma::Col<ET> a);',
-            'arma::Mat<ET> diagmat(arma::Col<ET> a);',
+              arma::Mat<${ et }> sort(arma::Mat<${ et }> a, char const *dir, int dim);
+              arma::Col<${ et }> sort(arma::Col<${ et }> a, char const *dir);
+              arma::Row<${ et }> sort(arma::Row<${ et }> a, char const *dir);
 
-            'arma::Mat<ET> sort(arma::Mat<ET> a, char const *dir, int dim);',
-            'arma::Col<ET> sort(arma::Col<ET> a, char const *dir);',
-            'arma::Row<ET> sort(arma::Row<ET> a, char const *dir);',
+              arma::Col<${ et }> ones< arma::Col<${ et }> >(int ne);
+              arma::Mat<${ et }> ones< arma::Mat<${ et }> >(int nr, int nc);
+              arma::Col<${ et }> zeros< arma::Col<${ et }> >(int ne);
+              arma::Mat<${ et }> zeros< arma::Mat<${ et }> >(int nr, int nc);
 
-            'arma::Col<ET> ones< arma::Col<ET> >(int ne);',
-            'arma::Mat<ET> ones< arma::Mat<ET> >(int nr, int nc);',
-            'arma::Col<ET> zeros< arma::Col<ET> >(int ne);',
-            'arma::Mat<ET> zeros< arma::Mat<ET> >(int nr, int nc);',
+              arma::Mat<${ et }> eye< arma::Mat<${ et }> >(int nr, int nc);
 
-            'arma::Mat<ET> eye< arma::Mat<ET> >(int nr, int nc);',
+              arma::Col<${ et }> randu< arma::Col<${ et }> >(int ne);
+              arma::Mat<${ et }> randu< arma::Mat<${ et }> >(int nr, int nc);
+              arma::Col<${ et }> randn< arma::Col<${ et }> >(int ne);
+              arma::Mat<${ et }> randn< arma::Mat<${ et }> >(int nr, int nc);
 
-            'arma::Col<ET> randu< arma::Col<ET> >(int ne);',
-            'arma::Mat<ET> randu< arma::Mat<ET> >(int nr, int nc);',
-            'arma::Col<ET> randn< arma::Col<ET> >(int ne);',
-            'arma::Mat<ET> randn< arma::Mat<ET> >(int nr, int nc);',
-
-            'arma::Mat<ET> operator * (arma::Mat<ET> a, arma::Mat<ET> b);',
-            'arma::Col<ET> operator * (arma::Mat<ET> a, arma::Col<ET> b);',
-            'arma::Mat<ET> operator * (arma::Mat<ET> a, ET b);',
-            'arma::Col<ET> operator * (arma::Col<ET> a, ET b);',
-            'arma::Mat<ET> operator * (ET a, arma::Mat<ET> b);',
-            'arma::Col<ET> operator * (ET a, arma::Col<ET> b);',
-            //'ET operator * (ET a, ET b);',
-
-            'arma::Mat<ET> operator + (arma::Mat<ET> a, arma::Mat<ET> b);',
-            'arma::Col<ET> operator + (arma::Col<ET> a, arma::Col<ET> b);',
-            //'ET operator + (ET a, ET b);',
-
-            'arma::Mat<ET> operator - (arma::Mat<ET> a, arma::Mat<ET> b);',
-            'arma::Col<ET> operator - (arma::Col<ET> a, arma::Col<ET> b);',
-            //'ET operator - (ET a, ET b);',
+              arma::Mat<${ et }> operator * (arma::Mat<${ et }> a, arma::Mat<${ et }> b);
+              arma::Col<${ et }> operator * (arma::Mat<${ et }> a, arma::Col<${ et }> b);
+              arma::Mat<${ et }> operator * (arma::Mat<${ et }> a, ${ et } b);
+              arma::Col<${ et }> operator * (arma::Col<${ et }> a, ${ et } b);
+              arma::Mat<${ et }> operator * (${ et } a, arma::Mat<${ et }> b);
+              arma::Col<${ et }> operator * (${ et } a, arma::Col<${ et }> b);
+            `,
+            // ${ et } operator * (${ et } a, ${ et } b);
+            `,
+              arma::Mat<${ et }> operator + (arma::Mat<${ et }> a, arma::Mat<${ et }> b);
+              arma::Col<${ et }> operator + (arma::Col<${ et }> a, arma::Col<${ et }> b);
+            `,
+            // ${ et } operator + (${ et } a, ${ et } b);
+            `
+              arma::Mat<${ et }> operator - (arma::Mat<${ et }> a, arma::Mat<${ et }> b);
+              arma::Col<${ et }> operator - (arma::Col<${ et }> a, arma::Col<${ et }> b);
+            `,
+            // ${ et } operator - (${ et } a, ${ et } b);
 
             // These fail on 64 bit installations with Arma 4.2, but work with with Arma 7.2.
-            'arma::Mat<U64> operator == (arma::Mat<ET> a, arma::Mat<ET> b);',
-            'arma::Col<U64> operator == (arma::Col<ET> a, arma::Col<ET> b);',
-            isComplex ? '' : 'arma::Mat<U64> operator >= (arma::Mat<ET> a, arma::Mat<ET> b);',
-            isComplex ? '' : 'arma::Col<U64> operator >= (arma::Col<ET> a, arma::Col<ET> b);',
-            isComplex ? '' : 'arma::Mat<U64> operator <= (arma::Mat<ET> a, arma::Mat<ET> b);',
-            isComplex ? '' : 'arma::Col<U64> operator <= (arma::Col<ET> a, arma::Col<ET> b);',
-            'arma::Mat<U64> operator != (arma::Mat<ET> a, arma::Mat<ET> b);',
-            'arma::Col<U64> operator != (arma::Col<ET> a, arma::Col<ET> b);',
-            isComplex ? '' : 'arma::Mat<U64> operator < (arma::Mat<ET> a, arma::Mat<ET> b);',
-            isComplex ? '' : 'arma::Col<U64> operator < (arma::Col<ET> a, arma::Col<ET> b);',
-            isComplex ? '' : 'arma::Mat<U64> operator > (arma::Mat<ET> a, arma::Mat<ET> b);',
-            isComplex ? '' : 'arma::Col<U64> operator > (arma::Col<ET> a, arma::Col<ET> b);',
-            //'bool operator == (ET a, ET b);',
+            `
+              arma::Mat<U64> operator == (arma::Mat<${ et }> a, arma::Mat<${ et }> b);
+              arma::Col<U64> operator == (arma::Col<${ et }> a, arma::Col<${ et }> b);
+            `,
+            isComplex ? '' : `
+              arma::Mat<U64> operator >= (arma::Mat<${ et }> a, arma::Mat<${ et }> b);
+              arma::Col<U64> operator >= (arma::Col<${ et }> a, arma::Col<${ et }> b);
+              arma::Mat<U64> operator <= (arma::Mat<${ et }> a, arma::Mat<${ et }> b);
+              arma::Col<U64> operator <= (arma::Col<${ et }> a, arma::Col<${ et }> b);
+            `,
+            `
+              arma::Mat<U64> operator != (arma::Mat<${ et }> a, arma::Mat<${ et }> b);
+              arma::Col<U64> operator != (arma::Col<${ et }> a, arma::Col<${ et }> b);
+            `,
+            isComplex ? '' : `
+              arma::Mat<U64> operator < (arma::Mat<${ et }> a, arma::Mat<${ et }> b);
+              arma::Col<U64> operator < (arma::Col<${ et }> a, arma::Col<${ et }> b);
+              arma::Mat<U64> operator > (arma::Mat<${ et }> a, arma::Mat<${ et }> b);
+              arma::Col<U64> operator > (arma::Col<${ et }> a, arma::Col<${ et }> b);
+            `,
+            // bool operator == (${ et } a, ${ et } b);
+            `
+              arma::Row<U64> any(arma::Mat<U64> a);
+              U64 any(arma::Row<U64> a);
+              U64 any(arma::Col<U64> a);
 
-            'arma::Row<U64> any(arma::Mat<U64> a);',
-            'U64 any(arma::Row<U64> a);',
-            'U64 any(arma::Col<U64> a);',
-
-            'arma::Row<U64> all(arma::Mat<U64> a);',
-            'U64 all(arma::Row<U64> a);',
-            'U64 all(arma::Col<U64> a);',
-
-          ].join('\n').replace(/ET/g, et));
+              arma::Row<U64> all(arma::Mat<U64> a);
+              U64 all(arma::Row<U64> a);
+              U64 all(arma::Col<U64> a);
+            `
+          ].join('\n'));
         }
         else if (rowFixed && colFixed) {
           typereg.scanCFunctions([
-            cTypename + ' operator + (' + cTypename + ' a, ' + cTypename + ' b);',
-            cTypename + ' operator - (' + cTypename + ' a, ' + cTypename + ' b);',
+            `
+              ${ cTypename } operator + (${ cTypename } a, ${ cTypename } b);
+              ${ cTypename } operator - (${ cTypename } a, ${ cTypename } b);
 
-            rTypename + ' operator + (' + rTypename + ' a, ' + rTypename + ' b);',
-            rTypename + ' operator - (' + rTypename + ' a, ' + rTypename + ' b);',
+              ${ rTypename } operator + (${ rTypename } a, ${ rTypename } b);
+              ${ rTypename } operator - (${ rTypename } a, ${ rTypename } b);
 
-            mTypename + ' operator + (' + mTypename + ' a, ' + mTypename + ' b);',
-            mTypename + ' operator - (' + mTypename + ' a, ' + mTypename + ' b);',
-            isInteger ? '' : 'double norm(' + cTypename + ' a, int p);',
-            isInteger ? '' : 'double norm(' + mTypename + ' a, int p);',
+              ${ mTypename } operator + (${ mTypename } a, ${ mTypename } b);
+              ${ mTypename } operator - (${ mTypename } a, ${ mTypename } b);
+            `,
+            isInteger ? '' : `
+              double norm(${ cTypename } a, int p);
+              double norm(${ mTypename } a, int p);
+            `
           ].join('\n'));
         }
       });

@@ -78,27 +78,27 @@ StructCType.prototype.needsDestructor = function() {
 
 StructCType.prototype.getFormalParameter = function(varname) {
   var type = this;
-  return type.typename + ' const &' + varname;
+  return `${ type.typename } const &${ varname }`;
 };
 
 StructCType.prototype.getArgTempDecl = function(varname) {
   var type = this;
-  return type.typename + ' &' + varname;
+  return `${ type.typename } &${ varname }`;
 };
 
 StructCType.prototype.getVarDecl = function(varname) {
   var type = this;
-  return type.typename + ' ' + varname;
+  return `${ type.typename } ${ varname }`;
 };
 
 StructCType.prototype.getJsToCppTest = function(valueExpr, o) {
   var type = this;
-  return '(JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + ') != nullptr)';
+  return `(JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr }) != nullptr)`;
 };
 
 StructCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   var type = this;
-  return '(*JsWrap_' + type.jsTypename + '::Extract(isolate, ' + valueExpr + '))';
+  return `(*JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr }))`;
 };
 
 StructCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
@@ -120,9 +120,11 @@ StructCType.prototype.getMembers = function() {
 
 StructCType.prototype.getSynopsis = function() {
   var type = this;
-  return '(' + type.typename + '={' + _.map(type.orderedNames, function(name) {
-    return type.nameToType[name].getSynopsis();
-  }).join(',') + '})';
+  return `(${ type.typename }={
+    ${ _.map(type.orderedNames, function(name) {
+      return type.nameToType[name].getSynopsis();
+    }).join(',')
+  }})`;
 };
 
 StructCType.prototype.getMemberTypes = function() {
@@ -142,10 +144,12 @@ StructCType.prototype.accumulateRecursiveMembers = function(context, acc) {
 
 
 StructCType.prototype.getAllZeroExpr = function() {
-  return this.typename + '::allZero()';
+  var type = this;
+  return `${ type.typename }::allZero()`;
 };
 StructCType.prototype.getAllNanExpr = function() {
-  return this.typename + '::allNan()';
+  var type = this;
+  return `${ type.typename }::allNan()`;
 };
 
 StructCType.prototype.add = function(memberName, memberType, memberOptions) {
@@ -191,30 +195,33 @@ StructCType.prototype.getMemberInitializer = function(memberName) {
 StructCType.prototype.emitTypeDecl = function(f) {
   var type = this;
   f(`
-    struct TYPENAME ${(type.superTypes.length ? ' : ' : '') + _.map(type.superTypes, function(st) {return st.typename;}).join(', ') }{
-      TYPENAME();
+    struct ${ type.typename } ${(type.superTypes.length ? ' : ' : '') + _.map(type.superTypes, function(st) {return st.typename;}).join(', ') }{
+      ${ type.typename }();
   `);
   var constructorArgs = type.getConstructorArgs();
   if (constructorArgs.length) {
-    f('explicit TYPENAME(' + _.map(constructorArgs, function(argInfo) {
-      return argInfo.type.getFormalParameter('_' + argInfo.name);
-    }).join(', ') + ');');
+    f(`
+      explicit ${ type.typename }(${
+        _.map(constructorArgs, function(argInfo) {
+          return argInfo.type.getFormalParameter('_' + argInfo.name);
+        }).join(', ')
+      });`);
   }
   if (type.needsDestructor()) {
     f(`
-      ~TYPENAME();
+      ~${ type.typename }();
     `);
   }
 
   if (!type.noStdValues) {
     f(`
       // Factory functions
-      static TYPENAME allZero();
-      static TYPENAME allNan();
+      static ${ type.typename } allZero();
+      static ${ type.typename } allNan();
     `);
   }
   f(`
-    TYPENAME copy() const;
+    ${ type.typename } copy() const;
 
     // Member variables
   `);
@@ -239,8 +246,9 @@ StructCType.prototype.emitTypeDecl = function(f) {
   }
 
   if (type.extraMemberDecls.length) {
-    f('');
-    f('// From .extraMemberDecls');
+    f(`
+      // From .extraMemberDecls
+    `);
     _.each(type.extraMemberDecls, function(l) {
       f(l);
     });
@@ -256,34 +264,34 @@ StructCType.prototype.emitTypeDecl = function(f) {
 
     };
 
-    TYPENAME interpolate(TYPENAME const &a, TYPENAME const &b, double cb);
+    ${ type.typename } interpolate(${ type.typename } const &a, ${ type.typename } const &b, double cb);
 
-    char const * getTypeVersionString(TYPENAME const &);
-    char const * getTypeName(TYPENAME const &);
-    char const * getJsTypeName(TYPENAME const &);
-    char const * getSchema(TYPENAME const &);
-    void addSchemas(TYPENAME const &, map<string, jsonstr> &);
+    char const * getTypeVersionString(${ type.typename } const &);
+    char const * getTypeName(${ type.typename } const &);
+    char const * getJsTypeName(${ type.typename } const &);
+    char const * getSchema(${ type.typename } const &);
+    void addSchemas(${ type.typename } const &, map<string, jsonstr> &);
 
     // IO
-    ostream & operator<<(ostream &s, const TYPENAME &obj);
+    ostream & operator<<(ostream &s, const ${ type.typename } &obj);
   `);
   if (!type.noSerialize) {
     f(`
-      void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, TYPENAME const &obj);
-      bool rdJson(char const *&s, shared_ptr<jsonblobs> &blobs, TYPENAME &obj);
-      void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, TYPENAME const &x);
+      void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, ${ type.typename } const &obj);
+      bool rdJson(char const *&s, shared_ptr<jsonblobs> &blobs, ${ type.typename } &obj);
+      void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, ${ type.typename } const &x);
 
-      void wrJsonBulk(char *&s, shared_ptr<jsonblobs> &blobs, vector<TYPENAME> const &obj);
-      bool rdJsonBulk(const char *&s, shared_ptr<jsonblobs> &blobs, vector<TYPENAME> &obj);
-      void wrJsonBulkSize(size_t &size, shared_ptr<jsonblobs> &blobs, vector<TYPENAME> const &x);
+      void wrJsonBulk(char *&s, shared_ptr<jsonblobs> &blobs, vector<${ type.typename }> const &obj);
+      bool rdJsonBulk(const char *&s, shared_ptr<jsonblobs> &blobs, vector<${ type.typename }> &obj);
+      void wrJsonBulkSize(size_t &size, shared_ptr<jsonblobs> &blobs, vector<${ type.typename }> const &x);
     `);
   }
 
   f(`
-    void packet_wr_typetag(packet &p, const TYPENAME &x);
-    void packet_rd_typetag(packet &p, TYPENAME &x);
-    void packet_wr_value(packet &p, const TYPENAME &x);
-    void packet_rd_value(packet &p, TYPENAME &x);
+    void packet_wr_typetag(packet &p, const ${ type.typename } &x);
+    void packet_rd_typetag(packet &p, ${ type.typename } &x);
+    void packet_wr_value(packet &p, const ${ type.typename } &x);
+    void packet_rd_value(packet &p, ${ type.typename } &x);
   `);
 
   CType.prototype.emitTypeDecl.call(type, f);
@@ -305,35 +313,44 @@ StructCType.prototype.emitHostImpl = function(f) {
 
   if (1) {
     // Default constructor
-    f('');
-    f('TYPENAME::TYPENAME()');
+    f(`
+      ${ type.typename }::${ type.typename }()
+    `);
     if (type.orderedNames.length) {
-      f(':' + _.map(type.orderedNames, function(name) {
-        return name + '(' + type.getMemberInitializer(name) + ')';
-      }).join(',\n '));
+      f(`:${
+        _.map(type.orderedNames, function(name) {
+          return `${ name }(${ type.getMemberInitializer(name) })`;
+        }).join(',\n ')
+      }`);
     }
-    f('{');
+    f(`{`);
     _.each(type.extraConstructorCode, function(l) {
       f(l);
     });
-    f('}');
+    f(`}`);
   }
   f('');
 
   if (type.needsDestructor()) {
-    f('TYPENAME::~TYPENAME() {');
+    f(`
+      ${ type.typename }::~${ type.typename }() {
+    `);
     _.each(type.extraDestructorCode, function(l) {
       f(l);
     });
-    f('}');
+    f(`
+      }
+    `);
   }
 
 
   var constructorArgs = type.getConstructorArgs();
   if (constructorArgs.length) {
-    f('TYPENAME::TYPENAME(' + _.map(constructorArgs, function(argInfo) {
-      return argInfo.type.getFormalParameter('_' + argInfo.name);
-    }).join(', ') + ')');
+    f(`${ type.typename }::${ type.typename }(${
+      _.map(constructorArgs, function(argInfo) {
+        return argInfo.type.getFormalParameter('_' + argInfo.name);
+      }).join(', ')
+    })`);
     f(':' + [].concat(
       _.map(type.superTypes, function(superType) {
         return superType.typename + '(' + _.map(superType.getConstructorArgs(), function(argInfo) { return '_'+argInfo.name; }).join(', ') + ')';
@@ -345,31 +362,31 @@ StructCType.prototype.emitHostImpl = function(f) {
           return name + '(_' + name + ')';
         }
       })).join(',\n '));
-    f('{');
+    f(`{`);
     _.each(type.extraConstructorCode, function(l) {
       f(l);
     });
-    f('}');
+    f(`}`);
   }
 
   if (1) {
     f(`
-      char const * TYPENAME::typeVersionString = "${ type.getTypeAndVersion() }";
-      char const * TYPENAME::typeName = "TYPENAME";
-      char const * TYPENAME::jsTypeName = "${ type.jsTypename }";
-      char const * TYPENAME::schema = "${ cgen.escapeCString(JSON.stringify(type.getSchema())) }";
+      char const * ${ type.typename }::typeVersionString = "${ type.getTypeAndVersion() }";
+      char const * ${ type.typename }::typeName = "${ type.typename }";
+      char const * ${ type.typename }::jsTypeName = "${ type.jsTypename }";
+      char const * ${ type.typename }::schema = "${ cgen.escapeCString(JSON.stringify(type.getSchema())) }";
 
-      char const * getTypeVersionString(TYPENAME const &it) { return TYPENAME::typeVersionString; }
-      char const * getTypeName(TYPENAME const &it) { return TYPENAME::typeName; }
-      char const * getJsTypeName(TYPENAME const &it) { return TYPENAME::jsTypeName; }
-      char const * getSchema(TYPENAME const &it) { return TYPENAME::schema; }
-      void addSchemas(TYPENAME const &, map<string, jsonstr> &all) { TYPENAME::addSchemas(all); }
+      char const * getTypeVersionString(${ type.typename } const &it) { return ${ type.typename }::typeVersionString; }
+      char const * getTypeName(${ type.typename } const &it) { return ${ type.typename }::typeName; }
+      char const * getJsTypeName(${ type.typename } const &it) { return ${ type.typename }::jsTypeName; }
+      char const * getSchema(${ type.typename } const &it) { return ${ type.typename }::schema; }
+      void addSchemas(${ type.typename } const &, map<string, jsonstr> &all) { ${ type.typename }::addSchemas(all); }
     `);
   }
 
   if (1) {
     f(`
-      void TYPENAME::addSchemas(map<string, jsonstr> &all) {
+      void ${ type.typename }::addSchemas(map<string, jsonstr> &all) {
         if (!all["${ type.jsTypename }"].isNull()) return;
         all["${ type.jsTypename }"] = jsonstr(schema);
     `);
@@ -387,8 +404,8 @@ StructCType.prototype.emitHostImpl = function(f) {
 
   if (!type.noStdValues && type.isCopyConstructable()) {
     f(`
-      TYPENAME TYPENAME::allZero() {
-      TYPENAME ret;
+      ${ type.typename } ${ type.typename }::allZero() {
+      ${ type.typename } ret;
     `);
     _.each(type.orderedNames, function(name) {
       var memberType = type.nameToType[name];
@@ -399,8 +416,8 @@ StructCType.prototype.emitHostImpl = function(f) {
     f(`
         return ret;
       }
-      TYPENAME TYPENAME::allNan() {
-        TYPENAME ret;
+      ${ type.typename } ${ type.typename }::allNan() {
+        ${ type.typename } ret;
     `);
     _.each(type.orderedNames, function(name) {
       var memberType = type.nameToType[name];
@@ -416,7 +433,7 @@ StructCType.prototype.emitHostImpl = function(f) {
 
   if (1) {
     f(`
-      ostream & operator<<(ostream &s, const TYPENAME &obj) {
+      ostream & operator<<(ostream &s, const ${ type.typename } &obj) {
         s << "${ type.typename }{";
     `);
     _.each(type.orderedNames, function(name, namei) {
@@ -456,7 +473,7 @@ StructCType.prototype.emitHostImpl = function(f) {
         if (ett.isPtr()) return;
         f(`
           // Array accessors
-          vector< ${ et } > TYPENAME::${ ett.jsTypename }AsVector() const {
+          vector< ${ et } > ${ type.typename }::${ ett.jsTypename }AsVector() const {
             vector< ${ et } > _ret(${ members.length });
             auto _p = _ret.begin();
         `);
@@ -473,9 +490,9 @@ StructCType.prototype.emitHostImpl = function(f) {
         `);
 
         f(`
-          void TYPENAME::setFrom(vector< ${ et } > const &_v) {
+          void ${ type.typename }::setFrom(vector< ${ et } > const &_v) {
           if (_v.size() != ${ members.length }) {
-            throw runtime_error(string("TYPENAME/${ et } size_mismatch ") + to_string(_v.size()) + " != ${ members.length }");
+            throw runtime_error(string("${ type.typename }/${ et } size_mismatch ") + to_string(_v.size()) + " != ${ members.length }");
           }
           auto _p = _v.begin();
         `);
@@ -491,7 +508,7 @@ StructCType.prototype.emitHostImpl = function(f) {
       });
 
       f(`
-        TYPENAME interpolate(TYPENAME const &a, TYPENAME const &b, double cb) {
+        ${ type.typename } interpolate(${ type.typename } const &a, ${ type.typename } const &b, double cb) {
         if (cb == 0.0) {
           return a;
         }
@@ -499,7 +516,7 @@ StructCType.prototype.emitHostImpl = function(f) {
           return b;
         }
         else {
-          TYPENAME out(a);
+          ${ type.typename } out(a);
       `);
       _.each(rm, function(members, et) {
         var ett = type.reg.types[et];
@@ -521,9 +538,11 @@ StructCType.prototype.emitHostImpl = function(f) {
 
 StructCType.prototype.getExampleValueJs = function() {
   var type = this;
-  return `new ur.${ type.jsTypename }(${ _.map(type.orderedNames, function(name) {
-    return type.nameToType[name].getExampleValueJs();
-  }).join(', ') })`;
+  return `new ur.${
+    type.jsTypename }(${ _.map(type.orderedNames, function(name) {
+      return type.nameToType[name].getExampleValueJs();
+    }).join(', ')
+  })`;
 
 };
 
@@ -531,18 +550,18 @@ StructCType.prototype.emitJsTestImpl = function(f) {
   var type = this;
   if (type.superTypes.length) return; // WRITEME: this gets pretty complicated...
   f(`
-    describe("JSTYPE C++ impl", function() {
+    describe("${ type.jsTypename } C++ impl", function() {
 
       it("should work", function() {
         var t1 = ${ type.getExampleValueJs() };
         var t1s = t1.toString();
-        var t2 = ur.JSTYPE.fromString(t1s);
+        var t2 = ur.${ type.jsTypename }.fromString(t1s);
         assert.strictEqual(t1.toString(), t2.toString());
   `);
   if (!type.noPacket) {
     f(`
       var t1b = t1.toPacket();
-      var t3 = ur.JSTYPE.fromPacket(t1b);
+      var t3 = ur.${ type.jsTypename }.fromPacket(t1b);
       assert.strictEqual(t1.toString(), t3.toString());
     `);
   }
@@ -578,14 +597,14 @@ StructCType.prototype.emitPacketIo = function(f) {
   var type = this;
 
   f(`
-    void packet_wr_typetag(packet &p, const TYPENAME &x) {
+    void packet_wr_typetag(packet &p, const ${ type.typename } &x) {
       p.add_typetag(x.typeVersionString);
     }
   `);
 
   // WRITEME maybe: for POD types, consider writing directly
   f(`
-    void packet_wr_value(packet &p, const TYPENAME &x) {
+    void packet_wr_value(packet &p, const ${ type.typename } &x) {
   `);
   _.each(type.orderedNames, function(name) {
     if (!type.nameToType[name].isPtr()) {
@@ -599,13 +618,13 @@ StructCType.prototype.emitPacketIo = function(f) {
   `);
 
   f(`
-    void packet_rd_typetag(packet &p, TYPENAME &x) {
+    void packet_rd_typetag(packet &p, ${ type.typename } &x) {
       p.check_typetag(x.typeVersionString);
     }
   `);
 
   f(`
-    void packet_rd_value(packet &p, TYPENAME &x) {
+    void packet_rd_value(packet &p, ${ type.typename } &x) {
   `);
   _.each(type.orderedNames, function(name) {
     if (!type.nameToType[name].isPtr()) {
@@ -629,19 +648,19 @@ StructCType.prototype.emitWrJson = function(f) {
   function emitstr(s) {
     var b = new Buffer(s, 'utf8');
     f1(_.map(_.range(0, b.length), function(ni) {
-      return '*s++ = ' + b[ni]+ ';';
+      return `*s++ = ${ b[ni] };`;
     }).join(' ') + ' // ' + cgen.escapeCString(s));
-    f2('size += ' + (new Buffer(s, 'utf8').length + 2).toString() + ';');
+    f2(`size += ${ (b.length + 2).toString() };`);
   }
 
   if (1) {
     f(`
-      void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, TYPENAME const &obj) {
+      void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, ${ type.typename } const &obj) {
     `);
     var f1 = f.child();
     f(`
       }
-      void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, TYPENAME const &obj) {
+      void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, ${ type.typename } const &obj) {
     `);
     var f2 = f.child();
     f(`
@@ -650,7 +669,7 @@ StructCType.prototype.emitWrJson = function(f) {
 
     sep = '';
     if (!type.omitTypeTag) {
-      emitstr('{"__type":"' + type.jsTypename + '"');
+      emitstr(`{"__type":"${ type.jsTypename }"`);
       sep = ',';
     } else {
       emitstr('{');
@@ -677,12 +696,12 @@ StructCType.prototype.emitWrJson = function(f) {
     var rm = type.getRecursiveMembers();
 
     f(`
-      void wrJsonBulk(char *&s, shared_ptr<jsonblobs> &blobs, vector<TYPENAME> const &obj) {
+      void wrJsonBulk(char *&s, shared_ptr<jsonblobs> &blobs, vector<${ type.typename }> const &obj) {
     `);
     f1 = f.child();
     f(`
       }
-      void wrJsonBulkSize(size_t &size, shared_ptr<jsonblobs> &blobs, vector<TYPENAME> const &obj) {
+      void wrJsonBulkSize(size_t &size, shared_ptr<jsonblobs> &blobs, vector<${ type.typename }> const &obj) {
     `);
     f2 = f.child();
     f(`
@@ -775,7 +794,7 @@ StructCType.prototype.emitRdJson = function(f) {
   };
 
   f(`
-    bool rdJson(char const *&s, shared_ptr<jsonblobs> &blobs, TYPENAME &obj) {
+    bool rdJson(char const *&s, shared_ptr<jsonblobs> &blobs, ${ type.typename } &obj) {
       bool typeOk = ${ type.omitTypeTag ? 'true' : 'false' };
       char c;
       jsonSkipSpace(s);
@@ -856,9 +875,9 @@ StructCType.prototype.hasJsWrapper = function(f) {
 StructCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
   f(`
-    typedef JsWrapGeneric< TYPENAME > JsWrap_JSTYPE;
-    void jsConstructor_JSTYPE(JsWrap_JSTYPE *it, FunctionCallbackInfo<Value> const &args);
-    Handle<Value> jsToJSON_JSTYPE(Isolate *isolate, TYPENAME const &it);
+    typedef JsWrapGeneric< ${ type.typename } > JsWrap_${ type.jsTypename };
+    void jsConstructor_${ type.jsTypename }(JsWrap_${ type.jsTypename } *it, FunctionCallbackInfo<Value> const &args);
+    Handle<Value> jsToJSON_${ type.jsTypename }(Isolate *isolate, ${ type.typename } const &it);
   `);
 };
 
@@ -909,11 +928,11 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   if (!type.noSerialize) {
 
     f(`
-      Handle<Value> jsToJSON_JSTYPE(Isolate *isolate, const TYPENAME &it) {
+      Handle<Value> jsToJSON_${ type.jsTypename }(Isolate *isolate, const ${ type.typename } &it) {
         EscapableHandleScope scope(isolate);
         Local<Object> ret = Object::New(isolate);
 
-        ret->Set(String::NewFromUtf8(isolate, "__type"), String::NewFromUtf8(isolate, "JSTYPE"));
+        ret->Set(String::NewFromUtf8(isolate, "__type"), String::NewFromUtf8(isolate, "${ type.jsTypename }"));
     `);
 
     _.each(type.orderedNames, function(name) {
@@ -961,7 +980,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: [], ignoreExtra: true, code: function(f) {
           f(`
-            args.GetReturnValue().Set(Local<Value>(jsToJSON_JSTYPE(isolate, *thisObj->it)));
+            args.GetReturnValue().Set(Local<Value>(jsToJSON_${ type.jsTypename }(isolate, *thisObj->it)));
           `);
         }}
       ]);
@@ -1020,7 +1039,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitArgSwitch([
       {args: ['map<string,jsonstr>'], code: function(f) {
         f(`
-          TYPENAME::addSchemas(a0);
+          ${ type.typename }::addSchemas(a0);
         `);
       }}
     ]);
@@ -1067,7 +1086,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     _.each(['allZero', 'allNan'], function(name) {
       f.emitJsFactory(name, function(f) {
         f(`
-          args.GetReturnValue().Set(JsWrap_JSTYPE::NewInstance(isolate, TYPENAME::${ name }()));
+          args.GetReturnValue().Set(JsWrap_${ type.jsTypename }::NewInstance(isolate, ${ type.typename }::${ name }()));
         `);
       });
     });
@@ -1096,10 +1115,10 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
   if (1) { // Setup template and prototype
     f(`
-      void jsInit_JSTYPE(Handle<Object> exports) {
+      void jsInit_${ type.jsTypename }(Handle<Object> exports) {
         Isolate *isolate = Isolate::GetCurrent();
-        Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, jsNew_JSTYPE);
-        tpl->SetClassName(String::NewFromUtf8(isolate, "JSTYPE"));
+        Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, jsNew_${ type.jsTypename });
+        tpl->SetClassName(String::NewFromUtf8(isolate, "${ type.jsTypename }"));
         tpl->InstanceTemplate()->SetInternalFieldCount(1);
     `);
     f.emitJsBindings();

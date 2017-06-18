@@ -105,7 +105,7 @@ CType.prototype.emitAll = function(files) {
     type.emitJsWrapHeader(files.getFile(fns.jsWrapHeader).child({TYPENAME: type.typename, JSTYPE: type.jsTypename}));
   }
   if (fns.jsWrapCode) {
-    type.emitJsWrapCode(gen_utils.withJsWrapUtils(files.getFile(fns.jsWrapCode).child({TYPENAME: type.typename, JSTYPE: type.jsTypename}), type.reg));
+    type.emitJsWrapCode(gen_utils.withJsWrapUtils(files.getFile(fns.jsWrapCode).child({TYPENAME: type.typename, JSTYPE: type.jsTypename}), type));
   }
   if (fns.rosCode) {
     type.emitRosCode(files.getFile(fns.rosCode).child({TYPENAME: type.typename, JSTYPE: type.jsTypename}));
@@ -300,9 +300,9 @@ CType.prototype.emitRosCode = function(f) {
     namespace ros {
       namespace serialization {
 
-        template<> struct Serializer<TYPENAME> {
+        template<> struct Serializer<${ type.typename }> {
 
-          template<typename Stream> inline static void write(Stream &stream, TYPENAME const &t) {
+          template<typename Stream> inline static void write(Stream &stream, ${ type.typename } const &t) {
             jsonstr json;
             json.useBlobs();
             toJson(json, t);
@@ -316,7 +316,7 @@ CType.prototype.emitRosCode = function(f) {
             }
           }
 
-          template<typename Stream> inline static void read(Stream &stream, TYPENAME &t) {
+          template<typename Stream> inline static void read(Stream &stream, ${ type.typename } &t) {
             jsonstr json;
             stream.next(json.it);
             uint32_t partCount = 0;
@@ -327,10 +327,10 @@ CType.prototype.emitRosCode = function(f) {
               stream.next(partSize);
               json.blobs->addExternalPart(stream.advance(partSize), partSize);
             }
-            if (!fromJson(json, t)) throw new runtime_error("deserializing TYPENAME: fromJson failed");
+            if (!fromJson(json, t)) throw new runtime_error("deserializing ${ type.typename }: fromJson failed");
           }
 
-          inline static uint32_t serializedLength(TYPENAME const &t) {
+          inline static uint32_t serializedLength(${ type.typename } const &t) {
             size_t size = 0;
             wrJsonSize(size, nullptr, t);
             return (uint32_t)size;

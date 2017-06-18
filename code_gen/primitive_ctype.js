@@ -18,19 +18,20 @@ PrimitiveCType.prototype.getFns = function() {
 };
 
 PrimitiveCType.prototype.emitJsWrapDecl = function(f) {
+  var type = this;
   f(`
-    char const * getTypeVersionString(TYPENAME const &);
-    char const * getTypeName(TYPENAME const &);
-    char const * getJsTypeName(TYPENAME const &);
-    char const * getSchema(TYPENAME const &);
-    void addSchemas(TYPENAME const &, map<string, jsonstr> &);
+    char const * getTypeVersionString(${ type.typename } const &);
+    char const * getTypeName(${ type.typename } const &);
+    char const * getJsTypeName(${ type.typename } const &);
+    char const * getSchema(${ type.typename } const &);
+    void addSchemas(${ type.typename } const &, map<string, jsonstr> &);
   `);
 };
 
 
 PrimitiveCType.prototype.getSynopsis = function() {
   var type = this;
-  return '(' + type.typename + ')';
+  return `( ${ type.typename })`;
 };
 
 PrimitiveCType.prototype.getAllZeroExpr = function() {
