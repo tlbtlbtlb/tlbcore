@@ -14,7 +14,7 @@ packet_contents *packet::alloc_contents(size_t alloc)
   stats.alloc_count++;
 
   size_t roundup_alloc = ((alloc + sizeof(packet_contents) + 1023) & ~1023) - sizeof(packet_contents);
-  packet_contents *contents = (packet_contents *)malloc(sizeof(packet_contents) + roundup_alloc);
+  auto contents = reinterpret_cast<packet_contents *>(malloc(sizeof(packet_contents) + roundup_alloc));
   contents->refcnt = 1;
   contents->alloc = roundup_alloc;
   return contents;
@@ -32,7 +32,7 @@ void packet::decref(packet_contents *&it)
   if (newrefs == 0) {
     stats.free_count++;
     free(it);
-    it = NULL;
+    it = nullptr;
   }
 }
 
@@ -49,7 +49,7 @@ void packet::decref(packet_annotations *&it)
   if (newrefs == 0) {
     stats.free_count++;
     delete it;
-    it = NULL;
+    it = nullptr;
   }
 }
 
@@ -106,24 +106,24 @@ packet_annotations::~packet_annotations()
 // ----------------------------------------------------------------------
 
 packet::packet()
-  :contents(alloc_contents(1000)), annotations(NULL), rd_pos(0), wr_pos(0)
+  :contents(alloc_contents(1000)), annotations(nullptr), rd_pos(0), wr_pos(0)
 {
 }
 
 packet::packet(u_char const *data, size_t size)
-  :contents(alloc_contents(size)), annotations(NULL), rd_pos(0), wr_pos(size)
+  :contents(alloc_contents(size)), annotations(nullptr), rd_pos(0), wr_pos(size)
 {
   memcpy(contents->buf, data, size);
 }
 
 packet::packet(string const &data)
-  :contents(alloc_contents(data.size())), annotations(NULL), rd_pos(0), wr_pos(data.size())
+  :contents(alloc_contents(data.size())), annotations(nullptr), rd_pos(0), wr_pos(data.size())
 {
   memcpy(contents->buf, data.data(), data.size());
 }
 
 packet::packet(size_t size)
-  :contents(alloc_contents(size)), annotations(NULL), rd_pos(0), wr_pos(0)
+  :contents(alloc_contents(size)), annotations(nullptr), rd_pos(0), wr_pos(0)
 {
 }
 
@@ -136,18 +136,18 @@ packet::packet(const packet &other)
 
 packet & packet::operator= (packet const &other)
 {
-  if (this != &other) {
-    decref(contents);
-    contents = other.contents;
-    incref(contents);
+  assert (this != &other);
 
-    decref(annotations);
-    annotations = other.annotations;
-    incref(annotations);
+  decref(contents);
+  contents = other.contents;
+  incref(contents);
 
-    rd_pos = other.rd_pos;
-    wr_pos = other.wr_pos;
-  }
+  decref(annotations);
+  annotations = other.annotations;
+  incref(annotations);
+
+  rd_pos = other.rd_pos;
+  wr_pos = other.wr_pos;
   return *this;
 }
 
@@ -162,7 +162,7 @@ ssize_t packet::remaining() const { return wr_pos - rd_pos; }
 
 string packet::as_string()
 {
-  return string((char *)wr_ptr(), (size_t)remaining());
+  return string(reinterpret_cast<char *>(wr_ptr()), (size_t)remaining());
 }
 
 packet packet::get_remainder()
@@ -193,7 +193,7 @@ u_char & packet::operator[] (int index) { return ptr()[index]; }
 bool operator ==(packet const &a, packet const &b)
 {
   if (a.size() != b.size()) return false;
-  if (memcmp(a.ptr(), b.ptr(), a.size())) return false;
+  if (memcmp(a.ptr(), b.ptr(), a.size()) != 0) return false;
   return true;
 }
 
@@ -367,13 +367,13 @@ void packet::add_bytes(const u_char *data, size_t size)
 
 void packet::add_bytes(const char *data, size_t size)
 {
-  add_bytes((const u_char *)data, size);
+  add_bytes(reinterpret_cast<const u_char *>(data), size);
 }
 
 void packet::add_reversed(const u_char *data, size_t size)
 {
   for (size_t i=0; i<size; i++) {
-    add_bytes((const u_char *)&data[size-1-i], 1);
+    add_bytes(reinterpret_cast<const u_char *>(&data[size-1-i]), 1);
   }
 }
 
@@ -394,7 +394,7 @@ void packet::add_nl_string(string const &s)
 
 void packet::add_pkt(packet const &wr)
 {
-  add((u_int)wr.remaining());
+  add(static_cast<u_int>(wr.remaining()));
   add_bytes(wr.rd_ptr(), wr.remaining());
 }
 
@@ -495,7 +495,7 @@ void packet::get_bytes(u_char *data, size_t size)
 
 void packet::get_bytes(char *data, size_t size)
 {
-  get_bytes((u_char *)data, size);
+  get_bytes(reinterpret_cast<u_char *>(data), size);
 }
 
 void packet::get_reversed(u_char *data, size_t size)
@@ -606,11 +606,11 @@ void packet::add_typetag(char const *tag)
 bool packet::test_typetag(char const *expected)
 {
   int save_rd_pos = rd_pos;
-  size_t size = (size_t) fget<u_char>();
+  auto size = static_cast<size_t>(fget<u_char>());
   char got[256];
   get_bytes(got, size);
   got[size] = 0;
-  if (strcmp(expected, got)) {
+  if (strcmp(expected, got) != 0) {
     rd_pos = save_rd_pos;
     return false;
   }
@@ -619,11 +619,11 @@ bool packet::test_typetag(char const *expected)
 
 void packet::check_typetag(char const *expected)
 {
-  size_t size = (size_t) fget<u_char>();
+  auto size = static_cast<size_t>(fget<u_char>());
   char got[256];
   get_bytes(got, size);
   got[size] = 0;
-  if (strcmp(expected, got)) {
+  if (strcmp(expected, got) != 0) {
     throw packet_rd_type_err(expected, got); // takes a copy of both strings
   }
 }
@@ -659,7 +659,7 @@ packet packet::from_file_boxed(int fd)
 
 packet packet::read_from_fd(int fd)
 {
-  struct stat st;
+  struct stat st {};
   if (fstat(fd, &st) < 0) {
     return packet(0);
   }
@@ -737,76 +737,76 @@ packet_rd_type_err::~packet_rd_type_err() throw()
 // ----------------------------------------------------------------------
 
 
-void packet_wr_typetag(packet &p, S8 const &x)              { p.add_typetag("S8"); }
-void packet_wr_typetag(packet &p, char const &x)            { p.add_typetag("char"); }
-void packet_wr_typetag(packet &p, U8 const &x)              { p.add_typetag("U8"); }
-void packet_wr_typetag(packet &p, S16 const &x)             { p.add_typetag("S16"); }
-void packet_wr_typetag(packet &p, U16 const &x)             { p.add_typetag("U16"); }
-void packet_wr_typetag(packet &p, S32 const &x)             { p.add_typetag("S32"); }
-void packet_wr_typetag(packet &p, U32 const &x)             { p.add_typetag("U32"); }
-void packet_wr_typetag(packet &p, S64 const &x)             { p.add_typetag("S64"); }
-void packet_wr_typetag(packet &p, U64 const &x)             { p.add_typetag("U64"); }
-void packet_wr_typetag(packet &p, float const &x)           { p.add_typetag("float"); }
-void packet_wr_typetag(packet &p, double const &x)          { p.add_typetag("double"); }
-void packet_wr_typetag(packet &p, timeval const &x)         { p.add_typetag("timeval"); }
-void packet_wr_typetag(packet &p, bool const &x)            { p.add_typetag("bool"); }
+void packet_wr_typetag(packet &p, S8 const & /* x */)              { p.add_typetag("S8"); }
+void packet_wr_typetag(packet &p, char const & /* x */)            { p.add_typetag("char"); }
+void packet_wr_typetag(packet &p, U8 const & /* x */)              { p.add_typetag("U8"); }
+void packet_wr_typetag(packet &p, S16 const & /* x */)             { p.add_typetag("S16"); }
+void packet_wr_typetag(packet &p, U16 const & /* x */)             { p.add_typetag("U16"); }
+void packet_wr_typetag(packet &p, S32 const & /* x */)             { p.add_typetag("S32"); }
+void packet_wr_typetag(packet &p, U32 const & /* x */)             { p.add_typetag("U32"); }
+void packet_wr_typetag(packet &p, S64 const & /* x */)             { p.add_typetag("S64"); }
+void packet_wr_typetag(packet &p, U64 const & /* x */)             { p.add_typetag("U64"); }
+void packet_wr_typetag(packet &p, float const & /* x */)           { p.add_typetag("float"); }
+void packet_wr_typetag(packet &p, double const & /* x */)          { p.add_typetag("double"); }
+void packet_wr_typetag(packet &p, timeval const & /* x */)         { p.add_typetag("timeval"); }
+void packet_wr_typetag(packet &p, bool const & /* x */)            { p.add_typetag("bool"); }
 
-void packet_rd_typetag(packet &p, S8 const &x)              { p.check_typetag("S8"); }
-void packet_rd_typetag(packet &p, char const &x)            { p.check_typetag("char"); }
-void packet_rd_typetag(packet &p, U8 const &x)              { p.check_typetag("U8"); }
-void packet_rd_typetag(packet &p, S16 const &x)             { p.check_typetag("S16"); }
-void packet_rd_typetag(packet &p, U16 const &x)             { p.check_typetag("U16"); }
-void packet_rd_typetag(packet &p, S32 const &x)             { p.check_typetag("S32"); }
-void packet_rd_typetag(packet &p, U32 const &x)             { p.check_typetag("U32"); }
-void packet_rd_typetag(packet &p, S64 const &x)             { p.check_typetag("S64"); }
-void packet_rd_typetag(packet &p, U64 const &x)             { p.check_typetag("U64"); }
-void packet_rd_typetag(packet &p, float const &x)           { p.check_typetag("float"); }
-void packet_rd_typetag(packet &p, double const &x)          { p.check_typetag("double"); }
-void packet_rd_typetag(packet &p, timeval const &x)         { p.check_typetag("timeval"); }
-void packet_rd_typetag(packet &p, bool const &x)            { p.check_typetag("bool"); }
+void packet_rd_typetag(packet &p, S8 const & /* x */)              { p.check_typetag("S8"); }
+void packet_rd_typetag(packet &p, char const & /* x */)            { p.check_typetag("char"); }
+void packet_rd_typetag(packet &p, U8 const & /* x */)              { p.check_typetag("U8"); }
+void packet_rd_typetag(packet &p, S16 const & /* x */)             { p.check_typetag("S16"); }
+void packet_rd_typetag(packet &p, U16 const & /* x */)             { p.check_typetag("U16"); }
+void packet_rd_typetag(packet &p, S32 const & /* x */)             { p.check_typetag("S32"); }
+void packet_rd_typetag(packet &p, U32 const & /* x */)             { p.check_typetag("U32"); }
+void packet_rd_typetag(packet &p, S64 const & /* x */)             { p.check_typetag("S64"); }
+void packet_rd_typetag(packet &p, U64 const & /* x */)             { p.check_typetag("U64"); }
+void packet_rd_typetag(packet &p, float const & /* x */)           { p.check_typetag("float"); }
+void packet_rd_typetag(packet &p, double const & /* x */)          { p.check_typetag("double"); }
+void packet_rd_typetag(packet &p, timeval const & /* x */)         { p.check_typetag("timeval"); }
+void packet_rd_typetag(packet &p, bool const & /* x */)            { p.check_typetag("bool"); }
 
-void packet_wr_value(packet &p, S8 const &x)                { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, char const &x)              { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, U8 const &x)                { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, S16 const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, U16 const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, S32 const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, U32 const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, S64 const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, U64 const &x)               { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, float const &x)             { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, double const &x)            { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, timeval const &x)           { p.add_bytes((const u_char *)&x, sizeof(x)); }
-void packet_wr_value(packet &p, bool const &x)              { p.add_bytes((const u_char *)&x, sizeof(x)); }
+void packet_wr_value(packet &p, S8 const &x)                { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
+void packet_wr_value(packet &p, char const &x)              { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
+void packet_wr_value(packet &p, U8 const &x)                { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
+void packet_wr_value(packet &p, S16 const &x)               { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
+void packet_wr_value(packet &p, U16 const &x)               { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
+void packet_wr_value(packet &p, S32 const &x)               { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
+void packet_wr_value(packet &p, U32 const &x)               { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
+void packet_wr_value(packet &p, S64 const &x)               { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
+void packet_wr_value(packet &p, U64 const &x)               { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
+void packet_wr_value(packet &p, float const &x)             { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
+void packet_wr_value(packet &p, double const &x)            { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
+void packet_wr_value(packet &p, timeval const &x)           { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
+void packet_wr_value(packet &p, bool const &x)              { p.add_bytes(reinterpret_cast<const u_char *>(&x), sizeof(x)); }
 
-void packet_rd_value(packet &p, S8 &x)                      { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, U8 &x)                      { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, char &x)                    { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, S16 &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, U16 &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, S32 &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, U32 &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, S64 &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, U64 &x)                     { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, float &x)                   { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, double &x)                  { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, timeval &x)                 { p.get_bytes((u_char *)&x, sizeof(x)); }
-void packet_rd_value(packet &p, bool &x)                    { p.get_bytes((u_char *)&x, sizeof(x)); }
+void packet_rd_value(packet &p, S8 &x)                      { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
+void packet_rd_value(packet &p, U8 &x)                      { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
+void packet_rd_value(packet &p, char &x)                    { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
+void packet_rd_value(packet &p, S16 &x)                     { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
+void packet_rd_value(packet &p, U16 &x)                     { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
+void packet_rd_value(packet &p, S32 &x)                     { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
+void packet_rd_value(packet &p, U32 &x)                     { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
+void packet_rd_value(packet &p, S64 &x)                     { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
+void packet_rd_value(packet &p, U64 &x)                     { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
+void packet_rd_value(packet &p, float &x)                   { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
+void packet_rd_value(packet &p, double &x)                  { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
+void packet_rd_value(packet &p, timeval &x)                 { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
+void packet_rd_value(packet &p, bool &x)                    { p.get_bytes(reinterpret_cast<u_char *>(&x), sizeof(x)); }
 
 
 
-void packet_wr_typetag(packet &p, string const &x) { p.add_typetag("string"); }
+void packet_wr_typetag(packet &p, string const & /* x */) { p.add_typetag("string"); }
 void packet_wr_value(packet &p, const string &x) {
-  size_t size = x.size();
+  auto size = x.size();
 
   if (size<0xff) {
-    u_char smallsize = (u_char)size;
+    auto smallsize = static_cast<u_char>(size);
     p.add(smallsize);
   }
   else if (size < size_t(0x3fffffff)) {
     u_char smallsize = 0xff;
     p.add(smallsize);
-    p.add((u_int)size);
+    p.add(static_cast<u_int>(size));
   }
   else {
     abort();
@@ -815,18 +815,18 @@ void packet_wr_value(packet &p, const string &x) {
   p.add_bytes(&x[0], size);
 }
 
-void packet_rd_typetag(packet &p, string const &x) { p.check_typetag("string"); }
+void packet_rd_typetag(packet &p, string const & /* x */) { p.check_typetag("string"); }
 void packet_rd_value(packet &p, string &x) {
   u_char smallsize;
   p.get(smallsize);
   size_t size;
-  if (smallsize==0xff) {
-    size = (size_t)p.fget<u_int>();
+  if (smallsize == 0xff) {
+    size = static_cast<size_t>(p.fget<u_int>());
     if (size >= size_t(0x3fffffff)) abort();
   } else {
     size = smallsize;
   }
-  if ((ssize_t)size > p.remaining()) {
+  if (static_cast<ssize_t>(size) > p.remaining()) {
     throw packet_rd_overrun_err(size - p.remaining());
   }
   x.resize(size);
@@ -834,15 +834,20 @@ void packet_rd_value(packet &p, string &x) {
 }
 
 
-void packet_wr_typetag(packet &p, jsonstr const &x) { p.add_typetag("json"); }
+void packet_wr_typetag(packet &p, jsonstr const & /* x */) { p.add_typetag("json"); }
 void packet_wr_value(packet &p, jsonstr const &x) { packet_wr_value(p, x.it); }
-void packet_rd_typetag(packet &p, jsonstr const &x) { p.check_typetag("json"); }
+void packet_rd_typetag(packet &p, jsonstr const & /* x */) { p.check_typetag("json"); }
 void packet_rd_value(packet &p, jsonstr &x) { packet_rd_value(p, x.it); }
 
-void packet_wr_typetag(packet &p, arma::cx_double const &x) { p.add_typetag("cx_double"); }
+void packet_wr_typetag(packet &p, arma::cx_double const & /* x */) { p.add_typetag("cx_double"); }
 void packet_wr_value(packet &p, arma::cx_double const &x) { packet_wr_value(p, x.real()); packet_wr_value(p, x.imag()); }
-void packet_rd_typetag(packet &p, arma::cx_double const &x) { p.check_typetag("cx_double"); }
-void packet_rd_value(packet &p, arma::cx_double &x) { double real, imag; packet_rd_value(p, real); packet_rd_value(p, imag); x = arma::cx_double(real, imag); }
+void packet_rd_typetag(packet &p, arma::cx_double const & /* x */) { p.check_typetag("cx_double"); }
+void packet_rd_value(packet &p, arma::cx_double &x) {
+  double real, imag;
+  packet_rd_value(p, real);
+  packet_rd_value(p, imag);
+  x = arma::cx_double(real, imag);
+}
 
 
 // ----------------------------------------------------------------------

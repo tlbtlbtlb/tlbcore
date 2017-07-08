@@ -160,14 +160,14 @@ struct packet {
   bool has_annotation(string const &key) const;
 
   // writing
-  void add_pkt(packet const &other);
+  void add_pkt(packet const &wr);
   void add_bytes(char const *data, size_t size);
   void add_bytes(uint8_t const *data, size_t size);
   void add_reversed(uint8_t const *data, size_t size);
   void add_nl_string(char const *s);
   void add_nl_string(string const &s);
 
-  void add_typetag(char const *s);
+  void add_typetag(char const *tag);
 
   template<typename T>
   void add_checked(const T &x) {
@@ -255,7 +255,7 @@ struct packet {
   static packet_contents *alloc_contents(size_t alloc);
   static void decref(packet_contents *&it);
   static void incref(packet_contents *it);
-  void reserve(size_t new_alloc);
+  void reserve(size_t new_size);
   static void decref(packet_annotations *&it);
   static void incref(packet_annotations *it);
 
@@ -313,9 +313,9 @@ void packet_wr_value(packet &p, const double &x);
 #if !defined(WIN32)
 void packet_wr_value(packet &p, const timeval &x);
 #endif
-void packet_wr_value(packet &p, const string &s);
-void packet_wr_value(packet &p, const jsonstr &s);
-void packet_wr_value(packet &p, const arma::cx_double &s);
+void packet_wr_value(packet &p, const string &x);
+void packet_wr_value(packet &p, const jsonstr &x);
+void packet_wr_value(packet &p, const arma::cx_double &x);
 
 void packet_wr_typetag(packet &p, const bool &x);
 void packet_wr_typetag(packet &p, const char &x);
@@ -332,9 +332,9 @@ void packet_wr_typetag(packet &p, const double &x);
 #if !defined(WIN32)
 void packet_wr_typetag(packet &p, const timeval &x);
 #endif
-void packet_wr_typetag(packet &p, const string &s);
-void packet_wr_typetag(packet &p, const jsonstr &s);
-void packet_wr_typetag(packet &p, const arma::cx_double &s);
+void packet_wr_typetag(packet &p, const string &x);
+void packet_wr_typetag(packet &p, const jsonstr &x);
+void packet_wr_typetag(packet &p, const arma::cx_double &x);
 
 
 void packet_rd_value(packet &p, bool &x);
@@ -352,9 +352,9 @@ void packet_rd_value(packet &p, double &x);
 #if !defined(WIN32)
 void packet_rd_value(packet &p, timeval &x);
 #endif
-void packet_rd_value(packet &p, string &s);
-void packet_rd_value(packet &p, jsonstr &s);
-void packet_rd_value(packet &p, arma::cx_double &s);
+void packet_rd_value(packet &p, string &x);
+void packet_rd_value(packet &p, jsonstr &x);
+void packet_rd_value(packet &p, arma::cx_double &x);
 
 void packet_rd_typetag(packet &p, S8 const &x);
 void packet_rd_typetag(packet &p, char const &x);
@@ -371,9 +371,9 @@ void packet_rd_typetag(packet &p, double const &x);
 void packet_rd_typetag(packet &p, timeval const &x);
 #endif
 void packet_rd_typetag(packet &p, bool const &x);
-void packet_rd_typetag(packet &p, string const &s);
-void packet_rd_typetag(packet &p, jsonstr const &s);
-void packet_rd_typetag(packet &p, arma::cx_double const &s);
+void packet_rd_typetag(packet &p, string const &x);
+void packet_rd_typetag(packet &p, jsonstr const &x);
+void packet_rd_typetag(packet &p, arma::cx_double const &x);
 
 /*
   Any vector is handled by writing a size followed by the items. Watch

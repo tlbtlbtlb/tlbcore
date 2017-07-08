@@ -10,11 +10,7 @@
 char *
 strcatdup(const char *s1, const char *s2)
 {
-  char *r;
-  r=(char *)malloc(strlen(s1)+strlen(s2)+1);
-  strcpy(r,s1);
-  strcat(r,s2);
-  return r;
+  return strdup((string(s1) + string(s2)).c_str());
 }
 
 double frandom(char *randState)
@@ -161,7 +157,7 @@ diee(const char *format,...)
   if (message_len < 0) message = strdup("[[vasprintf error]]");
 
   const char *err = strerror(errno);
-  char *fullmessage = new char[strlen(message) + strlen(err) + 32];
+  auto fullmessage = new char[strlen(message) + strlen(err) + 32];
   sprintf(fullmessage, "%s: %s\n",message, err);
   free(message);
 
@@ -283,10 +279,10 @@ charname_hex(int ci)
   ci &= 0xff;
 
   if (!charnames) {
-    charnames=new char[256*8];
+    charnames = new char[256*8];
     memset(charnames, 0, 256*8);
   }
-  char *p=&charnames[ci*8];
+  char *p = &charnames[ci*8];
 
   if (!*p) {
     if (ci=='\n') {
@@ -315,7 +311,7 @@ getln(FILE *f)
   int c;
   int alloc_line=1024;
   int n_line=0;
-  char *line=(char *)malloc(alloc_line);
+  auto line = static_cast<char *>(malloc(alloc_line));
 
   while (1) {
     c=getc(f);
@@ -329,15 +325,15 @@ getln(FILE *f)
     if (c=='\n') break;
 
     if (n_line+5 >= alloc_line) {
-      alloc_line*=2;
-      line=(char *)realloc(line,alloc_line);
+      alloc_line *= 2;
+      line = static_cast<char *>(realloc(line, alloc_line));
     }
     line[n_line++]=c;
   }
   if (n_line>=1 && line[n_line-1]=='\r') n_line--;
   line[n_line++]=0;
 
-  line=(char *)realloc(line,n_line);
+  line = static_cast<char *>(realloc(line, n_line));
   return line;
 }
 
@@ -347,7 +343,7 @@ getall(FILE *f)
   int c;
   int alloc_line=1024;
   int n_line=0;
-  char *line=(char *)malloc(alloc_line);
+  char *line = static_cast<char *>(malloc(alloc_line));
 
   while (1) {
     c=getc(f);
@@ -361,13 +357,13 @@ getall(FILE *f)
 
     if (n_line+5 >= alloc_line) {
       alloc_line*=2;
-      line=(char *)realloc(line,alloc_line);
+      line = static_cast<char *>(realloc(line, alloc_line));
     }
     line[n_line++]=c;
   }
   line[n_line++]=0;
 
-  line=(char *)realloc(line,n_line);
+  line = static_cast<char *>(realloc(line,n_line));
   return line;
 }
 
@@ -385,7 +381,8 @@ string file_string(string const &fn)
     char buf[8192];
     int nr = read(fd, buf, sizeof(buf));
     if (nr < 0) {
-      return stringprintf("error reading %s: %s\n", fn.c_str(), strerror(errno));
+      ret = stringprintf("error reading %s: %s\n", fn.c_str(), strerror(errno));
+      break;
     }
     else if (nr == 0) {
       break;
@@ -420,9 +417,9 @@ tmpfn::tmpfn()
   abort(); // WRITEME
 #else
   char buf[256];
-  strcpy(buf,"/tmp/temp.XXXXXX");
-  fd=mkstemp(buf);
-  *(string *)this=string(buf);
+  strlcpy(buf, "/tmp/temp.XXXXXX", sizeof(buf));
+  fd = mkstemp(buf);
+  *(string *)this = string(buf);
 #endif
 }
 
@@ -459,7 +456,7 @@ struct memfile {
 
 static int memfile_read(void *cookie, char *buf, int n)
 {
-  memfile *mf=(memfile *)cookie;
+  auto mf = reinterpret_cast<memfile *>(cookie);
 
   int nr=min(n,mf->n_data - mf->ofs);
   if (nr>0) memcpy(buf, mf->data+mf->ofs, nr);
@@ -469,24 +466,24 @@ static int memfile_read(void *cookie, char *buf, int n)
 
 static int memfile_write(void *cookie, const char *buf, int n)
 {
-  memfile *mf=(memfile *)cookie;
+  auto mf = reinterpret_cast<memfile *>(cookie);
 
   if (mf->ofs+n > mf->alloc_data) {
-    mf->alloc_data=max(mf->alloc_data*2, mf->ofs+n+1024);
-    mf->data=(char *)realloc(mf->data,mf->alloc_data);
+    mf->alloc_data = max(mf->alloc_data*2, mf->ofs+n+1024);
+    mf->data = static_cast<char *>(realloc(mf->data, mf->alloc_data));
   }
   if (mf->ofs > mf->n_data) {
     memset(mf->data+mf->n_data, 0, mf->ofs-mf->n_data);
   }
   memcpy(mf->data+mf->ofs, buf, n);
   mf->ofs += n;
-  mf->n_data=max(mf->n_data,mf->ofs);
+  mf->n_data = max(mf->n_data,mf->ofs);
   return n;
 }
 
 static off_t memfile_seek(void *cookie, off_t offset, int whence)
 {
-  memfile *mf = (memfile *)cookie;
+  auto mf = reinterpret_cast<memfile *>(cookie);
   if (whence == SEEK_SET) {
     mf->ofs = offset;
   }
@@ -501,14 +498,14 @@ static off_t memfile_seek(void *cookie, off_t offset, int whence)
 
 static int memfile_close(void *cookie)
 {
-  memfile *mf = (memfile *)cookie;
+  auto mf = reinterpret_cast<memfile *>(cookie);
   free(mf->data);
   return 0;
 }
 
 FILE *mfopen()
 {
-  memfile *mf=new memfile;
+  auto mf = new memfile;
   mf->data = nullptr;
   mf->ofs = 0;
   mf->n_data = 0;
@@ -556,7 +553,7 @@ double realtime()
   tmpres -= DELTA_EPOCH_IN_MICROSECS;
   return 0.000001 * (double)tmpres;
 #else
-  timeval tv;
+  timeval tv {};
   gettimeofday(&tv, nullptr);
   return tv.tv_sec + 0.000001*tv.tv_usec;
 #endif
@@ -571,7 +568,7 @@ int re_match_hostname(const char *re)
   abort(); // WRITEME
   return 0;
 #else
-  regex_t reg;
+  regex_t reg {};
   if (regcomp(&reg, re, REG_EXTENDED|REG_NOSUB|REG_ICASE)) die("regcomp");
   if (regexec(&reg, hostname, 0, nullptr, 0)) {
     regfree(&reg);
@@ -665,8 +662,8 @@ bool same_type(std::type_info const &t1, std::type_info const &t2)
 void stl_exec(vector<string> const &args)
 {
   vector<const char *> cargs;
-  for (auto it = args.begin(); it!=args.end(); it++) {
-    cargs.push_back(it->c_str());
+  for (auto const &it : args) {
+    cargs.push_back(it.c_str());
   }
   cargs.push_back(nullptr);
 
@@ -733,7 +730,7 @@ string exec_change_watcher::get_signature()
 bool exec_change_watcher::w_check()
 {
   if (orig_st.st_mtime != 0) {
-    struct stat st;
+    struct stat st {};
     int statrc = stat(orig_exe, &st);
     if (statrc < 0) {
     }

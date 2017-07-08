@@ -20,19 +20,23 @@ void *get_process_zmq_context()
 static void zmqwrapMsgFree(void *p)
 {
   if (1) {
-    zmq_msg_t *m = (zmq_msg_t *)p;
+    auto m = reinterpret_cast<zmq_msg_t *>(p);
     zmq_msg_close(m);
     delete m;
   }
 }
 
 struct ZmqwrapJsonblobsKeepalive {
-  ZmqwrapJsonblobsKeepalive(shared_ptr<jsonblobs> const &_it) : it(_it) {
+  ZmqwrapJsonblobsKeepalive(shared_ptr<jsonblobs> _it) : it(std::move(_it)) {
     if (zmqLogFile) fprintf(zmqLogFile, "Create %p around blob %p (uses=%ld)\n", this, it.get(), it.use_count());
   }
   ~ZmqwrapJsonblobsKeepalive() {
     if (zmqLogFile) fprintf(zmqLogFile, "Delete %p around blob %p (uses=%ld)\n", this, it.get(), it.use_count());
   }
+  ZmqwrapJsonblobsKeepalive & operator =(ZmqwrapJsonblobsKeepalive const &) = delete;
+  ZmqwrapJsonblobsKeepalive & operator =(ZmqwrapJsonblobsKeepalive &&) = delete;
+  ZmqwrapJsonblobsKeepalive(ZmqwrapJsonblobsKeepalive const &other) = delete;
+  ZmqwrapJsonblobsKeepalive(ZmqwrapJsonblobsKeepalive &&other) = delete;
 
   shared_ptr<jsonblobs> it;
 };
@@ -40,7 +44,7 @@ struct ZmqwrapJsonblobsKeepalive {
 static void zmqwrapFreeJsonblobsKeepalive(void *data, void *hint)
 {
   if (1) {
-    ZmqwrapJsonblobsKeepalive * ka = (ZmqwrapJsonblobsKeepalive *)hint;
+    auto * ka = reinterpret_cast<ZmqwrapJsonblobsKeepalive *>(hint);
     delete ka;
   }
 }
@@ -114,21 +118,24 @@ void ZmqRpcAgent::join()
   }
 }
 
-void ZmqRpcRouter::addApi(string const &method, std::function<void(jsonstr const &params, std::function<void(jsonstr const &error, jsonstr const &result)>)> f)
+void ZmqRpcRouter::addApi(string const &method, std::function<void(jsonstr const &params, std::function<void(jsonstr const &error, jsonstr const &result)>)> const &f)
 {
   unique_lock<mutex> lock(mtx);
   api[method] = f;
 }
 
 struct ZmqRpcOut {
-  ZmqRpcOut(string const &_id, std::function<void(jsonstr const &error, jsonstr const &result)> const &_cb, double _timeout)
-    :id(_id), cb(_cb), timeout(_timeout), txTime(0.0), progressTime(0.0)
+  ZmqRpcOut(string _id, std::function<void(jsonstr const &error, jsonstr const &result)> _cb, double _timeout)
+    :id(std::move(_id)), cb(std::move(_cb)), timeout(_timeout), txTime(0.0), progressTime(0.0)
   {
   }
   ~ZmqRpcOut()
   {
   }
-  ZmqRpcOut(const ZmqRpcOut &) = delete;
+  ZmqRpcOut(ZmqRpcOut const &) = delete;
+  ZmqRpcOut(ZmqRpcOut &&) = delete;
+  ZmqRpcOut & operator=(ZmqRpcOut const &) = delete;
+  ZmqRpcOut & operator=(ZmqRpcOut &&) = delete;
 
   string id;
   std::function<void(jsonstr const &error, jsonstr const &result)> cb;
@@ -243,7 +250,7 @@ ZmqRpcRouter::routerMain()
     }
     if (items[1].revents & ZMQ_POLLIN) {
       while (true) {
-        zmq_msg_t msg;
+        zmq_msg_t msg {};
         bool more = false;
         if (!mbSockIn.zmqRx(msg, more)) break;
         mainSock.zmqTx(msg, more);
@@ -341,7 +348,7 @@ ZmqRpcDealer::dealerMain()
     }
     if (items[1].revents & ZMQ_POLLIN) {
       while (true) {
-        zmq_msg_t msg;
+        zmq_msg_t msg {};
         bool more = false;
         if (!mbSockIn.zmqRx(msg, more)) break;
         mainSock.zmqTx(msg, more);
@@ -406,7 +413,7 @@ void ZmqSock::labelSocket()
   sockDesc = ep_buf;
 }
 
-void ZmqSock::bindSocket(string endpoint)
+void ZmqSock::bindSocket(string const &endpoint)
 {
   if (zmq_bind(sock, endpoint.c_str()) < 0) {
     throw fmt_runtime_error("zmq_bind to %s: %s", endpoint.c_str(), zmq_strerror(errno));
@@ -415,7 +422,7 @@ void ZmqSock::bindSocket(string endpoint)
   eprintf("Bound to %s\n", endpoint.c_str());
 }
 
-void ZmqSock::connectSocket(string endpoint)
+void ZmqSock::connectSocket(string const &endpoint)
 {
   if (zmq_connect(sock, endpoint.c_str()) < 0) {
     throw fmt_runtime_error("zmq_connect to %s: %s", endpoint.c_str(), zmq_strerror(errno));
@@ -454,7 +461,7 @@ void ZmqSock::zmqTx(string const &s, bool more)
 {
   if (verbose>=2) eprintf("zmqTx: `%s` len=%zu more=%d\n", s.c_str(), s.size(), more?1:0);
   if (networkFailure) return;
-  zmq_msg_t m;
+  zmq_msg_t m {};
   if (zmq_msg_init_size(&m, s.size()) < 0) {
     throw fmt_runtime_error("zmq_msg_init_size(%zu) failed", s.size());
   }
@@ -478,7 +485,7 @@ void ZmqSock::zmqTx(vector<string> const &v, bool more)
 void ZmqSock::zmqTxDelim()
 {
   if (verbose>=2) eprintf("zmqTx: delim more=%d\n", 1);
-  zmq_msg_t m;
+  zmq_msg_t m {};
   if (zmq_msg_init_size(&m, 0) < 0) {
     throw fmt_runtime_error("zmq_msg_init_size(0) failed");
   }
@@ -502,7 +509,7 @@ void ZmqSock::zmqTx(jsonstr const &s, bool more)
       auto part = s.blobs->getPart(i);
       bool lmore = more || i + 1 < partCount;
       if (verbose>=2) eprintf("zmqTx: part %zu/%zu lmore=%d\n", i, partCount, lmore?1:0);
-      zmq_msg_t m1;
+      zmq_msg_t m1 {};
       auto ka = new ZmqwrapJsonblobsKeepalive(s.blobs);
       zmq_msg_init_data(&m1, (void *)part.first, part.second, &zmqwrapFreeJsonblobsKeepalive, (void *)ka);
       if (verbose>=2) eprintf("zmqTx: blob size=%zu part %zu/%zu\n", part.second, i, partCount);
@@ -537,11 +544,11 @@ bool ZmqSock::zmqRx(zmq_msg_t &m, bool &more)
 
 bool ZmqSock::zmqRx(string &s, bool &more)
 {
-  zmq_msg_t m;
+  zmq_msg_t m {};
   if (!zmqRx(m, more)) {
     return false;
   }
-  s.assign((char *)zmq_msg_data(&m), zmq_msg_size(&m));
+  s.assign(reinterpret_cast<char *>(zmq_msg_data(&m)), zmq_msg_size(&m));
   zmq_msg_close(&m);
   if (verbose>=2) eprintf("zmqRx: string `%s` len=%zu\n", s.c_str(), s.size());
   return true;
@@ -552,7 +559,7 @@ bool ZmqSock::zmqRx(vector<string> &v, bool &more)
   while (true) {
     string s;
     zmqRx(s, more);
-    if (s.size() == 0) break;
+    if (s.empty()) break;
     v.push_back(s);
     if (!more) break;
   }
@@ -567,12 +574,12 @@ bool ZmqSock::zmqRx(jsonstr &json, bool allowBlobs, bool &more)
     while (more) {
       if (!json.blobs) json.useBlobs();
 
-      zmq_msg_t *mp = new zmq_msg_t;
+      auto mp = new zmq_msg_t;
       if (!zmqRx(*mp, more)) {
         return false;
       }
       if (verbose>=2) eprintf("zmqRx: blob len=%zu\n", (size_t)zmq_msg_size(mp));
-      json.blobs->addExternalPart((u_char *)zmq_msg_data(mp), zmq_msg_size(mp), zmqwrapMsgFree, (void *)mp);
+      json.blobs->addExternalPart(reinterpret_cast<u_char *>(zmq_msg_data(mp)), zmq_msg_size(mp), zmqwrapMsgFree, reinterpret_cast<void *>(mp));
     }
   }
   if (verbose>=2) eprintf("zmqRx: jsonstr %s\n", json.it.c_str());

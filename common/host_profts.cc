@@ -93,13 +93,13 @@ const char * profts_dump_str()
   int indent=0;
   int retbuf_size = n_profts * 256 + 1024;
   int n_retbuf = 0;
-  char *retbuf = NULL;
-  char *retstr = NULL;
+  char *retbuf = nullptr;
+  char *retstr = nullptr;
   profts_active = 0;
 
   if (n_profts == 0) return strdup("");
 
-  retbuf = (char *)malloc(retbuf_size);
+  retbuf = static_cast<char *>(malloc(retbuf_size));
   n_retbuf += sprintf(retbuf + n_retbuf, "        Last      Total   Label\n");
 
   for (i=0; i<n_profts && n_retbuf + 1024 < retbuf_size; i++) {

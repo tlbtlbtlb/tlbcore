@@ -23,18 +23,22 @@ typedef std::function<void(jsonrpcmsg const &)> ZmqRpcMsgFunc;
 struct ZmqSock {
   ZmqSock();
   ~ZmqSock();
+  ZmqSock(ZmqSock const &) = delete;
+  ZmqSock(ZmqSock &&) = delete;
+  ZmqSock & operator=(ZmqSock const &) = delete;
+  ZmqSock & operator=(ZmqSock &&) = delete;
 
   void openSocket(int type);
   void closeSocket();
-  void bindSocket(string endpoint);
+  void bindSocket(string const &endpoint);
   void labelSocket();
-  void connectSocket(string endpoint);
+  void connectSocket(string const &endpoint);
   void setSocketTimeout(int recvTimeout, int sendTimeout);
   bool isActive() const { return sock != nullptr && !networkFailure; }
 
   void zmqTx(zmq_msg_t &m, bool more);
   void zmqTx(string const &s, bool more);
-  void zmqTx(vector<string> const &s, bool more);
+  void zmqTx(vector<string> const &v, bool more);
   void zmqTxDelim();
   void zmqTx(jsonstr const &s, bool more);
 
@@ -53,6 +57,11 @@ struct ZmqSock {
 struct ZmqRpcAgent {
   ZmqRpcAgent();
   ~ZmqRpcAgent();
+  ZmqRpcAgent(ZmqRpcAgent const &) = delete;
+  ZmqRpcAgent(ZmqRpcAgent &&) = delete;
+  ZmqRpcAgent & operator=(ZmqRpcAgent const &) = delete;
+  ZmqRpcAgent & operator=(ZmqRpcAgent &&) = delete;
+
   void stop();
   void join();
   bool isActive() {
@@ -82,7 +91,7 @@ struct ZmqRpcRouter : ZmqRpcAgent {
   void start();
   void routerMain();
 
-  void addApi(string const &method, std::function<void(jsonstr const &params, std::function<void(jsonstr const &error, jsonstr const &result)>)>);
+  void addApi(string const &method, std::function<void(jsonstr const &params, std::function<void(jsonstr const &error, jsonstr const &result)>)> const &);
 
   std::unordered_map<
     string, // method

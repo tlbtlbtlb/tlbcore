@@ -81,7 +81,7 @@ struct jsonstr {
   // Use this api to efficiently create a string of a given maximum size `n`. Write and advance
   // the pointer until the end, then call endWrite which will set the final size of the string
   char *startWrite(size_t n);
-  void endWrite(char *p);
+  void endWrite(char const *p);
 
   void useBlobs();
   void setNull();

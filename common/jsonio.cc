@@ -44,7 +44,7 @@ jsonstr::startWrite(size_t n)
 }
 
 void
-jsonstr::endWrite(char *p)
+jsonstr::endWrite(char const *p)
 {
   size_t n = p - &it[0];
   if (n + 1 > it.capacity()) {
@@ -66,7 +66,7 @@ jsonstr::useBlobs()
 
 bool jsonstr::isNull() const
 {
-  return it == string("null") || it.size() == 0;
+  return it == string("null") || it.empty();
 }
 
 void jsonstr::setNull()
@@ -123,7 +123,7 @@ int jsonstr::readFromFile(string const &fn)
     if (fseek(fp, 0, SEEK_END) < 0) {
       throw runtime_error(fn + string(": ") + string(strerror(errno)));
     }
-    size_t fileSize = (size_t)ftello(fp);
+    auto fileSize = (size_t)ftello(fp);
     if (fileSize > 1000000000) {
       throw runtime_error(fn + string(": Unreasonable file size ") + to_string(fileSize));
     }
@@ -312,17 +312,17 @@ bool jsonMatchKey(char const *&s, char const *pattern)
   return true;
 }
 
-string ndarray_dtype(const double &x)   { return "float64";}
-string ndarray_dtype(const float &x)    { return "float32";}
-string ndarray_dtype(const U8 &x)  { return "uint8";}
-string ndarray_dtype(const U16 &x) { return "uint16";}
-string ndarray_dtype(const U32 &x) { return "uint32";}
-string ndarray_dtype(const U64 &x) { return "uint64";}
-string ndarray_dtype(const S8 &x)   { return "int8";}
-string ndarray_dtype(const S16 &x)  { return "int16";}
-string ndarray_dtype(const S32 &x)  { return "int32";}
-string ndarray_dtype(const S64 &x)  { return "int64";}
-string ndarray_dtype(const arma::cx_double &x)  { return "complex64";}
+string ndarray_dtype(const double & /* x */)   { return "float64";}
+string ndarray_dtype(const float & /* x */)    { return "float32";}
+string ndarray_dtype(const U8 & /* x */)  { return "uint8";}
+string ndarray_dtype(const U16 & /* x */) { return "uint16";}
+string ndarray_dtype(const U32 & /* x */) { return "uint32";}
+string ndarray_dtype(const U64 & /* x */) { return "uint64";}
+string ndarray_dtype(const S8 & /* x */)   { return "int8";}
+string ndarray_dtype(const S16 & /* x */)  { return "int16";}
+string ndarray_dtype(const S32 & /* x */)  { return "int32";}
+string ndarray_dtype(const S64 & /* x */)  { return "int64";}
+string ndarray_dtype(const arma::cx_double & /* x */)  { return "complex64";}
 
 /* ----------------------------------------------------------------------
    Basic C++ types
@@ -404,7 +404,7 @@ void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, S32 const &value) {
   }
 }
 bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, S32 &value) {
-  char *end = 0;
+  char *end = nullptr;
   jsonSkipSpace(s);
   value = strtol(s, &end, 10);
   s = end;
@@ -429,7 +429,7 @@ void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, U32 const &value) {
   }
 }
 bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, U32 &value) {
-  char *end = 0;
+  char *end = nullptr;
   jsonSkipSpace(s);
   value = strtoul(s, &end, 10);
   s = end;
@@ -454,7 +454,7 @@ void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, S64 const &value) {
   }
 }
 bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, S64 &value) {
-  char *end = 0;
+  char *end = nullptr;
   jsonSkipSpace(s);
   value = strtol(s, &end, 10);
   s = end;
@@ -479,7 +479,7 @@ void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, U64 const &value) {
   }
 }
 bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, U64 &value) {
-  char *end = 0;
+  char *end = nullptr;
   jsonSkipSpace(s);
   value = strtoul(s, &end, 10);
   s = end;
@@ -505,7 +505,7 @@ void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, float const &value) {
   }
 }
 bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, float &value) {
-  char *end = 0;
+  char *end = nullptr;
   jsonSkipSpace(s);
   value = strtof(s, &end);
   s = end;
@@ -538,7 +538,7 @@ void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, double const &value) {
   }
 }
 bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, double &value) {
-  char *end = 0;
+  char *end = nullptr;
   jsonSkipSpace(s);
   if (s[0] == '0' && (s[1] == ',' || s[1] == '}' || s[1] == ']')) {
     value = 0.0;
@@ -715,7 +715,7 @@ void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, jsonstr const &value
   else if (value.blobs && blobs != value.blobs) {
     throw runtime_error("blob nesting problem");
   }
-  if (value.it.size() == 0) {
+  if (value.it.empty()) {
     size += 4;
   } else {
     size += value.it.size();
@@ -729,7 +729,7 @@ void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, jsonstr const &value) {
   else if (value.blobs && blobs != value.blobs) {
     throw runtime_error("blob nesting problem");
   }
-  if (value.it.size() == 0) {
+  if (value.it.empty()) {
     memcpy(s, "null", 4);
     s += 4;
   } else {
@@ -1056,38 +1056,39 @@ bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, arma::Mat<T> &arr) {
   s++;
 
   size_t n_rows = arr.n_rows, n_cols = arr.n_cols;
+  size_t n_data = tmparr.size();
   if (n_rows == 0 && n_cols == 0) {
-    switch (tmparr.size()) {
+    switch (n_data) {
     case 4: n_rows = 2; n_cols = 2; break;
     case 9: n_rows = 3; n_cols = 3; break;
     case 16: n_rows = 4; n_cols = 4; break;
     default:
       throw fmt_runtime_error("rdJson(arma::Mat %dx%d): Couldn't deduce size for %d-elem js arr",
-                              (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size());
+                              (int)arr.n_rows, (int)arr.n_cols, (int)n_data);
     }
   }
   else if (n_rows == 0) {
-    n_rows = tmparr.size() / n_cols;
+    n_rows = n_data / n_cols;
   }
   else if (n_cols == 0) {
-    n_cols = tmparr.size() / n_rows;
+    n_cols = n_data / n_rows;
   }
-  else if (n_rows * n_cols == tmparr.size()) {
+  else if (n_rows * n_cols == n_data) {
     // cool
   }
-  else if (tmparr.size() == 0) {
+  else if (n_data == 0) {
     n_rows = 0; n_cols = 0;
   }
-  else if (tmparr.size() == 1) {
+  else if (n_data == 1) {
     n_rows = 1; n_cols = 1;
   }
   else {
     throw fmt_runtime_error("rdJson(arma::Mat %dx%d): Couldn't match up with %d-elem js arr",
-                                     (int)arr.n_rows, (int)arr.n_cols, (int)tmparr.size());
+                                     (int)arr.n_rows, (int)arr.n_cols, (int)n_data);
   }
-  if (0) eprintf("rdJson(arma::Mat): %dx%d -> %dx%d (from %lu)\n", (int)arr.n_rows, (int)arr.n_cols, (int)n_rows, (int)n_cols, (u_long)tmparr.size());
+  if (0) eprintf("rdJson(arma::Mat): %dx%d -> %dx%d (from %d)\n", (int)arr.n_rows, (int)arr.n_cols, (int)n_rows, (int)n_cols, (int)n_data);
   arr.set_size(n_rows, n_cols);
-  for (size_t ei=0; ei < arr.n_elem && ei < tmparr.size(); ei++) {
+  for (size_t ei=0; ei < arr.n_elem && ei < n_data; ei++) {
     arr(ei) = tmparr[ei];
   }
   return true;

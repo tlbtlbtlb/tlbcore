@@ -19,8 +19,8 @@ struct OctreeNode {
 
 struct StlFace {
   StlFace();
-  explicit StlFace(arma::vec3 _v0, arma::vec3 _v1, arma::vec3 _v2);
-  explicit StlFace(arma::vec3 _v0, arma::vec3 _v1, arma::vec3 _v2, arma::vec3 _normal);
+  explicit StlFace(arma::vec3 const &_v0, arma::vec3 const &_v1, arma::vec3 const &_v2);
+  explicit StlFace(arma::vec3 const &_v0, arma::vec3 const &_v1, arma::vec3 const &_v2, arma::vec3 const &_normal);
   ~StlFace();
 
   void calcNormal();
@@ -70,7 +70,7 @@ struct StlSolid {
   bool rayIntersects(arma::vec3 const &p, arma::vec3 const &d) const;
   void transform(arma::mat44 const &m);
   bool isInterior(arma::vec3 const &pt) const;
-  vector<StlIntersection> getIntersections(arma::vec3 const &pt, arma::vec3 const &dir) const;
+  vector<StlIntersection> getIntersections(arma::vec3 const &p, arma::vec3 const &d) const;
   StlMassProperties getStlMassProperties(double density) const;
   StlWebglMesh exportWebglMesh(double eps) const;
   void removeTinyFaces(double minSize);
@@ -91,7 +91,7 @@ void packet_wr_typetag(packet &p, StlSolid const &it);
 
 struct StlMassProperties {
   StlMassProperties();
-  explicit StlMassProperties(double _volume, double _mass, double _area, arma::vec3 _cm, arma::mat33 _inertiaOrigin);
+  explicit StlMassProperties(double _volume, double _mass, double _area, arma::vec3 const &_cm, arma::mat33 const &_inertiaOrigin);
 
   StlMassProperties multiplyDensity(double factor);
 

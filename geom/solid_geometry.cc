@@ -7,14 +7,16 @@
 using namespace arma;
 
 OctreeNode::OctreeNode(vec3 const &_center, double _scale)
-  :center(_center), scale(_scale)
+  :center(_center), scale(_scale), children {nullptr}
 {
-  for (int i=0; i<8; i++) children[i] = NULL;
+  //for (auto & it : children) it = nullptr;
+  //for (int i=0; i<8; i++) children[i] = nullptr;
 }
 
 OctreeNode::~OctreeNode()
 {
-  for (int i=0; i<8; i++) delete children[i];
+  for (auto & it : children) delete it;
+  //for (int i=0; i<8; i++) delete children[i];
 }
 
 OctreeNode *OctreeNode::lookup(vec3 const &pt, double maxScale)
@@ -40,7 +42,7 @@ StlFace::StlFace()
 {
 }
 
-StlFace::StlFace(vec3 _v0, vec3 _v1, vec3 _v2)
+StlFace::StlFace(arma::vec3 const &_v0, arma::vec3 const &_v1, arma::vec3 const &_v2)
   :v0(_v0),
    v1(_v1),
    v2(_v2)
@@ -49,7 +51,7 @@ StlFace::StlFace(vec3 _v0, vec3 _v1, vec3 _v2)
 }
 
 
-StlFace::StlFace(vec3 _v0, vec3 _v1, vec3 _v2, vec3 _normal)
+StlFace::StlFace(vec3 const &_v0, vec3 const &_v1, vec3 const &_v2, vec3 const &_normal)
   :v0(_v0),
    v1(_v1),
    v2(_v2),
@@ -261,7 +263,7 @@ StlSolid::writeBinaryFile(FILE *fp, double scale)
   memset(dummyline, 0, 80);
   if (fwrite(dummyline, 1, 80, fp) != 80) throw runtime_error("writing header");
 
-  uint32_t nTriangles = (uint32_t)faces.size();
+  auto nTriangles = static_cast<uint32_t>(faces.size());
   if (fwrite(&nTriangles, sizeof(uint32_t), 1, fp) != 1) throw runtime_error("writing n_triangles");
 
   for (uint32_t ti=0; ti<nTriangles; ti++) {
@@ -315,7 +317,7 @@ StlSolid::transform(mat44 const &m)
 void
 StlSolid::calcBbox()
 {
-  if (faces.size()==0) {
+  if (faces.empty()) {
     bboxLo.zeros();
     bboxHi.zeros();
     return;
@@ -521,6 +523,11 @@ struct Vec3SpatialMap {
     delete root;
   }
 
+  Vec3SpatialMap(const Vec3SpatialMap &other) = delete;
+  Vec3SpatialMap(Vec3SpatialMap &&other) = delete;
+  Vec3SpatialMap & operator =(Vec3SpatialMap const &other) = delete;
+  Vec3SpatialMap & operator =(Vec3SpatialMap &&other) = delete;
+
   vector<vec3 *> *findList(vec3 const &pt)
   {
     OctreeNode *node = root->lookup(pt, eps);
@@ -547,7 +554,7 @@ struct Vec3SpatialMap {
       if (all(*it == replace)) continue;
       if (norm(*it - search, 2) < eps) {
         *it = replace;
-        (*ptlist)[iti] = NULL;
+        (*ptlist)[iti] = nullptr;
         addPt(it);
       }
     }
@@ -576,8 +583,7 @@ void StlSolid::removeTinyFaces(double minSize)
 {
   Vec3SpatialMap spatial(getMaxScale());
 
-  for (size_t fi=0; fi<faces.size(); fi++) {
-    StlFace &f = faces[fi];
+  for (auto &f: faces) {
     spatial.addPt(&f.v0);
     spatial.addPt(&f.v1);
     spatial.addPt(&f.v2);
@@ -681,8 +687,7 @@ StlWebglMesh StlSolid::exportWebglMesh(double eps) const
     indexi++;
   };
 
-  for (size_t fi=0; fi<faces.size(); fi++) {
-    StlFace const &f = faces[fi];
+  for (auto const &f: faces) {
     pushVertex(f.v0, f.normal);
     pushVertex(f.v1, f.normal);
     pushVertex(f.v2, f.normal);
@@ -833,7 +838,7 @@ StlSolid::estimateVolume()
 
     auto intersections = getIntersections(pt, d);
 
-    if (intersections.size()) {
+    if (!intersections.empty()) {
       for (size_t ii=0; ii < intersections.size(); ii += 2) {
         double minz = intersections[ii].t + corner[2];
         double maxz = intersections[ii+1].t + corner[2];
@@ -870,8 +875,9 @@ StlMassProperties::StlMassProperties()
   calcDerived();
 }
 
-StlMassProperties::StlMassProperties(double _volume, double _mass, double _area, vec3 _cm, mat33 _inertiaOrigin)
-  :volume(_volume),
+StlMassProperties::StlMassProperties(double _volume, double _mass, double _area, vec3 const &_cm, mat33 const &_inertiaOrigin)
+  :density(0.0),
+   volume(_volume),
    mass(_mass),
    area(_area),
    cm(_cm),

@@ -84,7 +84,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
       var done = false;
       if (verbose >= 2) logio.I(handlers.label, 'rpc', msg.method, msg.params);
       try {
-        f.apply(handlers, msg.params.concat([function(error, /* ... */) {
+        f.apply(handlers, msg.params.concat([function(error /* ... */) {
           var result = Array.prototype.slice.call(arguments, 1);
           if (!WebSocketHelper.isRpcProgressError(error)) {
             done = true;
