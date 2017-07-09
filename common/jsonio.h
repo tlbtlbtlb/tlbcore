@@ -1,4 +1,3 @@
-// -*- C++ -*-
 #pragma once
 #include <cctype>
 #include <armadillo>
@@ -90,6 +89,7 @@ struct jsonstr {
   void setNull();
 
   bool isNull() const;
+  bool isString(char const *s) const;
 
   // Read and write to files.
   // Read returns -1 with errno=ENOENT if not found.

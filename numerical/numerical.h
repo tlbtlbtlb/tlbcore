@@ -1,4 +1,3 @@
-// -*- C++ -*-
 #pragma once
 
 static inline double normangle(double x) {

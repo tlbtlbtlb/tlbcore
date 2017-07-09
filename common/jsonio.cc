@@ -74,6 +74,10 @@ void jsonstr::setNull()
   it = "null";
 }
 
+bool jsonstr::isString(char const *s) const
+{
+  return it == asJson(string(s)).it;
+}
 
 /*
   writeToFile uses gzip by default.

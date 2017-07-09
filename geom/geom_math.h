@@ -1,5 +1,4 @@
-#ifndef INCLUDE_ur_geom_math_h
-#define INCLUDE_ur_geom_math_h
+#pragma once
 
 /*
   Needs to be parseable by code_gen, to generate wrapper stubs
@@ -61,5 +60,3 @@ arma::mat33 justRotation(arma::mat44 const &u);
 arma::vec3 justTranslation(arma::mat44 const &u);
 
 arma::mat33 randomTwaddle(arma::mat33 const &u, double rotsigma, int niter);
-
-#endif

@@ -1,5 +1,5 @@
-#ifndef _TLBCORE_NUMERICAL_POLYFIT_H
-#define _TLBCORE_NUMERICAL_POLYFIT_H
+#pragma once
+
 /*
   Needs to be parseable by code_gen, to generate wrapper stubs
  */
@@ -21,5 +21,3 @@ double getDerivative(Polyfit5 const &u, double t);
 Polyfit1 mkPolyfit1(arma::Col<double> xs, arma::Col<double> ys);
 Polyfit3 mkPolyfit3(arma::Col<double> xs, arma::Col<double> ys);
 Polyfit5 mkPolyfit5(arma::Col<double> xs, arma::Col<double> ys);
-
-#endif

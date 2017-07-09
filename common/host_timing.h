@@ -1,6 +1,4 @@
-//-*-C++-*-
-#ifndef _TLBCORE_HOST_TIMING_H
-#define _TLBCORE_HOST_TIMING_H
+#pragma once
 
 /*
   Although the internal data structures are in moments, everything in the API is in terms of seconds.
@@ -115,7 +113,5 @@ rdtsc()
   gettimeofday(&tv, 0);
   return (u_int64_t)tv.tv_sec * 1000000000LL + (u_int64_t)tv.tv_usec*1000LL;
 }
-
-#endif
 
 #endif

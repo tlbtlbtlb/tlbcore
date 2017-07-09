@@ -216,7 +216,7 @@ function withJsWrapUtils(f, type) {
         Isolate *isolate = args.GetIsolate();
         HandleScope scope(isolate);
         if (!(args.Holder()->InternalFieldCount() > 0)) return ThrowInvalidThis(isolate);
-        JsWrap_${ type.jsTypename }* thisObj = new JsWrap_${ type.jsTypename }(args.GetIsolate());
+        auto thisObj = new JsWrap_${ type.jsTypename }(args.GetIsolate());
         jsConstructor_${ type.jsTypename }(thisObj, args);
       }
     `);
@@ -239,7 +239,7 @@ function withJsWrapUtils(f, type) {
   f.emitJsMethod = function(name, contents) {
     f.emitJsWrap(`${ type.jsTypename }_${ name }`, function(f) {
       f(`
-        JsWrap_${ type.jsTypename }* thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+        auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
       `);
       f(contents);
     });
@@ -274,7 +274,7 @@ function withJsWrapUtils(f, type) {
         static void jsGet_${ type.jsTypename }_${ name }(Local<String> name, PropertyCallbackInfo<Value> const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          JsWrap_${ type.jsTypename }* thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
       `);
       f(o.get);
       f(`
@@ -286,7 +286,7 @@ function withJsWrapUtils(f, type) {
         static void jsSet_${ type.jsTypename }_${ name }(Local<String> name, Local<Value> value, PropertyCallbackInfo<void> const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          JsWrap_${ type.jsTypename }* thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
       `);
       f(o.set);
       f(`
@@ -318,7 +318,7 @@ function withJsWrapUtils(f, type) {
         static void jsGetNamed_${ type.jsTypename }(Local<String> name, PropertyCallbackInfo<Value> const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          JsWrap_${ type.jsTypename }* thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
           string key = convJsToString(isolate, name);
       `);
       f(o.get);
@@ -331,7 +331,7 @@ function withJsWrapUtils(f, type) {
         static void jsSetNamed_${ type.jsTypename }(Local<String> name, Local<Value> value, PropertyCallbackInfo<Value> const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          JsWrap_${ type.jsTypename }* thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
           string key = convJsToString(isolate, name);
       `);
       f(o.set);
@@ -361,7 +361,7 @@ function withJsWrapUtils(f, type) {
         static void jsGetIndexed_${ type.jsTypename }(unsigned int index, PropertyCallbackInfo<Value> const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          JsWrap_${ type.jsTypename }* thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
       `);
       f(o.get);
       f(`
@@ -373,7 +373,7 @@ function withJsWrapUtils(f, type) {
         static void jsSetIndexed_${ type.jsTypename }(unsigned int index, Local<Value> value, PropertyCallbackInfo<Value> const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          JsWrap_${ type.jsTypename }* thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
       `);
       f(o.set);
       f(`

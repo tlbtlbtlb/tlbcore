@@ -264,7 +264,7 @@ CollectionCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
   f(`
     using JsWrap_${ type.jsTypename } = JsWrapGeneric< ${ type.typename } >;
-    void jsConstructor_${ type.jsTypename }(JsWrap_${ type.jsTypename } *it, FunctionCallbackInfo<Value> const &args);
+    void jsConstructor_${ type.jsTypename }(JsWrap_${ type.jsTypename } *thisObj, FunctionCallbackInfo<Value> const &args);
     Handle<Value> jsToJSON_${ type.jsTypename }(Isolate *isolate, ${ type.typename } const &it);
   `);
 };

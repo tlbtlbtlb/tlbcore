@@ -1,6 +1,4 @@
-//-*-C++-*-
-#ifndef _TLBCORE_SOLID_GEOMETRY_H
-#define _TLBCORE_SOLID_GEOMETRY_H
+#pragma once
 
 struct StlMassProperties;
 
@@ -118,5 +116,3 @@ void packet_wr_typetag(packet &p, StlMassProperties const &it);
 StlMassProperties operator +(StlMassProperties const &a, StlMassProperties const &b);
 
 ostream & operator << (ostream &s, StlMassProperties const &it);
-
-#endif

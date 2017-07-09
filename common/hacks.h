@@ -1,6 +1,4 @@
-//-*-C++-*-
-#ifndef HACKS_h
-#define HACKS_h
+#pragma once
 #include <cstdio>
 #include <cstdlib>
 #include <sys/types.h>
@@ -182,5 +180,3 @@ std::string sockaddr_desc(struct sockaddr *sa);
 double realtime();
 
 int32_t jump_consistent_hash(uint64_t key, int32_t num_buckets);
-
-#endif

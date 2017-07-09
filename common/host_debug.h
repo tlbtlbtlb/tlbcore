@@ -1,6 +1,5 @@
-//-*-C++-*-
-#ifndef _TLBCORE_HOST_DEBUG_H
-#define _TLBCORE_HOST_DEBUG_H
+#pragma once
+
 
 #include "./host_timing.h"
 
@@ -100,6 +99,3 @@ extern FILE *debug_tslog;
 
 
 runtime_error uv_error(string const &context, int rc);
-
-
-#endif

@@ -1,6 +1,5 @@
-//-*-C++-*-
-#ifndef _TLBCORE_PACKETBUF_H
-#define _TLBCORE_PACKETBUF_H
+#pragma once
+
 
 #include <armadillo>
 
@@ -573,6 +572,3 @@ void packet_rd_value(packet &p, map<T1, T2> &x)
 using packet_queue = deque<packet>;
 
 ostream & operator <<(ostream &s, packet const &it);
-
-
-#endif

@@ -139,7 +139,7 @@ struct JsWrapGeneric : node::ObjectWrap {
       if (1) eprintf("NewInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
-    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assignConstruct(std::forward<Args>(_args)...);
     return scope.Escape(instance);
   }
@@ -152,7 +152,7 @@ struct JsWrapGeneric : node::ObjectWrap {
       if (1) eprintf("NewInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
-    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assign(_it);
     return scope.Escape(instance);
   }
@@ -166,7 +166,7 @@ struct JsWrapGeneric : node::ObjectWrap {
       if (1) eprintf("MemberInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
-    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assign(shared_ptr<CONTENTS>(_parent, _ptr));
     return scope.Escape(instance);
   }
@@ -179,7 +179,7 @@ struct JsWrapGeneric : node::ObjectWrap {
       if (1) eprintf("DependentInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
-    JsWrapGeneric<CONTENTS> * w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->assignConstruct(_contents);
     w->owner.Reset(isolate, _owner);
     return scope.Escape(instance);
