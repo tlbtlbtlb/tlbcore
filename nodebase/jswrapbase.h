@@ -97,6 +97,11 @@ struct JsWrapGeneric : node::ObjectWrap {
   {
   }
 
+  JsWrapGeneric(JsWrapGeneric const &) = delete;
+  JsWrapGeneric(JsWrapGeneric &&) = delete;
+  JsWrapGeneric & operator = (JsWrapGeneric const &) = delete;
+  JsWrapGeneric & operator = (JsWrapGeneric &&) = delete;
+
   void assign(shared_ptr<CONTENTS> _it)
   {
     it = _it;

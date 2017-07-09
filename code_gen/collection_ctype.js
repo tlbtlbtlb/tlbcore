@@ -263,7 +263,7 @@ CollectionCType.prototype.getMemberTypes = function() {
 CollectionCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
   f(`
-    typedef JsWrapGeneric< ${ type.typename } > JsWrap_${ type.jsTypename };
+    using JsWrap_${ type.jsTypename } = JsWrapGeneric< ${ type.typename } >;
     void jsConstructor_${ type.jsTypename }(JsWrap_${ type.jsTypename } *it, FunctionCallbackInfo<Value> const &args);
     Handle<Value> jsToJSON_${ type.jsTypename }(Isolate *isolate, ${ type.typename } const &it);
   `);
@@ -425,7 +425,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
             thisObj->assignConstruct(a0);
           `);
         }},
-        {args: ['Object'], code: function(f) {
+        {args: ['Array'], code: function(f) {
           f(`
             thisObj->assignConstruct(convJsToArmaMat< ${ type.templateArgs[0] } >(isolate, a0));
           `);
@@ -447,7 +447,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
             thisObj->assignConstruct(a0);
           `);
         }},
-        {args: ['Object'], code: function(f) {
+        {args: ['Array'], code: function(f) {
           f(`
             thisObj->assignConstruct(convJsToArmaMat< ${ type.templateArgs[0] } >(isolate, a0));
           `);

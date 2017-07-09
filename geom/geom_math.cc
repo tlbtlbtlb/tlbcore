@@ -5,12 +5,6 @@ using namespace arma;
 
 #define nan (numeric_limits<double>::quiet_NaN())
 
-double limit(double v, double lo, double hi) {
-  if (v < lo) return lo;
-  if (v > hi) return hi;
-  return v;
-}
-
 mat33 orthonormalise(mat33 const &u)
 {
   // We use column vectors, ie the ones that the standard unit vectors are mapped onto by left-multiplication
@@ -517,4 +511,3 @@ mat33 randomTwaddle(mat33 const &u, double rotsigma, int niter)
   }
   return tmp;
 }
-

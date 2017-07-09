@@ -21,6 +21,12 @@ static inline arma::vec3 fromHomo(arma::vec4 const &v)
   return arma::vec3 {v[0]/v[3], v[1]/v[3], v[2]/v[3]};
 }
 
+static inline double limit(double v, double lo, double hi) {
+  if (v < lo) return lo;
+  if (v > hi) return hi;
+  return v;
+}
+
 #if 0
 static inline double tanh(double x)
 {

@@ -73,10 +73,6 @@ StlFace::StlFace(vec3 const &_v0, vec3 const &_v1, vec3 const &_v2, vec3 const &
 #endif
 }
 
-StlFace::~StlFace()
-{
-}
-
 void StlFace::calcNormal()
 {
   normal = normalise(cross(v1-v0, v2-v0));
@@ -209,9 +205,6 @@ StlSolid::StlSolid()
 {
 }
 
-StlSolid::~StlSolid()
-{
-}
 
 ostream & operator << (ostream &s, StlSolid const &it)
 {

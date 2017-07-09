@@ -5,11 +5,9 @@
   Needs to be parseable by code_gen, to generate wrapper stubs
  */
 
-typedef arma::vec4 Quaternion;
-typedef arma::vec3 EulerAngles;
+using Quaternion = arma::vec4;
+using EulerAngles = arma::vec3;
 
-double sqr(double x);
-double limit(double v, double lo, double hi);
 
 /*
   Convert to/from homogeneous form.

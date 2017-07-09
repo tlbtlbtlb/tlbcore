@@ -18,7 +18,7 @@ struct jsonblobs;
 
 extern FILE *zmqLogFile;
 
-typedef std::function<void(jsonrpcmsg const &)> ZmqRpcMsgFunc;
+using ZmqRpcMsgFunc = std::function<void(jsonrpcmsg const &)>;
 
 struct ZmqSock {
   ZmqSock();
@@ -87,6 +87,10 @@ struct ZmqRpcAgent {
 struct ZmqRpcRouter : ZmqRpcAgent {
   ZmqRpcRouter();
   ~ZmqRpcRouter();
+  ZmqRpcRouter(ZmqRpcRouter const &) = delete;
+  ZmqRpcRouter(ZmqRpcRouter &&) = delete;
+  ZmqRpcRouter & operator=(ZmqRpcRouter const &) = delete;
+  ZmqRpcRouter & operator=(ZmqRpcRouter &&) = delete;
 
   void start();
   void routerMain();
@@ -108,6 +112,10 @@ struct ZmqRpcRouter : ZmqRpcAgent {
 struct ZmqRpcDealer : ZmqRpcAgent {
   ZmqRpcDealer();
   ~ZmqRpcDealer();
+  ZmqRpcDealer(ZmqRpcDealer const &) = delete;
+  ZmqRpcDealer(ZmqRpcDealer &&) = delete;
+  ZmqRpcDealer & operator=(ZmqRpcDealer const &) = delete;
+  ZmqRpcDealer & operator=(ZmqRpcDealer &&) = delete;
 
   void start();
   void dealerMain();

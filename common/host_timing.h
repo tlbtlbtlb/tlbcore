@@ -21,12 +21,6 @@ struct anytimer {
     dur_seconds = _dur_seconds;
   }
 
-  anytimer(const anytimer &other)
-  {
-    time_seconds = other.time_seconds;
-    dur_seconds = other.dur_seconds;
-  }
-
   bool is_set() const {
     return time_seconds != -1.0;
   }
@@ -98,16 +92,27 @@ rdtsc(void)
 
 static inline uint64_t rdtsc(void) { return __rdtsc(); }
 
+#elif defined(OSX)
+
+#include <CoreServices/CoreServices.h>
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+
+static inline uint64_t rdtsc()
+{
+  return mach_absolute_time();
+}
+
 #else
 
 #include <sys/time.h>
 
 #define FAKE_TSC_FREQ 1000000000
 static __inline u_int64_t
-rdtsc(void)
+rdtsc()
 {
   struct timeval tv;
-  gettimeofday(&tv, NULL);
+  gettimeofday(&tv, 0);
   return (u_int64_t)tv.tv_sec * 1000000000LL + (u_int64_t)tv.tv_usec*1000LL;
 }
 

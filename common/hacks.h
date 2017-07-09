@@ -1,10 +1,10 @@
 //-*-C++-*-
 #ifndef HACKS_h
 #define HACKS_h
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <sys/types.h>
-#include <math.h>
+#include <cmath>
 
 #ifdef __cplusplus
 #include <string>
@@ -36,13 +36,16 @@ class tmpfn : public string {
   public:
   tmpfn();
   ~tmpfn();
+  tmpfn(tmpfn const &other) = delete;
+  tmpfn(tmpfn && other) = delete;
+  tmpfn & operator = (tmpfn const &other) = delete;
+  tmpfn & operator = (tmpfn && other) = delete;
   int fd;
 };
 
 extern int die_throw_exception;
 struct die_exception {
   die_exception(char const *_message);
-  ~die_exception();
   string str() const;
   char const *message;
 };

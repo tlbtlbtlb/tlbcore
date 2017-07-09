@@ -50,6 +50,10 @@
   You have to implement packet_wr_value and packet_rd_value.
   Also, packet_wr_typetag and packet_rd_typetag.
 
+  SECURITY: there's some attempt at input validation, but it might have bugs.
+  If you need to lock it down for external input, carefully go through all
+  the size calculations on 32 and 64-bit architectures.
+
 */
 
 struct packet_contents;
@@ -66,9 +70,8 @@ struct packet_contents {
 };
 
 struct packet_annotations {
-  int refcnt;
-  packet_annotations();
-  ~packet_annotations();
+  packet_annotations() = default;
+  int refcnt = 0;
   map<string, string> table;
 };
 
@@ -76,19 +79,16 @@ struct packet_annotations {
 
 struct packet_wr_overrun_err : runtime_error {
   explicit packet_wr_overrun_err(int _howmuch);
-  virtual ~packet_wr_overrun_err() throw();
   int howmuch;
 };
 
 struct packet_rd_overrun_err : runtime_error {
   explicit packet_rd_overrun_err(int _howmuch);
-  virtual ~packet_rd_overrun_err() throw();
   int howmuch;
 };
 
 struct packet_rd_type_err : runtime_error {
   explicit packet_rd_type_err(string const &_expected, string const &_got);
-  virtual ~packet_rd_type_err() throw();
   string expected;
   string got;
 };
@@ -113,13 +113,14 @@ struct packet {
   explicit packet(string const &data);
   packet(const packet &other);
   packet(packet &&other) noexcept
-  :contents(std::move(other.contents)), annotations(std::move(other.annotations)), rd_pos(std::move(other.rd_pos)), wr_pos(std::move(other.wr_pos))
+  :contents(other.contents), annotations(other.annotations), rd_pos(other.rd_pos), wr_pos(other.wr_pos)
   {
     other.contents = nullptr;
     other.annotations = nullptr;
   }
 
   packet & operator= (packet const &other);
+  packet & operator= (packet &&other) noexcept;
   ~packet();
 
   string as_string();
@@ -264,10 +265,10 @@ struct packet {
 
 
   // ------------
-  packet_contents *contents;
-  packet_annotations *annotations;
-  size_t rd_pos;
-  size_t wr_pos;
+  packet_contents *contents { nullptr };
+  packet_annotations *annotations { nullptr };
+  size_t rd_pos { 0 };
+  size_t wr_pos { 0 };
 
   static packet_stats stats;
 };
@@ -392,7 +393,7 @@ void packet_wr_typetag(packet &p, vector<T> const &x) {
 
 template<typename T>
 void packet_wr_value(packet &p, vector<T> const &x) {
-  if (!(x.size() < 0x3fffffff)) throw fmt_runtime_error("Unreasonable size %lu", (u_long)x.size());
+  if (!(x.size() < 0x3fffffff)) throw fmt_runtime_error("Unreasonable size %zu", x.size());
   p.add((uint32_t)x.size());
   for (size_t i=0; i<x.size(); i++) {
     p.add(x[i]);
@@ -448,6 +449,7 @@ void packet_rd_value(packet &p, arma::Col<T> &x) {
   uint32_t size;
   p.get(size);
   assert(size < 0x3fffffff);
+  // SECURITY: hmmm
   if (size > p.remaining() / sizeof(T)) throw packet_rd_overrun_err(size*sizeof(T) - p.remaining());
   x.set_size(size);
   for (size_t i=0; i<x.n_elem; i++) {
@@ -486,7 +488,8 @@ void packet_rd_value(packet &p, arma::Mat<T> &x) {
   p.get(n_cols);
   assert(n_rows < 0x3fffffff);
   assert(n_cols < 0x3fffffff);
-  if (n_rows * n_cols > p.remaining() / sizeof(T)) throw packet_rd_overrun_err(n_rows * n_cols * sizeof(T) - p.remaining());
+  // SECURITY: hmmm
+  if ((size_t)n_rows * (size_t)n_cols > (size_t)p.remaining() / sizeof(T)) throw packet_rd_overrun_err((size_t)n_rows * (size_t)n_cols * sizeof(T) - (size_t)p.remaining());
   x.set_size(n_rows, n_cols);
   for (size_t i=0; i<x.n_elem; i++) {
     p.get(x(i));
@@ -567,7 +570,7 @@ void packet_rd_value(packet &p, map<T1, T2> &x)
 
 // ----------------------------------------------------------------------
 
-typedef deque<packet> packet_queue;
+using packet_queue = deque<packet>;
 
 ostream & operator <<(ostream &s, packet const &it);
 

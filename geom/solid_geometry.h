@@ -7,6 +7,10 @@ struct StlMassProperties;
 struct OctreeNode {
   explicit OctreeNode(arma::vec3 const &_center, double _scale);
   ~OctreeNode();
+  OctreeNode(OctreeNode const &) = delete;
+  OctreeNode(OctreeNode &&) = delete;
+  OctreeNode & operator = (OctreeNode const &) = delete;
+  OctreeNode & operator = (OctreeNode &&) = delete;
 
   OctreeNode *lookup(arma::vec3 const &pt, double maxScale);
 
@@ -21,7 +25,6 @@ struct StlFace {
   StlFace();
   explicit StlFace(arma::vec3 const &_v0, arma::vec3 const &_v1, arma::vec3 const &_v2);
   explicit StlFace(arma::vec3 const &_v0, arma::vec3 const &_v1, arma::vec3 const &_v2, arma::vec3 const &_normal);
-  ~StlFace();
 
   void calcNormal();
 
@@ -60,7 +63,6 @@ struct StlWebglMesh {
 struct StlSolid {
 
   StlSolid();
-  ~StlSolid();
 
   void readBinaryFile(FILE *fp, double scale);
   void writeBinaryFile(FILE *fp, double scale);

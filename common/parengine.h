@@ -6,9 +6,8 @@
 struct ParEngine {
 
   explicit ParEngine(size_t _threadsAvail = 0, size_t _memAvail = 0)
-    :threadsUsed(0), threadsAvail(_threadsAvail),
-     memUsed(0), memAvail(_memAvail),
-     verbose(false)
+    :threadsAvail(_threadsAvail),
+     memAvail(_memAvail)
   {
     if (!threadsAvail) {
       threadsAvail = thread::hardware_concurrency();
@@ -20,12 +19,18 @@ struct ParEngine {
   ~ParEngine() {
     finish();
   }
+
+  ParEngine(ParEngine const &) = delete;
+  ParEngine(ParEngine &&) = delete;
+  ParEngine operator = (ParEngine const &) = delete;
+  ParEngine operator = (ParEngine &&) = delete;
+
   void push(thread &&it) {
     if (verbose) eprintf("ParEngine: start\n");
-    pending.push_back(std::move(it));
+    pending.emplace_back(std::move(it));
   }
   void finish() {
-    while (pending.size() > 0) {
+    while (!pending.empty()) {
       if (verbose) eprintf("ParEngine: join\n");
       pending.front().join();
       pending.pop_front();
@@ -34,9 +39,11 @@ struct ParEngine {
 
   mutex mtx;
   condition_variable readyCv;
-  size_t threadsUsed, threadsAvail;
-  size_t memUsed, memAvail;
-  bool verbose;
+  size_t threadsUsed { 0 };
+  size_t threadsAvail { 0 };
+  size_t memUsed { 0 };
+  size_t memAvail { 0 };
+  bool verbose { false };
 
   deque< thread > pending;
 
@@ -71,6 +78,11 @@ struct ParEngineRsv {
       owner->readyCv.notify_one();
     }
   }
+
+  ParEngineRsv(ParEngineRsv const &) = delete;
+  ParEngineRsv(ParEngineRsv &&) = delete;
+  ParEngineRsv operator = (ParEngineRsv const &) = delete;
+  ParEngineRsv operator = (ParEngineRsv &&) = delete;
 
   ParEngine *owner;
   size_t memNeeded;

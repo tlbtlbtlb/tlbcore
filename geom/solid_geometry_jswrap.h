@@ -3,15 +3,15 @@
 #include "build.src/vec_jsWrap.h"
 #include "./solid_geometry.h"
 
-typedef JsWrapGeneric< StlSolid > JsWrap_StlSolid;
+using JsWrap_StlSolid = JsWrapGeneric< StlSolid >;
 void jsConstructor_StlSolid(JsWrap_StlSolid *it, FunctionCallbackInfo<Value> const &args);
 Handle<Value> jsToJSON_StlSolid(Isolate *isolate, StlSolid const &it);
 
-typedef JsWrapGeneric< StlFace > JsWrap_StlFace;
+using JsWrap_StlFace = JsWrapGeneric< StlFace >;
 void jsConstructor_StlFace(JsWrap_StlFace *it, FunctionCallbackInfo<Value> const &args);
 Handle<Value> jsToJSON_StlFace(Isolate *isolate, StlFace const &it);
 
-typedef JsWrapGeneric< StlMassProperties > JsWrap_StlMassProperties;
+using JsWrap_StlMassProperties = JsWrapGeneric< StlMassProperties >;
 void jsConstructor_StlMassProperties(JsWrap_StlMassProperties *it, FunctionCallbackInfo<Value> const &args);
 Handle<Value> jsToJSON_StlMassProperties(Isolate *isolate, StlMassProperties const &it);
 

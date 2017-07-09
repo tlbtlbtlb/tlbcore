@@ -14,7 +14,7 @@ namespace v8 {
   template<typename T> class WeakCallbackInfo;
   class Isolate;
   class External;
-};
+}; // namespace v8
 
 struct AsyncEventQueueApi {
   virtual void start() = 0;
@@ -32,7 +32,10 @@ struct AsyncCallbacks {
   ~AsyncCallbacks()
   {
   }
-  AsyncCallbacks(AsyncCallbacks const &) = delete; // not sure how this should work
+  AsyncCallbacks(AsyncCallbacks const &) = delete;
+  AsyncCallbacks(AsyncCallbacks &&) = delete;
+  AsyncCallbacks & operator = (AsyncCallbacks const &) = delete;
+  AsyncCallbacks & operator = (AsyncCallbacks &&) = delete;
 
   std::once_flag implInitOnce;
   shared_ptr<struct AsyncEventQueueApi> impl;
@@ -58,7 +61,7 @@ struct AsyncCallbacks {
 
 };
 
-typedef std::function<void(jsonstr const &err, jsonstr const &result)> SyncCallbackFunction;
+using SyncCallbackFunction = std::function<void(jsonstr const &err, jsonstr const &result)>;
 
 void jsCallbackInvoke(v8::FunctionCallbackInfo<v8::Value> const &args);
 void jsCallbackCleanup(v8::WeakCallbackInfo<SyncCallbackFunction> const &args);

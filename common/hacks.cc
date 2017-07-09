@@ -80,9 +80,6 @@ die_exception::die_exception(char const *_message)
 {
 }
 
-die_exception::~die_exception()
-{
-}
 
 string die_exception::str() const
 {

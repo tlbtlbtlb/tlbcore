@@ -2,7 +2,7 @@
 
 template <typename F>
 struct JsCallback {
-  typedef JsCallback<F> selftype;
+  using selftype = JsCallback<F>;
   JsCallback(v8::Isolate *_isolate, std::function<F> const &_f)
   :isolate(_isolate), f(_f)
   {

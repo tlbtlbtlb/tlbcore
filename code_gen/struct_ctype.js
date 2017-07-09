@@ -209,7 +209,11 @@ StructCType.prototype.emitTypeDecl = function(f) {
   }
   if (type.needsDestructor()) {
     f(`
-      ~${ type.typename }();
+      ~${ type.typename }() override;
+      ${ type.typename }(${ type.typename } const &) = delete;
+      ${ type.typename }(${ type.typename } &&) = delete;
+      ${ type.typename } & operator = (${ type.typename } const &) = delete;
+      ${ type.typename } & operator = (${ type.typename } &&) = delete;
     `);
   }
 
@@ -875,7 +879,7 @@ StructCType.prototype.hasJsWrapper = function(f) {
 StructCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
   f(`
-    typedef JsWrapGeneric< ${ type.typename } > JsWrap_${ type.jsTypename };
+    using JsWrap_${ type.jsTypename } = JsWrapGeneric< ${ type.typename } >;
     void jsConstructor_${ type.jsTypename }(JsWrap_${ type.jsTypename } *it, FunctionCallbackInfo<Value> const &args);
     Handle<Value> jsToJSON_${ type.jsTypename }(Isolate *isolate, ${ type.typename } const &it);
   `);

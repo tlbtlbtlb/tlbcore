@@ -1,6 +1,6 @@
 // -*- C++ -*-
 #pragma once
-#include <ctype.h>
+#include <cctype>
 #include <armadillo>
 /*
   Define JSON mappings for C++ types, including the primitive types and containers. You can
@@ -23,7 +23,7 @@
 struct jsonblobs {
   jsonblobs()
   {
-    parts.push_back(make_pair((u_char *)nullptr, 0));
+    parts.emplace_back(make_pair((u_char *)nullptr, 0));
   }
   ~jsonblobs()
   {
@@ -32,24 +32,26 @@ struct jsonblobs {
       it.first(it.second);
     }
   }
-  jsonblobs(const jsonblobs &other) = delete;
-  jsonblobs & operator =(const jsonblobs &other) = delete;
+  jsonblobs(jsonblobs const &) = delete;
+  jsonblobs(jsonblobs &&) = delete;
+  jsonblobs & operator =(jsonblobs const &) = delete;
+  jsonblobs & operator =(jsonblobs &&) = delete;
 
   u_char *mkPart(size_t size, size_t &partno) {
     partno = parts.size();
-    u_char *ptr = new u_char[size];
-    freelist.push_back(make_pair(std::function<void(void *)>(&free), ptr));
-    parts.push_back(make_pair(ptr, size));
+    auto ptr = static_cast<u_char *>(malloc(size));
+    freelist.emplace_back(make_pair(std::function<void(void *)>(&free), ptr));
+    parts.emplace_back(make_pair(ptr, size));
     return ptr;
   }
   void addExternalPart(u_char *ptr, size_t size)
   {
-    parts.push_back(make_pair(ptr, size));
+    parts.emplace_back(make_pair(ptr, size));
   }
   void addExternalPart(u_char *ptr, size_t size, std::function<void(void *)> freefunc, void *freeptr)
   {
-    parts.push_back(make_pair(ptr, size));
-    freelist.push_back(make_pair(freefunc, freeptr));
+    parts.emplace_back(make_pair(ptr, size));
+    freelist.emplace_back(make_pair(freefunc, freeptr));
   }
 
   pair<u_char *, size_t> getPart(size_t partno) {
@@ -73,9 +75,10 @@ struct jsonstr {
   explicit jsonstr(const char *str);
   explicit jsonstr(const char *begin, const char *end);
 
-  jsonstr(jsonstr &&other) :it(std::move(other.it)), blobs(std::move(other.blobs)) {}
+  jsonstr(jsonstr &&other) noexcept = default; // :it(std::move(other.it)), blobs(std::move(other.blobs)) {}
   jsonstr(jsonstr const &other) = default;
   jsonstr & operator= (const jsonstr & other) = default;
+  jsonstr & operator= (jsonstr && other) noexcept = default;
   ~jsonstr();
 
   // Use this api to efficiently create a string of a given maximum size `n`. Write and advance
@@ -316,7 +319,7 @@ bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, vector<T *> &arr) {
   while (1) {
     jsonSkipSpace(s);
     if (*s == ']') break;
-    T *tmp = new T;
+    auto tmp = new T;
     if (!rdJson(s, blobs, *tmp)) return false;
     arr.push_back(tmp);
     jsonSkipSpace(s);
@@ -434,7 +437,7 @@ bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, map<KT, VT *> &arr) {
     if (*s != ':') return false;
     s++;
     jsonSkipSpace(s);
-    VT *vtmp = new VT;
+    auto vtmp = new VT;
     if (!rdJson(s, blobs, *vtmp)) return false;
     arr[ktmp] = vtmp;
 

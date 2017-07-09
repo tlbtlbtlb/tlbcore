@@ -22,6 +22,7 @@ packet_contents *packet::alloc_contents(size_t alloc)
 
 void packet::decref(packet_contents *&it)
 {
+  if (!it) return;
   stats.decref_count++;
 
   int newrefs;
@@ -92,15 +93,6 @@ void packet::reserve(size_t new_size)
 
     decref(old_contents);
   }
-}
-
-packet_annotations::packet_annotations()
-  :refcnt(0)
-{
-}
-
-packet_annotations::~packet_annotations()
-{
 }
 
 // ----------------------------------------------------------------------
@@ -711,16 +703,10 @@ packet_wr_overrun_err::packet_wr_overrun_err(int _howmuch)
    howmuch(_howmuch)
 {
 }
-packet_wr_overrun_err::~packet_wr_overrun_err() throw()
-{
-}
 
 packet_rd_overrun_err::packet_rd_overrun_err(int _howmuch)
   :runtime_error(stringprintf("Packet rd overrun by %d", _howmuch)),
    howmuch(_howmuch)
-{
-}
-packet_rd_overrun_err::~packet_rd_overrun_err() throw()
 {
 }
 
@@ -728,9 +714,6 @@ packet_rd_type_err::packet_rd_type_err(string const &_expected, string const &_g
   :runtime_error(stringprintf("Packet rd type error(expected %s, got %s)", _expected.c_str(), _got.c_str())),
    expected(_expected),
    got(_got)
-{
-}
-packet_rd_type_err::~packet_rd_type_err() throw()
 {
 }
 
