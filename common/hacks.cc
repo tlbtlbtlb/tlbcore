@@ -414,7 +414,7 @@ tmpfn::tmpfn()
   abort(); // WRITEME
 #else
   char buf[256];
-  strlcpy(buf, "/tmp/temp.XXXXXX", sizeof(buf));
+  strcpy(buf, "/tmp/temp.XXXXXX");
   fd = mkstemp(buf);
   *(string *)this = string(buf);
 #endif
