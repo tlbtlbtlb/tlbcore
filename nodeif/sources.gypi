@@ -9,6 +9,7 @@
     '../common/host_debug.cc',
     '../common/jsonio.cc',
     '../common/typeschema.cc',
+    '../common/parengine.cc',
     '../numerical/polyfit.cc',
     '../numerical/haltonseq.cc'
   ]
