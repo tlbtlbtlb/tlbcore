@@ -37,14 +37,14 @@ DECL_TYPES := \
 # See https://github.com/nodesource/distributions
 .PHONY: install.ubuntu install.npm install.brew
 install.ubuntu ::
-	curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
+	curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
 	sudo apt-get update
 	sudo apt-get -y install git make python-software-properties python g++ make software-properties-common curl pwgen
 	sudo apt-get -y install nodejs
-	sudo apt-get -y install liblapack-dev pkg-config cmake libopenblas-dev liblapack-dev libarpack2-dev libarmadillo-dev libzmq-dev
+	sudo apt-get -y install liblapack-dev pkg-config cmake libopenblas-dev liblapack-dev libarpack2-dev libarmadillo-dev
 
 install.brew ::
-	brew install rename zopfli ffmpeg trash node tree ack hub git zmq
+	brew install rename zopfli ffmpeg trash node tree ack hub git
 
 install.npm ::
 	sudo npm install -g underscore node-gyp jshint mocha uglify-js

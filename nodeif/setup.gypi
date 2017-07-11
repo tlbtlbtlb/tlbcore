@@ -20,7 +20,7 @@
         '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/libxml2'
       ],
       'libraries+': [
-        '-L/usr/local/lib', '-larmadillo', '-lz', '-lzmq'
+        '-L/usr/local/lib', '-larmadillo', '-lz',
       ]
     }, {
       'make_global_settings': [

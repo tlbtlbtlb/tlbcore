@@ -5,7 +5,7 @@
 #include <condition_variable>
 
 
-ParEngine::ParEngine(size_t _threadsAvail = 0, size_t _memAvail = 0)
+ParEngine::ParEngine(size_t _threadsAvail, size_t _memAvail)
   :threadsAvail(_threadsAvail),
    memAvail(_memAvail)
 {
@@ -40,12 +40,12 @@ ParEngineRsv::ParEngineRsv(ParEngine *_owner, size_t _memNeeded)
     unique_lock<mutex> lock(owner->mtx);
     while (owner->threadsUsed + 1 > owner->threadsAvail ||
            owner->memUsed + min(memNeeded, owner->memAvail) > owner->memAvail) {
-      if (owner->verbose) eprintf("ParEngine: wait (%lu + 1 > %lu || %lu + %lu > %lu)\n",
-                                  (u_long)owner->threadsUsed, (u_long)owner->threadsAvail,
-                                  (u_long)owner->memUsed, (u_long)memNeeded, owner->memAvail);
+      if (owner->verbose) eprintf("ParEngine: wait (%zu + 1 > %zu || %zu + %zu > %zu)\n",
+                                  owner->threadsUsed, owner->threadsAvail,
+                                  owner->memUsed, memNeeded, owner->memAvail);
       owner->readyCv.wait(lock);
     }
-    if (owner->verbose) eprintf("ParEngine: Allocate %lu\n", (u_long)memNeeded);
+    if (owner->verbose) eprintf("ParEngine: Allocate %zu\n", memNeeded);
     owner->threadsUsed += 1;
     owner->memUsed += memNeeded;
   }
@@ -54,7 +54,7 @@ ParEngineRsv::ParEngineRsv(ParEngine *_owner, size_t _memNeeded)
 ParEngineRsv::~ParEngineRsv() {
   if (owner) {
     unique_lock<mutex> lock(owner->mtx);
-    if (owner->verbose) eprintf("ParEngine: Release %lu\n", (u_long)memNeeded);
+    if (owner->verbose) eprintf("ParEngine: Release %zu\n", memNeeded);
     owner->threadsUsed -= 1;
     owner->memUsed -= memNeeded;
     owner->readyCv.notify_one();
