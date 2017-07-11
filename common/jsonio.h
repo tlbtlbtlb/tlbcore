@@ -236,6 +236,15 @@ template<typename T> void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, vector<
 template<typename T> bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, vector<T> &arr);
 template<typename T> bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, vector<T *> &arr);
 
+
+template<typename T> void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, deque<T> const &arr);
+template<typename T> void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, deque<T> const &arr);
+template<typename T> void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, deque<T *> const &arr);
+template<typename T> void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, deque<T *> const &arr);
+template<typename T> bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, deque<T> &arr);
+template<typename T> bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, deque<T *> &arr);
+
+
 template<typename KT, typename VT> void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, map<KT, VT> const &arr);
 template<typename KT, typename VT> void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, map<KT, VT> const &arr);
 template<typename KT, typename VT> bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, map<KT, VT> &arr);
@@ -336,6 +345,105 @@ bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, vector<T *> &arr) {
   s++;
   return true;
 }
+
+// deque<T> or deque<T *>
+
+template<typename T>
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, deque<T> const &arr) {
+  size += 2 + arr.size();
+  for (auto it = arr.begin(); it != arr.end(); it++) {
+    wrJsonSize(size, blobs, *it);
+  }
+}
+
+template<typename T>
+void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, deque<T> const &arr) {
+  *s++ = '[';
+  bool sep = false;
+  for (auto it = arr.begin(); it != arr.end(); it++) {
+    if (sep) *s++ = ',';
+    sep = true;
+    wrJson(s, blobs, *it);
+  }
+  *s++ = ']';
+}
+
+template<typename T>
+void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, deque<T *> const &arr) {
+  size += 2 + arr.size();
+  for (auto it = arr.begin(); it != arr.end(); it++) {
+    wrJsonSize(size, blobs, **it);
+  }
+}
+
+template<typename T>
+void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, deque<T *> const &arr) {
+  *s++ = '[';
+  bool sep = false;
+  for (auto it = arr.begin(); it != arr.end(); it++) {
+    if (sep) *s++ = ',';
+    sep = true;
+    wrJson(s, blobs, **it);
+  }
+  *s++ = ']';
+}
+
+template<typename T>
+bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, deque<T> &arr) {
+  jsonSkipSpace(s);
+  if (*s != '[') return false;
+  s++;
+  arr.clear();
+  while (1) {
+    jsonSkipSpace(s);
+    if (*s == ']') break;
+    T tmp;
+    if (!rdJson(s, blobs, tmp)) return false;
+    arr.push_back(tmp);
+    jsonSkipSpace(s);
+    if (*s == ',') {
+      s++;
+    }
+    else if (*s == ']') {
+      break;
+    }
+    else {
+      return false;
+    }
+  }
+  s++;
+  return true;
+}
+
+// Read a deque of T*, by calling tmp=new T, then rdJson(..., *tmp)
+template<typename T>
+bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, deque<T *> &arr) {
+  jsonSkipSpace(s);
+  if (*s != '[') return false;
+  s++;
+  arr.clear();
+  while (1) {
+    jsonSkipSpace(s);
+    if (*s == ']') break;
+    auto tmp = new T;
+    if (!rdJson(s, blobs, *tmp)) return false;
+    arr.push_back(tmp);
+    jsonSkipSpace(s);
+    if (*s == ',') {
+      s++;
+    }
+    else if (*s == ']') {
+      break;
+    }
+    else {
+      return false;
+    }
+  }
+  s++;
+  return true;
+}
+
+
 
 
 // Json - map<KT, VT> and map<KT, VT *>

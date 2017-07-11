@@ -281,7 +281,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
   f.emitJsNew();
 
-  if (type.templateName === 'vector') {
+  if (type.templateName === 'vector' || type.templateName === 'deque') {
     f.emitJsConstructor(function(f) {
       f.emitArgSwitch([
         {args: [], code: function(f) {
@@ -503,7 +503,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         EscapableHandleScope scope(isolate);
     `);
 
-    if (type.templateName === 'vector') {
+    if (type.templateName === 'vector' || type.templateName === 'deque') {
       f(`
         Local<Array> ret = Array::New(isolate, it.size());
         for (size_t i=0; i<it.size(); i++) {
@@ -742,6 +742,8 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         `);
       }
     });
+  }
+  if (type.templateName === 'vector' || type.templateName === 'deque') {
 
     f.emitJsMethod('pushBack', function() {
       f.emitArgSwitch([
@@ -758,6 +760,41 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         {args: [], code: function(f) {
           f(`
             thisObj->it->clear();
+          `);
+        }}
+      ]);
+    });
+  }
+  if (type.templateName === 'deque') {
+    f.emitJsMethod('pushFront', function() {
+      f.emitArgSwitch([
+        {args: [type.templateArgTypes[0]], code: function(f) {
+          f(`
+            thisObj->it->push_front(a0);
+          `);
+        }}
+      ]);
+    });
+    f.emitJsMethod('popFront', function() {
+      f.emitArgSwitch([
+        {args: [], code: function(f) {
+          f(`
+            if (!thisObj->it->empty()) {
+              args.GetReturnValue().Set(thisObj->it->front());
+              thisObj->it->pop_front();
+            }
+          `);
+        }}
+      ]);
+    });
+    f.emitJsMethod('popBack', function() {
+      f.emitArgSwitch([
+        {args: [], code: function(f) {
+          f(`
+            if (!thisObj->it->empty()) {
+              args.GetReturnValue().Set(thisObj->it->back());
+              thisObj->it->pop_back();
+            }
           `);
         }}
       ]);
