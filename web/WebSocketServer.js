@@ -123,7 +123,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     handlers.remoteLabel = handlers.label = wsr.remoteLabel;
     handlers.rpc = function(method /* ... */) {
       if (arguments.length < 2) throw new Error('rpc: bad args');
-      var id = pending.getnewId();
+      var id = pending.getNewId();
       var cb = arguments[arguments.length - 1];
       var params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
       pending.add(id, cb);
