@@ -119,7 +119,11 @@ jsonstr convJsToJsonstr(Isolate *isolate, Local<Value> value)
   assert(gStringify->IsFunction() && "not a function: JSON.stringify");
   Local<Function> gJSON_stringify = gStringify.As<Function>();
 
-  return jsonstr(convJsToString(isolate, gJSON_stringify->Call(gJSON, 1, &value)->ToString()));
+  Local<Value> str = gJSON_stringify->Call(gJSON, 1, &value);
+  if (str.IsEmpty()) {
+    return jsonstr("undefined");
+  }
+  return jsonstr(convJsToString(isolate, str));
 }
 
 Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it)
