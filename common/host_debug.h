@@ -97,5 +97,13 @@ extern FILE *debug_tslog;
     _etsprintf(__VA_ARGS__);                                  \
   } while (0)
 
-
+#ifdef __cplusplus
 runtime_error uv_error(string const &context, int rc);
+
+struct WarningFilter {
+  unordered_map<string, size_t> warningCount;
+  bool operator ()(string const &name);
+};
+
+
+#endif
