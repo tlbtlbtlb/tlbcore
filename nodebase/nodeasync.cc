@@ -11,8 +11,7 @@ struct AsyncEventQueueImpl : AsyncEventQueueApi {
   AsyncEventQueueImpl(AsyncCallbacks *_owner);
   ~AsyncEventQueueImpl();
 
-  void start();
-  void push(string const &eventName, jsonstr const &it);
+  void async_emit(string const &eventName, jsonstr const &it);
   void deliver_queued();
   void on(string const &eventName, Local<Value> cb);
 
@@ -20,7 +19,8 @@ struct AsyncEventQueueImpl : AsyncEventQueueApi {
   void sync_emit(string const &eventName);
 
   AsyncCallbacks *owner;
-  uv_async_t uva;
+  uv_loop_t *loop {nullptr};
+  uv_async_t *uva {nullptr};
   std::mutex qMutex;
   deque< pair<string, jsonstr> > q;
   std::unordered_map< string, vector< shared_ptr< Persistent<Function> > > > nameToCbs;
@@ -32,12 +32,22 @@ void AsyncCallbacks::on(string const &eventName, Local<Value> _onMessage)
 {
   call_once(implInitOnce, [this]() {
     impl = make_shared<AsyncEventQueueImpl>(this);
-    impl->start();
   });
   impl->on(eventName, _onMessage);
 }
 
 
+void AsyncCallbacks::async_emit(string const &eventName, jsonstr const &it) {
+  if (impl) {
+    impl->async_emit(eventName, it);
+  }
+}
+
+void AsyncCallbacks::sync_emit(string const &eventName) {
+  if (impl) {
+    impl->sync_emit(eventName);
+  }
+}
 
 void AsyncCallbacks::sync_emit(string const &eventName, Local<Value> arg)
 {
@@ -50,37 +60,30 @@ void AsyncCallbacks::sync_emit(string const &eventName, Local<Value> arg)
 // -----------------------
 
 AsyncEventQueueImpl::AsyncEventQueueImpl(AsyncCallbacks *_owner)
-  :owner(_owner)
+ :owner(_owner),
+  loop(uv_default_loop())
 {
   if (0) eprintf("AsyncEventQueueImpl constructor\n");
-  uva.data = nullptr;
+
+  uva = new uv_async_t;
+  uva->data = this;
+
+  uv_async_init(loop, uva, [](uv_async_t* uva1) {
+    auto self = reinterpret_cast<AsyncEventQueueImpl*>(uva1->data);
+    self->deliver_queued();
+  });
+  uv_unref(reinterpret_cast<uv_handle_t *>(uva));
 }
 
 AsyncEventQueueImpl::~AsyncEventQueueImpl()
 {
   if (1) eprintf("AsyncEventQueueImpl destructor\n");
-  if (uva.data) {
-    uva.data = nullptr;
-    uv_close((uv_handle_t *)&uva, [](uv_handle_t *uva1) {
-      if (1) eprintf("AsyncEventQueueImpl destructor close callback\n");
-      // ???
-    });
-  }
-  owner = nullptr;
-}
-
-void AsyncEventQueueImpl::start()
-{
-  assert(uva.data == nullptr);
-
-  uva.data = (void *)this;
-  uv_loop_t *loop = uv_default_loop();
-
-  uv_async_init(loop, &uva, [](uv_async_t* uva1) {
-    auto self = reinterpret_cast<AsyncEventQueueImpl*>(uva1->data);
-    self->deliver_queued();
+  uv_close(reinterpret_cast<uv_handle_t *>(uva), [](uv_handle_t *uva1) {
+    if (1) eprintf("AsyncEventQueueImpl destructor close callback\n");
+    delete reinterpret_cast<uv_async_t *>(uva1);
   });
-  uv_unref((uv_handle_t *)&uva);
+  uva = nullptr;
+  owner = nullptr;
 }
 
 void AsyncEventQueueImpl::deliver_queued()
@@ -158,10 +161,10 @@ void AsyncEventQueueImpl::on(string const &eventName, Local<Value> cb)
   nameToCbs[eventName].push_back(cbPersistent);
 }
 
-void AsyncEventQueueImpl::push(string const &eventName, jsonstr const &json)
+void AsyncEventQueueImpl::async_emit(string const &eventName, jsonstr const &json)
 {
   unique_lock<mutex> lock(qMutex);
   q.push_back(make_pair(eventName, json));
   lock.unlock();
-  uv_async_send(&uva);
+  uv_async_send(uva);
 }

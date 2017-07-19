@@ -17,8 +17,7 @@ namespace v8 {
 }; // namespace v8
 
 struct AsyncEventQueueApi {
-  virtual void start() = 0;
-  virtual void push(string const &eventName, jsonstr const &it) = 0;
+  virtual void async_emit(string const &eventName, jsonstr const &it) = 0;
   virtual void deliver_queued() = 0;
   virtual void sync_emit(string const &eventName, v8::Local<v8::Value> arg) = 0;
   virtual void sync_emit(string const &eventName) = 0;
@@ -40,21 +39,8 @@ struct AsyncCallbacks {
   std::once_flag implInitOnce;
   shared_ptr<struct AsyncEventQueueApi> impl;
 
-  template<typename T>
-  void async_emit(string const &eventName, T const &it) {
-    async_emit_raw(eventName, asJson(it));
-  }
-  void async_emit_raw(string const &eventName, jsonstr const &it) {
-    if (impl) {
-      impl->push(eventName, it);
-    }
-  }
-
-  void sync_emit(string const &eventName) {
-    if (impl) {
-      impl->sync_emit(eventName);
-    }
-  }
+  void async_emit(string const &eventName, jsonstr const &it);
+  void sync_emit(string const &eventName);
   void sync_emit(string const &eventName, v8::Local<v8::Value> arg);
 
   void on(string const &eventName, v8::Local<v8::Value> _onMessage);
