@@ -31,7 +31,7 @@
         '/usr/include/libxml2'
       ],
       'libraries+': [
-        '-L/usr/local/lib', '-larmadillo', '-lz', '-lzmq'
+        '-L/usr/local/lib', '-larmadillo', '-lz',
       ],
       'cflags_cc!': [
         '-fno-rtti', '-fno-exceptions', '-fno-tree-vrp'
