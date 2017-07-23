@@ -85,7 +85,7 @@ function mkCodeGen(filename, subs) {
     }
 
     fs.writeFileSync(filename, fullContentsStr, 'utf8');
-    console.log('Wrote ' + filename);
+    if (0) console.log('Wrote ' + filename);
   }
 
   function hProtect(expContents) {
