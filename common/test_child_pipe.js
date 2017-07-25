@@ -18,7 +18,7 @@ if (0) describe('ChildPipe.sshify', function() {
 
 });
 
-var tlbcoreDir = path.dirname(path.dirname(require.resolve('./child_pipe')))
+var tlbcoreDir = path.dirname(__dirname);
 
 describe('ChildPipe', function() {
   it('should work', function(done) {
