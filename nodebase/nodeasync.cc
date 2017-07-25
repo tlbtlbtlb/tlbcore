@@ -23,7 +23,7 @@ struct AsyncEventQueueImpl : AsyncEventQueueApi {
   uv_async_t *uva {nullptr};
   std::mutex qMutex;
   deque< pair<string, jsonstr> > q;
-  std::unordered_map< string, vector< shared_ptr< Persistent<Function> > > > nameToCbs;
+  std::unordered_map< string, vector< shared_ptr< Persistent<Function, CopyablePersistentTraits<Function> > > > > nameToCbs;
 };
 
 
@@ -111,9 +111,8 @@ void AsyncEventQueueImpl::deliver_queued()
     lock.unlock();
 
     for (auto &cb : cbs) {
-      Local<Function> cbLocal = Local<Function>::New(isolate, *cb);
       // WRITEME: should we handle blobs somewhere?
-      cbLocal->Call(recvLocal, 1, &jsMsg);
+      cb->Get(isolate)->Call(recvLocal, 1, &jsMsg);
     }
   }
 }
@@ -128,9 +127,8 @@ void AsyncEventQueueImpl::sync_emit(string const &eventName, Local<Value> arg)
   auto &cbs = nameToCbs[eventName];
 
   for (auto &cb : cbs) {
-    Local<Function> cbLocal = Local<Function>::New(isolate, *cb);
     // WRITEME: should we handle blobs somewhere?
-    cbLocal->Call(recvLocal, 1, &arg);
+    cb->Get(isolate)->Call(recvLocal, 1, &arg);
   }
 }
 
@@ -144,8 +142,7 @@ void AsyncEventQueueImpl::sync_emit(string const &eventName)
   auto &cbs = nameToCbs[eventName];
 
   for (auto &cb : cbs) {
-    Local<Function> cbLocal = Local<Function>::New(isolate, *cb);
-    cbLocal->Call(recvLocal, 0, nullptr);
+    cb->Get(isolate)->Call(recvLocal, 0, nullptr);
   }
 }
 
@@ -155,10 +152,9 @@ void AsyncEventQueueImpl::on(string const &eventName, Local<Value> cb)
   Isolate *isolate = Isolate::GetCurrent();
   HandleScope scope(isolate);
 
-  shared_ptr< Persistent<Function> > cbPersistent = make_shared< Persistent<Function> >();
-  cbPersistent->Reset(isolate, Local<Function>::Cast(cb));
   unique_lock<mutex> lock(qMutex);
-  nameToCbs[eventName].push_back(cbPersistent);
+  nameToCbs[eventName].push_back(make_shared< Persistent<Function, CopyablePersistentTraits<Function> > >(isolate, Local<Function>::Cast(cb)));
+
 }
 
 void AsyncEventQueueImpl::async_emit(string const &eventName, jsonstr const &json)
