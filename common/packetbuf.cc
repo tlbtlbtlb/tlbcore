@@ -699,19 +699,19 @@ void packet::clear_stats()
 // ----------------------------------------------------------------------
 
 packet_wr_overrun_err::packet_wr_overrun_err(int _howmuch)
-  :runtime_error(string("Packet wr overrun by ") + to_string(_howmuch)),
+  :overflow_error(string("Packet wr overrun by ") + to_string(_howmuch)),
    howmuch(_howmuch)
 {
 }
 
 packet_rd_overrun_err::packet_rd_overrun_err(int _howmuch)
-  :runtime_error(string("Packet rd overrun by ")+ to_string(_howmuch)),
+  :overflow_error(string("Packet rd overrun by ")+ to_string(_howmuch)),
    howmuch(_howmuch)
 {
 }
 
 packet_rd_type_err::packet_rd_type_err(string const &_expected, string const &_got)
-  :runtime_error(string("Packet rd type error(expected ") + _expected + string(", got ") + _got + string(")")),
+  :invalid_argument(string("Packet rd type error(expected ") + _expected + string(", got ") + _got + string(")")),
    expected(_expected),
    got(_got)
 {

@@ -76,17 +76,17 @@ struct packet_annotations {
 
 // ----------------------------------------------------------------------
 
-struct packet_wr_overrun_err : runtime_error {
+struct packet_wr_overrun_err : overflow_error {
   explicit packet_wr_overrun_err(int _howmuch);
   int howmuch;
 };
 
-struct packet_rd_overrun_err : runtime_error {
+struct packet_rd_overrun_err : overflow_error {
   explicit packet_rd_overrun_err(int _howmuch);
   int howmuch;
 };
 
-struct packet_rd_type_err : runtime_error {
+struct packet_rd_type_err : invalid_argument {
   explicit packet_rd_type_err(string const &_expected, string const &_got);
   string expected;
   string got;

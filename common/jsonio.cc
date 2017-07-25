@@ -887,9 +887,11 @@ template<typename T>
 void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, arma::Col<T> const &arr) {
   if (blobs) {
     size_t partno = 0;
-    u_char *partp = blobs->mkPart(arr.n_elem * sizeof(arr[0]), partno);
+    if (!((size_t)arr.n_elem < numeric_limits<size_t>::max() / sizeof(arr[0]))) throw overflow_error("wrJson<arma::Col>");
+    size_t arr_bytes = (size_t)arr.n_elem * sizeof(arr[0]);
+    u_char *partp = blobs->mkPart(arr_bytes, partno);
     ndarray rep(partno, ndarray_dtype(arr[0]), vector<U64>({arr.n_elem}));
-    memcpy(partp, arr.memptr(), arr.n_elem * sizeof(arr[0]));
+    memcpy(partp, arr.memptr(), arr_bytes);
     wrJson(s, blobs, rep);
   } else {
     *s++ = '[';
@@ -930,6 +932,7 @@ bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, arma::Col<T> &arr) {
     // set_size will throw a logic_error if we're reading to a fixed_sized arma::Col and the size is wrong
     // If I could figure out how to tell whether the type is fixed or not, I could check for it and return
     // false instead.
+    if (!(tmparr.size() < (size_t)numeric_limits<int>::max())) throw length_error("rdJson<arma::Col>");
     arr.set_size(tmparr.size());
     for (size_t i=0; i < tmparr.size(); i++) {
       arr(i) = tmparr[i];
@@ -942,8 +945,10 @@ bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, arma::Col<T> &arr) {
     arr.set_size(rep.shape[0]);
     string arr_dtype = ndarray_dtype(arr[0]);
     auto partdata = blobs->getPart(rep.partno);
-    if (arr_dtype == rep.dtype && partdata.second == arr.n_elem * sizeof(arr[0])) {
-      memcpy(arr.memptr(), partdata.first, arr.n_elem * sizeof(arr[0]));
+    if ((size_t)arr.n_elem > (size_t)numeric_limits<int>::max() / sizeof(arr[0])) throw length_error("rdJson<arma::Col>");
+    size_t arr_bytes = (size_t)arr.n_elem * sizeof(arr[0]);
+    if (arr_dtype == rep.dtype && partdata.second == arr_bytes) {
+      memcpy(arr.memptr(), partdata.first, arr_bytes);
       return true;
     }
     else {
@@ -1004,6 +1009,7 @@ bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, arma::Row<T> &arr) {
     }
   }
   s++;
+  if (!(tmparr.size() < (size_t)numeric_limits<int>::max())) throw overflow_error("rdJson<arma::Row>");
   arr.set_size(tmparr.size());
   for (size_t i=0; i < tmparr.size(); i++) {
     arr(i) = tmparr[i];

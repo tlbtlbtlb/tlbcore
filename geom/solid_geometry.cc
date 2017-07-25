@@ -646,9 +646,10 @@ StlWebglMesh StlSolid::exportWebglMesh(double eps) const
 
   size_t nFaces = faces.size();
   StlWebglMesh ret;
-  ret.coords.resize(nFaces * size_t{9});
-  ret.normals.resize(nFaces * size_t{9});
-  ret.indexes.resize(nFaces * size_t{3});
+  assert(nFaces < numeric_limits<size_t>::max()/9);
+  ret.coords.resize(nFaces * 9);
+  ret.normals.resize(nFaces * 9);
+  ret.indexes.resize(nFaces * 3);
   size_t coordi = 0;
   size_t indexi = 0;
 
