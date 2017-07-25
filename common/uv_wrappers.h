@@ -7,14 +7,14 @@ struct UvWork {
   {
     work.data = this;
     uv_queue_work(uv_default_loop(), &work, [](uv_work_t *req) {
-      UvWork *self = reinterpret_cast<UvWork *>(req->data);
+      auto self = reinterpret_cast<UvWork *>(req->data);
       try {
         self->result = self->body();
       } catch(exception const &ex) {
         self->error = ex.what();
       };
     }, [](uv_work_t *req, int status) {
-      UvWork *self = reinterpret_cast<UvWork *>(req->data);
+      auto self = reinterpret_cast<UvWork *>(req->data);
       if (status != 0) {
         self->done(uv_error("uv_queue_work", status).what(), self->result);
       }
@@ -35,4 +35,42 @@ struct UvWork {
   {
     new UvWork<RESULT>(body, done);
   }
+};
+
+
+struct UvAsyncQueue {
+  UvAsyncQueue(uv_loop_t *_loop)
+    :loop(_loop)
+  {
+    async = new uv_async_t {};
+    async->data = this;
+    uv_async_init(loop, async, [](uv_async_t *req) {
+      auto self = reinterpret_cast<UvAsyncQueue *>(req->data);
+      while (true) {
+        std::unique_lock<std::mutex> lock(self->workQueueMutex);
+        if (self->workQueue.empty()) break;
+        auto f = self->workQueue.front();
+        self->workQueue.pop_front();
+        lock.unlock();
+        f();
+      }
+    });
+  }
+  ~UvAsyncQueue() {
+    uv_close(reinterpret_cast<uv_handle_t *>(async), [](uv_handle_t *async1) {
+      delete reinterpret_cast<uv_async_t *>(async1);
+    });
+  }
+
+  void push(std::function<void()> const &f) {
+    std::unique_lock<std::mutex> lock(workQueueMutex);
+    workQueue.push_back(f);
+    uv_async_send(async);
+  }
+
+  std::mutex workQueueMutex;
+  deque<std::function<void()> > workQueue;
+
+  uv_loop_t *loop;
+  uv_async_t *async;
 };
