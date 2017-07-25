@@ -64,7 +64,7 @@ CType.prototype.getSchema = function() {
   return {typename: this.jsTypename, hasArrayNature: this.hasArrayNature(), members: this.getMembers()};
 };
 
-CType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerExpr) {
+CType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
   throw new Error('no ValueNew for ' + type.typename);
 };

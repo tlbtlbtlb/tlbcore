@@ -236,14 +236,11 @@ CollectionCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   return ret;
 };
 
-CollectionCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerExpr) {
+CollectionCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
 
-  if (parentExpr) {
-    return `JsWrap_${ type.jsTypename }::MemberInstance(isolate, ${ parentExpr }, &(${ valueExpr }))`;
-  }
-  else if (ownerExpr) {
-    return `JsWrap_${ type.jsTypename }::DependentInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
+  if (ownerExpr) {
+    return `JsWrap_${ type.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
   }
   else {
     return `JsWrap_${ type.jsTypename }::NewInstance(isolate, ${ valueExpr })`;
@@ -570,7 +567,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         f(`
           ${ type.typename }::iterator iter = thisObj->it->find(key);
           if (iter == thisObj->it->end()) return;
-          args.GetReturnValue().Set(Local<Value>(${ type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisObj->it') }));
+          args.GetReturnValue().Set(Local<Value>(${ type.reg.types[type.templateArgs[1]].getCppToJsExpr('&iter->second', 'thisObj->it') }));
         `);
       },
       set: function(f) {
@@ -628,7 +625,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
           if (index >= thisObj->it->n_elem) {
             return args.GetReturnValue().Set(Undefined(isolate));
           }
-          args.GetReturnValue().Set(${elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it')});
+          args.GetReturnValue().Set(${elType.getCppToJsExpr('&(*thisObj->it)(index)', 'thisObj->it')});
         `);
       },
       set: function(f) {
@@ -669,7 +666,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: ['U32'], code: function(f) {
           f(`
-            args.GetReturnValue().Set(${ type.reg.getType(`arma::subview_row<${ type.templateArgs[0] }>`).getCppToJsExpr(`thisObj->it->row(a0)`, null, `args.This()`) });
+            args.GetReturnValue().Set(${ type.reg.getType(`arma::subview_row<${ type.templateArgs[0] }>`).getCppToJsExpr(`thisObj->it->row(a0)`, `thisObj->it`) });
           `);
         }}
       ]);
@@ -679,7 +676,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: ['U32'], code: function(f) {
           f(`
-            args.GetReturnValue().Set(${ type.reg.getType(`arma::subview_col<${ type.templateArgs[0] }>`).getCppToJsExpr(`thisObj->it->col(a0)`, null, `args.This()`) });
+            args.GetReturnValue().Set(${ type.reg.getType(`arma::subview_col<${ type.templateArgs[0] }>`).getCppToJsExpr(`thisObj->it->col(a0)`, `thisObj->it`) });
           `);
         }}
       ]);
@@ -691,7 +688,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
           if (index >= thisObj->it->n_elem) {
             args.GetReturnValue().Set(Undefined(isolate));
           }
-          args.GetReturnValue().Set(${ elType.getCppToJsExpr('(*thisObj->it)(index)', 'thisObj->it') });
+          args.GetReturnValue().Set(${ elType.getCppToJsExpr('&(*thisObj->it)(index)', 'thisObj->it') });
         `);
       },
       set: function(f) {
@@ -725,7 +722,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
           if (index > thisObj->it->size()) {
             args.GetReturnValue().Set(Undefined(isolate));
           }
-          args.GetReturnValue().Set(${ type.reg.types[type.templateArgs[0]].getCppToJsExpr('(*thisObj->it)[index]', 'thisObj->it') });
+          args.GetReturnValue().Set(${ type.reg.types[type.templateArgs[0]].getCppToJsExpr('&(*thisObj->it)[index]', 'thisObj->it') });
         `);
       },
       set: function(f) {

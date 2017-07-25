@@ -183,8 +183,9 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   }
 };
 
-PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerExpr) {
+PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
+  if (ownerExpr && valueExpr.startsWith('&')) valueExpr = valueExpr.substr(1);
   switch (type.typename) {
   case 'S32':
   case 'S64':

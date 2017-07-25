@@ -105,9 +105,9 @@ StructCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
 
   if (ownerExpr) {
-    return 'JsWrap_' + type.jsTypename + '::MemberInstance(isolate, ' + ownerExpr + ', &(' + valueExpr + '))';
+    return `JsWrap_${ type.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
   } else {
-    return 'JsWrap_' + type.jsTypename + '::NewInstance(isolate, ' + valueExpr + ')';
+    return `JsWrap_${ type.jsTypename }::NewInstance(isolate, ${ valueExpr })`;
   }
 };
 
@@ -1101,7 +1101,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsAccessors(name, {
       get: function(f) {
         f(`
-          args.GetReturnValue().Set(Local<Value>(${ memberType.getCppToJsExpr((memberType.isPtr() ? '*' : '') + `thisObj->it->${ name }`, 'thisObj->it')}));
+          args.GetReturnValue().Set(Local<Value>(${ memberType.getCppToJsExpr(`${memberType.isPtr() ? '' : '&'}thisObj->it->${ name }`, 'thisObj->it')}));
         `);
       },
       set: function(f) {

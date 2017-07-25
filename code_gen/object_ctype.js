@@ -62,13 +62,10 @@ ObjectCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   return `JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr })`;
 };
 
-ObjectCType.prototype.getCppToJsExpr = function(valueExpr, parentExpr, ownerExpr) {
+ObjectCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
-  if (parentExpr) {
-    return `JsWrap_${ type.jsTypename }::MemberInstance(isolate, ${ parentExpr }, &(${ valueExpr }))`;
-  }
-  else if (ownerExpr) {
-    return `JsWrap_${ type.jsTypename }::DependentInstance(isolate, ${ ownerExpr }, &(${ valueExpr }))`;
+  if (ownerExpr) {
+    return `JsWrap_${ type.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
   }
   else {
     return `JsWrap_${ type.jsTypename }::NewInstance(isolate, ${ valueExpr })`;

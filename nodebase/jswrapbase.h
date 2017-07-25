@@ -92,10 +92,16 @@ struct JsWrapGeneric : node::ObjectWrap {
   {
   }
 
-  JsWrapGeneric(Isolate *_isolate, shared_ptr<CONTENTS> _it)
+  JsWrapGeneric(Isolate *_isolate, shared_ptr<CONTENTS> const &_it)
     :it(_it)
   {
   }
+
+  JsWrapGeneric(Isolate *_isolate, shared_ptr<CONTENTS> const &_it, shared_ptr<CONTENTS> const &_owner)
+    :it(_it), owner(_owner)
+  {
+  }
+
 
   JsWrapGeneric(JsWrapGeneric const &) = delete;
   JsWrapGeneric(JsWrapGeneric &&) = delete;
@@ -122,8 +128,15 @@ struct JsWrapGeneric : node::ObjectWrap {
   {
   }
 
+  /*
+    If this is a standalone object, .it is a simple shared_ptr to it.
+    If this is a part of a composite object, then .it is a shared_ptr with the owner field set to the parent
+    If this is an object that's allocated on its own but which has pointers to another object (such as with arma::row)
+    then .it is a simple shared_ptr and .owner is a nullptr with the owner set to the parent.
+  */
+
   shared_ptr<CONTENTS> it;
-  Persistent<Value> owner;
+  shared_ptr<CONTENTS> owner;
 
   template<typename... Args>
   static Local<Value> NewInstance(Isolate *isolate, Args &&... _args) {
@@ -133,60 +146,77 @@ struct JsWrapGeneric : node::ObjectWrap {
       if (1) eprintf("NewInstance: no constructor\n");
       return scope.Escape(Undefined(isolate));
     }
-    Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
+    Local<Function> localConstructor = constructor.Get(isolate);
     Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
       if (1) eprintf("NewInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
     auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->assignConstruct(std::forward<Args>(_args)...);
+    w->it = make_shared<CONTENTS>(std::forward<Args>(_args)...);
     return scope.Escape(instance);
   }
 
   static Local<Value> NewInstance(Isolate *isolate, shared_ptr<CONTENTS> _it) {
     EscapableHandleScope scope(isolate);
-    Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
+    Local<Function> localConstructor = constructor.Get(isolate);
     Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
       if (1) eprintf("NewInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
     auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->assign(_it);
+    w->it = _it;
     return scope.Escape(instance);
   }
 
   template<class OWNER>
-  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr<OWNER> _parent, CONTENTS *_ptr) {
+  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr<OWNER> _owner, CONTENTS *_ptr) {
     EscapableHandleScope scope(isolate);
-    Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
+    Local<Function> localConstructor = constructor.Get(isolate);
     Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
       if (1) eprintf("MemberInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
     auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->assign(shared_ptr<CONTENTS>(_parent, _ptr));
+    w->it = shared_ptr<CONTENTS>(_owner, _ptr);
     return scope.Escape(instance);
   }
 
-  static Local<Value> DependentInstance(Isolate *isolate, Local<Value> _owner, CONTENTS const &_contents) {
+  template<class OWNER>
+  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr<OWNER> _owner, CONTENTS const &_contents) {
     EscapableHandleScope scope(isolate);
-    Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
+    Local<Function> localConstructor = constructor.Get(isolate);
     Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
-      if (1) eprintf("DependentInstance: constructor failed, instance is empty\n");
+      if (1) eprintf("MemberInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
     auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->assignConstruct(_contents);
-    w->owner.Reset(isolate, _owner);
+    w->it = make_shared<CONTENTS>(_contents);
+    w->owner = shared_ptr<CONTENTS>(_owner, nullptr);
     return scope.Escape(instance);
   }
 
+  template<class OWNER>
+  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr<OWNER> _owner, shared_ptr<CONTENTS> const &_contents) {
+    EscapableHandleScope scope(isolate);
+    Local<Function> localConstructor = constructor.Get(isolate);
+    Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
+    if (instance.IsEmpty()) {
+      if (1) eprintf("MemberInstance: constructor failed, instance is empty\n");
+      return scope.Escape(Undefined(isolate));
+    }
+    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    w->it = _contents;
+    w->owner = shared_ptr<CONTENTS>(_owner, nullptr);
+    return scope.Escape(instance);
+  }
+
+
   static shared_ptr<CONTENTS> Extract(Isolate *isolate, Local<Value> value) {
-    Local<Function> localConstructor = Local<Function>::New(isolate, constructor);
+    Local<Function> localConstructor = constructor.Get(isolate);
     if (value->IsObject()) {
       Local<Object> valueObject = value->ToObject();
       Local<String> valueTypeName = valueObject->GetConstructorName();
