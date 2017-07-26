@@ -24,6 +24,11 @@ struct UvWork {
       delete self;
     });
   }
+  UvWork(UvWork const &) = delete;
+  UvWork(UvWork &&) = delete;
+  UvWork & operator = (UvWork const &) = delete;
+  UvWork & operator = (UvWork &&) = delete;
+
 
   std::function<RESULT()> body;
   std::function<void(string const &error, RESULT const &result)> done;
@@ -61,6 +66,10 @@ struct UvAsyncQueue {
       delete reinterpret_cast<uv_async_t *>(async1);
     });
   }
+  UvAsyncQueue(UvAsyncQueue const &) = delete;
+  UvAsyncQueue(UvAsyncQueue &&) = delete;
+  UvAsyncQueue & operator = (UvAsyncQueue const &) = delete;
+  UvAsyncQueue & operator = (UvAsyncQueue &&) = delete;
 
   void push(std::function<void()> const &f) {
     std::unique_lock<std::mutex> lock(workQueueMutex);
