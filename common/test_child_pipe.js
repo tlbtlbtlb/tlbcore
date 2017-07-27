@@ -23,7 +23,7 @@ var tlbcoreDir = path.dirname(__dirname);
 describe('ChildPipe', function() {
   it('should work', function(done) {
 
-    var cp1 = new child_pipe.ChildJsonPipe('python', [path.join(tlbcoreDir, 'common/child_pipe_test_slave.py')], {}, {nChildren: 3, verbose: 0});
+    var cp1 = new child_pipe.ChildJsonPipe('python3', [path.join(tlbcoreDir, 'common/child_pipe_test_slave.py')], {}, {nChildren: 3, verbose: 0});
     var cp2 = new child_pipe.ChildJsonPipe('node', [path.join(tlbcoreDir, 'common/child_pipe_test_slave.js')], {}, {nChildren: 2, verbose: 0});
     async.each([cp1, cp2], function(cp, done1) {
       cp.handshake(function(err) {
