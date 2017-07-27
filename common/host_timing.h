@@ -1,5 +1,4 @@
 #pragma once
-
 /*
   Although the internal data structures are in moments, everything in the API is in terms of seconds.
  */

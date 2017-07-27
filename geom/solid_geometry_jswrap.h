@@ -1,4 +1,6 @@
 #pragma once
+#include "common/std_headers.h"
+#include "nodebase/jswrapbase.h"
 #include "build.src/vec_jsWrap.h"
 #include "./solid_geometry.h"
 

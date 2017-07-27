@@ -856,11 +856,7 @@ StlSolid::estimateVolume()
 // ----------------------------------------------------------------------
 
 StlMassProperties::StlMassProperties()
-  :density(0.0),
-   volume(0.0),
-   mass(0.0),
-   area(0.0),
-   cm(fill::zeros),
+  :cm(fill::zeros),
    inertiaOrigin(fill::zeros),
    inertiaCm(fill::zeros),
    rogOrigin(fill::zeros),
@@ -870,8 +866,7 @@ StlMassProperties::StlMassProperties()
 }
 
 StlMassProperties::StlMassProperties(double _volume, double _mass, double _area, vec3 const &_cm, mat33 const &_inertiaOrigin)
-  :density(0.0),
-   volume(_volume),
+  :volume(_volume),
    mass(_mass),
    area(_area),
    cm(_cm),

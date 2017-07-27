@@ -1,4 +1,6 @@
 #pragma once
+#include "../common/std_headers.h"
+#include "./geom_math.h"
 
 struct StlMassProperties;
 
@@ -97,10 +99,10 @@ struct StlMassProperties {
 
   void calcDerived();
 
-  double density;
-  double volume;
-  double mass;
-  double area;
+  double density {0.0};
+  double volume {0.0};
+  double mass {0.0};
+  double area {0.0};
   arma::vec3 cm;
   arma::mat33 inertiaOrigin;
   arma::mat33 inertiaCm;
