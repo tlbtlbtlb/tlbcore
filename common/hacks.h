@@ -180,3 +180,35 @@ std::string sockaddr_desc(struct sockaddr *sa);
 double realtime();
 
 int32_t jump_consistent_hash(uint64_t key, int32_t num_buckets);
+
+#ifdef __cplusplus
+
+/*
+  http://clang.llvm.org/docs/LanguageExtensions.html#checked-arithmetic-builtins
+*/
+template <typename RET, typename A, typename B>
+RET mul_overflow(A a, B b)
+{
+  RET ret {0};
+  if (__builtin_mul_overflow(a, b, &ret)) throw overflow_error(string("Overflow in ") + to_string(a) + string(" * ") + to_string(b) );
+  return ret;
+}
+
+template <typename RET, typename A, typename B>
+RET add_overflow(A a, B b)
+{
+  RET ret {0};
+  if (__builtin_add_overflow(a, b, &ret)) throw overflow_error(string("Overflow in ") + to_string(a) + string(" + ") + to_string(b) );
+  return ret;
+}
+
+template <typename RET, typename A, typename B>
+RET sub_overflow(A a, B b)
+{
+  RET ret {0};
+  if (__builtin_add_overflow(a, b, &ret)) throw overflow_error(string("Overflow in ") + to_string(a) + string(" - ") + to_string(b) );
+  return ret;
+}
+
+
+#endif
