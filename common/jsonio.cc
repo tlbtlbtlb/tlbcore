@@ -39,7 +39,7 @@ jsonstr::startWrite(size_t n)
   if (n > 1000000000) {
     throw runtime_error("jsonstr: unreasonable size " + to_string(n));
   }
-  it.resize(n+1);
+  it.resize(n+2); // Allow for adding \n\0
   return &it[0];
 }
 
@@ -887,8 +887,7 @@ template<typename T>
 void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, arma::Col<T> const &arr) {
   if (blobs) {
     size_t partno = 0;
-    if (!((size_t)arr.n_elem < numeric_limits<size_t>::max() / sizeof(arr[0]))) throw overflow_error("wrJson<arma::Col>");
-    size_t arr_bytes = (size_t)arr.n_elem * sizeof(arr[0]);
+    size_t arr_bytes = mul_overflow<size_t>((size_t)arr.n_elem, sizeof(arr[0]));
     u_char *partp = blobs->mkPart(arr_bytes, partno);
     ndarray rep(partno, ndarray_dtype(arr[0]), vector<U64>({arr.n_elem}));
     memcpy(partp, arr.memptr(), arr_bytes);

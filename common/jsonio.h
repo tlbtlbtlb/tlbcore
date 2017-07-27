@@ -77,7 +77,7 @@ struct jsonstr {
   jsonstr(jsonstr &&other) noexcept = default; // :it(std::move(other.it)), blobs(std::move(other.blobs)) {}
   jsonstr(jsonstr const &other) = default;
   jsonstr & operator= (const jsonstr & other) = default;
-  jsonstr & operator= (jsonstr && other) noexcept = default;
+  jsonstr & operator= (jsonstr && other) = default;
   ~jsonstr();
 
   // Use this api to efficiently create a string of a given maximum size `n`. Write and advance
