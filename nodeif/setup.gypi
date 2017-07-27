@@ -22,11 +22,8 @@
       'libraries+': [
         '-L/usr/local/lib', '-larmadillo', '-lz',
       ]
-    }, {
-      'make_global_settings': [
-        ['CXX','/usr/bin/clang++'],
-        ['LINK','/usr/bin/clang++'],
-      ],
+    }],
+    ['OS=="linux"', {
       'include_dirs+': [
         '/usr/include/libxml2'
       ],
@@ -37,7 +34,7 @@
         '-fno-rtti', '-fno-exceptions', '-fno-tree-vrp'
       ],
       'cflags_cc': [
-        '-std=c++11', '-DARMA_MAT_PREALLOC=16'
+        '-std=c++14', '-DARMA_MAT_PREALLOC=16', '-msse4'
       ]
     }],
   ]
