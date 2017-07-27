@@ -62,17 +62,11 @@ void _etsdprintf(const char *debugname, const char *fmt, ...)
   va_end(ap);
 }
 
-runtime_error uv_error(string const &context, int rc)
-{
-  return runtime_error(context + string(": rc=") + to_string(rc) + string(" ") + uv_strerror(rc));
-}
-
-
 bool
 WarningFilter::operator ()(string const &name)
 {
   size_t cnt = warningCount[name] ++;
-  return (cnt & (cnt>>1)) == 0;  
+  return (cnt & (cnt>>1)) == 0;
 }
 
 

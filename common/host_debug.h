@@ -1,6 +1,4 @@
 #pragma once
-
-
 #include "./host_timing.h"
 
 // Timestamped logging. Use the tsprintf and tsdprintf macros at the end.
@@ -98,7 +96,6 @@ extern FILE *debug_tslog;
   } while (0)
 
 #ifdef __cplusplus
-runtime_error uv_error(string const &context, int rc);
 
 struct WarningFilter {
   unordered_map<string, size_t> warningCount;
