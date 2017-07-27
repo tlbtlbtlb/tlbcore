@@ -374,6 +374,25 @@ struct UvStream {
     if (rc < 0) throw uv_error("uv_udp_recv_start", rc);
   }
 
+  void udp_recv_start(std::function<void(ssize_t nread, uv_buf_t const *buf, struct sockaddr const *addr, u_int flags)> const &_recv_cb)
+  {
+    int rc;
+    assert(stream && stream->type == UV_UDP);
+    recv_cb = _recv_cb;
+    rc = uv_udp_recv_start(reinterpret_cast<uv_udp_t *>(stream),
+      [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+        buf->base = static_cast<char *>(malloc(suggested_size));
+        buf->len = suggested_size;
+      },
+      [](uv_udp_t* udp, ssize_t nread, const uv_buf_t* buf, struct sockaddr const *addr, u_int flags) {
+        auto this1 = reinterpret_cast<UvStream *>(udp->data);
+        this1->recv_cb(nread, buf, addr, flags);
+        free(buf->base);
+      });
+    if (rc < 0) throw uv_error("uv_udp_recv_start", rc);
+  }
+
+
   void udp_recv_stop() {
     int rc;
     assert(stream && stream->type == UV_UDP);
