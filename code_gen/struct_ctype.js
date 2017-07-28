@@ -355,11 +355,17 @@ StructCType.prototype.emitHostImpl = function(f) {
         return argInfo.type.getFormalParameter('_' + argInfo.name);
       }).join(', ')
     })`);
+    var superArgNames = {};
+    _.each(type.superTypes, function(superType) {
+      _.each(superType.getConstructorArgs(), function(argInfo) {
+        superArgNames[argInfo.name] = 1;
+      });
+    });
     f(':' + [].concat(
       _.map(type.superTypes, function(superType) {
         return superType.typename + '(' + _.map(superType.getConstructorArgs(), function(argInfo) { return '_'+argInfo.name; }).join(', ') + ')';
       }),
-      _.map(type.orderedNames, function(name) {
+      _.map(_.filter(type.orderedNames, function(name) { return !superArgNames[name]; }), function(name) {
         if (type.nameToOptions[name].omitFromConstructor) {
           return name + '(' + type.getMemberInitializer(name) + ')';
         } else {
@@ -911,7 +917,8 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
           `);
           _.each(constructorArgs, function(argInfo, argi) {
             var memberName = argInfo.name;
-            var memberType = type.reg.getType(type.nameToType[memberName]);
+            var memberType = type.reg.getType(argInfo.type);
+
             f(`
               Local<Value> a0_${ memberName }_js = a0->Get(String::NewFromUtf8(isolate, "${ memberName }"));
               if (a0_${ memberName }_js->IsUndefined()) {
