@@ -10,6 +10,7 @@ size ::
 node_modules ::
 
 include common/MakeSystem.inc
+include common/MakeDocker.inc
 
 ifeq ($(UNAME_SYSTEM),Darwin)
 export NODE_PATH = /usr/local/lib/node_modules
@@ -80,6 +81,8 @@ BUILD_SRC_DEPS := \
 	code_gen/mk_dspmath.js \
 	$(DECL_TYPES)
 
+PUSHDIST_EXCLUDE_REGEXPS +=
+
 stage1 :: build.src/timestamp
 build.src/timestamp :: $(BUILD_SRC_DEPS)
 	node code_gen/mk_marshall.js $(DECL_TYPES)
@@ -132,6 +135,10 @@ force :
 
 push.%: .gitfiles
 	rsync -ai --inplace --from0 --relative --files-from .gitfiles . $*:tlbcore/.
+
+pushdist.% : force
+	rsync -ai --inplace --relative $(DOCKER_EXCLUDES) $(patsubst %,--exclude %,$(PUSHDIST_EXCLUDE_REGEXPS)) --delete . $*:tlbcore/.
+
 
 cross.%: push.%
 	ssh $* 'cd tlbcore && env NODE_PATH=/usr/lib/node_modules make'
