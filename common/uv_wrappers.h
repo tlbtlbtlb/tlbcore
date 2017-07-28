@@ -130,6 +130,14 @@ struct UvWriteActive {
     memcpy(buf.base, it.data(), it.size());
     bufs.push_back(buf);
   }
+  void push(char const *data, size_t len)
+  {
+    uv_buf_t buf {};
+    buf.len = len;
+    buf.base = reinterpret_cast<char *>(malloc(len));
+    memcpy(buf.base, data, len);
+    bufs.push_back(buf);
+  }
   std::function<void(int)> cb;
   vector<uv_buf_t> bufs;
 };
@@ -330,7 +338,7 @@ struct UvStream {
     if (rc < 0) throw uv_error("uv_tcp_listen", rc);
   }
 
-  void udp_bind(struct sockaddr const *addr, u_int flags)
+  void udp_bind(struct sockaddr const *addr, u_int flags=0)
   {
     int rc;
     assert(stream && stream->type == UV_UDP);
@@ -344,6 +352,23 @@ struct UvStream {
     assert(stream && stream->type == UV_UDP);
     auto act = new UvWriteActive(_cb);
     act->push(data);
+    auto req = new uv_udp_send_t {};
+    req->data = act;
+    rc = uv_udp_send(req, reinterpret_cast<uv_udp_t *>(stream), &act->bufs[0], act->bufs.size(), addr, [](uv_udp_send_t* req1, int status) {
+      auto act1 = reinterpret_cast<UvWriteActive *>(req1->data);
+      act1->cb(status);
+      delete act1;
+      delete req1;
+    });
+    if (rc < 0) throw uv_error("uv_udp_send", rc);
+  }
+
+  void udp_send(char const *data, size_t data_len, struct sockaddr const *addr, std::function<void(int)> const &_cb)
+  {
+    int rc;
+    assert(stream && stream->type == UV_UDP);
+    auto act = new UvWriteActive(_cb);
+    act->push(data, data_len);
     auto req = new uv_udp_send_t {};
     req->data = act;
     rc = uv_udp_send(req, reinterpret_cast<uv_udp_t *>(stream), &act->bufs[0], act->bufs.size(), addr, [](uv_udp_send_t* req1, int status) {
