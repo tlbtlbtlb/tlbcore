@@ -627,3 +627,83 @@ struct UvProcess {
   bool running {false};
 
 };
+
+
+struct UvTimer {
+  UvTimer(uv_loop_t *_loop)
+  :loop(_loop)
+  {
+  }
+  UvTimer()
+  :loop(uv_default_loop())
+  {
+  }
+  ~UvTimer() {
+    close();
+  }
+
+  uv_loop_t *loop {nullptr};
+  uv_timer_t *timer {nullptr};
+  std::function<void()> cb;
+
+  bool is_active() {
+    return timer && uv_is_active(reinterpret_cast<uv_handle_t *>(timer));
+  }
+
+  void timer_init() {
+    int rc;
+    assert(!timer);
+    timer = new uv_timer_t();
+    timer->data = this;
+    rc = uv_timer_init(loop, timer);
+    if (rc < 0) throw uv_error("uv_timer_init", rc);
+  }
+
+  void timer_start(std::function<void()> _cb, uint64_t timeout, uint64_t repeat) {
+    int rc;
+    assert(timer);
+    cb = _cb;
+    rc = uv_timer_start(timer,
+      [](uv_timer_t *timer1) {
+        auto this1 = static_cast<UvTimer *>(timer1->data);
+        this1->cb();
+      },
+      timeout, repeat);
+    if (rc < 0) throw uv_error("uv_timer_start", rc);
+  }
+
+  void timer_again() {
+    int rc;
+    assert(timer);
+    rc = uv_timer_again(timer);
+    if (rc < 0) throw uv_error("uv_timer_again", rc);
+  }
+
+  void timer_set_repeat(uint64_t repeat) {
+    assert(timer);
+    uv_timer_set_repeat(timer, repeat);
+  }
+
+  uint64_t timer_get_repeat() {
+    assert(timer);
+    return uv_timer_get_repeat(timer);
+  }
+
+  void timer_stop() {
+    int rc;
+    if (timer) {
+      rc = uv_timer_stop(timer);
+      if (rc < 0) throw uv_error("uv_timer_stop", rc);
+    }
+  }
+
+  void close() {
+    if (timer) {
+      uv_close(reinterpret_cast<uv_handle_t *>(timer), [](uv_handle_t *timer1) {
+        delete timer1;
+      });
+      timer = nullptr;
+    }
+  }
+
+};

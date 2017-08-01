@@ -65,6 +65,7 @@ void _etsdprintf(const char *debugname, const char *fmt, ...)
 bool
 WarningFilter::operator ()(string const &name)
 {
+  // Return true for calls 1, 2, 4, 8, ...
   size_t cnt = warningCount[name] ++;
   return (cnt & (cnt>>1)) == 0;
 }
