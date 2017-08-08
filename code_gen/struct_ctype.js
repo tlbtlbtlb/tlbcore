@@ -743,15 +743,22 @@ StructCType.prototype.emitWrJson = function(f) {
             {
               size_t partno=0;
               u_char *bulkdata = blobs->mkPart(arr.size() * sizeof(${ ett.typename }), partno);
-              s += snprintf(s, 100, ",\\"${ mkMemberRef(names) }\\":{\\"__type\\":\\"ndbulk\\",\\"partno\\":%zu,\\"shape\\":[%zu],\\"dtype\\":\\"${ ett.typename }\\"}", partno, arr.size());
+              s += snprintf(s, 100, ",\\"${ mkMemberRef(names) }\\":{\\"__type\\":\\"ndbulk\\",\\"partno\\":%zu,\\"shape\\":[%zu],\\"dtype\\":\\"${ ett.typename }\\"", partno, arr.size());
               ${ ett.typename } *p = (${ ett.typename } *) bulkdata;
-              for (size_t i=0; i<arr.size(); i++) {
-                p[i] = arr[i]->${ mkMemberRef(names) };
+              if (arr.size() > 0) {
+                ${ ett.typename } minRange = arr[0]->${ mkMemberRef(names) }, maxRange = arr[0]->${ mkMemberRef(names) };
+                for (size_t i=0; i<arr.size(); i++) {
+                  p[i] = arr[i]->${ mkMemberRef(names) };
+                  minRange = min(minRange, p[i]);
+                  maxRange = max(maxRange, p[i]);
+                }
+                s += snprintf(s, 100, ",\\"range\\":{\\"min\\":%g,\\"max\\":%g}", (double)minRange, (double)maxRange);
               }
+              *s++ = '}';
             }
           `);
           f2(`
-            size += 100;
+            size += 201;
           `);
         }
         else {

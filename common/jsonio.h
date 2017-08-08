@@ -58,6 +58,9 @@ struct jsonblobs {
     return parts[partno];
   }
   size_t partCount() { return parts.size(); }
+  bool empty() {
+    return parts.size() <= 1;
+  }
 
   void writeFile(gzFile fp);
   void readFile(gzFile fp);

@@ -86,7 +86,7 @@ void jsonstr::writeToFile(string const &fn, bool enableGzip)
 {
   int rc;
   if (enableGzip) {
-    string gzfn = fn + ".gz";
+    string gzfn = fn + ".json.gz";
     gzFile gzfp = gzopen(gzfn.c_str(), "wb");
     if (!gzfp) {
       throw runtime_error(gzfn + string(": ") + string(strerror(errno)));
@@ -101,20 +101,21 @@ void jsonstr::writeToFile(string const &fn, bool enableGzip)
       throw runtime_error(gzfn + string(": close failed: ") + to_string(rc));
     }
   } else {
-    FILE *fp = fopen(fn.c_str(), "w");
+    string jsonfn = fn + ".json";
+    FILE *fp = fopen(jsonfn.c_str(), "w");
     if (!fp) {
-      throw runtime_error(fn + string(": ") + string(strerror(errno)));
+      throw runtime_error(jsonfn + string(": ") + string(strerror(errno)));
     }
     int nw = fwrite(&it[0], it.size(), 1, fp);
     if (nw != 1) {
-      throw runtime_error(fn + string(": partial write ") + to_string(nw) + "/" + to_string(it.size()));
+      throw runtime_error(jsonfn + string(": partial write ") + to_string(nw) + "/" + to_string(it.size()));
     }
     fputc('\n', fp); // For human readability
     if (fclose(fp) < 0) {
-      throw runtime_error(fn + string(": ") + string(strerror(errno)));
+      throw runtime_error(jsonfn + string(": ") + string(strerror(errno)));
     }
   }
-  if (blobs) {
+  if (blobs && !blobs->empty()) {
     blobs->writeFile(fn + ".blobs.gz");
   }
 }
@@ -134,30 +135,31 @@ int jsonstr::readFromFile(string const &fn)
     gzclose(blobfp);
   }
 
-  FILE *fp = fopen(fn.c_str(), "r");
+  string jsonfn = fn + ".json.gz";
+  FILE *fp = fopen(jsonfn.c_str(), "r");
   if (fp) {
     if (fseek(fp, 0, SEEK_END) < 0) {
-      throw runtime_error(fn + string(": ") + string(strerror(errno)));
+      throw runtime_error(jsonfn + string(": ") + string(strerror(errno)));
     }
     auto fileSize = (size_t)ftello(fp);
     if (fileSize > 1000000000) {
-      throw runtime_error(fn + string(": Unreasonable file size ") + to_string(fileSize));
+      throw runtime_error(jsonfn + string(": Unreasonable file size ") + to_string(fileSize));
     }
 
     fseek(fp, 0, SEEK_SET);
     char *p = startWrite(fileSize);
     int nr = fread(p, fileSize, 1, fp);
     if (nr != 1) {
-      throw runtime_error(fn + string(": partial read ") + to_string(nr) + "/" + to_string(fileSize));
+      throw runtime_error(jsonfn + string(": partial read ") + to_string(nr) + "/" + to_string(fileSize));
     }
     endWrite(p + fileSize);
 
     if (fclose(fp) < 0) {
-      throw runtime_error(fn + string(": ") + string(strerror(errno)));
+      throw runtime_error(jsonfn + string(": ") + string(strerror(errno)));
     }
     return 0;
   }
-  string gzfn = fn + ".gz";
+  string gzfn = jsonfn + ".gz";
   gzFile gzfp = gzopen(gzfn.c_str(), "rb");
   if (gzfp) {
     it.clear();
@@ -1179,22 +1181,36 @@ template bool rdJson<arma::cx_double>(const char *&s, shared_ptr<jsonblobs> &blo
 
 // -------------------------
 
+static size_t paddingBytes(size_t partSize)
+{
+  return ((partSize + 7) & ~7ULL) - partSize;
+}
+
 void jsonblobs::writeFile(gzFile fp)
 {
+  char zeros[8] {0};
   uint32_t partsCountLocal = parts.size();
   gzwrite(fp, (void *)&partsCountLocal, sizeof(uint32_t));
   for (auto &it : parts) {
     uint32_t partSizeLocal = it.second;
     gzwrite(fp, (void *)&partSizeLocal, sizeof(uint32_t));
   }
+  size_t padSize = paddingBytes(sizeof(uint32_t) * (parts.size() + 1));
+  gzwrite(fp, zeros, padSize);
+
   for (auto &it : parts) {
-    gzwrite(fp, (void *)it.first, it.second);
+    if (it.second > 0) {
+      gzwrite(fp, (void *)it.first, it.second);
+      size_t padSize = paddingBytes(it.second);
+      gzwrite(fp, zeros, padSize);
+    }
   }
 }
 
 void jsonblobs::readFile(gzFile fp)
 {
   size_t rc;
+  char zeros[8] {0};
   uint32_t partsCountLocal = 0;
   rc = gzread(fp, (void *)&partsCountLocal, sizeof(partsCountLocal));
   if (rc != sizeof(partsCountLocal)) throw fmt_runtime_error("jsonblobs::readFile read %zu/%zu", rc, sizeof(uint32_t));
@@ -1203,11 +1219,17 @@ void jsonblobs::readFile(gzFile fp)
     rc = gzread(fp, (void *)&it, sizeof(uint32_t));
     if (rc != sizeof(size_t)) throw fmt_runtime_error("jsonblobs::readFile read %zu/%zu", rc, sizeof(uint32_t));
   }
+  size_t padSize = paddingBytes(sizeof(uint32_t) * (partsCountLocal + 1));
+  gzread(fp, (void *)zeros, padSize);
+
   for (auto it : partSizesLocal) {
     size_t partno;
     u_char *buf = mkPart(it, partno);
     rc = gzread(fp, buf, it);
     if (rc != it) throw fmt_runtime_error("jsonblobs::readFile read %zu/%u", rc, it);
+
+    size_t padSize = paddingBytes(it);
+    gzread(fp, (void *)zeros, padSize);
   }
 }
 
