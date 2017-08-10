@@ -215,9 +215,10 @@ $.fn.bogartWindowEvents = function(evMap) {
     };
 
     $(window).on(name, handler);
-    top.bind('destroyed', function() {
+    top.one('destroyed', function() {
       if (0) console.log(top, 'destroyed, removing window events');
       $(window).off(name, handler);
+      handler = null;
     });
   });
   return this;
@@ -235,9 +236,10 @@ $.fn.bogartBodyEvents = function(evMap) {
     };
 
     $(document.body).on(name, handler);
-    top.bind('destroyed', function() {
+    top.one('destroyed', function() {
       if (0) console.log(top, 'destroyed, removing window events');
       $(document.body).off(name, handler);
+      handler = null;
     });
   });
   return this;
@@ -710,16 +712,22 @@ $.fn.syncChildren = function(newItems, options) {
 */
 $.fn.onEventsFrom = function(m, eventName, handler) {
   m.addListener(eventName, handler);
-  this.on('destroyed', function() {
+  this.one('destroyed', function() {
+    if (0) console.log(this, 'destroyed, removing event', eventName);
     m.removeListener(eventName, handler);
+    m = null;
+    handler = null;
   });
 };
 
 $.fn.nowAndOnEventsFrom = function(m, eventName, handler) {
   m.addListener(eventName, handler);
   handler.call(m);
-  this.on('destroyed', function() {
+  this.one('destroyed', function() {
+    if (0) console.log(this, 'destroyed, removing event', eventName);
     m.removeListener(eventName, handler);
+    m = null;
+    handler = null;
   });
 };
 
@@ -1098,8 +1106,11 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       return true;
     }
   });
-  m.on('destroyed', function() {
+  top.one('destroyed', function() {
+    console.log('mkAnimatedCanvas: top destroyed');
     $(window).off('mouseup.mkAnimatedCanvas');
+    m = null;
+    drawFunc = null;
   });
 
   m.on('animate', redrawCanvas);
@@ -1107,6 +1118,10 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   m.on('makeMovie', makeMovie);
 
   function redrawCanvas() {
+    if (!m || !drawFunc) {
+      console.log('mkAnimatedCanvas.redrawCanvas: dead');
+      return;
+    }
     var t0 = Date.now();
     drawCount++;
     var ctx = canvas.getContext(o.contextStyle || '2d');
