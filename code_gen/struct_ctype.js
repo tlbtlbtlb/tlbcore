@@ -281,13 +281,13 @@ StructCType.prototype.emitTypeDecl = function(f) {
   `);
   if (!type.noSerialize) {
     f(`
-      void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, ${ type.typename } const &obj);
-      bool rdJson(char const *&s, shared_ptr<jsonblobs> &blobs, ${ type.typename } &obj);
-      void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, ${ type.typename } const &x);
+      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, ${ type.typename } const &obj);
+      bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, ${ type.typename } &obj);
+      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, ${ type.typename } const &x);
 
-      void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, vector<${ type.typename } *> const &obj);
-      bool rdJson(const char *&s, shared_ptr<jsonblobs> &blobs, vector<${ type.typename } *> &obj);
-      void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, vector<${ type.typename } *> const &x);
+      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<${ type.typename } *> const &obj);
+      bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<${ type.typename } *> &obj);
+      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<${ type.typename } *> const &x);
     `);
   }
 
@@ -665,12 +665,12 @@ StructCType.prototype.emitWrJson = function(f) {
 
   if (1) {
     f(`
-      void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, ${ type.typename } const &obj) {
+      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, ${ type.typename } const &obj) {
     `);
     var f1 = f.child();
     f(`
       }
-      void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, ${ type.typename } const &obj) {
+      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, ${ type.typename } const &obj) {
     `);
     var f2 = f.child();
     f(`
@@ -706,7 +706,7 @@ StructCType.prototype.emitWrJson = function(f) {
     var rm = type.getRecursiveMembers();
 
     f(`
-      void wrJson(char *&s, shared_ptr<jsonblobs> &blobs, vector<${ type.typename } *> const &arr) {
+      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<${ type.typename } *> const &arr) {
         if (!blobs) {
           wrJsonVec(s, blobs, arr);
           return;
@@ -715,7 +715,7 @@ StructCType.prototype.emitWrJson = function(f) {
     f1 = f.child();
     f(`
       }
-      void wrJsonSize(size_t &size, shared_ptr<jsonblobs> &blobs, vector<${ type.typename } *> const &arr) {
+      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<${ type.typename } *> const &arr) {
         if (!blobs) {
           wrJsonSizeVec(size, blobs, arr);
           return;
@@ -741,24 +741,30 @@ StructCType.prototype.emitWrJson = function(f) {
             ett.typename === 'U64' || ett.typename === 'U32') {
           f1(`
             {
-              size_t partno=0;
-              u_char *bulkdata = blobs->mkPart(arr.size() * sizeof(${ ett.typename }), partno);
-              s += snprintf(s, 100, ",\\"${ mkMemberRef(names) }\\":{\\"__type\\":\\"ndbulk\\",\\"partno\\":%zu,\\"shape\\":[%zu],\\"dtype\\":\\"${ ett.typename }\\"", partno, arr.size());
-              ${ ett.typename } *p = (${ ett.typename } *) bulkdata;
               if (arr.size() > 0) {
+                vector<${ett.typename}> bulk(arr.size());
                 ${ ett.typename } minRange = arr[0]->${ mkMemberRef(names) }, maxRange = arr[0]->${ mkMemberRef(names) };
                 for (size_t i=0; i<arr.size(); i++) {
-                  p[i] = arr[i]->${ mkMemberRef(names) };
-                  minRange = min(minRange, p[i]);
-                  maxRange = max(maxRange, p[i]);
+                  bulk[i] = arr[i]->${ mkMemberRef(names) };
+                  minRange = min(minRange, bulk[i]);
+                  maxRange = max(maxRange, bulk[i]);
                 }
-                s += snprintf(s, 100, ",\\"range\\":{\\"min\\":%g,\\"max\\":%g}", (double)minRange, (double)maxRange);
+                ndarray nd;
+                nd.partBytes = mul_overflow<size_t>(bulk.size(), sizeof(${ ett.typename }));
+                nd.partOfs = blobs->writeChunk(reinterpret_cast<char *>(&bulk[0]), nd.partBytes);
+                nd.dtype = "${ ett.jsTypename }";
+                nd.shape.push_back(arr.size());
+                nd.range.min = (double)minRange;
+                nd.range.max = (double)maxRange;
+                s += sprintf(s, ",\\"${ mkMemberRef(names) }\\":");
+                wrJson(s, blobs, nd);
               }
-              *s++ = '}';
             }
           `);
           f2(`
-            size += 201;
+            if (arr.size() > 0) {
+              size += 201 + ${ mkMemberRef(names).length };
+            }
           `);
         }
         else {
@@ -822,7 +828,7 @@ StructCType.prototype.emitRdJson = function(f) {
   };
 
   f(`
-    bool rdJson(char const *&s, shared_ptr<jsonblobs> &blobs, ${ type.typename } &obj) {
+    bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, ${ type.typename } &obj) {
       bool typeOk = ${ type.omitTypeTag ? 'true' : 'false' };
       char c;
       jsonSkipSpace(s);
@@ -852,7 +858,7 @@ StructCType.prototype.emitRdJson = function(f) {
   `);
 
   f(`
-    bool rdJson(char const *&s, shared_ptr<jsonblobs> &blobs, vector<${ type.typename } *> &arr) {
+    bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, vector<${ type.typename } *> &arr) {
       if (!blobs) {
         return rdJsonVec(s, blobs, arr);
       }
@@ -1063,7 +1069,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         {args: ['string'], returnType: type, code: function(f) {
           f(`
             const char *a0s = a0.c_str();
-            shared_ptr<jsonblobs> blobs;
+            shared_ptr<ChunkFile> blobs;
             bool ok = rdJson(a0s, blobs, ret);
             if (!ok) return ThrowInvalidArgs(isolate);
           `);

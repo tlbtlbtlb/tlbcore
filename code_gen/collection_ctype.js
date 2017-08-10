@@ -834,7 +834,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
           {args: ['string'], returnType: type, code: function(f) {
             f(`
               const char *a0s = a0.c_str();
-              shared_ptr<jsonblobs> blobs;
+              shared_ptr<ChunkFile> blobs;
               bool ok = rdJson(a0s, blobs, ret);
               if (!ok) return ThrowInvalidArgs(isolate);
             `);

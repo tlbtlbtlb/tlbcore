@@ -276,9 +276,15 @@ module.exports = function(typereg) {
   typereg.getType('arma::Row<arma::cx_double>').jsTypename = 'cx_rowvec';
   typereg.getType('arma::Mat<arma::cx_double>').jsTypename = 'cx_mat';
 
+  typereg.struct('MinMax',
+    ['min', 'double'],
+    ['max', 'double']);
+  typereg.getType('MinMax').omitTypeTag = true;
 
   typereg.struct('ndarray',
-    ['partno', 'U64'],
+    ['partOfs', 'U64'],
+    ['partBytes', 'U64'],
     ['dtype', 'string'],
-    ['shape', 'vector<U64>']);
+    ['shape', 'vector<U64>'],
+    ['range', 'MinMax']);
 };

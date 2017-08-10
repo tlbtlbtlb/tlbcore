@@ -19,7 +19,7 @@ function CType(reg, typename) {
   type.extraConstructorArgs = [];
   type.extraHostCode = [];
   type.extraDeclDependencies = [];
-  type.extraDefnDependencies = [];
+  type.extraDefnDependencies = ['ndarray'];
   type.extraJsWrapHeaderIncludes = [];
   type.extraHeaderIncludes = [];
   type.extraConstructorCode = [];
