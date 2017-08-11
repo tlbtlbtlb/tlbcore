@@ -193,12 +193,12 @@ CollectionCType.prototype.getJsToCppTest = function(valueExpr, o) {
 
 CollectionCType.prototype.accumulateRecursiveMembers = function(context, acc) {
   var type = this;
-  if (type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
+  if (type.templateName === 'XXXarma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
     _.each(_.range(0, parseInt(type.templateArgs[1])), function(i) {
       type.templateArgTypes[0].accumulateRecursiveMembers(context.concat([i]), acc);
     });
   }
-  else if (type.templateName === 'arma::Mat::fixed') {
+  else if (type.templateName === 'XXXarma::Mat::fixed') {
     _.each(_.range(0, parseInt(type.templateArgs[1]) * parseInt(type.templateArgs[2])), function(i) {
       type.templateArgTypes[0].accumulateRecursiveMembers(context.concat([i]), acc);
     });

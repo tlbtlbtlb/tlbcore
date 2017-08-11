@@ -36,6 +36,7 @@ ChunkFileUncompressed::~ChunkFileUncompressed()
 
 off_t ChunkFileUncompressed::writeChunk(char const *data, size_t size)
 {
+  if (size == 0) return 0;
   /*
     Oooh! Aaah! No locking.
     We keep our own file offset and use pwrite to ensure consecutive writes.
@@ -88,6 +89,7 @@ ChunkFileCompressed::~ChunkFileCompressed() {
 
 off_t ChunkFileCompressed::writeChunk(char const *data, size_t size)
 {
+  if (size == 0) return 0;
   std::unique_lock<std::mutex> lock(mutex);
 
   off_t baseOff = off;
