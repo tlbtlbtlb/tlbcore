@@ -299,6 +299,9 @@ template<typename T>
 bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<T> &arr) {
   return rdJsonVec(s, blobs, arr);
 }
+template<>
+bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<double> &arr);
+
 // Read a vector of T*, by calling tmp=new T, then rdJson(..., *tmp)
 template<typename T>
 bool rdJsonVec(const char *&s, shared_ptr<ChunkFile> &blobs, vector<T *> &arr) {
