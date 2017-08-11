@@ -28,10 +28,18 @@ StructCType.prototype.isStruct = function() { return true; };
 StructCType.prototype.addArgs = function(args, startPos) {
   var type = this;
   for (var i=startPos; i<args.length; i++) {
-    var memberName = args[i][0];
-    var memberType = args[i][1];
-    var memberOptions = args[i][2];
-    type.add(memberName, memberType, memberOptions);
+    var a = args[i];
+    if (_.isArray(a)) {
+      var memberName = a[0];
+      var memberType = a[1];
+      var memberOptions = a[2];
+      type.add(memberName, memberType, memberOptions);
+    }
+    else if (_.isObject(a)) {
+      _.each(a, function(v, k) {
+        type[k] = v;
+      });
+    }
   }
 };
 
@@ -291,12 +299,14 @@ StructCType.prototype.emitTypeDecl = function(f) {
     `);
   }
 
-  f(`
-    void packet_wr_typetag(packet &p, const ${ type.typename } &x);
-    void packet_rd_typetag(packet &p, ${ type.typename } &x);
-    void packet_wr_value(packet &p, const ${ type.typename } &x);
-    void packet_rd_value(packet &p, ${ type.typename } &x);
-  `);
+  if (!type.noSerialize && !type.noPacket) {
+    f(`
+      void packet_wr_typetag(packet &p, const ${ type.typename } &x);
+      void packet_rd_typetag(packet &p, ${ type.typename } &x);
+      void packet_wr_value(packet &p, const ${ type.typename } &x);
+      void packet_rd_value(packet &p, ${ type.typename } &x);
+    `);
+  }
 
   CType.prototype.emitTypeDecl.call(type, f);
   f('');
@@ -472,7 +482,9 @@ StructCType.prototype.emitHostImpl = function(f) {
     type.emitRdJson(f);
     type.emitRdJsonBulk(f);
     f('');
-    type.emitPacketIo(f);
+    if (!type.noPacket) {
+      type.emitPacketIo(f);
+    }
   }
 
   if (!type.noSerialize) {
@@ -570,7 +582,7 @@ StructCType.prototype.emitJsTestImpl = function(f) {
         var t2 = ur.${ type.jsTypename }.fromString(t1s);
         assert.strictEqual(t1.toString(), t2.toString());
   `);
-  if (!type.noPacket) {
+  if (!type.noSerialize && !type.noPacket) {
     f(`
       var t1b = t1.toPacket();
       var t3 = ur.${ type.jsTypename }.fromPacket(t1b);

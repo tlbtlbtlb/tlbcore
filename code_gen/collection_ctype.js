@@ -74,6 +74,13 @@ function CollectionCType(reg, typename) {
       return t;
     }
   });
+  _.each(type.templateArgTypes, function(t) {
+    if (t) {
+      if (t.noPacket) type.noPacket = true;
+      if (t.noSerialize) type.noSerialize = true;
+    }
+  });
+
   if (0) console.log('template', typename, type.templateName, type.templateArgs);
 }
 CollectionCType.prototype = Object.create(CType.prototype);
