@@ -754,36 +754,42 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
     _.each(members, function(names) {
       if (ett.typename === 'double' || ett.typename === 'float' ||
           ett.typename === 'S64' || ett.typename === 'S32' ||
-          ett.typename === 'U64' || ett.typename === 'U32') {
+          ett.typename === 'U64' || ett.typename === 'U32' ||
+          ett.typename === 'bool') {
+        // Because STL does something fancy with vector<bool>
+        var binTypename = ett.typename === 'bool' ? 'U8': ett.typename;
         f1(`
           {
-            vector<${ett.typename}> bulk(arr.size());
-            ${ ett.typename } minRange = arr.size() > 0 ? arr[0]->${ mkMemberRef(names) } : 0.0;
-            ${ ett.typename } maxRange = arr.size() > 0 ? arr[0]->${ mkMemberRef(names) } : 0.0;
+            vector<${binTypename}> bulk(arr.size());
+            ${ binTypename } minRange = arr.size() > 0 ? arr[0]->${ mkMemberRef(names) } : 0;
+            ${ binTypename } maxRange = arr.size() > 0 ? arr[0]->${ mkMemberRef(names) } : 0;
             for (size_t i=0; i<arr.size(); i++) {
               bulk[i] = arr[i]->${ mkMemberRef(names) };
               minRange = min(minRange, bulk[i]);
               maxRange = max(maxRange, bulk[i]);
             }
             ndarray nd;
-            nd.partBytes = mul_overflow<size_t>(bulk.size(), sizeof(${ ett.typename }));
+            nd.partBytes = mul_overflow<size_t>(bulk.size(), sizeof(${ binTypename }));
             nd.partOfs = blobs->writeChunk(reinterpret_cast<char *>(&bulk[0]), nd.partBytes);
             nd.dtype = "${ ett.jsTypename }";
             nd.shape.push_back(arr.size());
             nd.range.min = (double)minRange;
             nd.range.max = (double)maxRange;
             s += sprintf(s, ",\\"${ mkMemberRef(names) }\\":");
+            char *origS = s;
             wrJson(s, blobs, nd);
+            assert(s - origS < 200);
           }
         `);
         f2(`
-          size += 201 + ${ mkMemberRef(names).length };
+          size += 205 + ${ mkMemberRef(names).length };
         `);
       }
       else if ((ett.templateName === 'arma::Col::fixed' ||
                 ett.templateName === 'arma::Row::fixed' ||
-                ett.templateName === 'arma::Mat::fixed') && ett.templateArgs[0] === 'double') {
-        console.log('Handling', type.typename, ett.typename);
+                ett.templateName === 'arma::Mat::fixed') && (
+                ett.templateArgs[0] === 'double' ||
+                ett.templateArgs[0] === 'float')) {
         var baseType = type.reg.types[ett.templateArgs[0]];
         var colSize = parseInt(ett.templateArgs[1]) * (ett.templateArgs.length > 2 ? parseInt(ett.templateArgs[2]) : 1);
         f1(`
@@ -816,8 +822,9 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
           }
         `);
       }
+      // WRITEME: maybe handle vector<double>
       else {
-        console.log('Not handling', type.typename, ett.typename);
+        if (0) console.log('Not handling', type.typename, ett.typename);
         f1(`
           {
             vector< ${ ett.typename } > slice;
@@ -964,7 +971,10 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
     _.each(members, function(names) {
       if (ett.typename === 'double' || ett.typename === 'float' ||
           ett.typename === 'S64' || ett.typename === 'S32' ||
-          ett.typename === 'U64' || ett.typename === 'U32') {
+          ett.typename === 'U64' || ett.typename === 'U32' ||
+          ett.typename === 'bool') {
+        // Because STL does something fancy with vector<bool>
+        var binTypename = ett.typename === 'bool' ? 'U8': ett.typename;
 
         actions[`"${ mkMemberRef(names) }" :`] = function() {
           f(`
@@ -972,13 +982,25 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
               ndarray nd;
               if (!rdJson(s, blobs, nd)) return false;
               if (nd.shape.size() !=1 || arr.size() != nd.shape[0]) {
-                eprintf("Size mismatch:%zu %zu %zu\\n", (size_t)nd.shape.size(), (size_t)arr.size(), nd.shape.size()>0 ? (size_t)nd.shape[0] : (size_t)0);
+                eprintf("rdJson(${ett.typename}): Size mismatch:%zu %zu %zu\\n",
+                  (size_t)nd.shape.size(),
+                  (size_t)arr.size(),
+                  nd.shape.size()>0 ? (size_t)nd.shape[0] : (size_t)0);
                 return false;
               }
-              vector<${ett.typename}> tmp(nd.shape[0]);
-              blobs->readChunk(reinterpret_cast<char *>(tmp.data()), nd.partOfs, nd.partBytes);
+              vector<${binTypename}> tmp(nd.shape[0]);
+              if (tmp.size() * sizeof(${binTypename}) != nd.partBytes) {
+                eprintf("rdJson(${type.typename}::${ mkMemberRef(names) }): size mismatch %zu*%zu != %zu\\n",
+                  tmp.size(), sizeof(${binTypename}), (size_t)nd.partBytes);
+                return false;
+              }
+              if (!blobs->readChunk(reinterpret_cast<char *>(tmp.data()), nd.partOfs, nd.partBytes)) {
+                eprintf("rdJson(${type.typename}::${ mkMemberRef(names) }): no chunk %zu %zu\\n",
+                  (size_t)nd.partOfs, (size_t)nd.partBytes);
+                return false;
+              }
               for (size_t i=0; i<arr.size(); i++) {
-                arr[i]->${mkMemberRef(names)} = tmp[i];
+                arr[i]->${mkMemberRef(names)} = (${ett.typename})tmp[i];
               }
               jsonSkipSpace(s);
               c = *s++;
@@ -988,24 +1010,38 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
           `);
         };
       }
-      else if (ett.templateName === 'arma::Col::fixed') {
+      else if ((ett.templateName === 'arma::Col::fixed' ||
+                ett.templateName === 'arma::Row::fixed' ||
+                ett.templateName === 'arma::Mat::fixed') && (
+                ett.templateArgs[0] === 'double' ||
+                ett.templateArgs[0] === 'float')) {
         var baseType = type.reg.types[ett.templateArgs[0]];
-        var colSize = parseInt(ett.templateArgs[1]);
+        var colSize = parseInt(ett.templateArgs[1]) * (ett.templateArgs.length > 2 ? parseInt(ett.templateArgs[2]) : 1);
         actions[`"${ mkMemberRef(names) }" :`] = function() {
           f(`
             {
               ndarray nd;
               if (!rdJson(s, blobs, nd)) return false;
-              if (nd.shape.size() !=2 || arr.size() != nd.shape[0] || nd.shape[1] != ${colSize}) {
-                eprintf("Size mismatch:%zu %zu %zu %zu\\n",
-                  (size_t)nd.shape.size(), (size_t)arr.size(),
+              if (nd.shape.size() != 2 || arr.size() != nd.shape[0] || nd.shape[1] != ${colSize}) {
+                eprintf("rdJson(${type.typename}::${ mkMemberRef(names) }): Size mismatch: %zu %zu %zu %zu\\n",
+                  (size_t)nd.shape.size(),
+                  (size_t)arr.size(),
                   nd.shape.size()>0 ? (size_t)nd.shape[0] : (size_t)0,
                   nd.shape.size()>1 ? (size_t)nd.shape[1] : (size_t)0);
                 return false;
               }
 
               vector<${baseType.typename}> tmp(nd.shape[0] * nd.shape[1]);
-              blobs->readChunk(reinterpret_cast<char *>(tmp.data()), nd.partOfs, nd.partBytes);
+              if (tmp.size() * sizeof(${baseType.typename}) != nd.partBytes) {
+                eprintf("rdJson(${type.typename}::${ mkMemberRef(names) }): size mismatch %zu*%zu != %zu\\n",
+                  tmp.size(), sizeof(${baseType.typename}), (size_t)nd.partBytes);
+                return false;
+              }
+              if (!blobs->readChunk(reinterpret_cast<char *>(tmp.data()), nd.partOfs, nd.partBytes)) {
+                eprintf("rdJson(${type.typename}::${ mkMemberRef(names) }): no chunk %zu %zu\\n",
+                  (size_t)nd.partOfs, (size_t)nd.partBytes);
+                return false;
+              }
 
               for (size_t i=0; i<arr.size(); i++) {
                 for (size_t k=0; k<${colSize}; k++) {

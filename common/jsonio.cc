@@ -1186,3 +1186,20 @@ template void wrJson<arma::cx_double>(char *&s, shared_ptr<ChunkFile> &blobs, ar
 template bool rdJson<arma::cx_double>(const char *&s, shared_ptr<ChunkFile> &blobs, arma::Mat<arma::cx_double> &arr);
 
 // -------------------------
+
+
+template<>
+void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<double> const &arr) {
+  if (!blobs) return wrJsonVec(s, blobs, arr);
+
+  ndarray nd;
+  nd.partBytes = mul_overflow<size_t>(arr.size(), sizeof(double));
+  nd.partOfs = blobs->writeChunk(reinterpret_cast<char const *>(&arr[0]), nd.partBytes);
+  nd.dtype = "double";
+  nd.shape.push_back(arr.size());
+  if (arr.size()) {
+    nd.range.min = *std::min_element(arr.begin(), arr.end());
+    nd.range.max = *std::max_element(arr.begin(), arr.end());
+  }
+  wrJson(s, blobs, nd);
+}
