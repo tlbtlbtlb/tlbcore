@@ -278,8 +278,8 @@ module.exports = function(typereg) {
 
   typereg.struct('MinMax',
     ['min', 'double'],
-    ['max', 'double']);
-  typereg.getType('MinMax').omitTypeTag = true;
+    ['max', 'double'],
+    {omitTypeTag: true});
 
   typereg.struct('ndarray',
     ['partOfs', 'U64'],
