@@ -124,14 +124,7 @@ int jsonstr::readFromFile(string const &fn)
 {
   int rc;
 
-  string blobfn = fn + ".blobs.gz";
-  FILE * blobfp = fopen(blobfn.c_str(), "rb");
-  if (blobfp) {
-    fclose(blobfp);
-    blobs = make_shared<ChunkFileReader>(blobfn);
-  }
-
-  string jsonfn = fn + ".json.gz";
+  string jsonfn = fn + ".json";
   FILE *fp = fopen(jsonfn.c_str(), "r");
   if (fp) {
     if (fseek(fp, 0, SEEK_END) < 0) {

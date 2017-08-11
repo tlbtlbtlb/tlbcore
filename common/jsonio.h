@@ -1,7 +1,6 @@
 #pragma once
 #include <cctype>
 #include <armadillo>
-#include <zlib.h>
 #include "./chunk_file.h"
 
 /*

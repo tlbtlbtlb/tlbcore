@@ -8,6 +8,7 @@
     '../common/packetbuf.cc',
     '../common/host_debug.cc',
     '../common/jsonio.cc',
+    '../common/chunk_file.cc',
     '../common/typeschema.cc',
     '../common/parengine.cc',
     '../numerical/polyfit.cc',
