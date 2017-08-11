@@ -30,6 +30,9 @@
 using namespace node;
 using namespace v8;
 
+template<class T>
+using CopyablePersistent = Persistent<T, CopyablePersistentTraits<T>>;
+
 void ThrowInvalidArgs(Isolate *isolate);
 void ThrowInvalidThis(Isolate *isolate);
 void ThrowTypeError(Isolate *isolate, char const *s);
@@ -245,7 +248,7 @@ string JsWrapGeneric<CONTENTS>::constructorName;
 
 
 struct JsSignalHandlers {
-  vector< v8::Persistent<v8::Function> > handlers;
+  vector< CopyablePersistent<v8::Function> > handlers;
 };
 
 

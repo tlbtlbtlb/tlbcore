@@ -1207,15 +1207,16 @@ void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<double> const &arr) {
 
 template<>
 bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, vector<double> &arr) {
-  if (!blobs) return rdJsonVec(s, blobs, arr);
-
-  ndarray nd;
-  if (rdJson(s, blobs, nd)) {
-    if (nd.dtype == "double" && nd.shape.size() == 1) {
-      arr.resize(nd.shape[0]);
-      blobs->readChunk(reinterpret_cast<char *>(arr.data()), nd.partOfs, nd.partBytes);
-      return true;
+  if (blobs) {
+    ndarray nd;
+    if (rdJson(s, blobs, nd)) {
+      if (nd.dtype == "double" && nd.shape.size() == 1 && mul_overflow<size_t>(nd.shape[0], sizeof(double)) == nd.partBytes) {
+        arr.resize(nd.shape[0]);
+        if (blobs->readChunk(reinterpret_cast<char *>(arr.data()), nd.partOfs, nd.partBytes)) {
+          return true;
+        }
+      }
     }
   }
-  return false;
+  return rdJsonVec(s, blobs, arr);
 }

@@ -23,7 +23,7 @@ struct AsyncEventQueueImpl : AsyncEventQueueApi {
   uv_async_t *uva {nullptr};
   std::mutex qMutex;
   deque< pair<string, jsonstr> > q;
-  std::unordered_map< string, vector< shared_ptr< Persistent<Function, CopyablePersistentTraits<Function> > > > > nameToCbs;
+  std::unordered_map< string, vector< CopyablePersistent<Function> > > nameToCbs;
 };
 
 
@@ -112,7 +112,7 @@ void AsyncEventQueueImpl::deliver_queued()
 
     for (auto &cb : cbs) {
       // WRITEME: should we handle blobs somewhere?
-      cb->Get(isolate)->Call(recvLocal, 1, &jsMsg);
+      cb.Get(isolate)->Call(recvLocal, 1, &jsMsg);
     }
   }
 }
@@ -128,7 +128,7 @@ void AsyncEventQueueImpl::sync_emit(string const &eventName, Local<Value> arg)
 
   for (auto &cb : cbs) {
     // WRITEME: should we handle blobs somewhere?
-    cb->Get(isolate)->Call(recvLocal, 1, &arg);
+    cb.Get(isolate)->Call(recvLocal, 1, &arg);
   }
 }
 
@@ -142,7 +142,7 @@ void AsyncEventQueueImpl::sync_emit(string const &eventName)
   auto &cbs = nameToCbs[eventName];
 
   for (auto &cb : cbs) {
-    cb->Get(isolate)->Call(recvLocal, 0, nullptr);
+    cb.Get(isolate)->Call(recvLocal, 0, nullptr);
   }
 }
 
@@ -153,7 +153,7 @@ void AsyncEventQueueImpl::on(string const &eventName, Local<Value> cb)
   HandleScope scope(isolate);
 
   unique_lock<mutex> lock(qMutex);
-  nameToCbs[eventName].push_back(make_shared< Persistent<Function, CopyablePersistentTraits<Function> > >(isolate, Local<Function>::Cast(cb)));
+  nameToCbs[eventName].push_back(CopyablePersistent<Function>(isolate, Local<Function>::Cast(cb)));
 
 }
 

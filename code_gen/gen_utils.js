@@ -78,16 +78,16 @@ function withJsWrapUtils(f, type) {
       f(ifSep + 'if (args.Length() ' + (argSet.ignoreExtra ? '>=' : '==') + ' ' + argSet.args.length +
         _.map(argSet.args, function(argTypename, argi) {
           var m;
-          if (argTypename === 'Value' || argTypename === 'Persistent<Value>') {
+          if (argTypename === 'Value' || argTypename === 'CopyablePersistent<Value>') {
             return '';
           }
-          else if (argTypename === 'Object' || argTypename === 'Persistent<Object>') {
+          else if (argTypename === 'Object' || argTypename === 'CopyablePersistent<Object>') {
             return ' && args[' + argi + ']->IsObject()';
           }
-          else if (argTypename === 'Array' || argTypename === 'Persistent<Array>') {
+          else if (argTypename === 'Array' || argTypename === 'CopyablePersistent<Array>') {
             return ' && args[' + argi + ']->IsArray()';
           }
-          else if (argTypename === 'Function' || argTypename === 'Persistent<Function>') {
+          else if (argTypename === 'Function' || argTypename === 'CopyablePersistent<Function>') {
             return ' && args[' + argi + ']->IsFunction()';
           }
           else if (m = /^conv:(.*)$/.exec(argTypename)) {
@@ -129,24 +129,24 @@ function withJsWrapUtils(f, type) {
             Local<Function> a${ argi } = Local<Function>::Cast(args[${ argi }]);
           `);
         }
-        else if (argTypename === 'Persistent<Value>') {
+        else if (argTypename === 'CopyablePersistent<Value>') {
           f(`
-            auto a${argi} = make_shared< Persistent<Value, CopyablePersistentTraits<Value> > >(isolate, Local<Value>::Cast(args[${ argi }]));
+            auto a${argi} = CopyablePersistent<Value>(isolate, Local<Value>::Cast(args[${ argi }]));
           `);
         }
-        else if (argTypename === 'Persistent<Function>') {
+        else if (argTypename === 'CopyablePersistent<Function>') {
           f(`
-            auto a${argi} = make_shared< Persistent<Function, CopyablePersistentTraits<Function> > >(isolate, Local<Function>::Cast(args[${ argi }]));
+            auto a${argi} = CopyablePersistent<Function>(isolate, Local<Function>::Cast(args[${ argi }]));
           `);
         }
-        else if (argTypename === 'Persistent<Object>') {
+        else if (argTypename === 'CopyablePersistent<Object>') {
           f(`
-            auto a${argi} = make_shared< Persistent<Object, CopyablePersistentTraits<Object> >  >(isolate, Local<Object>::Cast(args[${ argi }]));
+            auto a${argi} = CopyablePersistent<Object> (isolate, Local<Object>::Cast(args[${ argi }]));
           `);
         }
-        else if (argTypename === 'Persistent<Array>') {
+        else if (argTypename === 'CopyablePersistent<Array>') {
           f(`
-            auto a${argi} = make_shared< Persistent<Array, CopyablePersistentTraits<Array> >  >(isolate, Local<Array>::Cast(args[${ argi }]));
+            auto a${argi} = CopyablePersistent<Array>(isolate, Local<Array>::Cast(args[${ argi }]));
           `);
         }
         else if (m = /^conv:(.*)$/.exec(argTypename)) {

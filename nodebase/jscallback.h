@@ -4,22 +4,22 @@ template <typename F>
 struct JsCallback {
   using selftype = JsCallback<F>;
   JsCallback(v8::Isolate *_isolate, std::function<F> const &_f)
-  :isolate(_isolate), f(_f)
+  :isolate(_isolate),
+   p(isolate, v8::External::New(isolate, this)),
+   f(_f)
   {
     if (0) eprintf("JsCallback construct %p\n", this);
-    p.Reset(isolate, v8::External::New(isolate, this));
     p.SetWeak(this, &cleanup, WeakCallbackType::kParameter);
     p.MarkIndependent();
   }
   ~JsCallback() {
     if (0) eprintf("JsCallback delete %p\n", this);
-    p.Reset();
     isolate = nullptr;
     f = nullptr;
   }
 
   v8::Local<v8::External> jsValue() {
-    return v8::Local<v8::External>::New(isolate, p);
+    return p.Get(isolate);
   }
 
   v8::Local<v8::Function> jsFunction();
@@ -30,6 +30,6 @@ struct JsCallback {
   }
 
   v8::Isolate *isolate;
-  v8::Persistent<External> p;
+  CopyablePersistent<External> p;
   std::function<F> f;
 };
