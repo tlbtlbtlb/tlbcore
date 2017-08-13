@@ -3,6 +3,10 @@
 #include "./jswrapbase.h"
 #include "./jscallback.h"
 
+/*
+  Hard to figure out how to do this fully generically with templates, so just specialize
+  cases as needed
+*/
 template <>
 v8::Local<v8::Function> JsCallback<void(jsonstr const &, jsonstr const &)>::jsFunction()
 {
@@ -11,7 +15,7 @@ v8::Local<v8::Function> JsCallback<void(jsonstr const &, jsonstr const &)>::jsFu
    v8::HandleScope scope(isolate);
 
    v8::External *data_ext = v8::External::Cast(*args.Data());
-   auto it = static_cast< selftype *>(data_ext->Value());
+   auto it = static_cast<selftype *>(data_ext->Value());
 
    if (0) eprintf("JsCallback::invoke %p\n", it);
    if (args.Length() == 1) {
