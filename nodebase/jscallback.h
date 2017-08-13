@@ -18,6 +18,7 @@ struct JsCallback {
   }
   ~JsCallback() {
     if (0) eprintf("JsCallback delete %p\n", this);
+    p.Reset();
   }
 
   v8::Local<v8::External> jsValue() {
@@ -28,12 +29,13 @@ struct JsCallback {
   v8::Local<v8::Function> jsFunction();
 
   static void cleanup(v8::WeakCallbackInfo< JsCallback<F> > const &args) {
-    JsCallback<F> *it = args.GetParameter();
+    auto it = static_cast<selftype *>(args.GetParameter());
     delete it;
   }
 
   v8::Isolate *isolate;
-  CopyablePersistent<v8::External> p;
+  // Not copyable, because it doesn't make sense to copy a weak reference with a callback
+  Persistent<v8::External> p;
   std::function<F> f;
 };
 
