@@ -185,10 +185,11 @@ template<typename T> bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, a
 
 template<typename T> void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<T> const &arr);
 template<typename T> void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<T> const &arr);
-template<typename T> void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<T *> const &arr);
-template<typename T> void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<T *> const &arr);
 template<typename T> bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<T> &arr);
-template<typename T> bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<T *> &arr);
+
+template<typename T> void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<T> > const &arr);
+template<typename T> void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<T> > const &arr);
+template<typename T> bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<T> > &arr);
 
 #ifdef NOTYET
 // Specializations for double
@@ -199,10 +200,11 @@ bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<double> &arr);
 
 template<typename T> void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, deque<T> const &arr);
 template<typename T> void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, deque<T> const &arr);
-template<typename T> void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, deque<T *> const &arr);
-template<typename T> void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, deque<T *> const &arr);
 template<typename T> bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, deque<T> &arr);
-template<typename T> bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, deque<T *> &arr);
+
+template<typename T> void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, deque<shared_ptr<T> > const &arr);
+template<typename T> void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, deque<shared_ptr<T> > const &arr);
+template<typename T> bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, deque<shared_ptr<T> > &arr);
 
 
 template<typename KT, typename VT> void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, map<KT, VT> const &arr);
@@ -243,19 +245,19 @@ template<>
 void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<double> const &arr);
 
 template<typename T>
-void wrJsonSizeVec(size_t &size, shared_ptr<ChunkFile> &blobs, vector<T *> const &arr) {
+void wrJsonSizeVec(size_t &size, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<T> > const &arr) {
   size += 2 + arr.size();
   for (auto it = arr.begin(); it != arr.end(); it++) {
     wrJsonSize(size, blobs, **it);
   }
 }
 template<typename T>
-void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<T *> const &arr) {
+void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<T> > const &arr) {
   wrJsonSizeVec(size, blobs, arr);
 }
 
 template<typename T>
-void wrJsonVec(char *&s, shared_ptr<ChunkFile> &blobs, vector<T *> const &arr) {
+void wrJsonVec(char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<T> > const &arr) {
   *s++ = '[';
   bool sep = false;
   for (auto it = arr.begin(); it != arr.end(); it++) {
@@ -266,7 +268,7 @@ void wrJsonVec(char *&s, shared_ptr<ChunkFile> &blobs, vector<T *> const &arr) {
   *s++ = ']';
 }
 template<typename T>
-void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<T *> const &arr) {
+void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<T> > const &arr) {
   wrJsonVec(s, blobs, arr);
 }
 template<typename T>
@@ -304,7 +306,7 @@ bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<double> &arr);
 
 // Read a vector of T*, by calling tmp=new T, then rdJson(..., *tmp)
 template<typename T>
-bool rdJsonVec(const char *&s, shared_ptr<ChunkFile> &blobs, vector<T *> &arr) {
+bool rdJsonVec(const char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<T> > &arr) {
   jsonSkipSpace(s);
   if (*s != '[') return false;
   s++;
@@ -312,7 +314,7 @@ bool rdJsonVec(const char *&s, shared_ptr<ChunkFile> &blobs, vector<T *> &arr) {
   while (1) {
     jsonSkipSpace(s);
     if (*s == ']') break;
-    auto tmp = new T();
+    auto tmp = make_shared<T>();
     if (!rdJson(s, blobs, *tmp)) return false;
     arr.push_back(tmp);
     jsonSkipSpace(s);
@@ -330,7 +332,7 @@ bool rdJsonVec(const char *&s, shared_ptr<ChunkFile> &blobs, vector<T *> &arr) {
   return true;
 }
 template<typename T>
-bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<T *> &arr) {
+bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<T> > &arr) {
   return rdJsonVec(s, blobs, arr);
 }
 
@@ -359,7 +361,7 @@ void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, deque<T> const &arr) {
 }
 
 template<typename T>
-void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, deque<T *> const &arr) {
+void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, deque<shared_ptr<T> > const &arr) {
   size += 2 + arr.size();
   for (auto it = arr.begin(); it != arr.end(); it++) {
     wrJsonSize(size, blobs, **it);
@@ -367,7 +369,7 @@ void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, deque<T *> const &ar
 }
 
 template<typename T>
-void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, deque<T *> const &arr) {
+void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, deque<shared_ptr<T> > const &arr) {
   *s++ = '[';
   bool sep = false;
   for (auto it = arr.begin(); it != arr.end(); it++) {
@@ -407,7 +409,7 @@ bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, deque<T> &arr) {
 
 // Read a deque of T*, by calling tmp=new T, then rdJson(..., *tmp)
 template<typename T>
-bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, deque<T *> &arr) {
+bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, deque<shared_ptr<T> > &arr) {
   jsonSkipSpace(s);
   if (*s != '[') return false;
   s++;
@@ -415,7 +417,7 @@ bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, deque<T *> &arr) {
   while (1) {
     jsonSkipSpace(s);
     if (*s == ']') break;
-    auto tmp = new T;
+    auto tmp = make_shared<T>();
     if (!rdJson(s, blobs, *tmp)) return false;
     arr.push_back(tmp);
     jsonSkipSpace(s);
@@ -497,7 +499,7 @@ bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, map<KT, VT> &arr) {
 }
 
 template<typename KT, typename VT>
-void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, map<KT, VT *> const &arr) {
+void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, map<KT, shared_ptr<VT> > const &arr) {
   size += 2;
   for (auto it = arr.begin(); it != arr.end(); it++) {
     wrJsonSize(size, blobs, it->first);
@@ -507,7 +509,7 @@ void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, map<KT, VT *> const 
 }
 
 template<typename KT, typename VT>
-void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, map<KT, VT *> const &arr) {
+void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, map<KT, shared_ptr<VT> > const &arr) {
   *s++ = '{';
   bool sep = false;
   for (auto it = arr.begin(); it != arr.end(); it++) {
@@ -521,7 +523,7 @@ void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, map<KT, VT *> const &arr) {
 }
 
 template<typename KT, typename VT>
-bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, map<KT, VT *> &arr) {
+bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, map<KT, shared_ptr<VT> > &arr) {
   jsonSkipSpace(s);
   if (*s != '{') return false;
   s++;
@@ -535,7 +537,7 @@ bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, map<KT, VT *> &arr) {
     if (*s != ':') return false;
     s++;
     jsonSkipSpace(s);
-    auto vtmp = new VT;
+    auto vtmp = make_shared<VT>();
     if (!rdJson(s, blobs, *vtmp)) return false;
     arr[ktmp] = vtmp;
 
