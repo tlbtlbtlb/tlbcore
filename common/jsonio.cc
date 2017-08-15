@@ -43,14 +43,24 @@ jsonstr::startWrite(size_t n)
   return &it[0];
 }
 
+#if 0
+static FILE *jsonstr_logfp = fopen((string("/tmp/jsonstr") + to_string(getpid()) + ".log").c_str(), "w");
+#else
+static FILE *jsonstr_logfp = nullptr;
+#endif
+
 void
 jsonstr::endWrite(char const *p)
 {
   size_t n = p - &it[0];
   if (n + 1 > it.capacity()) {
     // Don't throw, since memory is corrupt
-    eprintf("jsonstr: buffer overrun, memory corrupted, aborting. %lu/%lu", (unsigned long)n, (unsigned long)it.capacity());
+    eprintf("jsonstr: buffer overrun, memory corrupted, aborting. %zu/%zu", n, it.capacity());
+    eprintf("jsonstr: string was: %s\n", it.c_str());
     abort();
+  }
+  if (jsonstr_logfp) {
+    fprintf(jsonstr_logfp, "write %zu/%zu: %s\n", n, it.capacity(), it.substr(0, min((size_t)40, it.size())).c_str());
   }
   it[n] = 0; // terminating null. Observe that we provided the extra byte in startWrite.
   it.resize(n);
@@ -1187,6 +1197,14 @@ template bool rdJson<arma::cx_double>(const char *&s, shared_ptr<ChunkFile> &blo
 
 // -------------------------
 
+
+template<>
+void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<double> const &arr)
+{
+  if (!blobs) return wrJsonSizeVec(size, blobs, arr);
+  ndarray nd(9, 9, "double", vector<U64>({(U64)arr.size()}), MinMax(9.0, 9.0));
+  wrJsonSize(size, blobs, nd);
+}
 
 template<>
 void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<double> const &arr) {

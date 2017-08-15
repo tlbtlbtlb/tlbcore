@@ -53,7 +53,13 @@ CType.prototype.hasArrayNature = function() { return false; };
 CType.prototype.hasJsWrapper = function() { return false; };
 
 CType.prototype.nonPtrType = function() {
+  if (this._nonPtrType) return this._nonPtrType;
   return this;
+};
+
+CType.prototype.ptrType = function() {
+  if (this._ptrType) return this._ptrType;
+  return null;
 };
 
 CType.prototype.getConstructorArgs = function() {

@@ -56,19 +56,19 @@ PtrCType.prototype.getVarDecl = function(varname) {
 
 PtrCType.prototype.getJsToCppTest = function(valueExpr, o) {
   var type = this;
-  return `(JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr }) != nullptr)`;
+  return `(JsWrap_${ type.baseType.jsTypename }::Extract(isolate, ${ valueExpr }) != nullptr)`;
 };
 
 PtrCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   var type = this;
-  return `JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr })`;
+  return `JsWrap_${ type.baseType.jsTypename }::Extract(isolate, ${ valueExpr })`;
 };
 
 PtrCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
   if (ownerExpr) {
-    return `JsWrap_${ type.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
+    return `JsWrap_${ type.baseType.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
   } else {
-    return `JsWrap_${ type.jsTypename }::NewInstance(isolate, ${ valueExpr })`;
+    return `JsWrap_${ type.baseType.jsTypename }::NewInstance(isolate, ${ valueExpr })`;
   }
 };

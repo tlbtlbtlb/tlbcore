@@ -242,6 +242,8 @@ void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<T> const &arr) {
   wrJsonVec(s, blobs, arr);
 }
 template<>
+void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<double> const &arr);
+template<>
 void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<double> const &arr);
 
 template<typename T>

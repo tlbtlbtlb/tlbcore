@@ -75,9 +75,12 @@ TypeRegistry.prototype.object = function(typename) {
   if (typename in typereg.types) return typereg.types[typename];
   var t = new ObjectCType(typereg, typename);
   typereg.types[typename] = t;
-  var ptrTypename = typename + '*';
-  var sharedPtrTypename = 'shared_ptr< ' + typename + ' >';
-  typereg.types[sharedPtrTypename] = typereg.types[ptrTypename] = new PtrCType(typereg, t);
+
+  var ptrType = new PtrCType(typereg, t);
+  typereg.types[`shared_ptr< ${typename} >`] = ptrType;
+  typereg.types[`${typename}*`] = ptrType;
+  ptrType._nonPtrType = t;
+  t._ptrType = ptrType;
   return t;
 };
 
@@ -92,6 +95,8 @@ TypeRegistry.prototype.struct = function(typename /* varargs */) {
   var ptrType = new PtrCType(typereg, t);
   typereg.types[ptrType.typename] = ptrType;
   typereg.types[`shared_ptr< ${ typename } >`] = ptrType;
+  t._ptrType = ptrType;
+  ptrType._nonPtrType = t;
 
   return t;
 };
@@ -101,9 +106,12 @@ TypeRegistry.prototype.template = function(typename) {
   if (typename in typereg.types) return typereg.types[typename];
   var t = new CollectionCType(typereg, typename);
   typereg.types[typename] = t;
-  var ptrTypename = typename + '*';
-  var sharedPtrTypename = `shared_ptr< ${ typename } >`;
-  typereg.types[sharedPtrTypename] = typereg.types[ptrTypename] = new PtrCType(typereg, t);
+
+  var ptrType = new PtrCType(typereg, t);
+  typereg.types[`shared_ptr< ${ typename } >`] = ptrType;
+  typereg.types[`${typename}*`] = ptrType;
+  t._ptrType = ptrType;
+  ptrType._nonPtrType = t;
   return t;
 };
 

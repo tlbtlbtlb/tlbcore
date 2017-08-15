@@ -293,9 +293,9 @@ StructCType.prototype.emitTypeDecl = function(f) {
       bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, ${ type.typename } &obj);
       void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, ${ type.typename } const &x);
 
-      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<${ type.typename } *> const &obj);
-      bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<${ type.typename } *> &obj);
-      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<${ type.typename } *> const &x);
+      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > const &obj);
+      bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > &obj);
+      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > const &x);
     `);
   }
 
@@ -734,7 +734,7 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
   var deopt = (memberCount > 40) ? '__attribute__((optnone))' : '';
 
   f(`
-    void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<${ type.typename } *> const &arr) ${deopt} {
+    void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > const &arr) ${deopt} {
       if (!blobs) {
         wrJsonVec(s, blobs, arr);
         return;
@@ -743,7 +743,7 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
   f1 = f.child();
   f(`
     }
-    void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<${ type.typename } *> const &arr) {
+    void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > const &arr) {
       if (!blobs) {
         wrJsonSizeVec(size, blobs, arr);
         return;
@@ -834,7 +834,6 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
           }
         `);
       }
-      // WRITEME: maybe handle vector<double>
       else {
         if (0) console.log('Not handling', type.typename, ett.typename);
         f1(`
@@ -1098,7 +1097,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
       if (!rdJson(s, blobs, bulk_size)) return false;
       arr.resize((size_t)bulk_size);
       for (auto &it : arr) {
-        it = new ${type.typename}();
+        it = make_shared<${type.typename}>();
       }
       c = *s++;
       if (c == \',\') continue;
@@ -1111,7 +1110,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
   */
   var deopt = (_.keys(actions).length > 40) ? '__attribute__((optnone))' : '';
   f(`
-    bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, vector<${ type.typename } *> &arr) ${deopt} {
+    bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > &arr) ${deopt} {
       bool typeOk = ${ type.omitTypeTag ? 'true' : 'false' };
       char c;
       jsonSkipSpace(s);

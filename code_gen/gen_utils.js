@@ -75,36 +75,39 @@ function withJsWrapUtils(f, type) {
     var ifSep = '';
     _.each(argSets, function(argSet) {
       if (argSet === undefined) return;
+
+      var tests = _.map(argSet.args, function(argTypename, argi) {
+        var m;
+        if (argTypename === 'Value' || argTypename === 'CopyablePersistent<Value>') {
+          return '';
+        }
+        else if (argTypename === 'Object' || argTypename === 'CopyablePersistent<Object>') {
+          return ' && args[' + argi + ']->IsObject()';
+        }
+        else if (argTypename === 'Array' || argTypename === 'CopyablePersistent<Array>') {
+          return ' && args[' + argi + ']->IsArray()';
+        }
+        else if (argTypename === 'Function' || argTypename === 'CopyablePersistent<Function>') {
+          return ' && args[' + argi + ']->IsFunction()';
+        }
+        else if (m = /^conv:(.*)$/.exec(argTypename)) {
+          var argType = typereg.getType(m[1]);
+          if (!argType) {
+            throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
+          }
+          return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {conv: true});
+        }
+        else {
+          var argType = typereg.getType(argTypename);
+          if (!argType) {
+            throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
+          }
+          return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {});
+        }
+      });
+
       f(ifSep + 'if (args.Length() ' + (argSet.ignoreExtra ? '>=' : '==') + ' ' + argSet.args.length +
-        _.map(argSet.args, function(argTypename, argi) {
-          var m;
-          if (argTypename === 'Value' || argTypename === 'CopyablePersistent<Value>') {
-            return '';
-          }
-          else if (argTypename === 'Object' || argTypename === 'CopyablePersistent<Object>') {
-            return ' && args[' + argi + ']->IsObject()';
-          }
-          else if (argTypename === 'Array' || argTypename === 'CopyablePersistent<Array>') {
-            return ' && args[' + argi + ']->IsArray()';
-          }
-          else if (argTypename === 'Function' || argTypename === 'CopyablePersistent<Function>') {
-            return ' && args[' + argi + ']->IsFunction()';
-          }
-          else if (m = /^conv:(.*)$/.exec(argTypename)) {
-            var argType = typereg.getType(m[1]);
-            if (!argType) {
-              throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
-            }
-            return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {conv: true});
-          }
-          else {
-            var argType = typereg.getType(argTypename);
-            if (!argType) {
-              throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
-            }
-            return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {});
-          }
-        }).join('') +
+        tests.join('') +
         ') {');
 
       _.each(argSet.args, function(argTypename, argi) {
