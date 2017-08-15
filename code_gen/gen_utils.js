@@ -177,10 +177,11 @@ function withJsWrapUtils(f, type) {
           `);
         } else {
           var returnType = typereg.getType(argSet.returnType);
-          if (returnType.isStruct() || returnType.isCollection()) {
+          if (returnType.isPtr()) {
+            var returnBaseType = returnType.nonPtrType();
             f(`
-              shared_ptr< ${ returnType.typename } > ret_ptr = make_shared< ${ returnType.typename } >();
-              ${ returnType.typename } &ret = *ret_ptr;
+              shared_ptr< ${ returnBaseType.typename } > ret_ptr = make_shared< ${ returnBaseType.typename } >();
+              ${ returnBaseType.typename } &ret = *ret_ptr;
             `);
             argSet.code(f);
             f(`

@@ -69,6 +69,6 @@ PtrCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   if (ownerExpr) {
     return `JsWrap_${ type.baseType.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
   } else {
-    return `JsWrap_${ type.baseType.jsTypename }::NewInstance(isolate, ${ valueExpr })`;
+    return `JsWrap_${ type.baseType.jsTypename }::WrapInstance(isolate, ${ valueExpr })`;
   }
 };

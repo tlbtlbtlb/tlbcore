@@ -112,6 +112,8 @@ TypeRegistry.prototype.template = function(typename) {
   typereg.types[`${typename}*`] = ptrType;
   t._ptrType = ptrType;
   ptrType._nonPtrType = t;
+
+  if (0) console.log(`template type-ptr: ${t.typename} ${ptrType.typename}`);
   return t;
 };
 
@@ -419,7 +421,7 @@ TypeRegistry.prototype.getNamedType = function(typename) {
   if (!type) {
     if (/</.test(typename)) {
       if (0) console.log('Creating template', typename);
-      type = new CollectionCType(typereg, typename);
+      type = typereg.template(typename);
     }
     if (!type) throw new Error(`No pattern for type ${ typename }`);
     typereg.types[typename] = type;

@@ -251,7 +251,7 @@ CollectionCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
     return `JsWrap_${ type.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
   }
   else {
-    return `JsWrap_${ type.jsTypename }::NewInstance(isolate, ${ valueExpr })`;
+    return `JsWrap_${ type.jsTypename }::ConstructInstance(isolate, ${ valueExpr })`;
   }
 };
 
@@ -838,8 +838,11 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
     if (type.isCopyConstructable()) {
       f.emitJsFactory('fromString', function() {
+        if (!type.ptrType()) {
+          throw new Error(`Weird: no ptrType for ${type.typename}`);
+        }
         f.emitArgSwitch([
-          {args: ['string'], returnType: type, code: function(f) {
+          {args: ['string'], returnType: type.ptrType(), code: function(f) {
             f(`
               const char *a0s = a0.c_str();
               shared_ptr<ChunkFile> blobs;

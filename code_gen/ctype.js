@@ -26,6 +26,8 @@ function CType(reg, typename) {
   type.extraDestructorCode = [];
   type.extraJswrapMethods = [];
   type.extraJswrapAccessors = [];
+  type.noPacket = false;
+  type.noSerialize = false;
 }
 
 CType.prototype.addFunctionDecl = function(x) { this.extraFunctionDecls.push(x); };
@@ -233,6 +235,21 @@ CType.prototype.emitHeader = function(f) {
 
 CType.prototype.emitHostCode = function(f) {
   var type = this;
+  f(`
+    /*
+      CType Attributes:
+        typename: ${type.typename}
+        jsTypename: ${type.jsTypename}
+        synopsis: ${type.getSynopsis()}
+        noPacket: ${type.noPacket}
+        noSerialize: ${type.noSerialize}
+        ptrType: ${type.ptrType() ? type.ptrType().typename : '(null)'}
+        nonPtrType: ${type.nonPtrType() ? type.nonPtrType().typename : '(null)'}
+        isPtr: ${type.isPtr()}
+
+    */
+  `);
+
   f(`#include "common/std_headers.h"`);
   var fns = type.getFns();
   if (fns.typeHeader) {

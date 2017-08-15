@@ -115,7 +115,7 @@ StructCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   if (ownerExpr) {
     return `JsWrap_${ type.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
   } else {
-    return `JsWrap_${ type.jsTypename }::NewInstance(isolate, ${ valueExpr })`;
+    return `JsWrap_${ type.jsTypename }::ConstructInstance(isolate, ${ valueExpr })`;
   }
 };
 
@@ -168,6 +168,8 @@ StructCType.prototype.add = function(memberName, memberType, memberOptions) {
     if (!newMemberType) throw new Error('Unknown member type ' + memberType);
     memberType = newMemberType;
   }
+  if (memberType.noPacket) type.noPacket = true;
+  if (memberType.noSerialize) type.noSerialize = true;
   if (_.isString(memberName)) {
     if (!memberType) memberType = type.reg.types['double'];
     if (memberName in type.nameToType) {
@@ -302,7 +304,7 @@ StructCType.prototype.emitTypeDecl = function(f) {
   if (!type.noSerialize && !type.noPacket) {
     f(`
       void packet_wr_typetag(packet &p, const ${ type.typename } &x);
-      void packet_rd_typetag(packet &p, ${ type.typename } &x);
+      void packet_rd_typetag(packet &p, ${ type.typename } const &x);
       void packet_wr_value(packet &p, const ${ type.typename } &x);
       void packet_rd_value(packet &p, ${ type.typename } &x);
     `);
@@ -642,7 +644,7 @@ StructCType.prototype.emitPacketIo = function(f) {
   `);
 
   f(`
-    void packet_rd_typetag(packet &p, ${ type.typename } &x) {
+    void packet_rd_typetag(packet &p, ${ type.typename } const &x) {
       p.check_typetag(x.typeVersionString);
     }
   `);
@@ -1402,7 +1404,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     _.each(['allZero', 'allNan'], function(name) {
       f.emitJsFactory(name, function(f) {
         f(`
-          args.GetReturnValue().Set(JsWrap_${ type.jsTypename }::NewInstance(isolate, ${ type.typename }::${ name }()));
+          args.GetReturnValue().Set(JsWrap_${ type.jsTypename }::ConstructInstance(isolate, ${ type.typename }::${ name }()));
         `);
       });
     });

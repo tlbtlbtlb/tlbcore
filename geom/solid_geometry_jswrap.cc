@@ -140,7 +140,7 @@ static void jsWrap_StlSolid_getStlMassProperties(FunctionCallbackInfo<Value> con
   if (args.Length() == 1 && args[0]->IsNumber()) {
     double a0 = args[0]->NumberValue();
     StlMassProperties ret = thisObj->it->getStlMassProperties(a0);
-    args.GetReturnValue().Set(JsWrap_StlMassProperties::NewInstance(isolate, ret));
+    args.GetReturnValue().Set(JsWrap_StlMassProperties::ConstructInstance(isolate, ret));
   }
   else {
     return ThrowInvalidArgs(isolate);
@@ -163,7 +163,7 @@ static void jsWrap_StlSolid_getIntersections(FunctionCallbackInfo<Value> const &
     for (size_t ri = 0; ri < ret.size(); ri++) {
       Local<Object> interJs = Object::New(isolate);
       interJs->Set(String::NewFromUtf8(isolate, "t"), Number::New(isolate, ret[ri].t));
-      interJs->Set(String::NewFromUtf8(isolate, "face"), JsWrap_StlFace::NewInstance(isolate, ret[ri].face));
+      interJs->Set(String::NewFromUtf8(isolate, "face"), JsWrap_StlFace::ConstructInstance(isolate, ret[ri].face));
       retJs->Set(ri, interJs);
     }
     args.GetReturnValue().Set(retJs);
@@ -200,9 +200,9 @@ static void jsWrap_StlSolid_exportWebglMesh(FunctionCallbackInfo<Value> const &a
     double a0 = args[0]->NumberValue();
     StlWebglMesh ret = thisObj->it->exportWebglMesh(a0);
     Local<Object> retJs = Object::New(isolate);
-    retJs->Set(String::NewFromUtf8(isolate, "coords"), JsWrap_vec::NewInstance(isolate, ret.coords));
-    retJs->Set(String::NewFromUtf8(isolate, "normals"), JsWrap_vec::NewInstance(isolate, ret.normals));
-    retJs->Set(String::NewFromUtf8(isolate, "indexes"), JsWrap_ivec::NewInstance(isolate, ret.indexes));
+    retJs->Set(String::NewFromUtf8(isolate, "coords"), JsWrap_vec::ConstructInstance(isolate, ret.coords));
+    retJs->Set(String::NewFromUtf8(isolate, "normals"), JsWrap_vec::ConstructInstance(isolate, ret.normals));
+    retJs->Set(String::NewFromUtf8(isolate, "indexes"), JsWrap_ivec::ConstructInstance(isolate, ret.indexes));
     args.GetReturnValue().Set(retJs);
   }
   else {
@@ -219,7 +219,7 @@ static void jsWrap_StlSolid_analyzeHole(FunctionCallbackInfo<Value> const &args)
   if (args.Length() == 1 && args[0]->IsNumber()) {
     double a0 = args[0]->NumberValue();
     arma::vec3 ret = thisObj->it->analyzeHole((int)a0);
-    args.GetReturnValue().Set(JsWrap_vec::NewInstance(isolate, ret));
+    args.GetReturnValue().Set(JsWrap_vec::ConstructInstance(isolate, ret));
   }
   else {
     return ThrowInvalidArgs(isolate);
@@ -236,7 +236,7 @@ static void jsWrap_StlSolid_estimateVolume(FunctionCallbackInfo<Value> const &ar
 
     Local<Object> retJs = Object::New(isolate);
     retJs->Set(String::NewFromUtf8(isolate, "volume"), Number::New(isolate, ret.first));
-    retJs->Set(String::NewFromUtf8(isolate, "center"), JsWrap_vec::NewInstance(isolate, ret.second));
+    retJs->Set(String::NewFromUtf8(isolate, "center"), JsWrap_vec::ConstructInstance(isolate, ret.second));
 
     args.GetReturnValue().Set(retJs);
   }
@@ -329,7 +329,7 @@ static void jsWrap_StlFace_getE1(FunctionCallbackInfo<Value> const &args)
   auto thisObj = node::ObjectWrap::Unwrap<JsWrap_StlFace>(args.This());
   if (args.Length() == 0) {
     vec ret = thisObj->it->getE1();
-    args.GetReturnValue().Set(JsWrap_vec::NewInstance(isolate, ret));
+    args.GetReturnValue().Set(JsWrap_vec::ConstructInstance(isolate, ret));
   }
   else {
     return ThrowInvalidArgs(isolate);
@@ -343,7 +343,7 @@ static void jsWrap_StlFace_getE2(FunctionCallbackInfo<Value> const &args)
   auto thisObj = node::ObjectWrap::Unwrap<JsWrap_StlFace>(args.This());
   if (args.Length() == 0) {
     vec ret = thisObj->it->getE2();
-    args.GetReturnValue().Set(JsWrap_vec::NewInstance(isolate, ret));
+    args.GetReturnValue().Set(JsWrap_vec::ConstructInstance(isolate, ret));
   }
   else {
     return ThrowInvalidArgs(isolate);
@@ -371,7 +371,7 @@ static void jsWrap_StlFace_getCentroid(FunctionCallbackInfo<Value> const &args)
   auto thisObj = node::ObjectWrap::Unwrap<JsWrap_StlFace>(args.This());
   if (args.Length() == 0) {
     vec ret = thisObj->it->getCentroid();
-    args.GetReturnValue().Set(JsWrap_vec::NewInstance(isolate, ret));
+    args.GetReturnValue().Set(JsWrap_vec::ConstructInstance(isolate, ret));
   }
   else {
     return ThrowInvalidArgs(isolate);

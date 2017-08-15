@@ -142,13 +142,8 @@ struct JsWrapGeneric : node::ObjectWrap {
   shared_ptr<CONTENTS> owner;
 
   template<typename... Args>
-  static Local<Value> NewInstance(Isolate *isolate, Args &&... _args) {
+  static Local<Value> ConstructInstance(Isolate *isolate, Args &&... _args) {
     EscapableHandleScope scope(isolate);
-
-    if (constructor.IsEmpty()) {
-      if (1) eprintf("NewInstance: no constructor\n");
-      return scope.Escape(Undefined(isolate));
-    }
     Local<Function> localConstructor = constructor.Get(isolate);
     Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
@@ -160,12 +155,12 @@ struct JsWrapGeneric : node::ObjectWrap {
     return scope.Escape(instance);
   }
 
-  static Local<Value> NewInstance(Isolate *isolate, shared_ptr<CONTENTS> _it) {
+  static Local<Value> WrapInstance(Isolate *isolate, shared_ptr<CONTENTS> _it) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = constructor.Get(isolate);
     Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
-      if (1) eprintf("NewInstance: constructor failed, instance is empty\n");
+      if (1) eprintf("WrapInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
     auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);

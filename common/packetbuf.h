@@ -400,10 +400,9 @@ void packet_wr_value(packet &p, vector<T> const &x) {
 }
 
 template<typename T>
-void packet_rd_typetag(packet &p, vector<T> &x) {
+void packet_rd_typetag(packet &p, vector<T> const &x) {
   p.check_typetag("vector:1");
-  T dummy; // or use x[0]?
-  packet_rd_typetag(p, dummy);
+  packet_rd_typetag(p, T());
 }
 
 template<typename T>
@@ -439,8 +438,7 @@ void packet_wr_value(packet &p, arma::Col<T> const &x) {
 template<typename T>
 void packet_rd_typetag(packet &p, arma::Col<T> &x) {
   p.check_typetag("arma::Col:1");
-  T dummy; // or use x[0]?
-  packet_rd_typetag(p, dummy);
+  packet_rd_typetag(p, T());
 }
 
 template<typename T>
@@ -474,10 +472,9 @@ void packet_wr_value(packet &p, arma::Mat<T> const &x) {
 }
 
 template<typename T>
-void packet_rd_typetag(packet &p, arma::Mat<T> &x) {
+void packet_rd_typetag(packet &p, arma::Mat<T> const &x) {
   p.check_typetag("arma::Mat:1");
-  T dummy; // or use x[0]?
-  packet_rd_typetag(p, dummy);
+  packet_rd_typetag(p, T());
 }
 
 template<typename T>
@@ -513,7 +510,7 @@ void packet_wr_value(packet &p, pair<T1, T2> const &x)
 }
 
 template<typename T1, typename T2>
-void packet_rd_typetag(packet &p, pair<T1, T2> &x)
+void packet_rd_typetag(packet &p, pair<T1, T2> const &x)
 {
   p.check_typetag("pair:1");
   packet_rd_typetag(p, x.first);
@@ -546,7 +543,7 @@ void packet_wr_value(packet &p, map<T1, T2> const &x)
 }
 
 template<typename T1, typename T2>
-void packet_rd_typetag(packet &p, map<T1, T2> &x)
+void packet_rd_typetag(packet &p, map<T1, T2> const &x)
 {
   p.check_typetag("map:1");
   packet_rd_typetag(p, T1());
