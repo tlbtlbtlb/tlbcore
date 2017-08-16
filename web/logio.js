@@ -17,12 +17,12 @@ var baseTimestamp = +Date.now();
 // ----------------------------------------------------------------------
 
 function vsystem(cmd, cb) {
-  console.log('system(' + cmd + ')');
+  O('shell', cmd);
   child_process.exec(cmd, function (err, stdout, stderr) {
-    if (err) throw err;
-    if (stdout.length) console.log(stdout);
-    if (stderr.length) console.log(stderr);
-    if (cb) cb();
+    if (err) return cb(err);
+    if (stdout.length) I(cmd, stdout);
+    if (stderr.length) I(cmd, stderr);
+    if (cb) cb(null, stdout, stderr);
   });
 }
 
