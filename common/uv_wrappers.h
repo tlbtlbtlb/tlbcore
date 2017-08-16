@@ -274,7 +274,7 @@ struct UvStream {
     if (rc < 0) throw uv_error("uv_write", rc);
   }
 
-  void write(vector<string> const &data, std::function<void(int)> const &_write_cb)
+  void write(vector< string > const &data, std::function<void(int)> const &_write_cb)
   {
     int rc;
     assert(stream && (stream->type == UV_TCP || stream->type == UV_NAMED_PIPE || stream->type == UV_TTY));
@@ -430,7 +430,6 @@ struct UvStream {
     uv_close(reinterpret_cast<uv_handle_t *>(stream), [] (uv_handle_t *stream1) {
       auto this1 = reinterpret_cast<UvStream *>(stream1->data);
       delete this1->stream;
-      this1->stream = nullptr;
     });
   }
 
@@ -523,8 +522,10 @@ static inline void UvGetAddrInfo(uv_loop_t *loop, string const &hostname, string
 struct UvProcess {
 
   UvProcess(uv_loop_t *_loop,
-    string const &file, vector<string> const &args, vector<string> const &env,
-    UvStream *stdin_pipe, UvStream *stdout_pipe, UvStream *stderr_pipe,
+    string const &file, vector< string > const &args, vector< string > const &env,
+    UvStream *stdin_pipe,
+    UvStream *stdout_pipe,
+    UvStream *stderr_pipe,
     std::function<void(int64_t exit_status, int term_signal)> _exit_cb)
    :loop(_loop), exit_cb(_exit_cb)
   {
@@ -596,6 +597,7 @@ struct UvProcess {
       stdio[1].data.fd = 1;
     }
     if (stderr_pipe) {
+      stderr_pipe->pipe_init();
       stdio[2].flags = static_cast<uv_stdio_flags>(UV_CREATE_PIPE|UV_WRITABLE_PIPE);
       stdio[2].data.stream = reinterpret_cast<uv_stream_t *>(stderr_pipe->stream);
     }
@@ -608,7 +610,7 @@ struct UvProcess {
 
     proc.data = this;
     rc = uv_spawn(loop, &proc, &opt);
-    if (rc < 0) throw uv_error("uv_spawn", rc);
+    if (rc < 0) throw uv_error("uv_spawn(" + file + ")", rc);
     running = true;
 
     for (size_t i=0; opt.args[i] != nullptr; i++) {
