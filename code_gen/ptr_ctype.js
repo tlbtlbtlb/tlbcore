@@ -9,7 +9,7 @@ exports.PtrCType = PtrCType;
 function PtrCType(reg, baseType) {
   var type = this;
   type.baseType = baseType;
-  CType.call(type, reg, baseType.typename + '*');
+  CType.call(type, reg, `shared_ptr< ${baseType.typename} >`);
   type.jsTypename = baseType.jsTypename;
 }
 PtrCType.prototype = Object.create(CType.prototype);

@@ -62,8 +62,19 @@ TypeRegistry.prototype.setupBuiltins = function() {
   typereg.template('map< string, jsonstr >');
 };
 
+/*
+  Require types for be formatted with spaces inside angle brackets and after commas.
+  Because C++ (even C++14) can't handle T<U<X>>, seeing the >> as a right-shift token.
+*/
+function enforceCanonicalTypename(typename) {
+  if (/<\S/.exec(typename) || /\S>/.exec(typename) || /,\S/.exec(typename)) {
+    throw new Error(`${typename} missing some spaces from canonical form. Should be: T< U, V >`);
+  }
+}
+
 TypeRegistry.prototype.primitive = function(typename) {
   var typereg = this;
+  enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
   var t = new PrimitiveCType(typereg, typename);
   typereg.types[typename] = t;
@@ -72,13 +83,13 @@ TypeRegistry.prototype.primitive = function(typename) {
 
 TypeRegistry.prototype.object = function(typename) {
   var typereg = this;
+  enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
   var t = new ObjectCType(typereg, typename);
   typereg.types[typename] = t;
 
   var ptrType = new PtrCType(typereg, t);
-  typereg.types[`shared_ptr< ${typename} >`] = ptrType;
-  typereg.types[`${typename}*`] = ptrType;
+  typereg.types[ptrType.typename] = ptrType;
   ptrType._nonPtrType = t;
   t._ptrType = ptrType;
   return t;
@@ -87,6 +98,7 @@ TypeRegistry.prototype.object = function(typename) {
 
 TypeRegistry.prototype.struct = function(typename /* varargs */) {
   var typereg = this;
+  enforceCanonicalTypename(typename);
   if (typename in typereg.types) throw new Error(`${ typename } already defined`);
   var t = new StructCType(typereg, typename);
   typereg.types[typename] = t;
@@ -94,7 +106,6 @@ TypeRegistry.prototype.struct = function(typename /* varargs */) {
 
   var ptrType = new PtrCType(typereg, t);
   typereg.types[ptrType.typename] = ptrType;
-  typereg.types[`shared_ptr< ${ typename } >`] = ptrType;
   t._ptrType = ptrType;
   ptrType._nonPtrType = t;
 
@@ -103,16 +114,13 @@ TypeRegistry.prototype.struct = function(typename /* varargs */) {
 
 TypeRegistry.prototype.template = function(typename) {
   var typereg = this;
+  enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
-  if (/<\S/.exec(typename) || /\S>/.exec(typename) || /,\S/.exec(typename)) {
-    throw new Error(`${typename} missing some spaces from canonical form. Should be: T< U, V >`);
-  }
   var t = new CollectionCType(typereg, typename);
   typereg.types[typename] = t;
 
   var ptrType = new PtrCType(typereg, t);
-  typereg.types[`shared_ptr< ${ typename } >`] = ptrType;
-  typereg.types[`${typename}*`] = ptrType;
+  typereg.types[ptrType.typename] = ptrType;
   t._ptrType = ptrType;
   ptrType._nonPtrType = t;
 
@@ -123,6 +131,7 @@ TypeRegistry.prototype.template = function(typename) {
 TypeRegistry.prototype.dsp = function(lbits, rbits) {
   var typereg = this;
   var typename = `dsp${ lbits.toString() }${ rbits.toString() }`;
+  enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
   var t = new DspCType(typereg, lbits, rbits);
   typereg.types[typename] = t;
@@ -130,17 +139,28 @@ TypeRegistry.prototype.dsp = function(lbits, rbits) {
 };
 
 
-TypeRegistry.prototype.getType = function(typename) {
+TypeRegistry.prototype.getType = function(typename, create) {
   var typereg = this;
   if (typename === null || typename === undefined) return null;
   if (typename.typename) return typename; // already a type object
-  if (/<\S+/.exec(typename)) throw new Error(`${typename} bad`);
-  if (/\S+>/.exec(typename)) throw new Error(`${typename} bad`);
-  return typereg.types[typename];
+  enforceCanonicalTypename(typename);
+  var type = typereg.types[typename];
+  if (!type && create) {
+    var match = /^shared_ptr< (.*) >$/.exec(typename);
+    if (match) {
+      type = typereg.getType(m[1], true).ptrType();
+    }
+    else if (/</.test(typename)) {
+      type = typereg.template(typename);
+    }
+    if (!type) throw new Error(`Can't create type ${ typename }`);
+  }
+  return type;
 };
 
 TypeRegistry.prototype.aliasType = function(existingName, newName) {
   var typereg = this;
+  enforceCanonicalTypename(newName);
   var type = typereg.getType(existingName);
   if (!type) throw 'No such type ' + existingName;
   typereg.types[newName] = type;
@@ -418,20 +438,6 @@ TypeRegistry.prototype.emitSchema = function(files) {
   var f = files.getFile(`schema_${ typereg.groupname }.json`);
   var schemas = typereg.getSchemas();
   f(JSON.stringify(schemas));
-};
-
-TypeRegistry.prototype.getNamedType = function(typename) {
-  var typereg = this;
-  var type = typereg.types[typename];
-  if (!type) {
-    if (/</.test(typename)) {
-      if (0) console.log('Creating template', typename);
-      type = typereg.template(typename);
-    }
-    if (!type) throw new Error(`No pattern for type ${ typename }`);
-    typereg.types[typename] = type;
-  }
-  return type;
 };
 
 /* ----------------------------------------------------------------------

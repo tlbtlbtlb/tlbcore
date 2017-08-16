@@ -164,7 +164,7 @@ StructCType.prototype.add = function(memberName, memberType, memberOptions) {
   var type = this;
   if (!memberOptions) memberOptions = {};
   if (_.isString(memberType)) {
-    var newMemberType = type.reg.getNamedType(memberType);
+    var newMemberType = type.reg.getType(memberType, true);
     if (!newMemberType) throw new Error('Unknown member type ' + memberType);
     memberType = newMemberType;
   }
@@ -763,6 +763,10 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
     size += 101+${type.jsTypename.length};
   `);
 
+  /*
+    Storing in bulk format using blobs is an optimization, so we don't have to do it for every type. Just the
+    common ones.
+  */
   _.each(rm, function(members, et) {
     var ett = type.reg.types[et];
     _.each(members, function(names) {

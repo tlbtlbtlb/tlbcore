@@ -93,14 +93,14 @@ function withJsWrapUtils(f, type) {
         else if (m = /^conv:(.*)$/.exec(argTypename)) {
           var argType = typereg.getType(m[1]);
           if (!argType) {
-            throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
+            throw new Error(`No type found for ${util.inspect(argTypename)} in ${util.inspect(argSet)}`);
           }
           return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {conv: true});
         }
         else {
           var argType = typereg.getType(argTypename);
           if (!argType) {
-            throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
+            throw new Error(`No type found for ${util.inspect(argTypename)} in ${util.inspect(argSet)}`);
           }
           return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {});
         }
