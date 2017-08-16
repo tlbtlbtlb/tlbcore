@@ -37,7 +37,7 @@ struct AsyncCallbacks {
   AsyncCallbacks & operator = (AsyncCallbacks &&) = delete;
 
   std::once_flag implInitOnce;
-  shared_ptr<struct AsyncEventQueueApi> impl;
+  shared_ptr< struct AsyncEventQueueApi > impl;
 
   void async_emit(string const &eventName, jsonstr const &it);
   void sync_emit(string const &eventName);

@@ -58,8 +58,8 @@ TypeRegistry.prototype.setupBuiltins = function() {
   typereg.primitive('string');
   typereg.primitive('char const *');
   typereg.primitive('jsonstr');
-  typereg.template('vector<jsonstr>');
-  typereg.template('map<string,jsonstr>');
+  typereg.template('vector< jsonstr >');
+  typereg.template('map< string, jsonstr >');
 };
 
 TypeRegistry.prototype.primitive = function(typename) {
@@ -104,6 +104,9 @@ TypeRegistry.prototype.struct = function(typename /* varargs */) {
 TypeRegistry.prototype.template = function(typename) {
   var typereg = this;
   if (typename in typereg.types) return typereg.types[typename];
+  if (/<\S/.exec(typename) || /\S>/.exec(typename) || /,\S/.exec(typename)) {
+    throw new Error(`${typename} missing some spaces from canonical form. Should be: T< U, V >`);
+  }
   var t = new CollectionCType(typereg, typename);
   typereg.types[typename] = t;
 
@@ -131,6 +134,8 @@ TypeRegistry.prototype.getType = function(typename) {
   var typereg = this;
   if (typename === null || typename === undefined) return null;
   if (typename.typename) return typename; // already a type object
+  if (/<\S+/.exec(typename)) throw new Error(`${typename} bad`);
+  if (/\S+>/.exec(typename)) throw new Error(`${typename} bad`);
   return typereg.types[typename];
 };
 

@@ -24,7 +24,7 @@ PrimitiveCType.prototype.emitJsWrapDecl = function(f) {
     char const * getTypeName(${ type.typename } const &);
     char const * getJsTypeName(${ type.typename } const &);
     char const * getSchema(${ type.typename } const &);
-    void addSchemas(${ type.typename } const &, map<string, jsonstr> &);
+    void addSchemas(${ type.typename } const &, map< string, jsonstr > &);
   `);
 };
 

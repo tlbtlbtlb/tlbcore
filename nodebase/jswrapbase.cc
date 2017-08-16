@@ -144,16 +144,16 @@ Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it)
 }
 
 /* ----------------------------------------------------------------------
-  vector<string> I/O
+  vector< string > I/O
 */
 
 bool canConvJsToVectorString(Isolate *isolate, Local<Value> itv) {
   if (itv->IsArray()) return true;
   return false;
 }
-vector<string> convJsToVectorString(Isolate *isolate, Local<Value> itv) {
+vector< string > convJsToVectorString(Isolate *isolate, Local<Value> itv) {
   if (itv->IsArray()) {
-    vector<string> ret;
+    vector< string > ret;
 
     Local<Array> it = Local<Array>::Cast(itv);
     for (size_t i = 0; i < it->Length(); i++) {
@@ -164,7 +164,7 @@ vector<string> convJsToVectorString(Isolate *isolate, Local<Value> itv) {
   throw runtime_error("convJsToVectorString: not an array");
 }
 
-Local<Value> convVectorStringToJs(Isolate *isolate, vector<string> const &it) {
+Local<Value> convVectorStringToJs(Isolate *isolate, vector< string > const &it) {
   Local<Array> ret = Array::New(isolate, (int)it.size());
   for (size_t i=0; i < it.size(); i++) {
     ret->Set((uint32_t)i, convStringToJs(isolate, it[i]));
@@ -460,13 +460,13 @@ template arma::Mat<S64> convJsToArmaMat<S64>(Isolate *isolate, Local<Value> it, 
 template Local<Object> convArmaMatToJs<S64>(Isolate *isolate, arma::Mat<S64> const &it);
 
 template bool canConvJsToArmaCol<U64>(Isolate *isolate, Local<Value> itv);
-template arma::Col<U64> convJsToArmaCol<U64>(Isolate *isolate, Local<Value> itv);
-template Local<Object> convArmaColToJs<U64>(Isolate *isolate, arma::Col<U64> const &it);
+template arma::Col< U64 > convJsToArmaCol<U64>(Isolate *isolate, Local<Value> itv);
+template Local<Object> convArmaColToJs<U64>(Isolate *isolate, arma::Col< U64 > const &it);
 template bool canConvJsToArmaRow<U64>(Isolate *isolate, Local<Value> itv);
-template arma::Row<U64> convJsToArmaRow<U64>(Isolate *isolate, Local<Value> itv);
+template arma::Row< U64 > convJsToArmaRow<U64>(Isolate *isolate, Local<Value> itv);
 template Local<Object> convArmaRowToJs<U64>(Isolate *isolate, arma::Row<U64> const &it);
 template bool canConvJsToArmaMat<U64>(Isolate *isolate, Local<Value> it);
-template arma::Mat<U64> convJsToArmaMat<U64>(Isolate *isolate, Local<Value> it, size_t nRows, size_t nCols);
+template arma::Mat< U64 > convJsToArmaMat<U64>(Isolate *isolate, Local<Value> it, size_t nRows, size_t nCols);
 template Local<Object> convArmaMatToJs<U64>(Isolate *isolate, arma::Mat<U64> const &it);
 
 template bool canConvJsToArmaCol<arma::cx_double>(Isolate *isolate, Local<Value> itv);

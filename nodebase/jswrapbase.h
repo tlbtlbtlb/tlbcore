@@ -64,10 +64,10 @@ bool canConvJsToCxDouble(Isolate *isolate, Local<Value> it);
 arma::cx_double convJsToCxDouble(Isolate *isolate, Local<Value> it);
 Local<Object> convCxDoubleToJs(Isolate *isolate, arma::cx_double const &it);
 
-// vector<string> conversion
+// vector< string > conversion
 bool canConvJsToVectorString(Isolate *isolate, Local<Value> itv);
-vector<string> convJsToVectorString(Isolate *isolate, Local<Value> itv);
-Local<Value> convVectorStringToJs(Isolate *isolate, vector<string> const &it);
+vector< string > convJsToVectorString(Isolate *isolate, Local<Value> itv);
+Local<Value> convVectorStringToJs(Isolate *isolate, vector< string > const &it);
 
 
 // map<string, jsonstr> conversion
@@ -95,12 +95,12 @@ struct JsWrapGeneric : node::ObjectWrap {
   {
   }
 
-  JsWrapGeneric(Isolate *_isolate, shared_ptr<CONTENTS> const &_it)
+  JsWrapGeneric(Isolate *_isolate, shared_ptr< CONTENTS > const &_it)
     :it(_it)
   {
   }
 
-  JsWrapGeneric(Isolate *_isolate, shared_ptr<CONTENTS> const &_it, shared_ptr<CONTENTS> const &_owner)
+  JsWrapGeneric(Isolate *_isolate, shared_ptr< CONTENTS> const &_it, shared_ptr<CONTENTS > const &_owner)
     :it(_it), owner(_owner)
   {
   }
@@ -111,7 +111,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   JsWrapGeneric & operator = (JsWrapGeneric const &) = delete;
   JsWrapGeneric & operator = (JsWrapGeneric &&) = delete;
 
-  void assign(shared_ptr<CONTENTS> _it)
+  void assignWrap(shared_ptr< CONTENTS > const &_it)
   {
     it = _it;
   }
@@ -138,8 +138,8 @@ struct JsWrapGeneric : node::ObjectWrap {
     then .it is a simple shared_ptr and .owner is a nullptr with the owner set to the parent.
   */
 
-  shared_ptr<CONTENTS> it;
-  shared_ptr<CONTENTS> owner;
+  shared_ptr< CONTENTS > it;
+  shared_ptr< CONTENTS > owner;
 
   template<typename... Args>
   static Local<Value> ConstructInstance(Isolate *isolate, Args &&... _args) {
@@ -155,7 +155,7 @@ struct JsWrapGeneric : node::ObjectWrap {
     return scope.Escape(instance);
   }
 
-  static Local<Value> WrapInstance(Isolate *isolate, shared_ptr<CONTENTS> _it) {
+  static Local<Value> WrapInstance(Isolate *isolate, shared_ptr< CONTENTS > _it) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = constructor.Get(isolate);
     Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
@@ -169,7 +169,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   }
 
   template<class OWNER>
-  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr<OWNER> _owner, CONTENTS *_ptr) {
+  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr< OWNER > _owner, CONTENTS *_ptr) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = constructor.Get(isolate);
     Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
@@ -178,12 +178,12 @@ struct JsWrapGeneric : node::ObjectWrap {
       return scope.Escape(Undefined(isolate));
     }
     auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->it = shared_ptr<CONTENTS>(_owner, _ptr);
+    w->it = shared_ptr< CONTENTS >(_owner, _ptr);
     return scope.Escape(instance);
   }
 
   template<class OWNER>
-  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr<OWNER> _owner, CONTENTS const &_contents) {
+  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr< OWNER > _owner, CONTENTS const &_contents) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = constructor.Get(isolate);
     Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
@@ -193,12 +193,12 @@ struct JsWrapGeneric : node::ObjectWrap {
     }
     auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->it = make_shared<CONTENTS>(_contents);
-    w->owner = shared_ptr<CONTENTS>(_owner, nullptr);
+    w->owner = shared_ptr< CONTENTS >(_owner, nullptr);
     return scope.Escape(instance);
   }
 
   template<class OWNER>
-  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr<OWNER> _owner, shared_ptr<CONTENTS> const &_contents) {
+  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr< OWNER> _owner, shared_ptr<CONTENTS > const &_contents) {
     EscapableHandleScope scope(isolate);
     Local<Function> localConstructor = constructor.Get(isolate);
     Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
@@ -208,12 +208,12 @@ struct JsWrapGeneric : node::ObjectWrap {
     }
     auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
     w->it = _contents;
-    w->owner = shared_ptr<CONTENTS>(_owner, nullptr);
+    w->owner = shared_ptr< CONTENTS >(_owner, nullptr);
     return scope.Escape(instance);
   }
 
 
-  static shared_ptr<CONTENTS> Extract(Isolate *isolate, Local<Value> value) {
+  static shared_ptr< CONTENTS> Extract(Isolate *isolate, Local<Value > value) {
     Local<Function> localConstructor = constructor.Get(isolate);
     if (value->IsObject()) {
       Local<Object> valueObject = value->ToObject();
@@ -222,7 +222,7 @@ struct JsWrapGeneric : node::ObjectWrap {
         return node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(valueObject)->it;
       }
     }
-    return shared_ptr<CONTENTS>();
+    return shared_ptr< CONTENTS >();
   }
 
 

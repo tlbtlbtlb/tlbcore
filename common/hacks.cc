@@ -656,7 +656,7 @@ bool same_type(std::type_info const &t1, std::type_info const &t2)
 }
 
 
-void stl_exec(vector<string> const &args)
+void stl_exec(vector< string > const &args)
 {
   vector<const char *> cargs;
   for (auto const &it : args) {

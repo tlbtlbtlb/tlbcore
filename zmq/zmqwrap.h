@@ -38,13 +38,13 @@ struct ZmqSock {
 
   void zmqTx(zmq_msg_t &m, bool more);
   void zmqTx(string const &s, bool more);
-  void zmqTx(vector<string> const &v, bool more);
+  void zmqTx(vector< string > const &v, bool more);
   void zmqTxDelim();
   void zmqTx(jsonstr const &s, bool more);
 
   bool zmqRx(zmq_msg_t &m, bool &more);
   bool zmqRx(string &s, bool &more);
-  bool zmqRx(vector<string> &v, bool &more);
+  bool zmqRx(vector< string > &v, bool &more);
   bool zmqRx(jsonstr &json, bool allowBlobs, bool &more);
 
   void *sock = nullptr;
@@ -127,5 +127,5 @@ struct ZmqRpcDealer : ZmqRpcAgent {
     return replyCallbacks.size();
   }
 
-  std::unordered_map<string, shared_ptr<struct ZmqRpcOut> > replyCallbacks;
+  std::unordered_map<string, shared_ptr< struct ZmqRpcOut>  > replyCallbacks;
 };

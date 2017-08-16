@@ -27,7 +27,7 @@ static void zmqwrapMsgFree(void *p)
 }
 
 struct ZmqwrapJsonblobsKeepalive {
-  ZmqwrapJsonblobsKeepalive(shared_ptr<jsonblobs> _it) : it(std::move(_it)) {
+  ZmqwrapJsonblobsKeepalive(shared_ptr< jsonblobs > _it) : it(std::move(_it)) {
     if (zmqLogFile) fprintf(zmqLogFile, "Create %p around blob %p (uses=%ld)\n", this, it.get(), it.use_count());
   }
   ~ZmqwrapJsonblobsKeepalive() {
@@ -38,7 +38,7 @@ struct ZmqwrapJsonblobsKeepalive {
   ZmqwrapJsonblobsKeepalive(ZmqwrapJsonblobsKeepalive const &other) = delete;
   ZmqwrapJsonblobsKeepalive(ZmqwrapJsonblobsKeepalive &&other) = delete;
 
-  shared_ptr<jsonblobs> it;
+  shared_ptr< jsonblobs > it;
 };
 
 static void zmqwrapFreeJsonblobsKeepalive(void *data, void *hint)
@@ -161,7 +161,7 @@ void ZmqRpcDealer::rpc(string const &method, jsonstr &params, std::function<void
 }
 
 struct ZmqRpcIn {
-  vector<string> address;
+  vector< string > address;
   string method;
   jsonstr params;
 };
@@ -287,7 +287,7 @@ ZmqRpcDealer::dealerMain()
     if (verbose >= 3) eprintf("%s: dealerMain: zmq_poll %d items[0].revents=0x%x items[1].revents=0x%x\n", agentId.c_str(), poll_rc, items[0].revents, items[1].revents);
 
     if (items[0].revents & ZMQ_POLLIN) {
-      vector<string> address;
+      vector< string > address;
       jsonstr error;
       jsonstr result;
 
@@ -310,7 +310,7 @@ ZmqRpcDealer::dealerMain()
       rxCnt++;
 
       if (address.size() == 1) {
-        shared_ptr<ZmqRpcOut> ip;
+        shared_ptr< ZmqRpcOut > ip;
         {
           unique_lock<mutex> lock(mtx);
           auto ipIter = replyCallbacks.find(address[0]);
@@ -473,9 +473,9 @@ void ZmqSock::zmqTx(string const &s, bool more)
   }
 }
 
-void ZmqSock::zmqTx(vector<string> const &v, bool more)
+void ZmqSock::zmqTx(vector< string > const &v, bool more)
 {
-  if (verbose>=2) eprintf("zmqTx: vector<string> len=%zu more=%d\n", v.size(), more?1:0);
+  if (verbose>=2) eprintf("zmqTx: vector< string > len=%zu more=%d\n", v.size(), more?1:0);
   for (size_t i=0; i<v.size(); i++) {
     zmqTx(v[i], more || i+1 < v.size());
   }
@@ -554,7 +554,7 @@ bool ZmqSock::zmqRx(string &s, bool &more)
   return true;
 }
 
-bool ZmqSock::zmqRx(vector<string> &v, bool &more)
+bool ZmqSock::zmqRx(vector< string > &v, bool &more)
 {
   while (true) {
     string s;
@@ -563,7 +563,7 @@ bool ZmqSock::zmqRx(vector<string> &v, bool &more)
     v.push_back(s);
     if (!more) break;
   }
-  if (verbose>=2) eprintf("zmqRx: vector<string> len=%zu\n", v.size());
+  if (verbose>=2) eprintf("zmqRx: vector< string > len=%zu\n", v.size());
   return true;
 }
 

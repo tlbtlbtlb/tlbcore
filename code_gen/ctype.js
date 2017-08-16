@@ -12,7 +12,7 @@ function CType(reg, typename) {
   assert.ok(typename);
   type.reg = reg;
   type.typename = typename;
-  type.jsTypename = typename.replace(/>+$/g, '').replace(/</g, '_').replace(/>/g, '_').replace(/,/g,'_').replace(/::/g,'_');
+  type.jsTypename = typename.replace(/ >$/g, '').replace(/< /g, '_').replace(/ >/g, '_').replace(/, /g,'_').replace(/::/g,'_');
 
   type.extraFunctionDecls = [];
   type.extraMemberDecls = [];

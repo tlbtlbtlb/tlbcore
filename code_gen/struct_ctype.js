@@ -274,7 +274,7 @@ StructCType.prototype.emitTypeDecl = function(f) {
     static char const * typeName;
     static char const * jsTypeName;
     static char const * schema;
-    static void addSchemas(map<string, jsonstr> &all);
+    static void addSchemas(map< string, jsonstr > &all);
 
     };
 
@@ -284,7 +284,7 @@ StructCType.prototype.emitTypeDecl = function(f) {
     char const * getTypeName(${ type.typename } const &);
     char const * getJsTypeName(${ type.typename } const &);
     char const * getSchema(${ type.typename } const &);
-    void addSchemas(${ type.typename } const &, map<string, jsonstr> &);
+    void addSchemas(${ type.typename } const &, map< string, jsonstr > &);
 
     // IO
     ostream & operator<<(ostream &s, const ${ type.typename } &obj);
@@ -402,13 +402,13 @@ StructCType.prototype.emitHostImpl = function(f) {
       char const * getTypeName(${ type.typename } const &it) { return ${ type.typename }::typeName; }
       char const * getJsTypeName(${ type.typename } const &it) { return ${ type.typename }::jsTypeName; }
       char const * getSchema(${ type.typename } const &it) { return ${ type.typename }::schema; }
-      void addSchemas(${ type.typename } const &, map<string, jsonstr> &all) { ${ type.typename }::addSchemas(all); }
+      void addSchemas(${ type.typename } const &, map< string, jsonstr > &all) { ${ type.typename }::addSchemas(all); }
     `);
   }
 
   if (1) {
     f(`
-      void ${ type.typename }::addSchemas(map<string, jsonstr> &all) {
+      void ${ type.typename }::addSchemas(map< string, jsonstr > &all) {
         if (!all["${ type.jsTypename }"].isNull()) return;
         all["${ type.jsTypename }"] = jsonstr(schema);
     `);
@@ -1355,7 +1355,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
   f.emitJsFactory('addSchemas', function() {
     f.emitArgSwitch([
-      {args: ['map<string,jsonstr>'], code: function(f) {
+      {args: ['map< string, jsonstr >'], code: function(f) {
         f(`
           ${ type.typename }::addSchemas(a0);
         `);

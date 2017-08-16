@@ -50,6 +50,9 @@ function CollectionCType(reg, typename) {
         c = null;
       }
     }
+    else if (c === ' ') {
+      c = null;
+    }
     if (c !== null) {
       if (depth === 0) {
         type.templateName = type.templateName + c;
@@ -94,7 +97,7 @@ CollectionCType.prototype.emitTypeDecl = function(f) {
     char const * getTypeName(${ type.typename } const &);
     char const * getJsTypeName(${ type.typename } const &);
     char const * getSchema(${ type.typename } const &);
-    void addSchemas(${ type.typename } const &, map<string, jsonstr> &);
+    void addSchemas(${ type.typename } const &, map< string, jsonstr > &);
   `);
 };
 
@@ -112,7 +115,7 @@ CollectionCType.prototype.emitHostImpl = function(f) {
     char const * getTypeName(${ type.typename } const &it) { return "${ type.typename }"; }
     char const * getJsTypeName(${ type.typename } const &it) { return "${ type.jsTypename }"; }
     char const * getSchema(${ type.typename } const &it) { return "${ cgen.escapeCString(JSON.stringify(schema)) }"; }
-    void addSchemas(${ type.typename } const &it, map<string, jsonstr> &all) {
+    void addSchemas(${ type.typename } const &it, map< string, jsonstr > &all) {
       if (!all["${ type.jsTypename }"].isNull()) return;
       all["${ type.jsTypename }"] = jsonstr(getSchema(it));
     }
@@ -329,12 +332,12 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
             thisObj->assignConstruct(a0);
           `);
         }},
-        {args: [(type.templateName === 'arma::Col' ? 'arma::Row' : 'arma::Col') + '<' + type.templateArgs.join(', ') + '>' ], code: function(f) {
+        {args: [(type.templateName === 'arma::Col' ? 'arma::Row' : 'arma::Col') + '< ' + type.templateArgs.join(', ') + ' >' ], code: function(f) {
           f(`
             thisObj->assignConstruct(a0);
           `);
         }},
-        {args: ['arma::subview_row<' + type.templateArgs.join(', ') + '>' ], code: function(f) {
+        {args: ['arma::subview_row< ' + type.templateArgs.join(', ') + ' >' ], code: function(f) {
           if (type.templateName === 'arma::Col') {
             f(`
               thisObj->assignConstruct(trans(a0));
@@ -345,7 +348,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
             `);
           }
         }},
-        {args: ['arma::subview_col<' + type.templateArgs.join(', ') + '>' ], code: function(f) {
+        {args: ['arma::subview_col< ' + type.templateArgs.join(', ') + ' >' ], code: function(f) {
           if (type.templateName === 'arma::Row') {
             f(
               `thisObj->assignConstruct(trans(a0));
@@ -420,12 +423,12 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
             thisObj->assignConstruct(a0);
           `);
         }},
-        {args: [`arma::subview_row<${ type.templateArgs.join(', ') }>` ], code: function(f) {
+        {args: [`arma::subview_row< ${ type.templateArgs.join(', ') } >` ], code: function(f) {
           f(`
             thisObj->assignConstruct(a0);
           `);
         }},
-        {args: [`arma::subview_col<${ type.templateArgs.join(', ') }>` ], code: function(f) {
+        {args: [`arma::subview_col< ${ type.templateArgs.join(', ') } >` ], code: function(f) {
           f(`
             thisObj->assignConstruct(a0);
           `);
@@ -461,7 +464,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     });
   }
 
-  // When creating a map<string, jsonstr>, allow passing in an object
+  // When creating a map< string, jsonstr >, allow passing in an object
   else if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
     f.emitJsConstructor(function(f) {
       f.emitArgSwitch([
@@ -674,7 +677,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: ['U32'], code: function(f) {
           f(`
-            args.GetReturnValue().Set(${ type.reg.getType(`arma::subview_row<${ type.templateArgs[0] }>`).getCppToJsExpr(`thisObj->it->row(a0)`, `thisObj->it`) });
+            args.GetReturnValue().Set(${ type.reg.getType(`arma::subview_row< ${ type.templateArgs[0] } >`).getCppToJsExpr(`thisObj->it->row(a0)`, `thisObj->it`) });
           `);
         }}
       ]);
@@ -684,7 +687,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: ['U32'], code: function(f) {
           f(`
-            args.GetReturnValue().Set(${ type.reg.getType(`arma::subview_col<${ type.templateArgs[0] }>`).getCppToJsExpr(`thisObj->it->col(a0)`, `thisObj->it`) });
+            args.GetReturnValue().Set(${ type.reg.getType(`arma::subview_col< ${ type.templateArgs[0] } >`).getCppToJsExpr(`thisObj->it->col(a0)`, `thisObj->it`) });
           `);
         }}
       ]);
