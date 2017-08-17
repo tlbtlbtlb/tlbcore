@@ -475,7 +475,7 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
                     '(<\\s*(' + typenameExpr + ')\\s*>)?' +
                     '\\(' + argsExpr + '\\)\\s*;');
 
-    if (0 && arity === 0) console.log(argExpr);
+    if (0 && arity === 1) console.log(argExpr);
 
     var re = new RegExp(funcExpr, 'g');
 
@@ -491,7 +491,7 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
                 passing: m[7+i*3].replace(/\s+/g, ''),
                 argname: m[8+i*3]};
       });
-      if (0) console.log(desc);
+      if (0) console.log('Found prototype', desc);
 
       typereg.addWrapFunction(desc, funcScope, funcname, funcTemplate, returnType, args);
 
