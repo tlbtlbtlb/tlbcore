@@ -16,6 +16,10 @@ ObjectCType.prototype.getFns = function() {
   return {};
 };
 
+ObjectCType.prototype.getCustomerIncludes = function() {
+  return [];
+};
+
 ObjectCType.prototype.getSynopsis = function() {
   return `(${ this.typename })`;
 };

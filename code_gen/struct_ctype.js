@@ -14,7 +14,6 @@ exports.StructCType = StructCType;
 function StructCType(reg, typename) {
   CType.call(this, reg, typename);
   this.orderedNames = [];
-  this.superTypes = [];
   this.nameToType = {};
   this.nameToOptions = {};
   this.extraMemberDecls = [];
@@ -54,13 +53,6 @@ StructCType.prototype.emitForwardDecl = function(f) {
   f(`struct ${ type.typename };`);
 };
 
-
-StructCType.prototype.addSuperType = function(superTypename) {
-  var type = this;
-  var superType = type.reg.getType(superTypename);
-  if (!superType) throw new Error('No supertype ' + superTypename);
-  type.superTypes.push(superType);
-};
 
 StructCType.prototype.getConstructorArgs = function() {
   var type = this;
@@ -733,7 +725,7 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
   _.each(rm, function(members, et) {
     memberCount += members.length;
   });
-  var deopt = (memberCount > 40) ? '__attribute__((optnone))' : '';
+  var deopt = (memberCount > 250) ? '__attribute__((optnone))' : '';
 
   f(`
     void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > const &arr) ${deopt} {
@@ -779,24 +771,25 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
         f1(`
           {
             vector<${binTypename}> bulk(arr.size());
-            ${ binTypename } minRange = arr.size() > 0 ? arr[0]->${ mkMemberRef(names) } : 0;
-            ${ binTypename } maxRange = arr.size() > 0 ? arr[0]->${ mkMemberRef(names) } : 0;
-            for (size_t i=0; i<arr.size(); i++) {
-              bulk[i] = arr[i]->${ mkMemberRef(names) };
-              minRange = min(minRange, bulk[i]);
-              maxRange = max(maxRange, bulk[i]);
+            ${ binTypename } minRange=0, maxRange=0;
+            if (arr.size() > 0) {
+              minRange = arr[0]->${ mkMemberRef(names) };
+              maxRange = arr[0]->${ mkMemberRef(names) };
+              for (size_t i=0; i<arr.size(); i++) {
+                bulk[i] = arr[i]->${ mkMemberRef(names) };
+                minRange = min(minRange, bulk[i]);
+                maxRange = max(maxRange, bulk[i]);
+              }
             }
             ndarray nd;
-            nd.partBytes = mul_overflow<size_t>(bulk.size(), sizeof(${ binTypename }));
+            nd.partBytes = bulk.size() * sizeof(${ binTypename });
             nd.partOfs = blobs->writeChunk(reinterpret_cast<char *>(&bulk[0]), nd.partBytes);
             nd.dtype = "${ ett.jsTypename }";
             nd.shape.push_back(arr.size());
             nd.range.min = (double)minRange;
             nd.range.max = (double)maxRange;
             s += sprintf(s, ",\\"${ mkMemberRef(names) }\\":");
-            char *origS = s;
             wrJson(s, blobs, nd);
-            assert(s - origS < 200);
           }
         `);
         f2(`
@@ -1114,7 +1107,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
   /*
     Clang takes forever (> 2 minutes) on large versions of this function if we don't disable optimization
   */
-  var deopt = (_.keys(actions).length > 40) ? '__attribute__((optnone))' : '';
+  var deopt = (_.keys(actions).length > 250) ? '__attribute__((optnone))' : '';
   f(`
     bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > &arr) ${deopt} {
       bool typeOk = ${ type.omitTypeTag ? 'true' : 'false' };

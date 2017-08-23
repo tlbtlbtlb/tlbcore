@@ -26,6 +26,7 @@ function CType(reg, typename) {
   type.extraDestructorCode = [];
   type.extraJswrapMethods = [];
   type.extraJswrapAccessors = [];
+  type.superTypes = [];
   type.noPacket = false;
   type.noSerialize = false;
 }
@@ -41,6 +42,13 @@ CType.prototype.addConstructorCode = function(x) { this.extraConstructorCode.pus
 CType.prototype.addDestructorCode = function(x) { this.extraDestructorCode.push(x); };
 CType.prototype.addJswrapMethod = function(x) { this.extraJswrapMethods.push(x); };
 CType.prototype.addJswrapAccessor = function(x) { this.extraJswrapAccessors.push(x); };
+
+CType.prototype.addSuperType = function(superTypename) {
+  var type = this;
+  var superType = type.reg.getType(superTypename);
+  if (!superType) throw new Error('No supertype ' + superTypename);
+  type.superTypes.push(superType);
+};
 
 CType.prototype.isStruct = function() { return false; };
 CType.prototype.isObject = function() { return false; };
@@ -159,6 +167,7 @@ CType.prototype.getTypeAndVersion = function() {
   var type = this;
   return type.typename + '@' + type.getSignature();
 };
+
 
 
 /*

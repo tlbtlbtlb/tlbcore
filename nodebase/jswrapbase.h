@@ -215,6 +215,7 @@ struct JsWrapGeneric : node::ObjectWrap {
 
   static shared_ptr< CONTENTS> Extract(Isolate *isolate, Local<Value > value) {
     Local<Function> localConstructor = constructor.Get(isolate);
+    if (localConstructor.IsEmpty()) return nullptr;
     if (value->IsObject()) {
       Local<Object> valueObject = value->ToObject();
       Local<String> valueTypeName = valueObject->GetConstructorName();
@@ -222,7 +223,7 @@ struct JsWrapGeneric : node::ObjectWrap {
         return node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(valueObject)->it;
       }
     }
-    return shared_ptr< CONTENTS >();
+    return nullptr;
   }
 
 

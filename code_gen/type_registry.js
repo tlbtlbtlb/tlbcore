@@ -26,6 +26,8 @@ function TypeRegistry(groupname) {
   typereg.wrapFunctions = {};
   typereg.symbolics = {c: {}, js: {}};
   typereg.extraJsWrapFuncsHeaders = [];
+  typereg.conversions = [];
+  typereg.extraConversionIncludes = [];
 
   typereg.debugJson = false;
 
@@ -166,6 +168,7 @@ TypeRegistry.prototype.aliasType = function(existingName, newName) {
   typereg.types[newName] = type;
 };
 
+
 TypeRegistry.prototype.emitAll = function(files) {
   var typereg = this;
 
@@ -177,6 +180,7 @@ TypeRegistry.prototype.emitAll = function(files) {
   typereg.emitJsWrapFuncs(files);
   typereg.emitJsBoot(files);
   typereg.emitSymbolics(files);
+  typereg.emitConversions(files);
   typereg.emitGypFile(files);
   typereg.emitMochaFile(files);
   typereg.emitSchema(files);
@@ -265,6 +269,7 @@ TypeRegistry.prototype.emitGypFile = function(files) {
     {
       "sources": [
         "functions_${ typereg.groupname }_jsWrap.cc",
+        "conversions_${ typereg.groupname }.cc",
   `);
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
@@ -562,4 +567,110 @@ TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs, lang) {
   var typereg = this;
   if (!lang) lang='c';
   return typereg.symbolics[lang][name] = new symbolic_math.SymbolicContext(typereg, name, inargs, outargs, lang);
+};
+
+
+
+
+TypeRegistry.prototype.emitConversions = function(files) {
+  var typereg = this;
+  var h = files.getFile(`conversions_${typereg.groupname}.h`);
+  var cc = files.getFile(`conversions_${typereg.groupname}.cc`);
+
+  var bySuperTypename = {};
+  var allDerivedTypes = {};
+
+  _.each(typereg.types, function(type, typename) {
+    scanSupers(type.superTypes);
+    function scanSupers(supers) {
+      _.each(supers, function(superType) {
+        if (!bySuperTypename[superType.typename]) {
+          bySuperTypename[superType.typename] = {
+            type: superType,
+            derivedTypes: [superType],
+          };
+        }
+        bySuperTypename[superType.typename].derivedTypes.push(type);
+        allDerivedTypes[type.typename] = type;
+        scanSupers(superType.superTypes);
+      });
+    }
+  });
+
+  cc(`
+    #include "common/std_headers.h"
+    #include "nodebase/jswrapbase.h"
+    #include "./conversions_${typereg.groupname}.h"
+  `);
+  _.each(allDerivedTypes, function(type) {
+    var hdrs = type.getCustomerIncludes();
+    _.each(hdrs, function(hdr) {
+      cc(hdr);
+    });
+
+  });
+
+  _.each(bySuperTypename, function(sti) {
+    var hdrs = sti.type.getHeaderIncludes();
+    _.each(hdrs, function(hdr) {
+      h(hdr);
+    });
+  });
+
+  h(`
+    template<typename T>
+    shared_ptr<T> convJsToDynamic(Isolate *isolate, Local<Value> it);
+  `);
+
+  _.each(bySuperTypename, function(sti, superTypename) {
+
+    h(`
+      Local<Value> convDynamicToJs(Isolate *isolate, shared_ptr<${sti.type.typename}> const &it);
+    `);
+    cc(`
+      Local<Value> convDynamicToJs(Isolate *isolate, shared_ptr<${sti.type.typename}> const &it) {
+    `);
+    _.each(sti.derivedTypes, function(type) {
+      cc(`
+        {
+          auto itdown = dynamic_pointer_cast< ${type.typename} >(it);
+          if (itdown) {
+            return JsWrapGeneric< ${type.typename} >::WrapInstance(isolate, itdown);
+          }
+        }
+      `);
+    });
+    cc(`
+        return Undefined(isolate);
+      }
+    `);
+
+
+    cc(`
+      template<>
+      shared_ptr< ${sti.type.typename} > convJsToDynamic< ${sti.type.typename} >(Isolate *isolate, Local<Value> it) {
+    `);
+    cc(`
+      if (it->IsObject()) {
+        Local<Object> itObject = it->ToObject();
+        Local<String> itTypeName = itObject->GetConstructorName();
+    `);
+    _.each(sti.derivedTypes, function(type) {
+      cc(`
+          if (!JsWrapGeneric< ${type.typename} >::constructor.IsEmpty() && itTypeName == JsWrapGeneric< ${type.typename} >::constructor.Get(isolate)->GetName()) {
+            return static_pointer_cast<${sti.type.typename}>(node::ObjectWrap::Unwrap< JsWrapGeneric< ${type.typename} > >(itObject)->it);
+          }
+      `);
+    });
+    cc(`
+          }
+        return nullptr;
+        }
+    `);
+
+  });
+
+  cc.end();
+  h.end();
+
 };
