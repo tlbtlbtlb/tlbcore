@@ -11,9 +11,18 @@ function PtrCType(reg, baseType) {
   type.baseType = baseType;
   CType.call(type, reg, `shared_ptr< ${baseType.typename} >`);
   type.jsTypename = baseType.jsTypename;
+  type.noPacket = baseType.noPacket;
+  type.noSerialize = baseType.noSerialize;
 }
 PtrCType.prototype = Object.create(CType.prototype);
 PtrCType.prototype.isPtr = function() { return true; };
+
+PtrCType.prototype.getHeaderIncludes = function() {
+  return this.baseType.getHeaderIncludes();
+};
+PtrCType.prototype.getCustomerIncludes = function() {
+  return this.baseType.getCustomerIncludes();
+};
 
 PtrCType.prototype.nonPtrType = function() {
   return this.baseType;
@@ -66,7 +75,10 @@ PtrCType.prototype.getJsToCppExpr = function(valueExpr, o) {
 
 PtrCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
-  if (ownerExpr) {
+  /*
+    Because these are shared_ptr<T>, no need to keep owner alive.
+  */
+  if (0 && ownerExpr) {
     return `JsWrap_${ type.baseType.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
   } else {
     return `JsWrap_${ type.baseType.jsTypename }::WrapInstance(isolate, ${ valueExpr })`;

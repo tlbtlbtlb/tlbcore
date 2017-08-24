@@ -26,6 +26,7 @@ function CType(reg, typename) {
   type.extraDestructorCode = [];
   type.extraJswrapMethods = [];
   type.extraJswrapAccessors = [];
+  type.extraCustomerIncludes = [];
   type.superTypes = [];
   type.noPacket = false;
   type.noSerialize = false;
@@ -34,6 +35,7 @@ function CType(reg, typename) {
 CType.prototype.addFunctionDecl = function(x) { this.extraFunctionDecls.push(x); };
 CType.prototype.addMemberDecl = function(x) { this.extraMemberDecls.push(x); };
 CType.prototype.addConstructorArg = function(x) { this.extraConstructorArgs.push(x); };
+CType.prototype.addCustomerInclude = function(x) { this.extraCustomerIncludes.push(x); };
 CType.prototype.addHostCode = function(x) { this.extraHostCode.push(x); };
 CType.prototype.addDeclDependency = function(x) { this.extraDeclDependencies.push(x); };
 CType.prototype.addJsWrapHeaderInclude = function(x) { this.extraJsWrapHeaderIncludes.push(x); };
@@ -132,7 +134,7 @@ CType.prototype.emitAll = function(files) {
 CType.prototype.getCustomerIncludes = function() {
   var type = this;
   var base = type.getFnBase();
-  return ['#include "' + base + '_decl.h"'];
+  return [`#include "${base}_decl.h"`].concat(type.extraCustomerIncludes);
 };
 
 CType.prototype.getHeaderIncludes = function() {
@@ -145,14 +147,7 @@ CType.prototype.getHeaderIncludes = function() {
       ret.push('#include "' + fns.typeHeader + '"');
     }
   });
-  _.each(type.extraHeaderIncludes, function(hdr) {
-    if (/^</.test(hdr)) {
-      ret.push(`#include ${ hdr }`);
-    } else {
-      ret.push(`#include "${ hdr }"`);
-    }
-  });
-  return ret;
+  return ret.concat(type.extraHeaderIncludes);
 };
 
 CType.prototype.getSignature = function() {
@@ -186,8 +181,8 @@ CType.prototype.getDefnDependencies = function() {
 
 CType.prototype.getAllTypes = function() {
   var type = this;
-  var subtypes = gen_utils.sortTypes(gen_utils.nonPtrTypes(_.flatten(_.map(type.getMemberTypes(), function(t) { return [t].concat(t.getAllTypes()); }))));
-  if (0) console.log('CType.getAllTypes', type.typename, _.map(subtypes, function(type) { return type.typename; }));
+  var subtypes = gen_utils.sortTypes(gen_utils.nonPtrTypes([type].concat(_.flatten(_.map(type.getMemberTypes(), function(t) { return [t].concat(t.getAllTypes()); })))));
+  if (1) console.log('CType.getAllTypes', type.typename, _.map(subtypes, function(type) { return type.typename; }));
 
   return subtypes;
 };
@@ -288,7 +283,7 @@ CType.prototype.emitJsWrapHeader = function(f) {
     }
   });
   _.each(type.extraJsWrapHeaderIncludes, function(include) {
-    f(`#include "${ include }"`);
+    f(include);
   });
 
   type.emitJsWrapDecl(f);
@@ -300,12 +295,14 @@ CType.prototype.emitJsWrapCode = function(f) {
     #include "common/std_headers.h"
     #include "nodebase/jswrapbase.h"
   `);
-  var fns = type.getFns();
-  if (fns.typeHeader) {
-    f(`#include "${ fns.typeHeader }"`);
-  }
-  if (fns.jsWrapHeader) {
-    f(`#include "${ fns.jsWrapHeader }"`);
+  if (0) {
+    var fns = type.getFns();
+    if (fns.typeHeader) {
+      f(`#include "${ fns.typeHeader }"`);
+    }
+    if (fns.jsWrapHeader) {
+      f(`#include "${ fns.jsWrapHeader }"`);
+    }
   }
   f(`
     /* declDependencies = ${ _.map(type.getDeclDependencies(), function(ot) { return ot.typename; }) } */

@@ -28,6 +28,10 @@ PrimitiveCType.prototype.emitJsWrapDecl = function(f) {
   `);
 };
 
+PrimitiveCType.prototype.getCustomerIncludes = function() {
+  var type = this;
+  return type.extraCustomerIncludes;
+};
 
 PrimitiveCType.prototype.getSynopsis = function() {
   var type = this;

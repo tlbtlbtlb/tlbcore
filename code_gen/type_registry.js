@@ -607,12 +607,13 @@ TypeRegistry.prototype.emitConversions = function(files) {
     _.each(hdrs, function(hdr) {
       cc(hdr);
     });
-
   });
 
   _.each(bySuperTypename, function(sti) {
-    var hdrs = sti.type.getHeaderIncludes();
-    _.each(hdrs, function(hdr) {
+    _.each(sti.type.getCustomerIncludes(), function(hdr) {
+      h(hdr);
+    });
+    _.each(sti.type.getHeaderIncludes(), function(hdr) {
       h(hdr);
     });
   });
@@ -631,14 +632,16 @@ TypeRegistry.prototype.emitConversions = function(files) {
       Local<Value> convDynamicToJs(Isolate *isolate, shared_ptr<${sti.type.typename}> const &it) {
     `);
     _.each(sti.derivedTypes, function(type) {
-      cc(`
-        {
-          auto itdown = dynamic_pointer_cast< ${type.typename} >(it);
-          if (itdown) {
-            return JsWrapGeneric< ${type.typename} >::WrapInstance(isolate, itdown);
+      if (!type.isObject()) { // object types are abstract superclasses
+        cc(`
+          {
+            auto itdown = dynamic_pointer_cast< ${type.typename} >(it);
+            if (itdown) {
+              return JsWrapGeneric< ${type.typename} >::WrapInstance(isolate, itdown);
+            }
           }
-        }
-      `);
+        `);
+      }
     });
     cc(`
         return Undefined(isolate);

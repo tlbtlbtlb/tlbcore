@@ -50,9 +50,6 @@ function CollectionCType(reg, typename) {
         c = null;
       }
     }
-    else if (c === ' ') {
-      c = null;
-    }
     if (c !== null) {
       if (depth === 0) {
         type.templateName = type.templateName + c;
@@ -64,14 +61,18 @@ function CollectionCType(reg, typename) {
     }
   });
 
+  type.templateArgs = _.map(type.templateArgs, function(s) { return s.trim(); });
+
   type.templateArgTypes = _.map(type.templateArgs, function(name) {
     if (/^\d+$/.test(name)) {
       return null;
     }
     else {
-      var t = type.reg.types[name];
+      var t = type.reg.getType(name);
       if (!t) {
         console.log('No type for template arg ' + name + ' in ' + type.templateName + ' < ' + type.templateArgs.join(' , ') + ' > ');
+        console.log(util.inspect(type.templateArgs));
+        console.log('typename', typename);
         throw new Error('No type for template arg ' + name);
       }
       return t;
@@ -83,6 +84,10 @@ function CollectionCType(reg, typename) {
       if (t.noSerialize) type.noSerialize = true;
     }
   });
+  if (type.templateName === 'Timeseq') {
+    type.noPacket = true;
+    type.noSerialize = true;
+  }
 
   if (0) console.log('template', typename, type.templateName, type.templateArgs);
 }
@@ -122,6 +127,60 @@ CollectionCType.prototype.emitHostImpl = function(f) {
   `);
 
 };
+
+CollectionCType.prototype.getAllTypes = function() {
+  var type = this;
+  var ret = _.flatten(_.map(type.templateArgTypes, function(t) {
+    return t ? t.getAllTypes() : [];
+  }), true);
+  ret.push(type);
+  if (type.templateName === 'Timeseq') {
+    ret.push(type.reg.getType('GenericTimeseq'));
+  }
+  else if (type.templateName === 'Timestamped') {
+    ret.push(type.reg.getType('GenericTimestamped'));
+  }
+  if (1) console.log('CollectionCType.getAllTypes', type.typename, _.map(ret, function(t) { return t.typename; }));
+
+  return ret;
+};
+
+
+CollectionCType.prototype.getSpecialIncludes = function() {
+  var type = this;
+  var ret = [];
+  if (type.templateName === 'Timeseq') {
+    ret.push('#include "timeseq/timeseq.h"');
+    ret.push(`#include "build.src/${type.jsTypename}_decl.h"`);
+  }
+  else if (type.templateName === 'Timestamped') {
+    ret.push('#include "timeseq/timestamped.h"');
+  }
+  else if (type.templateName.startsWith('arma::')) {
+    ret.push(`#include "build.src/${type.jsTypename}_decl.h"`);
+  }
+  return ret;
+};
+
+CollectionCType.prototype.getHeaderIncludes = function() {
+  var type = this;
+  var ret = _.flatten(_.map(type.templateArgTypes, function(t) {
+    return t ? t.getCustomerIncludes() : [];
+  }), true).concat(type.extraHeaderIncludes, type.getSpecialIncludes());
+
+  console.log(type.typename, 'getHeaderIncludes', util.inspect(ret));
+  return ret;
+};
+
+CollectionCType.prototype.getCustomerIncludes = function() {
+  var type = this;
+  var ret = _.flatten(_.map(type.templateArgTypes, function(t) {
+    return t ? t.getCustomerIncludes() : [];
+  }), true).concat(type.extraCustomerIncludes, type.getSpecialIncludes());
+  console.log(type.typename, 'getCustomerIncludes', util.inspect(ret));
+  return ret;
+};
+
 
 CollectionCType.prototype.hasJsWrapper = function() {
   return true;
@@ -258,13 +317,12 @@ CollectionCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   }
 };
 
-
 CollectionCType.prototype.getMemberTypes = function() {
   var type = this;
   var subtypes = gen_utils.sortTypes(_.filter(_.map(type.typename.split(/\s*[<,>]\s*/), function(typename1) {
     return typename1.length > 0 ? type.reg.types[typename1] : null;
   }), function(type) { return type; }));
-  if (0) console.log('CollectionCType.getMemberTypes', type.typename, _.map(subtypes, function(type) { return type.typename; }));
+  if (1) console.log('CollectionCType.getMemberTypes', type.typename, _.map(subtypes, function(t) { return t.typename; }));
   return subtypes;
 };
 
@@ -578,7 +636,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         f(`
           ${ type.typename }::iterator iter = thisObj->it->find(key);
           if (iter == thisObj->it->end()) return;
-          args.GetReturnValue().Set(Local<Value>(${ type.reg.types[type.templateArgs[1]].getCppToJsExpr('&iter->second', 'thisObj->it') }));
+          args.GetReturnValue().Set(Local<Value>(${ type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisObj->it') }));
         `);
       },
       set: function(f) {

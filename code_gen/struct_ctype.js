@@ -56,12 +56,16 @@ StructCType.prototype.emitForwardDecl = function(f) {
 
 StructCType.prototype.getConstructorArgs = function() {
   var type = this;
-  return _.filter([].concat(_.flatten(_.map(type.superTypes, function(superType) {
-    return superType.getConstructorArgs();
-  }), true), _.map(type.orderedNames, function(memberName) {
-    if (type.nameToOptions[memberName].omitFromConstructor) return null;
-    return {name: memberName, type: type.nameToType[memberName]};
-  })), function(info) { return !!info; });
+  return _.filter([].concat(
+    type.extraConstructorArgs,
+    _.flatten(_.map(type.superTypes, function(superType) {
+      return superType.getConstructorArgs();
+    }), true),
+    _.map(type.orderedNames, function(memberName) {
+      if (type.nameToOptions[memberName].omitFromConstructor) return null;
+      return {name: memberName, type: type.nameToType[memberName]};
+    })
+  ), function(info) { return !!info; });
 };
 
 StructCType.prototype.hasArrayNature = function() {
@@ -451,13 +455,22 @@ StructCType.prototype.emitHostImpl = function(f) {
         s << "${ type.typename }{";
     `);
     _.each(type.orderedNames, function(name, namei) {
-      if (type.nameToType[name].isCollection()) {
+      var t = type.nameToType[name];
+      f(`
+        s << "${ (namei > 0 ? ', ' : '') }${name} = ";
+      `);
+      if (t.noSerialize) {
         f(`
-          s << "${ (namei > 0 ? ', ' : '') }${ name } =" << asJson(obj.${ name });
+          s << "<${t.jsTypename}>";
+        `);
+      }
+      else if (t.isCollection()) {
+        f(`
+          s << asJson(obj.${name});
         `);
       } else {
         f(`
-          s << "${ (namei > 0 ? ', ' : '') }${ name } =" << obj. ${ name };
+          s << obj.${name};
         `);
       }
     });
