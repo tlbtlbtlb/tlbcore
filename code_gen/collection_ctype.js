@@ -86,7 +86,7 @@ function CollectionCType(reg, typename) {
   });
   if (type.templateName === 'Timeseq') {
     type.noPacket = true;
-    type.noSerialize = true;
+    //type.noSerialize = true;
   }
 
   if (0) console.log('template', typename, type.templateName, type.templateArgs);
@@ -140,7 +140,7 @@ CollectionCType.prototype.getAllTypes = function() {
   else if (type.templateName === 'Timestamped') {
     ret.push(type.reg.getType('GenericTimestamped'));
   }
-  if (1) console.log('CollectionCType.getAllTypes', type.typename, _.map(ret, function(t) { return t.typename; }));
+  if (0) console.log('CollectionCType.getAllTypes', type.typename, _.map(ret, function(t) { return t.typename; }));
 
   return ret;
 };
@@ -168,7 +168,7 @@ CollectionCType.prototype.getHeaderIncludes = function() {
     return t ? t.getCustomerIncludes() : [];
   }), true).concat(type.extraHeaderIncludes, type.getSpecialIncludes());
 
-  console.log(type.typename, 'getHeaderIncludes', util.inspect(ret));
+  if (0) console.log(type.typename, 'getHeaderIncludes', util.inspect(ret));
   return ret;
 };
 
@@ -177,7 +177,7 @@ CollectionCType.prototype.getCustomerIncludes = function() {
   var ret = _.flatten(_.map(type.templateArgTypes, function(t) {
     return t ? t.getCustomerIncludes() : [];
   }), true).concat(type.extraCustomerIncludes, type.getSpecialIncludes());
-  console.log(type.typename, 'getCustomerIncludes', util.inspect(ret));
+  if (0) console.log(type.typename, 'getCustomerIncludes', util.inspect(ret));
   return ret;
 };
 
@@ -322,7 +322,7 @@ CollectionCType.prototype.getMemberTypes = function() {
   var subtypes = gen_utils.sortTypes(_.filter(_.map(type.typename.split(/\s*[<,>]\s*/), function(typename1) {
     return typename1.length > 0 ? type.reg.types[typename1] : null;
   }), function(type) { return type; }));
-  if (1) console.log('CollectionCType.getMemberTypes', type.typename, _.map(subtypes, function(t) { return t.typename; }));
+  if (0) console.log('CollectionCType.getMemberTypes', type.typename, _.map(subtypes, function(t) { return t.typename; }));
   return subtypes;
 };
 

@@ -12,7 +12,7 @@ function CType(reg, typename) {
   assert.ok(typename);
   type.reg = reg;
   type.typename = typename;
-  type.jsTypename = typename.replace(/ >$/g, '').replace(/< /g, '_').replace(/ >/g, '_').replace(/, /g,'_').replace(/::/g,'_');
+  type.jsTypename = typename.replace(/[ >]+$/g, '').replace(/< /g, '_').replace(/ >/g, '_').replace(/, /g,'_').replace(/::/g,'_');
 
   type.extraFunctionDecls = [];
   type.extraMemberDecls = [];
@@ -182,7 +182,7 @@ CType.prototype.getDefnDependencies = function() {
 CType.prototype.getAllTypes = function() {
   var type = this;
   var subtypes = gen_utils.sortTypes(gen_utils.nonPtrTypes([type].concat(_.flatten(_.map(type.getMemberTypes(), function(t) { return [t].concat(t.getAllTypes()); })))));
-  if (1) console.log('CType.getAllTypes', type.typename, _.map(subtypes, function(type) { return type.typename; }));
+  if (0) console.log('CType.getAllTypes', type.typename, _.map(subtypes, function(type) { return type.typename; }));
 
   return subtypes;
 };

@@ -150,7 +150,7 @@ TypeRegistry.prototype.getType = function(typename, create) {
   if (!type && create) {
     var match = /^shared_ptr< (.*) >$/.exec(typename);
     if (match) {
-      type = typereg.getType(m[1], true).ptrType();
+      type = typereg.getType(match[1], true).ptrType();
     }
     else if (/</.test(typename)) {
       type = typereg.template(typename);
@@ -600,20 +600,19 @@ TypeRegistry.prototype.emitConversions = function(files) {
   cc(`
     #include "common/std_headers.h"
     #include "nodebase/jswrapbase.h"
+  `);
+  _.each(_.flatten(_.map(allDerivedTypes, function(t) { return t.getCustomerIncludes(); }), true), function(line) {
+    h(line);
+  });
+  cc(`
     #include "./conversions_${typereg.groupname}.h"
   `);
-  _.each(allDerivedTypes, function(type) {
-    var hdrs = type.getCustomerIncludes();
-    _.each(hdrs, function(hdr) {
-      cc(hdr);
-    });
-  });
 
   _.each(bySuperTypename, function(sti) {
     _.each(sti.type.getCustomerIncludes(), function(hdr) {
       h(hdr);
     });
-    _.each(sti.type.getHeaderIncludes(), function(hdr) {
+    _.each(sti.type.getCustomerIncludes(), function(hdr) {
       h(hdr);
     });
   });

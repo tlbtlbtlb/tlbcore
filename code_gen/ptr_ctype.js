@@ -76,7 +76,7 @@ PtrCType.prototype.getJsToCppExpr = function(valueExpr, o) {
 PtrCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
   /*
-    Because these are shared_ptr<T>, no need to keep owner alive.
+    Because these are shared_ptr<T>, no need to keep owner alive in order to keep *value alive.
   */
   if (0 && ownerExpr) {
     return `JsWrap_${ type.baseType.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
