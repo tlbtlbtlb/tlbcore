@@ -69,6 +69,10 @@ bool ChunkFileUncompressed::readChunk(char *data, off_t off, size_t size)
   return false;
 }
 
+size_t ChunkFileUncompressed::size()
+{
+  return (size_t)(off.load());
+}
 
 
 ChunkFileCompressed::ChunkFileCompressed(string const &_fn)
@@ -121,6 +125,11 @@ off_t ChunkFileCompressed::writeChunk(char const *data, size_t size)
 bool ChunkFileCompressed::readChunk(char *data, off_t off, size_t size)
 {
   return false;
+}
+
+size_t ChunkFileCompressed::size()
+{
+  return (size_t)off;
 }
 
 
@@ -209,4 +218,9 @@ void ChunkFileReader::loadData()
     }
     if (fp) fclose(fp);
   }
+}
+
+size_t ChunkFileReader::size()
+{
+  return fileContents.size();
 }

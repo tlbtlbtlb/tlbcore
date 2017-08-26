@@ -14,6 +14,7 @@ struct ChunkFile {
 
   virtual off_t writeChunk(char const *data, size_t size) = 0;
   virtual bool readChunk(char *data, off_t off, size_t size) = 0;
+  virtual size_t size() = 0;
 
   string fn;
   bool errFlag {false};
@@ -26,6 +27,7 @@ struct ChunkFileUncompressed : ChunkFile {
 
   off_t writeChunk(char const *data, size_t size) override;
   bool readChunk(char *data, off_t off, size_t size) override;
+  virtual size_t size() override;
 
   std::atomic<size_t> off {0};
   int fd {-1};
@@ -38,6 +40,7 @@ struct ChunkFileCompressed : ChunkFile {
 
   off_t writeChunk(char const *data, size_t size) override;
   bool readChunk(char *data, off_t off, size_t size) override;
+  virtual size_t size() override;
 
   gzFile gzfp;
   std::mutex mutex;
@@ -55,6 +58,7 @@ struct ChunkFileReader : ChunkFile {
 
   bool readChunk(char *data, off_t off, size_t size) override;
   off_t writeChunk(char const *data, size_t size) override;
+  virtual size_t size() override;
 
   vector<char> fileContents;
 };
