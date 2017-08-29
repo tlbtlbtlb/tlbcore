@@ -67,7 +67,7 @@ WarningFilter::operator ()(string const &name)
 {
   // Return true for calls 1, 2, 4, 8, ...
   size_t cnt = warningCount[name] ++;
-  return (cnt & (cnt>>1)) == 0;
+  return (cnt & (cnt-1)) == 0;
 }
 
 

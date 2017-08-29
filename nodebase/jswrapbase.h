@@ -26,6 +26,7 @@
 #include <node.h>
 #include <node_buffer.h>
 #include <node_object_wrap.h>
+#include <array>
 #include <armadillo>
 using namespace node;
 using namespace v8;
