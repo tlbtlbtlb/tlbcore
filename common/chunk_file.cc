@@ -224,3 +224,35 @@ size_t ChunkFileReader::size()
 {
   return fileContents.size();
 }
+
+
+
+
+
+ChunkMemory::ChunkMemory()
+:ChunkFile("")
+{
+}
+ChunkMemory::~ChunkMemory()
+{
+}
+
+off_t ChunkMemory::writeChunk(char const *data, size_t size)
+{
+  size_t ret = buf.size();
+  buf.resize(ret + size);
+  memcpy(&buf[ret], data, size);
+  return (off_t) ret;
+}
+
+bool ChunkMemory::readChunk(char *data, off_t off, size_t size)
+{
+  if (off < 0 || (size_t)off + size > buf.size()) return false;
+  memcpy(data, &buf[(size_t)off], size);
+  return true;
+}
+
+size_t ChunkMemory::size()
+{
+  return buf.size();
+}

@@ -21,13 +21,26 @@ struct ChunkFile {
 };
 
 
+
+struct ChunkMemory : ChunkFile {
+  ChunkMemory();
+  ~ChunkMemory();
+
+  off_t writeChunk(char const *data, size_t size) override;
+  bool readChunk(char *data, off_t off, size_t size) override;
+  size_t size() override;
+
+  vector<char> buf;
+};
+
+
 struct ChunkFileUncompressed : ChunkFile {
   ChunkFileUncompressed(string const &_fn);
   ~ChunkFileUncompressed();
 
   off_t writeChunk(char const *data, size_t size) override;
   bool readChunk(char *data, off_t off, size_t size) override;
-  virtual size_t size() override;
+  size_t size() override;
 
   std::atomic<size_t> off {0};
   int fd {-1};
@@ -40,7 +53,7 @@ struct ChunkFileCompressed : ChunkFile {
 
   off_t writeChunk(char const *data, size_t size) override;
   bool readChunk(char *data, off_t off, size_t size) override;
-  virtual size_t size() override;
+  size_t size() override;
 
   gzFile gzfp;
   std::mutex mutex;
@@ -58,7 +71,7 @@ struct ChunkFileReader : ChunkFile {
 
   bool readChunk(char *data, off_t off, size_t size) override;
   off_t writeChunk(char const *data, size_t size) override;
-  virtual size_t size() override;
+  size_t size() override;
 
   vector<char> fileContents;
 };
