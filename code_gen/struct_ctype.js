@@ -39,6 +39,9 @@ StructCType.prototype.addArgs = function(args, startPos) {
         type[k] = v;
       });
     }
+    else {
+      throw new Error(`Unknown arg ${a}`);
+    }
   }
 };
 
@@ -50,7 +53,7 @@ StructCType.prototype.addMemberDecl = function(f) {
 
 StructCType.prototype.emitForwardDecl = function(f) {
   var type = this;
-  f(`struct ${ type.typename };`);
+  f(`struct ${type.typename};`);
 };
 
 
@@ -82,36 +85,36 @@ StructCType.prototype.needsDestructor = function() {
 
 StructCType.prototype.getFormalParameter = function(varname) {
   var type = this;
-  return `${ type.typename } const &${ varname }`;
+  return `${type.typename} const &${varname}`;
 };
 
 StructCType.prototype.getArgTempDecl = function(varname) {
   var type = this;
-  return `${ type.typename } &${ varname }`;
+  return `${type.typename} &${varname}`;
 };
 
 StructCType.prototype.getVarDecl = function(varname) {
   var type = this;
-  return `${ type.typename } ${ varname }`;
+  return `${type.typename} ${varname}`;
 };
 
 StructCType.prototype.getJsToCppTest = function(valueExpr, o) {
   var type = this;
-  return `(JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr }) != nullptr)`;
+  return `(JsWrap_${type.jsTypename}::Extract(isolate, ${valueExpr}) != nullptr)`;
 };
 
 StructCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   var type = this;
-  return `(*JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr }))`;
+  return `(*JsWrap_${type.jsTypename}::Extract(isolate, ${valueExpr}))`;
 };
 
 StructCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   var type = this;
 
   if (ownerExpr) {
-    return `JsWrap_${ type.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
+    return `JsWrap_${type.jsTypename}::MemberInstance(isolate, ${ownerExpr}, ${valueExpr})`;
   } else {
-    return `JsWrap_${ type.jsTypename }::ConstructInstance(isolate, ${ valueExpr })`;
+    return `JsWrap_${type.jsTypename}::ConstructInstance(isolate, ${valueExpr})`;
   }
 };
 
@@ -124,7 +127,7 @@ StructCType.prototype.getMembers = function() {
 
 StructCType.prototype.getSynopsis = function() {
   var type = this;
-  return `(${ type.typename }={
+  return `(${type.typename}={
     ${ _.map(type.orderedNames, function(name) {
       return type.nameToType[name].getSynopsis();
     }).join(',')
@@ -134,7 +137,7 @@ StructCType.prototype.getSynopsis = function() {
 StructCType.prototype.getMemberTypes = function() {
   var type = this;
   var subtypes = gen_utils.sortTypes(_.values(type.nameToType).concat(type.superTypes));
-  if (0) console.log('StructCType.getMemberTypes', type.typename, _.map(subtypes, function(type) { return type.typename; }));
+  if (0) console.log(`StructCType.getMemberTypes ${type.typename}`, _.map(subtypes, function(type) { return type.typename; }));
   return subtypes;
 };
 
@@ -149,11 +152,11 @@ StructCType.prototype.accumulateRecursiveMembers = function(context, acc) {
 
 StructCType.prototype.getAllZeroExpr = function() {
   var type = this;
-  return `${ type.typename }::allZero()`;
+  return `${type.typename}::allZero()`;
 };
 StructCType.prototype.getAllNanExpr = function() {
   var type = this;
-  return `${ type.typename }::allNan()`;
+  return `${type.typename}::allNan()`;
 };
 
 StructCType.prototype.add = function(memberName, memberType, memberOptions) {
@@ -201,13 +204,13 @@ StructCType.prototype.getMemberInitializer = function(memberName) {
 StructCType.prototype.emitTypeDecl = function(f) {
   var type = this;
   f(`
-    struct ${ type.typename } ${(type.superTypes.length ? ' : ' : '') + _.map(type.superTypes, function(st) {return st.typename;}).join(', ') }{
-      ${ type.typename }();
+    struct ${type.typename} ${(type.superTypes.length ? ' : ' : '') + _.map(type.superTypes, function(st) {return st.typename;}).join(', ') }{
+      ${type.typename}();
   `);
   var constructorArgs = type.getConstructorArgs();
   if (constructorArgs.length) {
     f(`
-      explicit ${ type.typename }(${
+      explicit ${type.typename}(${
         _.map(constructorArgs, function(argInfo) {
           return argInfo.type.getFormalParameter('_' + argInfo.name);
         }).join(', ')
@@ -215,29 +218,29 @@ StructCType.prototype.emitTypeDecl = function(f) {
   }
   if (type.needsDestructor()) {
     f(`
-      ~${ type.typename }() override;
-      ${ type.typename }(${ type.typename } const &) = delete;
-      ${ type.typename }(${ type.typename } &&) = delete;
-      ${ type.typename } & operator = (${ type.typename } const &) = delete;
-      ${ type.typename } & operator = (${ type.typename } &&) = delete;
+      ~${type.typename}() override;
+      ${type.typename}(${type.typename} const &) = delete;
+      ${type.typename}(${type.typename} &&) = delete;
+      ${type.typename} & operator = (${type.typename} const &) = delete;
+      ${type.typename} & operator = (${type.typename} &&) = delete;
     `);
   }
 
   if (!type.noStdValues) {
     f(`
       // Factory functions
-      static ${ type.typename } allZero();
-      static ${ type.typename } allNan();
+      static ${type.typename} allZero();
+      static ${type.typename} allNan();
     `);
   }
   f(`
-    ${ type.typename } copy() const;
+    ${type.typename} copy() const;
 
     // Member variables
   `);
   _.each(type.orderedNames, function(name) {
     f(`
-      ${ type.nameToType[name].getVarDecl(name) };
+      ${type.nameToType[name].getVarDecl(name)};
     `);
   });
 
@@ -248,9 +251,9 @@ StructCType.prototype.emitTypeDecl = function(f) {
       if (ett.isPtr()) return;
       f(`
         // Array accessors
-        inline size_t ${ ett.jsTypename }Size() const { return ${ members.length }; };
-        vector< ${ et } > ${ ett.jsTypename }AsVector() const;
-        void setFrom(vector< ${ et } > const &_v);
+        inline size_t ${ett.jsTypename}Size() const { return ${members.length}; };
+        vector< ${et} > ${ett.jsTypename}AsVector() const;
+        void setFrom(vector< ${et} > const &_v);
       `);
     });
   }
@@ -274,35 +277,35 @@ StructCType.prototype.emitTypeDecl = function(f) {
 
     };
 
-    ${ type.typename } interpolate(${ type.typename } const &a, ${ type.typename } const &b, double cb);
+    ${type.typename} interpolate(${type.typename} const &a, ${type.typename} const &b, double cb);
 
-    char const * getTypeVersionString(${ type.typename } const &);
-    char const * getTypeName(${ type.typename } const &);
-    char const * getJsTypeName(${ type.typename } const &);
-    char const * getSchema(${ type.typename } const &);
-    void addSchemas(${ type.typename } const &, map< string, jsonstr > &);
+    char const * getTypeVersionString(${type.typename} const &);
+    char const * getTypeName(${type.typename} const &);
+    char const * getJsTypeName(${type.typename} const &);
+    char const * getSchema(${type.typename} const &);
+    void addSchemas(${type.typename} const &, map< string, jsonstr > &);
 
     // IO
-    ostream & operator<<(ostream &s, const ${ type.typename } &obj);
+    ostream & operator<<(ostream &s, const ${type.typename} &obj);
   `);
   if (!type.noSerialize) {
     f(`
-      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, ${ type.typename } const &obj);
-      bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, ${ type.typename } &obj);
-      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, ${ type.typename } const &x);
+      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, ${type.typename} const &obj);
+      bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, ${type.typename} &obj);
+      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, ${type.typename} const &x);
 
-      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > const &obj);
-      bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > &obj);
-      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > const &x);
+      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${type.typename}> > const &obj);
+      bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${type.typename}> > &obj);
+      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${type.typename}> > const &x);
     `);
   }
 
   if (!type.noSerialize && !type.noPacket) {
     f(`
-      void packet_wr_typetag(packet &p, const ${ type.typename } &x);
-      void packet_rd_typetag(packet &p, ${ type.typename } const &x);
-      void packet_wr_value(packet &p, const ${ type.typename } &x);
-      void packet_rd_value(packet &p, ${ type.typename } &x);
+      void packet_wr_typetag(packet &p, const ${type.typename} &x);
+      void packet_rd_typetag(packet &p, ${type.typename} const &x);
+      void packet_wr_value(packet &p, const ${type.typename} &x);
+      void packet_rd_value(packet &p, ${type.typename} &x);
     `);
   }
 
@@ -326,12 +329,12 @@ StructCType.prototype.emitHostImpl = function(f) {
   if (1) {
     // Default constructor
     f(`
-      ${ type.typename }::${ type.typename }()
+      ${type.typename}::${type.typename}()
     `);
     if (type.orderedNames.length) {
       f(`:${
         _.map(type.orderedNames, function(name) {
-          return `${ name }(${ type.getMemberInitializer(name) })`;
+          return `${name}(${type.getMemberInitializer(name)})`;
         }).join(',\n ')
       }`);
     }
@@ -345,7 +348,7 @@ StructCType.prototype.emitHostImpl = function(f) {
 
   if (type.needsDestructor()) {
     f(`
-      ${ type.typename }::~${ type.typename }() {
+      ${type.typename}::~${type.typename}() {
     `);
     _.each(type.extraDestructorCode, function(l) {
       f(l);
@@ -358,7 +361,7 @@ StructCType.prototype.emitHostImpl = function(f) {
 
   var constructorArgs = type.getConstructorArgs();
   if (constructorArgs.length) {
-    f(`${ type.typename }::${ type.typename }(${
+    f(`${type.typename}::${type.typename}(${
       _.map(constructorArgs, function(argInfo) {
         return argInfo.type.getFormalParameter('_' + argInfo.name);
       }).join(', ')
@@ -389,29 +392,29 @@ StructCType.prototype.emitHostImpl = function(f) {
 
   if (1) {
     f(`
-      char const * ${ type.typename }::typeVersionString = "${ type.getTypeAndVersion() }";
-      char const * ${ type.typename }::typeName = "${ type.typename }";
-      char const * ${ type.typename }::jsTypeName = "${ type.jsTypename }";
-      char const * ${ type.typename }::schema = "${ cgen.escapeCString(JSON.stringify(type.getSchema())) }";
+      char const * ${type.typename}::typeVersionString = "${type.getTypeAndVersion()}";
+      char const * ${type.typename}::typeName = "${type.typename}";
+      char const * ${type.typename}::jsTypeName = "${type.jsTypename}";
+      char const * ${type.typename}::schema = "${cgen.escapeCString(JSON.stringify(type.getSchema()))}";
 
-      char const * getTypeVersionString(${ type.typename } const &it) { return ${ type.typename }::typeVersionString; }
-      char const * getTypeName(${ type.typename } const &it) { return ${ type.typename }::typeName; }
-      char const * getJsTypeName(${ type.typename } const &it) { return ${ type.typename }::jsTypeName; }
-      char const * getSchema(${ type.typename } const &it) { return ${ type.typename }::schema; }
-      void addSchemas(${ type.typename } const &, map< string, jsonstr > &all) { ${ type.typename }::addSchemas(all); }
+      char const * getTypeVersionString(${type.typename} const &it) { return ${type.typename}::typeVersionString; }
+      char const * getTypeName(${type.typename} const &it) { return ${type.typename}::typeName; }
+      char const * getJsTypeName(${type.typename} const &it) { return ${type.typename}::jsTypeName; }
+      char const * getSchema(${type.typename} const &it) { return ${type.typename}::schema; }
+      void addSchemas(${type.typename} const &, map< string, jsonstr > &all) { ${type.typename}::addSchemas(all); }
     `);
   }
 
   if (1) {
     f(`
-      void ${ type.typename }::addSchemas(map< string, jsonstr > &all) {
-        if (!all["${ type.jsTypename }"].isNull()) return;
-        all["${ type.jsTypename }"] = jsonstr(schema);
+      void ${type.typename}::addSchemas(map< string, jsonstr > &all) {
+        if (!all["${type.jsTypename}"].isNull()) return;
+        all["${type.jsTypename}"] = jsonstr(schema);
     `);
     _.each(type.getMemberTypes(), function(type) {
       if (type.isStruct()) {
         f(`
-          ${ type.typename }::addSchemas(all); /* ${ type.constructor.name } */
+          ${type.typename}::addSchemas(all); /* ${type.constructor.name} */
         `);
       }
     });
@@ -422,25 +425,25 @@ StructCType.prototype.emitHostImpl = function(f) {
 
   if (!type.noStdValues && type.isCopyConstructable()) {
     f(`
-      ${ type.typename } ${ type.typename }::allZero() {
-      ${ type.typename } ret;
+      ${type.typename} ${type.typename}::allZero() {
+      ${type.typename} ret;
     `);
     _.each(type.orderedNames, function(name) {
       var memberType = type.nameToType[name];
       f(`
-        ret.${ name } = ${ memberType.getAllZeroExpr() };
+        ret.${name} = ${memberType.getAllZeroExpr()};
       `);
     });
     f(`
         return ret;
       }
-      ${ type.typename } ${ type.typename }::allNan() {
-        ${ type.typename } ret;
+      ${type.typename} ${type.typename}::allNan() {
+        ${type.typename} ret;
     `);
     _.each(type.orderedNames, function(name) {
       var memberType = type.nameToType[name];
       f(`
-        ret.${ name } = ${ memberType.getAllNanExpr() };
+        ret.${name} = ${memberType.getAllNanExpr()};
       `);
     });
     f(`
@@ -451,13 +454,13 @@ StructCType.prototype.emitHostImpl = function(f) {
 
   if (1) {
     f(`
-      ostream & operator<<(ostream &s, const ${ type.typename } &obj) {
-        s << "${ type.typename }{";
+      ostream & operator<<(ostream &s, const ${type.typename} &obj) {
+        s << "${type.typename}{";
     `);
     _.each(type.orderedNames, function(name, namei) {
       var t = type.nameToType[name];
       f(`
-        s << "${ (namei > 0 ? ', ' : '') }${name} = ";
+        s << "${(namei > 0 ? ', ' : '')}${name} = ";
       `);
       if (t.noSerialize) {
         f(`
@@ -504,13 +507,13 @@ StructCType.prototype.emitHostImpl = function(f) {
         if (ett.isPtr()) return;
         f(`
           // Array accessors
-          vector< ${ et } > ${ type.typename }::${ ett.jsTypename }AsVector() const {
-            vector< ${ et } > _ret(${ members.length });
+          vector< ${et} > ${type.typename}::${ett.jsTypename}AsVector() const {
+            vector< ${et} > _ret(${members.length});
             auto _p = _ret.begin();
         `);
         _.each(members, function(names) {
           f(`
-            *_p++ = ${ mkMemberRef(names) };
+            *_p++ = ${mkMemberRef(names)};
           `);
         });
         f(`
@@ -521,15 +524,15 @@ StructCType.prototype.emitHostImpl = function(f) {
         `);
 
         f(`
-          void ${ type.typename }::setFrom(vector< ${ et } > const &_v) {
-          if (_v.size() != ${ members.length }) {
-            throw runtime_error(string("${ type.typename }/${ et } size_mismatch ") + to_string(_v.size()) + " != ${ members.length }");
+          void ${type.typename}::setFrom(vector< ${et} > const &_v) {
+          if (_v.size() != ${members.length}) {
+            throw runtime_error(string("${type.typename}/${et} size_mismatch ") + to_string(_v.size()) + " != ${members.length}");
           }
           auto _p = _v.begin();
         `);
         _.each(members, function(names) {
           f(`
-            ${ mkMemberRef(names) } = *_p++;
+            ${mkMemberRef(names)} = *_p++;
           `);
         });
         f(`
@@ -539,7 +542,7 @@ StructCType.prototype.emitHostImpl = function(f) {
       });
 
       f(`
-        ${ type.typename } interpolate(${ type.typename } const &a, ${ type.typename } const &b, double cb) {
+        ${type.typename} interpolate(${type.typename} const &a, ${type.typename} const &b, double cb) {
         if (cb == 0.0) {
           return a;
         }
@@ -547,14 +550,14 @@ StructCType.prototype.emitHostImpl = function(f) {
           return b;
         }
         else {
-          ${ type.typename } out(a);
+          ${type.typename} out(a);
       `);
       _.each(rm, function(members, et) {
         var ett = type.reg.types[et];
         if (ett.isPtr()) return;
         _.each(members, function(names) {
           f(`
-            out.${ mkMemberRef(names) } = interpolate(a.${ mkMemberRef(names) }, b.${ mkMemberRef(names) }, cb);
+            out.${mkMemberRef(names)} = interpolate(a.${mkMemberRef(names)}, b.${mkMemberRef(names)}, cb);
           `);
         });
       });
@@ -569,8 +572,7 @@ StructCType.prototype.emitHostImpl = function(f) {
 
 StructCType.prototype.getExampleValueJs = function() {
   var type = this;
-  return `new ur.${
-    type.jsTypename }(${ _.map(type.orderedNames, function(name) {
+  return `new ur.${type.jsTypename}(${ _.map(type.orderedNames, function(name) {
       return type.nameToType[name].getExampleValueJs();
     }).join(', ')
   })`;
@@ -581,18 +583,18 @@ StructCType.prototype.emitJsTestImpl = function(f) {
   var type = this;
   if (type.superTypes.length) return; // WRITEME: this gets pretty complicated...
   f(`
-    describe("${ type.jsTypename } C++ impl", function() {
+    describe("${type.jsTypename} C++ impl", function() {
 
       it("should work", function() {
-        var t1 = ${ type.getExampleValueJs() };
+        var t1 = ${type.getExampleValueJs()};
         var t1s = t1.toString();
-        var t2 = ur.${ type.jsTypename }.fromString(t1s);
+        var t2 = ur.${type.jsTypename}.fromString(t1s);
         assert.strictEqual(t1.toString(), t2.toString());
   `);
   if (!type.noSerialize && !type.noPacket) {
     f(`
       var t1b = t1.toPacket();
-      var t3 = ur.${ type.jsTypename }.fromPacket(t1b);
+      var t3 = ur.${type.jsTypename}.fromPacket(t1b);
       assert.strictEqual(t1.toString(), t3.toString());
     `);
   }
@@ -603,7 +605,7 @@ StructCType.prototype.emitJsTestImpl = function(f) {
   if (0 && !type.noPacket) {
     f(`
       it("fromPacket should be fuzz-resistant", function() {
-        var t1 = ${ type.getExampleValueJs() };
+        var t1 = ${type.getExampleValueJs()};
         var bufLen = t1.toPacket().length;
         for (var i=0; i<bufLen; i++) {
           for (var turd=0; turd<256; turd++) {
@@ -628,19 +630,19 @@ StructCType.prototype.emitPacketIo = function(f) {
   var type = this;
 
   f(`
-    void packet_wr_typetag(packet &p, const ${ type.typename } &x) {
+    void packet_wr_typetag(packet &p, const ${type.typename} &x) {
       p.add_typetag(x.typeVersionString);
     }
   `);
 
   // WRITEME maybe: for POD types, consider writing directly
   f(`
-    void packet_wr_value(packet &p, const ${ type.typename } &x) {
+    void packet_wr_value(packet &p, const ${type.typename} &x) {
   `);
   _.each(type.orderedNames, function(name) {
     if (!type.nameToType[name].isPtr()) {
       f(`
-        packet_wr_value(p, x.${ name });
+        packet_wr_value(p, x.${name});
       `);
     }
   });
@@ -649,18 +651,18 @@ StructCType.prototype.emitPacketIo = function(f) {
   `);
 
   f(`
-    void packet_rd_typetag(packet &p, ${ type.typename } const &x) {
+    void packet_rd_typetag(packet &p, ${type.typename} const &x) {
       p.check_typetag(x.typeVersionString);
     }
   `);
 
   f(`
-    void packet_rd_value(packet &p, ${ type.typename } &x) {
+    void packet_rd_value(packet &p, ${type.typename} &x) {
   `);
   _.each(type.orderedNames, function(name) {
     if (!type.nameToType[name].isPtr()) {
       f(`
-        packet_rd_value(p, x.${ name });
+        packet_rd_value(p, x.${name});
       `);
       }
   });
@@ -681,19 +683,19 @@ StructCType.prototype.emitWrJson = function(f) {
   function emitstr(s) {
     var b = new Buffer(s, 'utf8');
     f1(_.map(_.range(0, b.length), function(ni) {
-      return `*s++ = ${ b[ni] };`;
+      return `*s++ = ${b[ni]};`;
     }).join(' ') + ' // ' + cgen.escapeCString(s));
-    f2(`size += ${ (b.length + 2).toString() };`);
+    f2(`size += ${(b.length + 2).toString()};`);
   }
 
   if (1) {
     f(`
-      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, ${ type.typename } const &obj) {
+      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, ${type.typename} const &obj) {
     `);
     var f1 = f.child();
     f(`
       }
-      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, ${ type.typename } const &obj) {
+      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, ${type.typename} const &obj) {
     `);
     var f2 = f.child();
     f(`
@@ -702,7 +704,7 @@ StructCType.prototype.emitWrJson = function(f) {
 
     sep = '';
     if (!type.omitTypeTag) {
-      emitstr(`{"__type":"${ type.jsTypename }"`);
+      emitstr(`{"__type":"${type.jsTypename}"`);
       sep = ',';
     } else {
       emitstr('{');
@@ -711,10 +713,10 @@ StructCType.prototype.emitWrJson = function(f) {
       emitstr(sep + '\"' + name + '\":');
       sep = ',';
       f1(`
-        wrJson(s, blobs, obj.${ name });
+        wrJson(s, blobs, obj.${name});
       `);
       f2(`
-        wrJsonSize(size, blobs, obj.${ name });
+        wrJsonSize(size, blobs, obj.${name});
       `);
     });
     f1(`
@@ -741,7 +743,7 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
   var deopt = (memberCount > 250) ? '__attribute__((optnone))' : '';
 
   f(`
-    void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > const &arr) ${deopt} {
+    void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${type.typename}> > const &arr) ${deopt} {
       if (!blobs) {
         wrJsonVec(s, blobs, arr);
         return;
@@ -750,7 +752,7 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
   f1 = f.child();
   f(`
     }
-    void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > const &arr) {
+    void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${type.typename}> > const &arr) {
       if (!blobs) {
         wrJsonSizeVec(size, blobs, arr);
         return;
@@ -762,7 +764,7 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
   `);
 
   f1(`
-    s += snprintf(s, 100+${type.jsTypename.length}, "{\\"__type\\":\\"bulk_vector_${ type.jsTypename }\\",\\"__bulk_size\\":%zu", arr.size());
+    s += snprintf(s, 100+${type.jsTypename.length}, "{\\"__type\\":\\"bulk_vector_${type.jsTypename}\\",\\"__bulk_size\\":%zu", arr.size());
   `);
   f2(`
     size += 101+${type.jsTypename.length};
@@ -784,29 +786,15 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
         f1(`
           {
             vector<${binTypename}> bulk(arr.size());
-            ${ binTypename } minRange=0, maxRange=0;
-            if (arr.size() > 0) {
-              minRange = arr[0]->${ mkMemberRef(names) };
-              maxRange = arr[0]->${ mkMemberRef(names) };
-              for (size_t i=0; i<arr.size(); i++) {
-                bulk[i] = arr[i]->${ mkMemberRef(names) };
-                minRange = min(minRange, bulk[i]);
-                maxRange = max(maxRange, bulk[i]);
-              }
+            for (size_t i=0; i<arr.size(); i++) {
+              bulk[i] = arr[i]->${mkMemberRef(names)};
             }
-            ndarray nd;
-            nd.partBytes = bulk.size() * sizeof(${ binTypename });
-            nd.partOfs = blobs->writeChunk(reinterpret_cast<char *>(&bulk[0]), nd.partBytes);
-            nd.dtype = "${ ett.jsTypename }";
-            nd.shape.push_back(arr.size());
-            nd.range.min = (double)minRange;
-            nd.range.max = (double)maxRange;
-            s += sprintf(s, ",\\"${ mkMemberRef(names) }\\":");
-            wrJson(s, blobs, nd);
+            s += sprintf(s, ",\\"${mkMemberRef(names)}\\":");
+            wrJson(s, blobs, bulk);
           }
         `);
         f2(`
-          size += 205 + ${ mkMemberRef(names).length };
+          size += 305 + ${mkMemberRef(names).length};
         `);
       }
       else if ((ett.templateName === 'arma::Col::fixed' ||
@@ -819,30 +807,31 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
         f1(`
           {
             vector<${baseType.typename}> bulk(arr.size() * ${colSize});
-            ${baseType.typename} minRange = arr.size() > 0 ? arr[0]->${ mkMemberRef(names) }.min() : 0.0;
-            ${baseType.typename} maxRange = arr.size() > 0 ? arr[0]->${ mkMemberRef(names) }.max() : 0.0;
+            ${baseType.typename} minRange = arr.size() > 0 ? arr[0]->${mkMemberRef(names)}.min() : 0.0;
+            ${baseType.typename} maxRange = arr.size() > 0 ? arr[0]->${mkMemberRef(names)}.max() : 0.0;
             for (size_t i=0; i<arr.size(); i++) {
               for (size_t k=0; k<${colSize}; k++) {
-                bulk[i*${colSize}+k] = arr[i]->${ mkMemberRef(names) }[k];
+                bulk[i*${colSize}+k] = arr[i]->${mkMemberRef(names)}[k];
                 minRange = std::min(minRange, bulk[i*${colSize}+k]);
                 maxRange = std::max(maxRange, bulk[i*${colSize}+k]);
               }
             }
             ndarray nd;
-            nd.partBytes = mul_overflow<size_t>(bulk.size(), sizeof(${ baseType.typename }));
+            nd.partBytes = mul_overflow<size_t>(bulk.size(), sizeof(${baseType.typename}));
             nd.partOfs = blobs->writeChunk(reinterpret_cast<char *>(&bulk[0]), nd.partBytes);
-            nd.dtype = "${ baseType.jsTypename }";
+            nd.dtype = "${baseType.jsTypename}";
             nd.shape.push_back(arr.size());
             nd.shape.push_back(${colSize});
             nd.range.min = (double)minRange;
             nd.range.max = (double)maxRange;
-            s += sprintf(s, ",\\"${ mkMemberRef(names) }\\":");
-            wrJson(s, blobs, nd);
+            s += sprintf(s, ",\\"${mkMemberRef(names)}\\":");
+            shared_ptr< ChunkFile> nullBlobs;
+            wrJson(s, nullBlobs, nd);
           }
         `);
         f2(`
           {
-            size += 200 + ${ mkMemberRef(names).length };
+            size += 305 + ${mkMemberRef(names).length};
           }
         `);
       }
@@ -850,20 +839,20 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
         if (0) console.log('Not handling', type.typename, ett.typename);
         f1(`
           {
-            vector< ${ ett.typename } > slice;
+            vector< ${ett.typename} > slice;
             for (auto &it : arr) {
-              slice.push_back(it->${ mkMemberRef(names) });
+              slice.push_back(it->${mkMemberRef(names)});
             }
-            s += snprintf(s, 100, ",\\"${ mkMemberRef(names) }\\":");
+            s += snprintf(s, 100, ",\\"${mkMemberRef(names)}\\":");
             wrJson(s, blobs, slice);
           }
         `);
 
         f2(`
           {
-            vector< ${ ett.typename } > slice;
+            vector< ${ett.typename} > slice;
             for (auto &it : arr) {
-              slice.push_back(it->${ mkMemberRef(names) });
+              slice.push_back(it->${mkMemberRef(names)});
             }
             wrJsonSize(size, blobs, slice);
           }
@@ -884,9 +873,9 @@ StructCType.prototype.emitRdJson = function(f) {
   };
   _.each(type.orderedNames, function(name) {
     if (!type.nameToType[name].isPtr()) {
-      actions[`"${ name }" :`] = function() {
+      actions[`"${name}" :`] = function() {
         f(`
-          if (rdJson(s, blobs, obj.${ name })) {
+          if (rdJson(s, blobs, obj.${name})) {
             jsonSkipSpace(s);
             c = *s++;
             if (c == \',\') continue;
@@ -896,7 +885,7 @@ StructCType.prototype.emitRdJson = function(f) {
       };
     }
   });
-  actions[`"__type" : "${ type.jsTypename }"`] = function() {
+  actions[`"__type" : "${type.jsTypename}"`] = function() {
     f(`
       typeOk = true;
       c = *s++;
@@ -906,8 +895,8 @@ StructCType.prototype.emitRdJson = function(f) {
   };
 
   f(`
-    bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, ${ type.typename } &obj) {
-      bool typeOk = ${ type.omitTypeTag ? 'true' : 'false' };
+    bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, ${type.typename} &obj) {
+      bool typeOk = ${type.omitTypeTag ? 'true' : 'false'};
       char c;
       jsonSkipSpace(s);
       c = *s++;
@@ -999,7 +988,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
         // Because STL does something fancy with vector<bool>
         var binTypename = ett.typename === 'bool' ? 'U8': ett.typename;
 
-        actions[`"${ mkMemberRef(names) }" :`] = function() {
+        actions[`"${mkMemberRef(names)}" :`] = function() {
           f(`
             {
               ndarray nd;
@@ -1013,12 +1002,12 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
               }
               vector<${binTypename}> tmp(nd.shape[0]);
               if (tmp.size() * sizeof(${binTypename}) != nd.partBytes) {
-                eprintf("rdJson(${type.typename}::${ mkMemberRef(names) }): size mismatch %zu*%zu != %zu\\n",
+                eprintf("rdJson(${type.typename}::${mkMemberRef(names)}): size mismatch %zu*%zu != %zu\\n",
                   tmp.size(), sizeof(${binTypename}), (size_t)nd.partBytes);
                 return false;
               }
               if (!blobs->readChunk(reinterpret_cast<char *>(tmp.data()), nd.partOfs, nd.partBytes)) {
-                eprintf("rdJson(${type.typename}::${ mkMemberRef(names) }): no chunk %zu %zu\\n",
+                eprintf("rdJson(${type.typename}::${mkMemberRef(names)}): no chunk %zu %zu\\n",
                   (size_t)nd.partOfs, (size_t)nd.partBytes);
                 return false;
               }
@@ -1040,13 +1029,13 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
                 ett.templateArgs[0] === 'float')) {
         var baseType = type.reg.types[ett.templateArgs[0]];
         var colSize = parseInt(ett.templateArgs[1]) * (ett.templateArgs.length > 2 ? parseInt(ett.templateArgs[2]) : 1);
-        actions[`"${ mkMemberRef(names) }" :`] = function() {
+        actions[`"${mkMemberRef(names)}" :`] = function() {
           f(`
             {
               ndarray nd;
               if (!rdJson(s, blobs, nd)) return false;
               if (nd.shape.size() != 2 || arr.size() != nd.shape[0] || nd.shape[1] != ${colSize}) {
-                eprintf("rdJson(${type.typename}::${ mkMemberRef(names) }): Size mismatch: %zu %zu %zu %zu\\n",
+                eprintf("rdJson(${type.typename}::${mkMemberRef(names)}): Size mismatch: %zu %zu %zu %zu\\n",
                   (size_t)nd.shape.size(),
                   (size_t)arr.size(),
                   nd.shape.size()>0 ? (size_t)nd.shape[0] : (size_t)0,
@@ -1056,19 +1045,19 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
 
               vector<${baseType.typename}> tmp(nd.shape[0] * nd.shape[1]);
               if (tmp.size() * sizeof(${baseType.typename}) != nd.partBytes) {
-                eprintf("rdJson(${type.typename}::${ mkMemberRef(names) }): size mismatch %zu*%zu != %zu\\n",
+                eprintf("rdJson(${type.typename}::${mkMemberRef(names)}): size mismatch %zu*%zu != %zu\\n",
                   tmp.size(), sizeof(${baseType.typename}), (size_t)nd.partBytes);
                 return false;
               }
               if (!blobs->readChunk(reinterpret_cast<char *>(tmp.data()), nd.partOfs, nd.partBytes)) {
-                eprintf("rdJson(${type.typename}::${ mkMemberRef(names) }): no chunk %zu %zu\\n",
+                eprintf("rdJson(${type.typename}::${mkMemberRef(names)}): no chunk %zu %zu\\n",
                   (size_t)nd.partOfs, (size_t)nd.partBytes);
                 return false;
               }
 
               for (size_t i=0; i<arr.size(); i++) {
                 for (size_t k=0; k<${colSize}; k++) {
-                  arr[i]->${ mkMemberRef(names) }[k] = tmp[i*${colSize}+k];
+                  arr[i]->${mkMemberRef(names)}[k] = tmp[i*${colSize}+k];
                 }
               }
               jsonSkipSpace(s);
@@ -1080,7 +1069,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
         };
       }
       else {
-        actions[`"${ mkMemberRef(names) }" :`] = function() {
+        actions[`"${mkMemberRef(names)}" :`] = function() {
           f(`
             vector<${ett.typename}> tmp;
             if (!rdJson(s, blobs, tmp)) return false;
@@ -1095,7 +1084,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
       }
     });
   });
-  actions[`"__type" : "bulk_vector_${ type.jsTypename }"`] = function() {
+  actions[`"__type" : "bulk_vector_${type.jsTypename}"`] = function() {
     f(`
       typeOk = true;
       c = *s++;
@@ -1122,8 +1111,8 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
   */
   var deopt = (_.keys(actions).length > 250) ? '__attribute__((optnone))' : '';
   f(`
-    bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${ type.typename }> > &arr) ${deopt} {
-      bool typeOk = ${ type.omitTypeTag ? 'true' : 'false' };
+    bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${type.typename}> > &arr) ${deopt} {
+      bool typeOk = ${type.omitTypeTag ? 'true' : 'false'};
       char c;
       jsonSkipSpace(s);
       c = *s++;
@@ -1202,9 +1191,9 @@ StructCType.prototype.hasJsWrapper = function(f) {
 StructCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
   f(`
-    using JsWrap_${ type.jsTypename } = JsWrapGeneric< ${ type.typename } >;
-    void jsConstructor_${ type.jsTypename }(JsWrap_${ type.jsTypename } *thisObj, FunctionCallbackInfo<Value> const &args);
-    Handle<Value> jsToJSON_${ type.jsTypename }(Isolate *isolate, ${ type.typename } const &it);
+    using JsWrap_${type.jsTypename} = JsWrapGeneric< ${type.typename} >;
+    void jsConstructor_${type.jsTypename}(JsWrap_${type.jsTypename} *thisObj, FunctionCallbackInfo<Value> const &args);
+    Handle<Value> jsToJSON_${type.jsTypename}(Isolate *isolate, ${type.typename} const &it);
   `);
 };
 
@@ -1237,14 +1226,14 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
             var memberType = type.reg.getType(argInfo.type);
 
             f(`
-              Local<Value> a0_${ memberName }_js = a0->Get(String::NewFromUtf8(isolate, "${ memberName }"));
-              if (a0_${ memberName }_js->IsUndefined()) {
+              Local<Value> a0_${memberName}_js = a0->Get(String::NewFromUtf8(isolate, "${memberName}"));
+              if (a0_${memberName}_js->IsUndefined()) {
               }
               else if (${ memberType.getJsToCppTest('a0_' + memberName + '_js', {conv: true}) }) {
-                thisObj->it->${ memberName } = ${ memberType.getJsToCppExpr('a0_' + memberName + '_js', {conv: true}) };
+                thisObj->it->${memberName} = ${ memberType.getJsToCppExpr('a0_' + memberName + '_js', {conv: true}) };
               }
               else {
-                return ThrowTypeError(isolate, "Expected ${ memberType.typename } for ${ memberName }");
+                return ThrowTypeError(isolate, "Expected ${memberType.typename} for ${memberName}");
               }
             `);
           });
@@ -1256,11 +1245,11 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   if (!type.noSerialize) {
 
     f(`
-      Handle<Value> jsToJSON_${ type.jsTypename }(Isolate *isolate, const ${ type.typename } &it) {
+      Handle<Value> jsToJSON_${type.jsTypename}(Isolate *isolate, const ${type.typename} &it) {
         EscapableHandleScope scope(isolate);
         Local<Object> ret = Object::New(isolate);
 
-        ret->Set(String::NewFromUtf8(isolate, "__type"), String::NewFromUtf8(isolate, "${ type.jsTypename }"));
+        ret->Set(String::NewFromUtf8(isolate, "__type"), String::NewFromUtf8(isolate, "${type.jsTypename}"));
     `);
 
     _.each(type.orderedNames, function(name) {
@@ -1274,27 +1263,27 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         case 'float':
          case 'double':
           f(`
-            ret->Set(String::NewFromUtf8(isolate, "${ name }"), Number::New(isolate, it.${ name }));
+            ret->Set(String::NewFromUtf8(isolate, "${name}"), Number::New(isolate, it.${name}));
           `);
           break;
         case 'bool':
           f(`
-            ret->Set(String::NewFromUtf8(isolate, "${ name }"), Boolean::New(isolate, it.${ name }));
+            ret->Set(String::NewFromUtf8(isolate, "${name}"), Boolean::New(isolate, it.${name}));
           `);
           break;
         case 'string':
           f(`
-            ret->Set(String::NewFromUtf8(isolate, "${ name }"), convStringToJs(isolate, it.${ name }));
+            ret->Set(String::NewFromUtf8(isolate, "${name}"), convStringToJs(isolate, it.${name}));
           `);
           break;
         case 'jsonstr':
           f(`
-            ret->Set(String::NewFromUtf8(isolate, "${ name }"), convJsonstrToJs(isolate, it.${ name }));
+            ret->Set(String::NewFromUtf8(isolate, "${name}"), convJsonstrToJs(isolate, it.${name}));
           `);
           break;
         default:
           f(`
-            ret->Set(String::NewFromUtf8(isolate, "${ name }"), jsToJSON_${ memberType.jsTypename }(isolate, it.${ name }));
+            ret->Set(String::NewFromUtf8(isolate, "${name}"), jsToJSON_${memberType.jsTypename}(isolate, it.${name}));
           `);
         }
       }
@@ -1308,7 +1297,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: [], ignoreExtra: true, code: function(f) {
           f(`
-            args.GetReturnValue().Set(Local<Value>(jsToJSON_${ type.jsTypename }(isolate, *thisObj->it)));
+            args.GetReturnValue().Set(Local<Value>(jsToJSON_${type.jsTypename}(isolate, *thisObj->it)));
           `);
         }}
       ]);
@@ -1367,7 +1356,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitArgSwitch([
       {args: ['map< string, jsonstr >'], code: function(f) {
         f(`
-          ${ type.typename }::addSchemas(a0);
+          ${type.typename}::addSchemas(a0);
         `);
       }}
     ]);
@@ -1414,7 +1403,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     _.each(['allZero', 'allNan'], function(name) {
       f.emitJsFactory(name, function(f) {
         f(`
-          args.GetReturnValue().Set(JsWrap_${ type.jsTypename }::ConstructInstance(isolate, ${ type.typename }::${ name }()));
+          args.GetReturnValue().Set(JsWrap_${type.jsTypename}::ConstructInstance(isolate, ${type.typename}::${name}()));
         `);
       });
     });
@@ -1425,16 +1414,16 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsAccessors(name, {
       get: function(f) {
         f(`
-          args.GetReturnValue().Set(Local<Value>(${ memberType.getCppToJsExpr(`${memberType.isPtr() ? '' : '&'}thisObj->it->${ name }`, 'thisObj->it')}));
+          args.GetReturnValue().Set(Local<Value>(${ memberType.getCppToJsExpr(`${memberType.isPtr() ? '' : '&'}thisObj->it->${name}`, 'thisObj->it')}));
         `);
       },
       set: function(f) {
         f(`
           if (${ memberType.getJsToCppTest('value', {conv: true}) }) {
-             thisObj->it->${ name } = ${ memberType.getJsToCppExpr('value', {conv: true}) };
+             thisObj->it->${name} = ${ memberType.getJsToCppExpr('value', {conv: true}) };
           }
           else {
-            return ThrowTypeError(isolate, "Expected ${ memberType.typename }");
+            return ThrowTypeError(isolate, "Expected ${memberType.typename}");
           }
         `);
       }
@@ -1443,10 +1432,10 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
   if (1) { // Setup template and prototype
     f(`
-      void jsInit_${ type.jsTypename }(Handle<Object> exports) {
+      void jsInit_${type.jsTypename}(Handle<Object> exports) {
         Isolate *isolate = Isolate::GetCurrent();
-        Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, jsNew_${ type.jsTypename });
-        tpl->SetClassName(String::NewFromUtf8(isolate, "${ type.jsTypename }"));
+        Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, jsNew_${type.jsTypename});
+        tpl->SetClassName(String::NewFromUtf8(isolate, "${type.jsTypename}"));
         tpl->InstanceTemplate()->SetInternalFieldCount(1);
     `);
     f.emitJsBindings();

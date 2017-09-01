@@ -48,7 +48,7 @@ struct jsonstr {
   // Read and write to files.
   // Read returns -1 with errno=ENOENT if not found.
   // Otherwise, these throw runtime errors if anything else goes wrong.
-  void writeToFile(string const &fn, bool enableGzip=true);
+  void writeToFile(string const &fn, bool enableGzip=true) const;
   int readFromFile(string const &fn);
 
   string it;
@@ -191,13 +191,6 @@ template<typename T> void wrJsonSize(size_t &size, shared_ptr< ChunkFile> &blobs
 template<typename T> void wrJson(char *&s, shared_ptr< ChunkFile> &blobs, vector<shared_ptr<T>  > const &arr);
 template<typename T> bool rdJson(const char *&s, shared_ptr< ChunkFile> &blobs, vector<shared_ptr<T>  > &arr);
 
-#ifdef NOTYET
-// Specializations for double
-void wrJsonSize(size_t &size, shared_ptr< ChunkFile> &blobs, vector<double > const &arr);
-void wrJson(char *&s, shared_ptr< ChunkFile> &blobs, vector<double > const &arr);
-bool rdJson(const char *&s, shared_ptr< ChunkFile> &blobs, vector<double > &arr);
-#endif
-
 template<typename T> void wrJsonSize(size_t &size, shared_ptr< ChunkFile> &blobs, deque<T > const &arr);
 template<typename T> void wrJson(char *&s, shared_ptr< ChunkFile> &blobs, deque<T > const &arr);
 template<typename T> bool rdJson(const char *&s, shared_ptr< ChunkFile> &blobs, deque<T > &arr);
@@ -245,6 +238,26 @@ template<>
 void wrJsonSize(size_t &size, shared_ptr< ChunkFile> &blobs, vector<double > const &arr);
 template<>
 void wrJson(char *&s, shared_ptr< ChunkFile> &blobs, vector<double > const &arr);
+template<>
+void wrJsonSize(size_t &size, shared_ptr< ChunkFile> &blobs, vector<float > const &arr);
+template<>
+void wrJson(char *&s, shared_ptr< ChunkFile> &blobs, vector<float > const &arr);
+template<>
+void wrJsonSize(size_t &size, shared_ptr< ChunkFile> &blobs, vector<S32 > const &arr);
+template<>
+void wrJson(char *&s, shared_ptr< ChunkFile> &blobs, vector<S32 > const &arr);
+template<>
+void wrJsonSize(size_t &size, shared_ptr< ChunkFile> &blobs, vector<U32 > const &arr);
+template<>
+void wrJson(char *&s, shared_ptr< ChunkFile> &blobs, vector<U32 > const &arr);
+template<>
+void wrJsonSize(size_t &size, shared_ptr< ChunkFile> &blobs, vector<S64 > const &arr);
+template<>
+void wrJson(char *&s, shared_ptr< ChunkFile> &blobs, vector<S64 > const &arr);
+template<>
+void wrJsonSize(size_t &size, shared_ptr< ChunkFile> &blobs, vector<U64 > const &arr);
+template<>
+void wrJson(char *&s, shared_ptr< ChunkFile> &blobs, vector<U64 > const &arr);
 
 template<typename T>
 void wrJsonSizeVec(size_t &size, shared_ptr< ChunkFile> &blobs, vector<shared_ptr<T>  > const &arr) {
