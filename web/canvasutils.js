@@ -139,47 +139,54 @@ var Geom2D = {
 
 var Geom3D = {
   I: function() { // identity matrix
-    return [1, 0, 0,
-            0, 1, 0,
-            0, 0, 1,
-            0, 0, 0];
+    return Float64Array.of(
+      1, 0, 0,
+      0, 1, 0,
+      0, 0, 1,
+      0, 0, 0);
   },
   T: function T(t, x, y, z) { // Transform a local coordinate
-    return [t[0], t[1], t[2],
-            t[3], t[4], t[5],
-            t[6], t[7], t[8],
-            t[9] + t[0]*x + t[3]*y + t[6]*z,
-            t[10] + t[1]*x + t[4]*y + t[7]*z,
-            t[11] + t[2]*x + t[5]*y + t[8]*z];
+    return Float64Array.of(
+      t[0], t[1], t[2],
+      t[3], t[4], t[5],
+      t[6], t[7], t[8],
+      t[9] + t[0]*x + t[3]*y + t[6]*z,
+      t[10] + t[1]*x + t[4]*y + t[7]*z,
+      t[11] + t[2]*x + t[5]*y + t[8]*z);
   },
   S: function S(t, s) { // Scale
-    return [t[0]*s,   t[1]*s, t[2]*s,
-            t[3]*s,   t[4]*s, t[5]*s,
-            t[6]*s,   t[7]*s, t[8]*s,
-            t[9], t[10], t[11]];
+    return Float64Array.of(
+      t[0]*s,   t[1]*s, t[2]*s,
+      t[3]*s,   t[4]*s, t[5]*s,
+      t[6]*s,   t[7]*s, t[8]*s,
+      t[9], t[10], t[11]);
 
   },
   fromOrientation: function(m) {
-    return [m[0], m[1], m[2],
-            m[3], m[4], m[5],
-            m[6], m[7], m[8],
-            0, 0, 0];
+    return Float64Array.of(
+      m[0], m[1], m[2],
+      m[3], m[4], m[5],
+      m[6], m[7], m[8],
+      0, 0, 0);
   },
   fromOrientation44: function(m) {
-    return [m[0], m[1], m[2],
-            m[4], m[5], m[6],
-            m[8], m[9], m[10],
-            m[12], m[13], m[14]];
+    return Float64Array.of(
+      m[0], m[1], m[2],
+      m[4], m[5], m[6],
+      m[8], m[9], m[10],
+      m[12], m[13], m[14]);
   },
   toScreen: function(t, xc, yc, zc) {
     var persp = zc/(zc + t[10]);
     // X is right, Y is away from viewer, Z is up
-    return [xc + t[9]*persp,
-            yc - t[11]*persp,
-            zc + t[10]];
+    return Float64Array.of(
+      xc + t[9]*persp,
+      yc - t[11]*persp,
+      zc + t[10]);
   },
   depthSort: function(faces) {
     return _.sortBy(faces, function(face) {
+      // Sort by the average z coordinate of all the coords of the face
       var coords = face.coords;
       var cl = coords.length;
       if (cl === 0) return 0.0;
@@ -191,26 +198,26 @@ var Geom3D = {
     });
   },
   toHomo_mat33_mat44: function(m) {
-    return [
+    return Float64Array.of(
       m[0], m[1], m[2], 0,
       m[3], m[4], m[5], 0,
       m[6], m[7], m[8], 0,
       0, 0, 0, 1
-    ];
+    );
   },
-  identity_mat33: [
+  identity_mat33: Float64Array.of(
     1, 0, 0,
     0, 1, 0,
     0, 0, 1
-  ],
-  identity_mat44: [
+  ),
+  identity_mat44: Float64Array.of(
     1, 0, 0, 0,
     0, 1, 0, 0,
     0, 0, 1, 0,
     0, 0, 0, 1
-  ],
+  ),
   mul_mat44_mat44: function(a, b) {
-    return [
+    return Float64Array.of(
       a[0]*b[0] + a[4]*b[1] + a[8]*b[2] + a[12]*b[3],
       a[1]*b[0] + a[5]*b[1] + a[9]*b[2] + a[13]*b[3],
       a[2]*b[0] + a[6]*b[1] + a[10]*b[2] + a[14]*b[3],
@@ -230,18 +237,18 @@ var Geom3D = {
       a[1]*b[12] + a[5]*b[13] + a[9]*b[14] + a[13]*b[15],
       a[2]*b[12] + a[6]*b[13] + a[10]*b[14] + a[14]*b[15],
       a[3]*b[12] + a[7]*b[13] + a[11]*b[14] + a[15]*b[15]
-    ];
+    );
   },
   mul_mat44_vec4: function(a, b) {
-    return [
+    return Float64Array.of(
       a[0]*b[0] + a[4]*b[1] + a[8]*b[2] + a[12]*b[3],
       a[1]*b[0] + a[5]*b[1] + a[9]*b[2] + a[13]*b[3],
       a[2]*b[0] + a[6]*b[1] + a[10]*b[2] + a[14]*b[3],
       a[3]*b[0] + a[7]*b[1] + a[11]*b[2] + a[15]*b[3]
-    ];
+    );
   },
   add_mat44_mat44: function(a, b) {
-    return [
+    return Float64Array.of(
       a[0] + b[0],
       a[1] + b[1],
       a[2] + b[2],
@@ -261,7 +268,7 @@ var Geom3D = {
       a[13] + b[13],
       a[14] + b[14],
       a[15] + b[15]
-    ];
+    );
   }
 
 };
