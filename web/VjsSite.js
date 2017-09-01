@@ -238,6 +238,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
   else {
     throw new Error('Unknown proto ' + serverInfo.proto);
   }
+  httpServer.keepAliveTimeout = 120000; // workaround for https://github.com/nodejs/node/issues/15082
   console.log('Listening on ' + serverInfo.proto + '://'+ serverInfo.host + ':' + serverInfo.port);
   httpServer.listen(serverInfo.port, serverInfo.host);
 
