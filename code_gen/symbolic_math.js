@@ -201,7 +201,7 @@ SymbolicContext.prototype.E = function(op /*, args... */) {
       return c.C('double', arg);
     }
     else {
-      throw new Error('Unknown arg type for op ' + op + ', args[' + argi + '] in ' + util.inspect(args));
+      throw new Error(`Unknown arg type for op ${op}, args[${argi}] in ${util.inspect(args)}`);
     }
   });
   return c.dedup(new SymbolicExpr(c, op, args));
@@ -224,11 +224,11 @@ SymbolicContext.prototype.D = function(wrt, e) {
     return c.C(e.type, 0);
   }
   else if (e instanceof SymbolicExpr) {
-    if (!e.opInfo.impl.deriv) throw new Error('No deriv impl for ' + e.op);
+    if (!e.opInfo.impl.deriv) throw new Error(`No deriv impl for ${e.op}`);
     return e.opInfo.impl.deriv.apply(e, [wrt].concat(e.args));
   }
   else {
-    throw new Error('Unknown expression type ' + e.toString());
+    throw new Error(`Unknown expression type ${e.toString()}`);
   }
 };
 
@@ -239,7 +239,7 @@ SymbolicContext.prototype.matrixElem = function(matrix, rowi, coli) {
     return matrix.args[rowi + coli*4];
   }
   else {
-    return c.E('(' + rowi + ',' + coli + ')', matrix);
+    return c.E(`(${rowi},${coli})`, matrix);
   }
 };
 
@@ -259,7 +259,7 @@ SymbolicContext.prototype.getExpr = function(e, availCses) {
         return e.type + '(arma::fill::zeros)';
       }
       else if (c.lang === 'js') {
-        return '[0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0]';
+        return 'Float64Array.of(0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0)';
       }
     }
     else if (e.type === 'arma::mat44' && e.value === 'zeros') {
@@ -267,7 +267,7 @@ SymbolicContext.prototype.getExpr = function(e, availCses) {
         return e.type + '(arma::fill::zeros)';
       }
       else if (c.lang === 'js') {
-        return '[0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0]';
+        return 'Float64Array.of(0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0)';
       }
     }
     else if (e.type === 'arma::mat44' && e.value === 'eye') {
@@ -275,29 +275,29 @@ SymbolicContext.prototype.getExpr = function(e, availCses) {
         return e.type + '(arma::fill::eye)';
       }
       else if (c.lang === 'js') {
-        return '[1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]';
+        return 'Float64Array.of(1.0, 0.0, 0.0, 0.0,   0.0, 1.0, 0.0, 0.0,   0.0, 0.0, 1.0, 0.0,   0.0, 0.0, 0.0, 1.0)';
       }
     }
     else if (e.type === 'arma::mat44' && e.value.length === 16) {
       if (c.lang === 'c') {
-        return e.type + '{' + _.map(e.value, function(v) { return v.toString(); }).join(', ') + '}';
+        return e.type + `{${_.map(e.value, function(v) { return v.toString(); }).join(', ')}}`;
       }
       else if (c.lang === 'js') {
-        return '[' + _.map(e.value, function(v) { return v.toString(); }).join(', ') + ']';
+        return `Float64Array.of(${_.map(e.value, function(v) { return v.toString(); }).join(', ')})`;
       }
     }
     else if (e.type === 'arma::vec4' && e.value.length === 4) {
       if (c.lang === 'c') {
-        return e.type + '{' + _.map(e.value, function(v) { return v.toString(); }).join(', ') + '}';
+        return e.type + `{${_.map(e.value, function(v) { return v.toString(); }).join(', ')}}`;
       }
       else if (c.lang === 'js') {
-        return '[' + _.map(e.value, function(v) { return v.toString(); }).join(', ') + ']';
+        return `Float64Array.of(${_.map(e.value, function(v) { return v.toString(); }).join(', ')})`;
       }
     }
     else {
-      throw new Error('Cannot generate constant of type ' + e.type + ' and value ' + e.value + '. You can add this case in SymbolicContext.getExpr.');
+      throw new Error(`Cannot generate constant of type ${e.type} and value ${e.value}. You can add this case in SymbolicContext.getExpr.`);
     }
-    return '(' + e.type + ' { ' + e.value.toString() + ' })';
+    return `(${e.type} { ${e.value.toString()} })`;
   }
   else if (e instanceof SymbolicExpr) {
     if (availCses && availCses[e.cseKey]) {
@@ -308,12 +308,12 @@ SymbolicContext.prototype.getExpr = function(e, availCses) {
     });
     var impl = e.opInfo.impl[c.lang];
     if (!impl) {
-      throw new Error('No ' + c.lang + ' impl for ' + e.opInfo.op);
+      throw new Error(`No ${c.lang} impl for ${e.opInfo.op}`);
     }
     return e.opInfo.impl[c.lang].apply(e, argExprs);
   }
   else {
-    throw new Error('Unknown expression type ' + e.toString());
+    throw new Error(`Unknown expression type ${e.toString()}`);
   }
 };
 
@@ -334,7 +334,7 @@ SymbolicContext.prototype.getImm = function(e, vars) {
     return e.opInfo.impl.imm.apply(e, argExprs);
   }
   else {
-    throw new Error('Unknown expression type ' + e.toString());
+    throw new Error(`Unknown expression type ${e.toString()}`);
   }
 };
 
@@ -373,7 +373,7 @@ SymbolicContext.prototype.emitCses = function(e, f, availCses, costs) {
           f('var ' + e.cseKey + ' = ' + c.getExpr(e, availCses) + ';');
         }
         if (e.printName) {
-          f('eprintf("' + e.printName + ' ' + e.cseKey + ' = %s\\n", asJson(' + e.cseKey + ').it.c_str());');
+          f(`eprintf("${e.printName} ${e.cseKey} = %s\\n", asJson(${e.cseKey}).it.c_str());`);
         }
         availCses[e.cseKey] = true;
       }
@@ -393,7 +393,7 @@ SymbolicContext.prototype.emitCode = function(f, filter) {
     c.emitCses(a, f, availCses, costs);
   });
   _.each(c.assigns, function(a) {
-    f(a.name + ' = ' + c.getExpr(a.value, availCses) + ';');
+    f(`${a.name} = ${c.getExpr(a.value, availCses)};`);
   });
 
 };
@@ -408,7 +408,7 @@ function SymbolicAssign(c, type, name, value) {
   e.type = type;
   e.name = name;
   e.value = value;
-  e.cseKey = 'A' + simpleHash(e.type + ',' + e.name + ',' + value.cseKey);
+  e.cseKey = '_a' + simpleHash(e.type + ',' + e.name + ',' + value.cseKey);
   e.cseCost = 1.0;
 }
 SymbolicAssign.prototype.isZero = function() { return false; };
@@ -419,7 +419,7 @@ function SymbolicVar(c, type, name) {
   e.c = c;
   e.type = type;
   e.name = name;
-  e.cseKey = 'V' + simpleHash(e.type + ',' + e.name);
+  e.cseKey = '_v' + simpleHash(e.type + ',' + e.name);
   e.cseCost = 0.25;
 }
 SymbolicVar.prototype.isZero = function() { return false; };
@@ -430,19 +430,19 @@ function SymbolicConst(c, type, value) {
   e.c = c;
   e.type = type;
   e.value = value;
-  e.cseKey = 'C' + simpleHash(e.type + ',' + e.value.toString());
+  e.cseKey = '_c' + simpleHash(e.type + ',' + e.value.toString());
   e.cseCost = 0.25;
 }
 SymbolicConst.prototype.isZero = function() {
   var e = this;
   if (e.type === 'double' && e.value === 0) return true;
-  if (e.type === 'arma::mat4' && e.value === 0) return true;
+  if (e.type === 'arma::mat44' && e.value === 0) return true;
   return false;
 };
 SymbolicConst.prototype.isOne = function() {
   var e = this;
   if (e.type === 'double' && e.value === 1) return true;
-  if (e.type === 'arma::mat4' && e.value === 1) return true;
+  if (e.type === 'arma::mat44' && e.value === 1) return true;
   return false;
 };
 
@@ -460,11 +460,14 @@ function SymbolicExpr(c, op, args) {
     });
   });
   if (!e.opInfo) {
-    throw new Error('Could not deduce arg types for ' + op + ' ' + _.map(args, function (arg) {
-      return arg.type; }).join(' '));
+    throw new Error(`Could not deduce arg types for ${op} ${
+      _.map(args, function (arg) {
+        return arg.type;
+      }).join(' ')
+    }`);
   }
   e.type = e.opInfo.retType;
-  e.cseKey = 'E' + simpleHash(e.type + ',' + e.op + ',' + _.map(e.args, function(arg) { return arg.cseKey; }).join(','));
+  e.cseKey = '_e' + simpleHash(e.type + ',' + e.op + ',' + _.map(e.args, function(arg) { return arg.cseKey; }).join(','));
   e.cseCost = 1.0;
 }
 SymbolicExpr.prototype.isZero = function() {
@@ -487,12 +490,12 @@ SymbolicExpr.prototype.isOne = function() {
 
 defop('double',  'pow',             'double', 'double', {
   imm: function(a, b) { return Math.pow(a,b); },
-  c: function(a, b) { return 'pow(' + a + ',' + b + ')'; },
+  c: function(a, b) { return `pow(${a}, ${b})`; },
 });
 defop('double',  'sin',             'double', {
   imm: function(a) { return Math.sin(a); },
-  c: function(a) { return 'sin(' + a + ')'; },
-  js: function(a) { return 'Math.sin(' + a + ')'; },
+  c: function(a) { return `sin(${a})`; },
+  js: function(a) { return `Math.sin(${a})`; },
   deriv: function(wrt, a) {
     var c = this.c;
     return c.E('*',
@@ -502,8 +505,8 @@ defop('double',  'sin',             'double', {
 });
 defop('double',  '-sin',             'double', {
   imm: function(a) { return -Math.sin(a); },
-  c: function(a) { return '-sin(' + a + ')'; },
-  js: function(a) { return '-Math.sin(' + a + ')'; },
+  c: function(a) { return `-sin(${a})`; },
+  js: function(a) { return `-Math.sin(${a})`; },
   deriv: function(wrt, a) {
     var c = this.c;
     return c.E('*',
@@ -513,8 +516,8 @@ defop('double',  '-sin',             'double', {
 });
 defop('double',  'cos',             'double', {
   imm: function(a) { return Math.cos(a); },
-  c: function(a) { return 'cos(' + a + ')'; },
-  js: function(a) { return 'Math.cos(' + a + ')'; },
+  c: function(a) { return `cos(${a})`; },
+  js: function(a) { return `Math.cos(${a})`; },
   deriv: function(wrt, a) {
     var c = this.c;
     return c.E('*',
@@ -524,8 +527,8 @@ defop('double',  'cos',             'double', {
 });
 defop('double',  '-cos',             'double', {
   imm: function(a) { return -Math.cos(a); },
-  c: function(a) { return '-cos(' + a + ')'; },
-  js: function(a) { return '-Math.cos(' + a + ')'; },
+  c: function(a) { return `-cos(${a})`; },
+  js: function(a) { return `-Math.cos(${a})`; },
   deriv: function(wrt, a) {
     var c = this.c;
     return c.E('*',
@@ -535,11 +538,11 @@ defop('double',  '-cos',             'double', {
 });
 defop('double',  'tan',             'double', {
   imm: function(a) { return Math.tan(a); },
-  c: function(a) { return 'tan(' + a + ')'; },
+  c: function(a) { return `tan(${a})`; },
 });
 defop('double',  'exp',             'double', {
   imm: function(a) { return Math.exp(a); },
-  c: function(a) { return 'exp(' + a + ')'; },
+  c: function(a) { return `exp(${a})`; },
   deriv: function(wrt, a) {
     var c = this.c;
     return c.E('*',
@@ -549,18 +552,20 @@ defop('double',  'exp',             'double', {
 });
 defop('double',  'log',             'double', {
   imm: function(a) { return Math.log(a); },
-  c: function(a) { return 'log(' + a + ')'; },
+  c: function(a) { return `log(${a})`; },
 });
 
 defop('double',  '*',               'double', 'double', {
   imm: function(a, b) { return a * b; },
-  c: function(a, b) { return '(' + a + ' * ' + b + ')'; },
-  js: function(a, b) { return '(' + a + ' * ' + b + ')'; },
+  c: function(a, b) { return `(${a} * ${b})`; },
+  js: function(a, b) { return `(${a} * ${b})`; },
   replace: function() {
-    if (this.args[0].isZero()) return this.args[0];
-    if (this.args[1].isZero()) return this.args[1];
-    if (this.args[0].isOne()) return this.args[1];
-    if (this.args[1].isOne()) return this.args[0];
+    var a = this.args[0];
+    var b = this.args[1];
+    if (a.isZero()) return a;
+    if (b.isZero()) return b;
+    if (a.isOne()) return b;
+    if (b.isOne()) return a;
   },
   deriv: function(wrt, a, b) {
     var c = this.c;
@@ -571,21 +576,23 @@ defop('double',  '*',               'double', 'double', {
 });
 defop('double',  '+',               'double', 'double', {
   imm: function(a, b) { return a + b; },
-  c: function(a, b) { return '(' + a + ' + ' + b + ')'; },
-  js: function(a, b) { return '(' + a + ' + ' + b + ')'; },
+  c: function(a, b) { return `(${a} + ${b})`; },
+  js: function(a, b) { return `(${a} + ${b})`; },
   deriv: function(wrt, a, b) {
     var c = this.c;
     return c.E('+', c.D(wrt, a), c.D(wrt, b));
   },
   replace: function() {
-    if (this.args[0].isZero()) return this.args[1];
-    if (this.args[1].isZero()) return this.args[0];
+    var a = this.args[0];
+    var b = this.args[1];
+    if (a.isZero()) return b;
+    if (b.isZero()) return a;
   },
 });
 defop('double',  '-',               'double', 'double', {
   imm: function(a, b) { return a - b; },
-  c: function(a, b) { return '(' + a + ' - ' + b + ')'; },
-  js: function(a, b) { return '(' + a + ' - ' + b + ')'; },
+  c: function(a, b) { return `(${a} - ${b})`; },
+  js: function(a, b) { return `(${a} - ${b})`; },
   deriv: function(wrt, a, b) {
     var c = this.c;
     return c.E('-', c.D(wrt, a), c.D(wrt, b));
@@ -593,60 +600,60 @@ defop('double',  '-',               'double', 'double', {
 });
 defop('double',  '/',               'double', 'double', {
   imm: function(a, b) { return a / b; },
-  c: function(a, b) { return '(' + a + ' / ' + b + ')'; },
-  js: function(a, b) { return '(' + a + ' / ' + b + ')'; },
+  c: function(a, b) { return `(${a} / ${b})`; },
+  js: function(a, b) { return `(${a} / ${b})`; },
 });
 defop('double',  'min',             'double', 'double', {
   imm: function(a, b) { return Math.min(a, b); },
-  c: function(a, b) { return 'min(' + a + ', ' + b + ')'; },
-  js: function(a, b) { return 'Math.min(' + a + ', ' + b + ')'; },
+  c: function(a, b) { return `min(${a}, ${b})`; },
+  js: function(a, b) { return `Math.min(${a}, ${b})`; },
 });
 defop('double',  'max',             'double', 'double', {
   imm: function(a, b) { return Math.max(a, b); },
-  c: function(a, b) { return 'max(' + a + ', ' + b + ')'; },
-  js: function(a, b) { return 'Math.max(' + a + ', ' + b + ')'; },
+  c: function(a, b) { return `max(${a}, ${b})`; },
+  js: function(a, b) { return `Math.max(${a}, ${b})`; },
 });
 
 defop('int',     '*',           'int', 'int', {
   imm: function(a, b) { return a * b; },
-  c: function(a, b) { return '(' + a + ' * ' + b + ')'; },
-  js: function(a, b) { return '(' + a + ' * ' + b + ')'; }
+  c: function(a, b) { return `(${a} * ${b})`; },
+  js: function(a, b) { return `(${a} * ${b}`; }
 });
 defop('int',           '+',                 'int', 'int', {
   imm: function(a, b) { return a + b; },
-  c: function(a, b) { return '(' + a + ' + ' + b + ')'; },
-  js: function(a, b) { return '(' + a + ' + ' + b + ')'; },
+  c: function(a, b) { return `(${a} + ${b})`; },
+  js: function(a, b) { return `(${a} + ${b})`; },
 });
 defop('int',           '-',                 'int', 'int', {
   imm: function(a, b) { return a - b; },
-  c: function(a, b) { return '(' + a + ' - ' + b + ')'; },
-  js: function(a, b) { return '(' + a + ' - ' + b + ')'; },
+  c: function(a, b) { return `(${a} - ${b})`; },
+  js: function(a, b) { return `(${a} - ${b})`; },
 });
 defop('int',           '/',                 'int', 'int', {
   imm: function(a, b) { var r = a / b; return (r < 0) ? Math.ceil(r) : Math.floor(r); }, // Math.trunc not widely supported
-  c: function(a, b) { return '(' + a + ' / ' + b + ')'; },
-  js: function(a, b) { return 'Math.trunc(' + a + ' / ' + b + ')'; },
+  c: function(a, b) { return `(${a} / ${b})`; },
+  js: function(a, b) { return `Math.trunc(${a} / ${b})`; },
 });
 defop('int',           'min',         'int', 'int', {
   imm: function(a, b) { return Math.min(a, b); },
-  c: function(a, b) { return 'min(' + a + ', ' + b + ')'; },
-  js: function(a, b) { return 'Math.min(' + a + ', ' + b + ')'; },
+  c: function(a, b) { return `min(${a}, ${b})`; },
+  js: function(a, b) { return `Math.min(${a}, ${b})`; },
 });
 defop('int',           'max',         'int', 'int', {
   imm: function(a, b) { return Math.max(a, b); },
-  c: function(a, b) { return 'max(' + a + ', ' + b + ')'; },
-  js: function(a, b) { return 'Math.max(' + a + ', ' + b + ')'; },
+  c: function(a, b) { return `max(${a}, ${b})`; },
+  js: function(a, b) { return `Math.max(${a}, ${b})`; },
 });
 
 defop('double',  '(double)',    'int', {
   imm: function(a) { return a; },
-  c: function(a) { return '(double)' + a; },
+  c: function(a) { return `(double)${a}`; },
   js: function(a) { return a; },
 });
 defop('int',     '(int)',       'double', {
   imm: function(a) { return Math.round(a); },
-  c: function(a) { return '(int)' + a; },
-  c: function(a) { return 'Math.round(' + a + ')'; },
+  c: function(a) { return `(int)${a}`; },
+  c: function(a) { return `Math.round(${a})`; },
 });
 
 if (0) {
@@ -657,8 +664,8 @@ if (0) {
 
 defop('double',  'sqrt',        'double', {
   imm: function(a) { return Math.sqrt(a); },
-  c: function(a) { return 'sqrt(' + a + ')'; },
-  js: function(a) { return 'Math.sqrt(' + a + ')'; },
+  c: function(a) { return `sqrt(${a})`; },
+  js: function(a) { return `Math.sqrt(${a})`; },
 });
 
 defop('arma::mat33',    'mat33RotationZ',   'double', {
@@ -670,10 +677,10 @@ defop('arma::mat33',    'mat33RotationZ',   'double', {
             0, 0, 1];
   },
   c: function(a) {
-    return 'arma::mat33 { cos(' + a + '), sin(' + a + '), 0, -sin(' + a + '), cos(' + a + '), 0, 0, 0, 1 }';
+    return `arma::mat33 { cos(${a}), sin(${a}), 0, -sin(${a}), cos(${a}), 0, 0, 0, 1 }`;
   },
   js: function(a) {
-    return '[ cos(' + a + '), sin(' + a + '), 0, -sin(' + a + '), cos(' + a + '), 0, 0, 0, 1 ]';
+    return `Float64Array.of( cos(${a}), sin(${a}), 0, -sin(${a}), cos(${a}), 0, 0, 0, 1 )`;
   },
 });
 
@@ -686,21 +693,11 @@ defop('arma::mat44',        'arma::mat44',
       'double', 'double', 'double', 'double', {
         c: function(a00, a10, a20, a30, a01, a11, a21, a31, a02, a12, a22, a32, a03, a13, a23, a33) {
           assert.ok(a33);
-          return ('arma::mat44 {' +
-                  a00 + ', ' + a10 + ', ' + a20 + ', ' + a30 + ', ' +
-                  a01 + ', ' + a11 + ', ' + a21 + ', ' + a31 + ', ' +
-                  a02 + ', ' + a12 + ', ' + a22 + ', ' + a32 + ', ' +
-                  a03 + ', ' + a13 + ', ' + a23 + ', ' + a33 + '}');
-
+          return (`arma::mat44 { ${a00}, ${a10}, ${a20}, ${a30},  ${a01}, ${a11}, ${a21}, ${a31},  ${a02}, ${a12}, ${a22}, ${a32},  ${a03}, ${a13}, ${a23}, ${a33}}`);
         },
         js: function(a00, a10, a20, a30, a01, a11, a21, a31, a02, a12, a22, a32, a03, a13, a23, a33) {
           assert.ok(a33);
-          return ('[' +
-                  a00 + ', ' + a10 + ', ' + a20 + ', ' + a30 + ', ' +
-                  a01 + ', ' + a11 + ', ' + a21 + ', ' + a31 + ', ' +
-                  a02 + ', ' + a12 + ', ' + a22 + ', ' + a32 + ', ' +
-                  a03 + ', ' + a13 + ', ' + a23 + ', ' + a33 + ']');
-
+          return (`Float64Array.of(${a00}, ${a10}, ${a20}, ${a30},  ${a01}, ${a11}, ${a21}, ${a31},  ${a02}, ${a12}, ${a22}, ${a32},  ${a03}, ${a13}, ${a23}, ${a33})`);
         },
         deriv: function(wrt) {
           var c = this.c;
@@ -831,12 +828,12 @@ defop('arma::mat44',        'mat44Translation',   'double', 'double', 'double', 
 
 _.each([0,1,2,3], function(rowi) {
   _.each([0,1,2,3], function(coli) {
-    defop('double',    '(' + rowi + ',' + coli + ')',           'arma::mat44', {
+    defop('double',    `(${rowi},${coli})`,           'arma::mat44', {
       c: function(a) {
-        return '(' + a + '(' + rowi + ',' + coli + '))';
+        return `(${a}(${rowi},${coli}))`;
       },
       js: function(a) {
-        return '(' + a + '[' + rowi + ' + 4*' + coli + '))';
+        return `(${a}[${rowi} + 4*${coli}))`;
       },
       deriv: function(wrt, a) {
         var c = this.c;
@@ -850,16 +847,24 @@ _.each([0,1,2,3], function(rowi) {
 
 defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
   c: function(a, b) {
-    return '(' + a + ' * ' + b + ')';
+    return `(${a} * ${ b })`;
   },
   js: function(a, b) {
-    return 'Geom3D.mul_mat44_mat44(' + a + ', ' + b + ')';
+    return `Geom3D.mul_mat44_mat44(${a}, ${b})`;
   },
   deriv: function(wrt, a, b) {
     var c = this.c;
     return c.E('+',
                c.E('*', a, c.D(wrt, b)),
                c.E('*', c.D(wrt, a), b));
+  },
+  replace: function() {
+    var a = this.args[0];
+    var b = this.args[1];
+    if (a.isZero()) return a;
+    if (b.isZero()) return b;
+    if (a.isOne()) return b;
+    if (b.isOne()) return a;
   },
   replace_tooExpensive: function(wrt) {
     var c = this.c;
@@ -886,10 +891,10 @@ defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
 
 defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4', {
   c: function(a, b) {
-    return '(' + a + ' * ' + b + ')';
+    return `(${a} * ${b})`;
   },
   js: function(a, b) {
-    return 'Geom3D.mul_mat44_vec4(' + a + ', ' + b + ')';
+    return `Geom3D.mul_mat44_vec4(${a}, ${b})`;
   },
   deriv: function(wrt, a, b) {
     var c = this.c;
@@ -897,17 +902,29 @@ defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4', {
                c.E('*', a, c.D(wrt, b)),
                c.E('*', c.D(wrt, a), b));
   },
+  replace: function() {
+    var a = this.args[0];
+    var b = this.args[1];
+    if (b.isZero()) return b;
+    if (a.isOne()) return b;
+  },
   print: true,
 });
 
 defop('arma::mat44',    '+',           'arma::mat44', 'arma::mat44', {
   c: function(a, b) {
-    return '(' + a + ' + ' + b + ')';
+    return `(${a} + ${b})`;
   },
   js: function(a, b) {
-    return 'Geom3D.add_mat44_mat44(' + a + ', ' + b + ')';
+    return `Geom3D.add_mat44_mat44(${a}, ${b})`;
   },
 
+  replace: function() {
+    var a = this.args[0];
+    var b = this.args[1];
+    if (a.isZero()) return b;
+    if (b.isZero()) return a;
+  },
   replace_tooExpensive: function(wrt) {
     var c = this.c;
     var a = this.args[0];
