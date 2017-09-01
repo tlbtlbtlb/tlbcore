@@ -32,6 +32,12 @@ function CType(reg, typename) {
   type.noSerialize = false;
 }
 
+CType.prototype.extend = function(options) {
+  var type = this;
+  _.extendOwn(this, options);
+  return this;
+};
+
 CType.prototype.addFunctionDecl = function(x) { this.extraFunctionDecls.push(x); };
 CType.prototype.addMemberDecl = function(x) { this.extraMemberDecls.push(x); };
 CType.prototype.addConstructorArg = function(x) { this.extraConstructorArgs.push(x); };
@@ -257,13 +263,13 @@ CType.prototype.emitHostCode = function(f) {
   f(`#include "common/std_headers.h"`);
   var fns = type.getFns();
   if (fns.typeHeader) {
-    f(`#include "${ fns.typeHeader }"`);
+    f(`#include "${fns.typeHeader}"`);
   }
   _.each(type.getDefnDependencies(), function(othertype) {
     othertype = type.reg.getType(othertype);
     var fns = othertype.getFns();
     if (fns && fns.typeHeader) {
-      f(`#include "${ fns.typeHeader }"`);
+      f(`#include "${fns.typeHeader}"`);
     }
   });
   f('');
@@ -279,7 +285,7 @@ CType.prototype.emitJsWrapHeader = function(f) {
     othertype = type.reg.getType(othertype);
     var fns = othertype.getFns();
     if (fns && fns.typeHeader) {
-      f(`#include "${ fns.typeHeader }"`);
+      f(`#include "${fns.typeHeader}"`);
     }
   });
   _.each(type.extraJsWrapHeaderIncludes, function(include) {
@@ -298,10 +304,10 @@ CType.prototype.emitJsWrapCode = function(f) {
   if (0) {
     var fns = type.getFns();
     if (fns.typeHeader) {
-      f(`#include "${ fns.typeHeader }"`);
+      f(`#include "${fns.typeHeader}"`);
     }
     if (fns.jsWrapHeader) {
-      f(`#include "${ fns.jsWrapHeader }"`);
+      f(`#include "${fns.jsWrapHeader}"`);
     }
   }
   f(`
@@ -311,11 +317,11 @@ CType.prototype.emitJsWrapCode = function(f) {
     othertype = type.reg.getType(othertype);
     var fns = othertype.getFns();
     if (fns && fns.jsWrapHeader) {
-      f(`#include "${ fns.jsWrapHeader }"`);
+      f(`#include "${fns.jsWrapHeader}"`);
     }
   });
   f(`
-    #include "${ type.getFns().jsWrapHeader }"
+    #include "${type.getFns().jsWrapHeader}"
     #include "vec_jsWrap.h"
     #include "build.src/map_string_jsonstr_jsWrap.h"
   `);
@@ -324,42 +330,27 @@ CType.prototype.emitJsWrapCode = function(f) {
 
 CType.prototype.emitRosCode = function(f) {
   var type = this;
+  // WRITEME: use blobs if we care about using this
   f(`
     #include <ros/ros.h>
     namespace ros {
       namespace serialization {
 
-        template<> struct Serializer<${ type.typename }> {
+        template<> struct Serializer<${type.typename}> {
 
-          template<typename Stream> inline static void write(Stream &stream, ${ type.typename } const &t) {
+          template<typename Stream> inline static void write(Stream &stream, ${type.typename} const &t) {
             jsonstr json;
-            json.useBlobs();
             toJson(json, t);
             stream.next(json.it);
-            size_t partCount = json.blobs->partCount();
-            stream.next((uint32_t)partCount);
-            for (size_t i=1; i < partCount; i++) {
-              auto part = s.blobs->getPart(i);
-              stream.next((uint32_t)part.second);
-              memcpy(stream.advance((uint32_t)part.second), (void *)part.first, part.second);
-            }
           }
 
-          template<typename Stream> inline static void read(Stream &stream, ${ type.typename } &t) {
+          template<typename Stream> inline static void read(Stream &stream, ${type.typename} &t) {
             jsonstr json;
             stream.next(json.it);
-            uint32_t partCount = 0;
-            stream.next(partCount);
-            if (partCount > 1) json.useBlobs();
-            for (size_t i=1; i < partCount; i++) {
-              uint32_t partSize = 0;
-              stream.next(partSize);
-              json.blobs->addExternalPart(stream.advance(partSize), partSize);
-            }
-            if (!fromJson(json, t)) throw new runtime_error("deserializing ${ type.typename }: fromJson failed");
+            if (!fromJson(json, t)) throw new runtime_error("deserializing ${type.typename}: fromJson failed");
           }
 
-          inline static uint32_t serializedLength(${ type.typename } const &t) {
+          inline static uint32_t serializedLength(${type.typename} const &t) {
             size_t size = 0;
             wrJsonSize(size, nullptr, t);
             return (uint32_t)size;
