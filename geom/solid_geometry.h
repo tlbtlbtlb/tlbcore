@@ -57,7 +57,7 @@ struct StlWebglMesh {
 
   arma::vec coords;
   arma::vec normals;
-  arma::Col<S64> indexes;
+  arma::Col< S64 > indexes;
 };
 
 struct StlSolid {
@@ -72,7 +72,7 @@ struct StlSolid {
   bool rayIntersects(arma::vec3 const &p, arma::vec3 const &d) const;
   void transform(arma::mat44 const &m);
   bool isInterior(arma::vec3 const &pt) const;
-  vector<StlIntersection> getIntersections(arma::vec3 const &p, arma::vec3 const &d) const;
+  vector< StlIntersection > getIntersections(arma::vec3 const &p, arma::vec3 const &d) const;
   StlMassProperties getStlMassProperties(double density) const;
   StlWebglMesh exportWebglMesh(double eps) const;
   void removeTinyFaces(double minSize);
@@ -80,7 +80,7 @@ struct StlSolid {
   pair<double, arma::vec3> estimateVolume();
 
   arma::vec3 bboxLo, bboxHi;
-  vector<StlFace> faces;
+  vector< StlFace > faces;
 
 };
 

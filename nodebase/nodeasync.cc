@@ -13,9 +13,9 @@ struct AsyncEventQueueImpl : AsyncEventQueueApi {
 
   void async_emit(string const &eventName, jsonstr const &it);
   void deliver_queued();
-  void on(string const &eventName, Local<Value> cb);
+  void on(string const &eventName, Local< Value > cb);
 
-  void sync_emit(string const &eventName, Local<Value> arg);
+  void sync_emit(string const &eventName, Local< Value > arg);
   void sync_emit(string const &eventName);
 
   AsyncCallbacks *owner;
@@ -23,15 +23,15 @@ struct AsyncEventQueueImpl : AsyncEventQueueApi {
   uv_async_t *uva {nullptr};
   std::mutex qMutex;
   deque< pair<string, jsonstr> > q;
-  std::unordered_map< string, vector< CopyablePersistent<Function> > > nameToCbs;
+  std::unordered_map< string, vector< CopyablePersistent< Function > > > nameToCbs;
 };
 
 
 
-void AsyncCallbacks::on(string const &eventName, Local<Value> _onMessage)
+void AsyncCallbacks::on(string const &eventName, Local< Value > _onMessage)
 {
   call_once(implInitOnce, [this]() {
-    impl = make_shared<AsyncEventQueueImpl>(this);
+    impl = make_shared< AsyncEventQueueImpl >(this);
   });
   impl->on(eventName, _onMessage);
 }
@@ -49,7 +49,7 @@ void AsyncCallbacks::sync_emit(string const &eventName) {
   }
 }
 
-void AsyncCallbacks::sync_emit(string const &eventName, Local<Value> arg)
+void AsyncCallbacks::sync_emit(string const &eventName, Local< Value > arg)
 {
   if (impl) {
     impl->sync_emit(eventName, arg);
@@ -69,7 +69,7 @@ AsyncEventQueueImpl::AsyncEventQueueImpl(AsyncCallbacks *_owner)
   uva->data = this;
 
   uv_async_init(loop, uva, [](uv_async_t* uva1) {
-    auto self = reinterpret_cast<AsyncEventQueueImpl*>(uva1->data);
+    auto self = reinterpret_cast< AsyncEventQueueImpl* >(uva1->data);
     self->deliver_queued();
   });
   uv_unref(reinterpret_cast<uv_handle_t *>(uva));
@@ -94,10 +94,10 @@ void AsyncEventQueueImpl::deliver_queued()
   Isolate *isolate = Isolate::GetCurrent();
   HandleScope scope(isolate);
 
-  Local<Value> recvLocal = Undefined(isolate);
+  Local< Value > recvLocal = Undefined(isolate);
 
   while (1) {
-    unique_lock<mutex> lock(qMutex);
+    unique_lock< mutex > lock(qMutex);
     if (q.empty()) break;
     auto &msg = q.front();
     auto &cbs = nameToCbs[msg.first];
@@ -106,7 +106,7 @@ void AsyncEventQueueImpl::deliver_queued()
       q.pop_front();
       continue;
     }
-    Local<Value> jsMsg = convJsonstrToJs(isolate, msg.second);
+    Local< Value > jsMsg = convJsonstrToJs(isolate, msg.second);
     q.pop_front(); // Can't use msg after this
     lock.unlock();
 
@@ -117,12 +117,12 @@ void AsyncEventQueueImpl::deliver_queued()
   }
 }
 
-void AsyncEventQueueImpl::sync_emit(string const &eventName, Local<Value> arg)
+void AsyncEventQueueImpl::sync_emit(string const &eventName, Local< Value > arg)
 {
   Isolate *isolate = Isolate::GetCurrent();
   HandleScope scope(isolate);
 
-  Local<Value> recvLocal = Undefined(isolate);
+  Local< Value > recvLocal = Undefined(isolate);
 
   auto &cbs = nameToCbs[eventName];
 
@@ -137,7 +137,7 @@ void AsyncEventQueueImpl::sync_emit(string const &eventName)
   Isolate *isolate = Isolate::GetCurrent();
   HandleScope scope(isolate);
 
-  Local<Value> recvLocal = Undefined(isolate);
+  Local< Value > recvLocal = Undefined(isolate);
 
   auto &cbs = nameToCbs[eventName];
 
@@ -147,19 +147,19 @@ void AsyncEventQueueImpl::sync_emit(string const &eventName)
 }
 
 
-void AsyncEventQueueImpl::on(string const &eventName, Local<Value> cb)
+void AsyncEventQueueImpl::on(string const &eventName, Local< Value > cb)
 {
   Isolate *isolate = Isolate::GetCurrent();
   HandleScope scope(isolate);
 
-  unique_lock<mutex> lock(qMutex);
-  nameToCbs[eventName].push_back(CopyablePersistent<Function>(isolate, Local<Function>::Cast(cb)));
+  unique_lock< mutex > lock(qMutex);
+  nameToCbs[eventName].push_back(CopyablePersistent< Function >(isolate, Local< Function >::Cast(cb)));
 
 }
 
 void AsyncEventQueueImpl::async_emit(string const &eventName, jsonstr const &json)
 {
-  unique_lock<mutex> lock(qMutex);
+  unique_lock< mutex > lock(qMutex);
   q.push_back(make_pair(eventName, json));
   lock.unlock();
   uv_async_send(uva);

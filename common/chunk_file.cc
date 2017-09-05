@@ -94,7 +94,7 @@ ChunkFileCompressed::~ChunkFileCompressed() {
 off_t ChunkFileCompressed::writeChunk(char const *data, size_t size)
 {
   if (size == 0) return 0;
-  std::unique_lock<std::mutex> lock(mutex);
+  std::unique_lock< std::mutex > lock(mutex);
 
   off_t baseOff = off;
   off += (roundUp(size)+8);

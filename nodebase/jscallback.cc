@@ -8,9 +8,9 @@
   cases as needed
 */
 template <>
-v8::Local<v8::Function> JsCallback<void(jsonstr const &, jsonstr const &)>::jsFunction()
+v8::Local< v8::Function > JsCallback<void(jsonstr const &, jsonstr const &)>::jsFunction()
 {
- return v8::Function::New(isolate, [](v8::FunctionCallbackInfo<Value> const &args) {
+ return v8::Function::New(isolate, [](v8::FunctionCallbackInfo< Value > const &args) {
    v8::Isolate *isolate = args.GetIsolate();
    v8::HandleScope scope(isolate);
 

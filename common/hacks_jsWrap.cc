@@ -2,7 +2,7 @@
 #include <node.h>
 #include "../nodebase/jswrapbase.h"
 
-static void ur_jumpConsistentHash(FunctionCallbackInfo<Value> const &args)
+static void ur_jumpConsistentHash(FunctionCallbackInfo< Value > const &args)
 {
   Isolate* isolate = args.GetIsolate();
   HandleScope scope(isolate);
@@ -18,7 +18,7 @@ static void ur_jumpConsistentHash(FunctionCallbackInfo<Value> const &args)
   }
 }
 
-static void ur_realtime(FunctionCallbackInfo<Value> const &args)
+static void ur_realtime(FunctionCallbackInfo< Value > const &args)
 {
   Isolate* isolate = Isolate::GetCurrent();
   EscapableHandleScope scope(isolate);
@@ -32,7 +32,7 @@ static void ur_realtime(FunctionCallbackInfo<Value> const &args)
 }
 
 
-void jsInit_hacks(Handle<Object> exports)
+void jsInit_hacks(Handle< Object > exports)
 {
   NODE_SET_METHOD(exports, "jumpConsistentHash", ur_jumpConsistentHash);
   NODE_SET_METHOD(exports, "realtime", ur_realtime);

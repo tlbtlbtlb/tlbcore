@@ -81,7 +81,7 @@ map<string, T> interpolate(map<string, T> const &a, map<string, T> const &b, dou
 }
 
 template<typename T>
-vector<T> interpolate(vector<T> const &a, vector<T> const &b, double cb)
+vector< T > interpolate(vector< T > const &a, vector< T > const &b, double cb)
 {
   if (cb == 0.0) {
     return a;
@@ -91,7 +91,7 @@ vector<T> interpolate(vector<T> const &a, vector<T> const &b, double cb)
   }
   else {
     assert(a.size() == b.size());
-    vector<T> ret(a.size());
+    vector< T > ret(a.size());
     for (size_t i = 0; i < a.size(); i++) {
       ret[i] = interpolate(a[i], b[i], cb);
     }
@@ -101,17 +101,17 @@ vector<T> interpolate(vector<T> const &a, vector<T> const &b, double cb)
 
 
 template<typename T>
-arma::Col<T> interpolate(arma::Col<T> const &a, arma::Col<T> const &b, double cb)
+arma::Col< T > interpolate(arma::Col< T > const &a, arma::Col< T > const &b, double cb)
 {
   return a + ((b-a) * cb);
 }
 template<typename T>
-arma::Mat<T> interpolate(arma::Mat<T> const &a, arma::Mat<T> const &b, double cb)
+arma::Mat< T > interpolate(arma::Mat< T > const &a, arma::Mat< T > const &b, double cb)
 {
   return a + ((b-a) * cb);
 }
 template<typename T>
-arma::Row<T> interpolate(arma::Row<T> const &a, arma::Row<T> const &b, double cb)
+arma::Row< T > interpolate(arma::Row< T > const &a, arma::Row< T > const &b, double cb)
 {
   return a + ((b-a) * cb);
 }

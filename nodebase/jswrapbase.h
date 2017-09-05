@@ -32,7 +32,7 @@ using namespace node;
 using namespace v8;
 
 template<class T>
-using CopyablePersistent = Persistent<T, CopyablePersistentTraits<T>>;
+using CopyablePersistent = Persistent<T, CopyablePersistentTraits< T >>;
 
 void ThrowInvalidArgs(Isolate *isolate);
 void ThrowInvalidThis(Isolate *isolate);
@@ -40,46 +40,46 @@ void ThrowTypeError(Isolate *isolate, char const *s);
 void ThrowRuntimeError(Isolate *isolate, char const *s);
 
 // stl::string conversion
-bool canConvJsToString(Isolate *isolate, Local<Value> it);
-string convJsToString(Isolate *isolate, Local<Value> it);
-Local<Value> convStringToJs(Isolate *isolate, string const &it);
-Local<Value> convStringToJsBuffer(Isolate *isolate, string const &it);
+bool canConvJsToString(Isolate *isolate, Local< Value > it);
+string convJsToString(Isolate *isolate, Local< Value > it);
+Local< Value > convStringToJs(Isolate *isolate, string const &it);
+Local< Value > convStringToJsBuffer(Isolate *isolate, string const &it);
 
 // arma::Col conversion
 
-template<typename T> bool canConvJsToArmaCol(Isolate *isolate, Local<Value> itv);
-template<typename T> arma::Col<T> convJsToArmaCol(Isolate *isolate, Local<Value> itv);
-template<typename T> Local<Object> convArmaColToJs(Isolate *isolate, arma::Col<T> const &it);
+template<typename T> bool canConvJsToArmaCol(Isolate *isolate, Local< Value > itv);
+template<typename T> arma::Col< T > convJsToArmaCol(Isolate *isolate, Local< Value > itv);
+template<typename T> Local< Object > convArmaColToJs(Isolate *isolate, arma::Col< T > const &it);
 
-template<typename T> bool canConvJsToArmaRow(Isolate *isolate, Local<Value> itv);
-template<typename T> arma::Row<T> convJsToArmaRow(Isolate *isolate, Local<Value> itv);
-template<typename T> Local<Object> convArmaRowToJs(Isolate *isolate, arma::Row<T> const &it);
+template<typename T> bool canConvJsToArmaRow(Isolate *isolate, Local< Value > itv);
+template<typename T> arma::Row< T > convJsToArmaRow(Isolate *isolate, Local< Value > itv);
+template<typename T> Local< Object > convArmaRowToJs(Isolate *isolate, arma::Row< T > const &it);
 
-template<typename T> bool canConvJsToArmaMat(Isolate *isolate, Local<Value> it);
-template<typename T> arma::Mat<T> convJsToArmaMat(Isolate *isolate, Local<Value> it, size_t nRows=0, size_t nCols=0);
-template<typename T> Local<Object> convArmaMatToJs(Isolate *isolate, arma::Mat<T> const &it);
+template<typename T> bool canConvJsToArmaMat(Isolate *isolate, Local< Value > it);
+template<typename T> arma::Mat< T > convJsToArmaMat(Isolate *isolate, Local< Value > it, size_t nRows=0, size_t nCols=0);
+template<typename T> Local< Object > convArmaMatToJs(Isolate *isolate, arma::Mat< T > const &it);
 
 
 // arma::cx_double conversion
-bool canConvJsToCxDouble(Isolate *isolate, Local<Value> it);
-arma::cx_double convJsToCxDouble(Isolate *isolate, Local<Value> it);
-Local<Object> convCxDoubleToJs(Isolate *isolate, arma::cx_double const &it);
+bool canConvJsToCxDouble(Isolate *isolate, Local< Value > it);
+arma::cx_double convJsToCxDouble(Isolate *isolate, Local< Value > it);
+Local< Object > convCxDoubleToJs(Isolate *isolate, arma::cx_double const &it);
 
 // vector< string > conversion
-bool canConvJsToVectorString(Isolate *isolate, Local<Value> itv);
-vector< string > convJsToVectorString(Isolate *isolate, Local<Value> itv);
-Local<Value> convVectorStringToJs(Isolate *isolate, vector< string > const &it);
+bool canConvJsToVectorString(Isolate *isolate, Local< Value > itv);
+vector< string > convJsToVectorString(Isolate *isolate, Local< Value > itv);
+Local< Value > convVectorStringToJs(Isolate *isolate, vector< string > const &it);
 
 
 // map<string, jsonstr> conversion
-bool canConvJsToMapStringJsonstr(Isolate *isolate, Local<Value> itv);
-map<string, jsonstr> convJsToMapStringJsonstr(Isolate *isolate, Local<Value> itv);
-Local<Value> convMapStringJsonstrToJs(Isolate *isolate, map<string, jsonstr> const &it);
+bool canConvJsToMapStringJsonstr(Isolate *isolate, Local< Value > itv);
+map<string, jsonstr> convJsToMapStringJsonstr(Isolate *isolate, Local< Value > itv);
+Local< Value > convMapStringJsonstrToJs(Isolate *isolate, map<string, jsonstr> const &it);
 
 // jsonstr conversion
-bool canConvJsToJsonstr(Isolate *isolate, Local<Value> value);
-jsonstr convJsToJsonstr(Isolate *isolate, Local<Value> value);
-Local<Value> convJsonstrToJs(Isolate *isolate, jsonstr const &it);
+bool canConvJsToJsonstr(Isolate *isolate, Local< Value > value);
+jsonstr convJsToJsonstr(Isolate *isolate, Local< Value > value);
+Local< Value > convJsonstrToJs(Isolate *isolate, jsonstr const &it);
 
 /*
   A template for wrapping any kind of object
@@ -92,7 +92,7 @@ struct JsWrapGeneric : node::ObjectWrap {
 
   template<typename... Args>
   JsWrapGeneric(Isolate *_isolate, Args &&... _args)
-    :it(make_shared<CONTENTS>(std::forward<Args>(_args)...))
+    :it(make_shared< CONTENTS >(std::forward< Args >(_args)...))
   {
   }
 
@@ -101,7 +101,7 @@ struct JsWrapGeneric : node::ObjectWrap {
   {
   }
 
-  JsWrapGeneric(Isolate *_isolate, shared_ptr< CONTENTS> const &_it, shared_ptr<CONTENTS > const &_owner)
+  JsWrapGeneric(Isolate *_isolate, shared_ptr< CONTENTS > const &_it, shared_ptr< CONTENTS > const &_owner)
     :it(_it), owner(_owner)
   {
   }
@@ -120,12 +120,12 @@ struct JsWrapGeneric : node::ObjectWrap {
   template<typename... Args>
   void assignConstruct(Args &&... _args)
   {
-    it = make_shared<CONTENTS>(std::forward<Args>(_args)...);
+    it = make_shared< CONTENTS >(std::forward< Args >(_args)...);
   }
 
   void assignDefault()
   {
-    it = make_shared<CONTENTS>();
+    it = make_shared< CONTENTS >();
   }
 
   ~JsWrapGeneric()
@@ -143,85 +143,85 @@ struct JsWrapGeneric : node::ObjectWrap {
   shared_ptr< CONTENTS > owner;
 
   template<typename... Args>
-  static Local<Value> ConstructInstance(Isolate *isolate, Args &&... _args) {
+  static Local< Value > ConstructInstance(Isolate *isolate, Args &&... _args) {
     EscapableHandleScope scope(isolate);
-    Local<Function> localConstructor = constructor.Get(isolate);
-    Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
+    Local< Function > localConstructor = constructor.Get(isolate);
+    Local< Object > instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
       if (1) eprintf("NewInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
-    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->it = make_shared<CONTENTS>(std::forward<Args>(_args)...);
+    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric< CONTENTS > >(instance);
+    w->it = make_shared< CONTENTS >(std::forward< Args >(_args)...);
     return scope.Escape(instance);
   }
 
-  static Local<Value> WrapInstance(Isolate *isolate, shared_ptr< CONTENTS > _it) {
+  static Local< Value > WrapInstance(Isolate *isolate, shared_ptr< CONTENTS > _it) {
     EscapableHandleScope scope(isolate);
-    Local<Function> localConstructor = constructor.Get(isolate);
-    Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
+    Local< Function > localConstructor = constructor.Get(isolate);
+    Local< Object > instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
       if (1) eprintf("WrapInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
-    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric< CONTENTS > >(instance);
     w->it = _it;
     return scope.Escape(instance);
   }
 
   template<class OWNER>
-  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr< OWNER > _owner, CONTENTS *_ptr) {
+  static Local< Value > MemberInstance(Isolate *isolate, shared_ptr< OWNER > _owner, CONTENTS *_ptr) {
     EscapableHandleScope scope(isolate);
-    Local<Function> localConstructor = constructor.Get(isolate);
-    Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
+    Local< Function > localConstructor = constructor.Get(isolate);
+    Local< Object > instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
       if (1) eprintf("MemberInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
-    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric< CONTENTS > >(instance);
     w->it = shared_ptr< CONTENTS >(_owner, _ptr);
     return scope.Escape(instance);
   }
 
   template<class OWNER>
-  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr< OWNER > _owner, CONTENTS const &_contents) {
+  static Local< Value > MemberInstance(Isolate *isolate, shared_ptr< OWNER > _owner, CONTENTS const &_contents) {
     EscapableHandleScope scope(isolate);
-    Local<Function> localConstructor = constructor.Get(isolate);
-    Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
+    Local< Function > localConstructor = constructor.Get(isolate);
+    Local< Object > instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
       if (1) eprintf("MemberInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
-    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
-    w->it = make_shared<CONTENTS>(_contents);
+    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric< CONTENTS > >(instance);
+    w->it = make_shared< CONTENTS >(_contents);
     w->owner = shared_ptr< CONTENTS >(_owner, nullptr);
     return scope.Escape(instance);
   }
 
   template<class OWNER>
-  static Local<Value> MemberInstance(Isolate *isolate, shared_ptr< OWNER> _owner, shared_ptr<CONTENTS > const &_contents) {
+  static Local< Value > MemberInstance(Isolate *isolate, shared_ptr< OWNER > _owner, shared_ptr< CONTENTS > const &_contents) {
     EscapableHandleScope scope(isolate);
-    Local<Function> localConstructor = constructor.Get(isolate);
-    Local<Object> instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
+    Local< Function > localConstructor = constructor.Get(isolate);
+    Local< Object > instance = localConstructor->NewInstance(isolate->GetCurrentContext(), 0, nullptr).ToLocalChecked();
     if (instance.IsEmpty()) {
       if (1) eprintf("MemberInstance: constructor failed, instance is empty\n");
       return scope.Escape(Undefined(isolate));
     }
-    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(instance);
+    auto w = node::ObjectWrap::Unwrap< JsWrapGeneric< CONTENTS > >(instance);
     w->it = _contents;
     w->owner = shared_ptr< CONTENTS >(_owner, nullptr);
     return scope.Escape(instance);
   }
 
 
-  static shared_ptr< CONTENTS> Extract(Isolate *isolate, Local<Value > value) {
-    Local<Function> localConstructor = constructor.Get(isolate);
+  static shared_ptr< CONTENTS > Extract(Isolate *isolate, Local< Value > value) {
+    Local< Function > localConstructor = constructor.Get(isolate);
     if (localConstructor.IsEmpty()) return nullptr;
     if (value->IsObject()) {
-      Local<Object> valueObject = value->ToObject();
-      Local<String> valueTypeName = valueObject->GetConstructorName();
+      Local< Object > valueObject = value->ToObject();
+      Local< String > valueTypeName = valueObject->GetConstructorName();
       if (valueTypeName == localConstructor->GetName()) {
-        return node::ObjectWrap::Unwrap< JsWrapGeneric<CONTENTS> >(valueObject)->it;
+        return node::ObjectWrap::Unwrap< JsWrapGeneric< CONTENTS > >(valueObject)->it;
       }
     }
     return nullptr;
@@ -229,23 +229,23 @@ struct JsWrapGeneric : node::ObjectWrap {
 
 
   // Because node::ObjectWrap::Wrap is protected
-  inline void Wrap2 (Local<Object> handle) {
+  inline void Wrap2 (Local< Object > handle) {
     return Wrap(handle);
   }
 
-  static Persistent<Function> constructor;
+  static Persistent< Function > constructor;
   static string constructorName;
 };
 
 template <typename CONTENTS>
-Persistent<Function> JsWrapGeneric<CONTENTS>::constructor;
+Persistent< Function > JsWrapGeneric< CONTENTS >::constructor;
 template <typename CONTENTS>
-string JsWrapGeneric<CONTENTS>::constructorName;
+string JsWrapGeneric< CONTENTS >::constructorName;
 
 
 
 struct JsSignalHandlers {
-  vector< CopyablePersistent<v8::Function> > handlers;
+  vector< CopyablePersistent< v8::Function > > handlers;
 };
 
 

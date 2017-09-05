@@ -3,7 +3,7 @@
 
 using namespace arma;
 
-#define nan (numeric_limits<double>::quiet_NaN())
+#define nan (numeric_limits< double >::quiet_NaN())
 
 mat33 orthonormalise(mat33 const &u)
 {

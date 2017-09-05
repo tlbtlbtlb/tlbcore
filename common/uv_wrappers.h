@@ -17,7 +17,7 @@ static inline runtime_error uv_error(string const &context, int rc)
 
 template<typename RESULT>
 struct UvWorkActive {
-  UvWorkActive(uv_loop_t *_loop, std::function<RESULT()> const &_body, std::function<void(string const &error, RESULT const &result)> const &_done)
+  UvWorkActive(uv_loop_t *_loop, std::function< RESULT() > const &_body, std::function<void(string const &error, RESULT const &result)> const &_done)
     :loop(_loop), body(_body), done(_done)
   {
     work.data = this;
@@ -31,7 +31,7 @@ struct UvWorkActive {
   void queue_work();
 
   uv_loop_t *loop {nullptr};
-  std::function<RESULT()> body;
+  std::function< RESULT() > body;
   std::function<void(string const &error, RESULT const &result)> done;
   string error;
   RESULT result;
@@ -39,7 +39,7 @@ struct UvWorkActive {
 };
 
 template<typename RESULT>
-void UvWorkActive<RESULT>::queue_work()
+void UvWorkActive< RESULT >::queue_work()
 {
   uv_queue_work(loop, &work, [](uv_work_t *req) {
     auto self = reinterpret_cast<UvWorkActive *>(req->data);
@@ -61,9 +61,9 @@ void UvWorkActive<RESULT>::queue_work()
 }
 
 template<typename RESULT>
-static void UvWork(uv_loop_t *loop, std::function<RESULT()> const &body, std::function<void(string const &error, RESULT const &result)> const &done)
+static void UvWork(uv_loop_t *loop, std::function< RESULT() > const &body, std::function<void(string const &error, RESULT const &result)> const &done)
 {
-  new UvWorkActive<RESULT>(loop, body, done);
+  new UvWorkActive< RESULT >(loop, body, done);
 }
 
 
@@ -89,7 +89,7 @@ struct UvAsyncQueue {
     uv_async_init(loop, async, [](uv_async_t *req) {
       auto self = reinterpret_cast<UvAsyncQueue *>(req->data);
       while (true) {
-        std::unique_lock<std::mutex> lock(self->workQueueMutex);
+        std::unique_lock< std::mutex > lock(self->workQueueMutex);
         if (self->workQueue.empty()) break;
         auto f = self->workQueue.front();
         self->workQueue.pop_front();
@@ -99,21 +99,21 @@ struct UvAsyncQueue {
     });
   }
 
-  void push(std::function<void()> const &f) {
-    std::unique_lock<std::mutex> lock(workQueueMutex);
+  void push(std::function< void() > const &f) {
+    std::unique_lock< std::mutex > lock(workQueueMutex);
     workQueue.push_back(f);
     uv_async_send(async);
   }
 
   std::mutex workQueueMutex;
-  deque<std::function<void()> > workQueue;
+  deque< std::function< void() > > workQueue;
 
   uv_loop_t *loop {nullptr};
   uv_async_t *async {nullptr};
 };
 
 struct UvWriteActive {
-  UvWriteActive(std::function<void(int)> const &_cb)
+  UvWriteActive(std::function< void(int) > const &_cb)
   :cb(_cb)
   {
   }
@@ -138,8 +138,8 @@ struct UvWriteActive {
     memcpy(buf.base, data, len);
     bufs.push_back(buf);
   }
-  std::function<void(int)> cb;
-  vector<uv_buf_t> bufs;
+  std::function< void(int) > cb;
+  vector< uv_buf_t > bufs;
 };
 
 struct UvStream {
@@ -256,7 +256,7 @@ struct UvStream {
     if (rc < 0) throw uv_error("uv_read_stop", rc);
   }
 
-  void write(string const &data, std::function<void(int)> const &_write_cb)
+  void write(string const &data, std::function< void(int) > const &_write_cb)
   {
     int rc;
     assert(stream && (stream->type == UV_TCP || stream->type == UV_NAMED_PIPE || stream->type == UV_TTY));
@@ -274,7 +274,7 @@ struct UvStream {
     if (rc < 0) throw uv_error("uv_write", rc);
   }
 
-  void write(vector< string > const &data, std::function<void(int)> const &_write_cb)
+  void write(vector< string > const &data, std::function< void(int) > const &_write_cb)
   {
     int rc;
     assert(stream && (stream->type == UV_TCP || stream->type == UV_NAMED_PIPE || stream->type == UV_TTY));
@@ -294,14 +294,14 @@ struct UvStream {
     if (rc < 0) throw uv_error("uv_write", rc);
   }
 
-  void tcp_connect(struct sockaddr const *addr, std::function<void(int)> const &_connect_cb)
+  void tcp_connect(struct sockaddr const *addr, std::function< void(int) > const &_connect_cb)
   {
     int rc;
     assert(stream && stream->type == UV_TCP);
     auto req = new uv_connect_t {};
-    req->data = new std::function<void(int)>(_connect_cb);
+    req->data = new std::function< void(int) >(_connect_cb);
     rc = uv_tcp_connect(req, reinterpret_cast<uv_tcp_t *>(stream), addr, [](uv_connect_t* req1, int status) {
-      auto cb1 = reinterpret_cast<std::function<void(int)> *>(req1->data);
+      auto cb1 = reinterpret_cast< std::function< void(int) > *>(req1->data);
       (*cb1)(status);
       delete cb1;
       delete req1;
@@ -346,7 +346,7 @@ struct UvStream {
     if (rc < 0) throw uv_error("uv_udp_bind", rc);
   }
 
-  void udp_send(string const &data, struct sockaddr const *addr, std::function<void(int)> const &_cb)
+  void udp_send(string const &data, struct sockaddr const *addr, std::function< void(int) > const &_cb)
   {
     int rc;
     assert(stream && stream->type == UV_UDP);
@@ -363,7 +363,7 @@ struct UvStream {
     if (rc < 0) throw uv_error("uv_udp_send", rc);
   }
 
-  void udp_send(char const *data, size_t data_len, struct sockaddr const *addr, std::function<void(int)> const &_cb)
+  void udp_send(char const *data, size_t data_len, struct sockaddr const *addr, std::function< void(int) > const &_cb)
   {
     int rc;
     assert(stream && stream->type == UV_UDP);
@@ -433,13 +433,13 @@ struct UvStream {
     });
   }
 
-  void shutdown(std::function<void(int)> _cb) {
+  void shutdown(std::function< void(int) > _cb) {
     int rc;
     assert(stream && (stream->type == UV_TCP || stream->type == UV_NAMED_PIPE || stream->type == UV_TTY));
     auto req = new uv_shutdown_t {};
-    req->data = new std::function<void(int)>(_cb);
+    req->data = new std::function< void(int) >(_cb);
     rc = uv_shutdown(req, stream, [](uv_shutdown_t *req1, int status) {
-      auto cb1 = reinterpret_cast<std::function<void(int)> *>(req1->data);
+      auto cb1 = reinterpret_cast< std::function< void(int) > *>(req1->data);
       (*cb1)(status);
       delete cb1;
       delete req1;
@@ -538,7 +538,7 @@ struct UvProcess {
       assert(proc == &this1->proc);
       this1->running = false;
       this1->exit_cb(exit_status, term_signal);
-      uv_close(reinterpret_cast<uv_handle_t*>(proc), [](uv_handle_t *h) {
+      uv_close(reinterpret_cast< uv_handle_t* >(proc), [](uv_handle_t *h) {
       });
     };
 
@@ -580,29 +580,29 @@ struct UvProcess {
     uv_stdio_container_t stdio[3];
     if (stdin_pipe) {
       stdin_pipe->pipe_init();
-      stdio[0].flags = static_cast<uv_stdio_flags>(UV_CREATE_PIPE|UV_READABLE_PIPE);
+      stdio[0].flags = static_cast< uv_stdio_flags >(UV_CREATE_PIPE|UV_READABLE_PIPE);
       stdio[0].data.stream = reinterpret_cast<uv_stream_t *>(stdin_pipe->stream);
     }
     else {
-      stdio[0].flags = static_cast<uv_stdio_flags>(UV_INHERIT_FD);
+      stdio[0].flags = static_cast< uv_stdio_flags >(UV_INHERIT_FD);
       stdio[0].data.fd = 0;
     }
     if (stdout_pipe) {
       stdout_pipe->pipe_init();
-      stdio[1].flags = static_cast<uv_stdio_flags>(UV_CREATE_PIPE|UV_WRITABLE_PIPE);
+      stdio[1].flags = static_cast< uv_stdio_flags >(UV_CREATE_PIPE|UV_WRITABLE_PIPE);
       stdio[1].data.stream = reinterpret_cast<uv_stream_t *>(stdout_pipe->stream);
     }
     else {
-      stdio[1].flags = static_cast<uv_stdio_flags>(UV_INHERIT_FD);
+      stdio[1].flags = static_cast< uv_stdio_flags >(UV_INHERIT_FD);
       stdio[1].data.fd = 1;
     }
     if (stderr_pipe) {
       stderr_pipe->pipe_init();
-      stdio[2].flags = static_cast<uv_stdio_flags>(UV_CREATE_PIPE|UV_WRITABLE_PIPE);
+      stdio[2].flags = static_cast< uv_stdio_flags >(UV_CREATE_PIPE|UV_WRITABLE_PIPE);
       stdio[2].data.stream = reinterpret_cast<uv_stream_t *>(stderr_pipe->stream);
     }
     else {
-      stdio[2].flags = static_cast<uv_stdio_flags>(UV_INHERIT_FD);
+      stdio[2].flags = static_cast< uv_stdio_flags >(UV_INHERIT_FD);
       stdio[2].data.fd = 2;
     }
     opt.stdio_count = 3;
@@ -646,7 +646,7 @@ struct UvTimer {
 
   uv_loop_t *loop {nullptr};
   uv_timer_t *timer {nullptr};
-  std::function<void()> cb;
+  std::function< void() > cb;
 
   bool is_active() {
     return timer && uv_is_active(reinterpret_cast<uv_handle_t *>(timer));
@@ -661,7 +661,7 @@ struct UvTimer {
     if (rc < 0) throw uv_error("uv_timer_init", rc);
   }
 
-  void timer_start(std::function<void()> _cb, uint64_t timeout, uint64_t repeat) {
+  void timer_start(std::function< void() > _cb, uint64_t timeout, uint64_t repeat) {
     int rc;
     assert(timer);
     cb = _cb;

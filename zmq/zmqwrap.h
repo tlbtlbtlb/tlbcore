@@ -123,7 +123,7 @@ struct ZmqRpcDealer : ZmqRpcAgent {
   void rpc(string const &method, jsonstr &params, std::function<void(jsonstr const &error, jsonstr const &result)> const &cb, double timeout=0.0);
 
   size_t outstandingCount() {
-    std::unique_lock<std::mutex> lock(mtx);
+    std::unique_lock< std::mutex > lock(mtx);
     return replyCallbacks.size();
   }
 

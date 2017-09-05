@@ -120,7 +120,7 @@ void ZmqRpcAgent::join()
 
 void ZmqRpcRouter::addApi(string const &method, std::function<void(jsonstr const &params, std::function<void(jsonstr const &error, jsonstr const &result)>)> const &f)
 {
-  unique_lock<mutex> lock(mtx);
+  unique_lock< mutex > lock(mtx);
   api[method] = f;
 }
 
@@ -146,8 +146,8 @@ struct ZmqRpcOut {
 
 void ZmqRpcDealer::rpc(string const &method, jsonstr &params, std::function<void(jsonstr const &error, jsonstr const &result)> const &cb, double timeout)
 {
-  unique_lock<mutex> lock(mtx);
-  auto ip = make_shared<ZmqRpcOut>(to_string(idCnt), cb, timeout);
+  unique_lock< mutex > lock(mtx);
+  auto ip = make_shared< ZmqRpcOut >(to_string(idCnt), cb, timeout);
   idCnt++;
   replyCallbacks[ip->id] = ip;
   if (verbose >= 1) eprintf("%s: ZmqRpcDealer::rpc(method=%s id=%s params=%s)\n", agentId.c_str(), method.c_str(), ip->id.c_str(), params.it.c_str());
@@ -191,7 +191,7 @@ ZmqRpcRouter::routerMain()
     if (verbose >= 3) eprintf("%s: routerMain: zmq_poll %d items[0].revents=0x%x items[1].revents=0x%x\n", agentId.c_str(), poll_rc, items[0].revents, items[1].revents);
 
     if (items[0].revents & ZMQ_POLLIN) {
-      auto ip = make_shared<ZmqRpcIn>();
+      auto ip = make_shared< ZmqRpcIn >();
 
       bool more = false;
       if (!mainSock.zmqRx(ip->address, more)) {
@@ -239,7 +239,7 @@ ZmqRpcRouter::routerMain()
           mainSock.zmqTx(error, true);
           mainSock.zmqTx(result, false);
         } else {
-          std::unique_lock<std::mutex> lock(mtx);
+          std::unique_lock< std::mutex > lock(mtx);
           mbSockOut.zmqTx(ip->address, true);
           mbSockOut.zmqTx(error, true);
           mbSockOut.zmqTx(result, false);
@@ -312,7 +312,7 @@ ZmqRpcDealer::dealerMain()
       if (address.size() == 1) {
         shared_ptr< ZmqRpcOut > ip;
         {
-          unique_lock<mutex> lock(mtx);
+          unique_lock< mutex > lock(mtx);
           auto ipIter = replyCallbacks.find(address[0]);
           if (ipIter != replyCallbacks.end()) {
             ip = ipIter->second;
@@ -359,7 +359,7 @@ ZmqRpcDealer::dealerMain()
     if (now > lastTimeoutCheck + 0.1) {
       lastTimeoutCheck = now;
       eprintf("Timeout check\n");
-      unique_lock<mutex> lock(mtx);
+      unique_lock< mutex > lock(mtx);
       for (auto &cbit : replyCallbacks) {
         if (cbit.second && cbit.second->timeout && now - max(cbit.second->txTime, cbit.second->progressTime) > cbit.second->timeout) {
           cbit.second->cb(asJson("timeout"), jsonstr());

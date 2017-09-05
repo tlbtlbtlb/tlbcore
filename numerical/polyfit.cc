@@ -38,7 +38,7 @@ double getDerivative(Polyfit5 const &u, double t)
   Fit a polynomial to some X and Y data. That is, return a Polyfit{1,3,5} p so that getValue(p, X) approximates Y.
  */
 
-Polyfit1 mkPolyfit1(arma::Col<double> xs, arma::Col<double> ys)
+Polyfit1 mkPolyfit1(arma::Col< double > xs, arma::Col< double > ys)
 {
   if (xs.n_elem != ys.n_elem) throw runtime_error("incompatible arrays");
   if (xs.n_elem < 2) throw runtime_error ("not enough data");
@@ -60,7 +60,7 @@ Polyfit1 mkPolyfit1(arma::Col<double> xs, arma::Col<double> ys)
 }
 
 
-Polyfit3 mkPolyfit3(arma::Col<double> xs, arma::Col<double> ys)
+Polyfit3 mkPolyfit3(arma::Col< double > xs, arma::Col< double > ys)
 {
   if (xs.n_elem != ys.n_elem) throw runtime_error("incompatible arrays");
   if (xs.n_elem < 4) throw runtime_error ("not enough data");
@@ -83,7 +83,7 @@ Polyfit3 mkPolyfit3(arma::Col<double> xs, arma::Col<double> ys)
   return Polyfit3(coeffs(0,0), coeffs(1,0), coeffs(2,0), coeffs(3,0));
 }
 
-Polyfit5 mkPolyfit5(arma::Col<double> xs, arma::Col<double> ys)
+Polyfit5 mkPolyfit5(arma::Col< double > xs, arma::Col< double > ys)
 {
   if (xs.n_elem != ys.n_elem) throw runtime_error("incompatible arrays");
   if (xs.n_elem < 6) throw runtime_error("not enough data");

@@ -27,7 +27,7 @@ void packet::decref(packet_contents *&it)
 
   int newrefs;
   {
-    unique_lock<mutex> l1(refcnt_mutex);
+    unique_lock< mutex > l1(refcnt_mutex);
     newrefs = --it->refcnt;
   }
   if (newrefs == 0) {
@@ -44,7 +44,7 @@ void packet::decref(packet_annotations *&it)
 
   int newrefs;
   {
-    unique_lock<mutex> l1(refcnt_mutex);
+    unique_lock< mutex > l1(refcnt_mutex);
     newrefs = --it->refcnt;
   }
   if (newrefs == 0) {
@@ -57,7 +57,7 @@ void packet::decref(packet_annotations *&it)
 void packet::incref(packet_contents *it)
 {
   {
-    unique_lock<mutex> l1(refcnt_mutex);
+    unique_lock< mutex > l1(refcnt_mutex);
     it->refcnt++;
   }
   stats.incref_count++;
@@ -67,7 +67,7 @@ void packet::incref(packet_annotations *it)
 {
   if (!it) return;
   {
-    unique_lock<mutex> l1(refcnt_mutex);
+    unique_lock< mutex > l1(refcnt_mutex);
     it->refcnt++;
   }
   stats.incref_count++;
@@ -386,7 +386,7 @@ void packet::add_nl_string(string const &s)
 
 void packet::add_pkt(packet const &wr)
 {
-  add(static_cast<u_int>(wr.remaining()));
+  add(static_cast< u_int >(wr.remaining()));
   add_bytes(wr.rd_ptr(), wr.remaining());
 }
 
@@ -598,7 +598,7 @@ void packet::add_typetag(char const *tag)
 bool packet::test_typetag(char const *expected)
 {
   int save_rd_pos = rd_pos;
-  auto size = static_cast<size_t>(fget<u_char>());
+  auto size = static_cast< size_t >(fget< u_char >());
   char got[256];
   get_bytes(got, size);
   got[size] = 0;
@@ -611,7 +611,7 @@ bool packet::test_typetag(char const *expected)
 
 void packet::check_typetag(char const *expected)
 {
-  auto size = static_cast<size_t>(fget<u_char>());
+  auto size = static_cast< size_t >(fget< u_char >());
   char got[256];
   get_bytes(got, size);
   got[size] = 0;
@@ -783,13 +783,13 @@ void packet_wr_value(packet &p, const string &x) {
   auto size = x.size();
 
   if (size<0xff) {
-    auto smallsize = static_cast<u_char>(size);
+    auto smallsize = static_cast< u_char >(size);
     p.add(smallsize);
   }
   else if (size < size_t(0x3fffffff)) {
     u_char smallsize = 0xff;
     p.add(smallsize);
-    p.add(static_cast<u_int>(size));
+    p.add(static_cast< u_int >(size));
   }
   else {
     abort();
@@ -804,12 +804,12 @@ void packet_rd_value(packet &p, string &x) {
   p.get(smallsize);
   size_t size;
   if (smallsize == 0xff) {
-    size = static_cast<size_t>(p.fget<u_int>());
+    size = static_cast< size_t >(p.fget< u_int >());
     if (size >= size_t(0x3fffffff)) abort();
   } else {
     size = smallsize;
   }
-  if (static_cast<ssize_t>(size) > p.remaining()) {
+  if (static_cast< ssize_t >(size) > p.remaining()) {
     throw packet_rd_overrun_err(size - p.remaining());
   }
   x.resize(size);

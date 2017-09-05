@@ -30,7 +30,7 @@ struct ChunkMemory : ChunkFile {
   bool readChunk(char *data, off_t off, size_t size) override;
   size_t size() override;
 
-  vector<char> buf;
+  vector< char > buf;
 };
 
 
@@ -42,7 +42,7 @@ struct ChunkFileUncompressed : ChunkFile {
   bool readChunk(char *data, off_t off, size_t size) override;
   size_t size() override;
 
-  std::atomic<size_t> off {0};
+  std::atomic< size_t > off {0};
   int fd {-1};
 };
 
@@ -73,5 +73,5 @@ struct ChunkFileReader : ChunkFile {
   off_t writeChunk(char const *data, size_t size) override;
   size_t size() override;
 
-  vector<char> fileContents;
+  vector< char > fileContents;
 };

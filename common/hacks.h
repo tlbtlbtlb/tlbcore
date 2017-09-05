@@ -142,7 +142,7 @@ bool same_type(std::type_info const &t1, std::type_info const &t2);
 #include <vector>
 #include <sstream>
 std::string stringprintf(const char *format,...)  ATT_FORMAT(printf,1,2);
-void stl_exec(std::vector<std::string> const &args);
+void stl_exec(std::vector< std::string > const &args);
 
 std::runtime_error fmt_runtime_error(const char *format,...)  ATT_FORMAT(printf,1,2);
 

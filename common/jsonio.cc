@@ -76,7 +76,7 @@ void
 jsonstr::useBlobs(string const &_fn)
 {
   if (!blobs) {
-    blobs = make_shared<ChunkFileCompressed>(_fn);
+    blobs = make_shared< ChunkFileCompressed >(_fn);
   }
 }
 
@@ -162,7 +162,7 @@ int jsonstr::readFromFile(string const &fn)
     if (fclose(fp) < 0) {
       throw runtime_error(jsonfn + string(": ") + string(strerror(errno)));
     }
-    blobs = make_shared<ChunkFileReader>(fn+".blobs");
+    blobs = make_shared< ChunkFileReader >(fn+".blobs");
     return 0;
   }
   string gzfn = jsonfn + ".gz";
@@ -188,7 +188,7 @@ int jsonstr::readFromFile(string const &fn)
     if (rc != Z_OK) {
       throw runtime_error(gzfn + string(": close failed: ") + to_string(rc));
     }
-    blobs = make_shared<ChunkFileReader>(fn+".blobs");
+    blobs = make_shared< ChunkFileReader >(fn+".blobs");
     return 0;
   }
 

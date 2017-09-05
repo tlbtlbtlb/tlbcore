@@ -256,7 +256,7 @@ StlSolid::writeBinaryFile(FILE *fp, double scale)
   memset(dummyline, 0, 80);
   if (fwrite(dummyline, 1, 80, fp) != 80) throw runtime_error("writing header");
 
-  auto nTriangles = static_cast<uint32_t>(faces.size());
+  auto nTriangles = static_cast< uint32_t >(faces.size());
   if (fwrite(&nTriangles, sizeof(uint32_t), 1, fp) != 1) throw runtime_error("writing n_triangles");
 
   for (uint32_t ti=0; ti<nTriangles; ti++) {
@@ -386,10 +386,10 @@ bool operator < (StlIntersection const &a, StlIntersection const &b)
   return a.t < b.t;
 }
 
-vector<StlIntersection>
+vector< StlIntersection >
 StlSolid::getIntersections(vec3 const &p, vec3 const &d) const
 {
-  vector<StlIntersection> ret;
+  vector< StlIntersection > ret;
 
   for (auto &face : faces) {
     double t;
@@ -583,7 +583,7 @@ void StlSolid::removeTinyFaces(double minSize)
   }
 
   // Generate a random but deterministic order to process faces in
-  vector<int> faceOrdering(faces.size());
+  vector< int > faceOrdering(faces.size());
   for (size_t fi=0; fi<faces.size(); fi++) {
     faceOrdering[fi] = fi;
   }
@@ -646,7 +646,7 @@ StlWebglMesh StlSolid::exportWebglMesh(double eps) const
 
   size_t nFaces = faces.size();
   StlWebglMesh ret;
-  assert(nFaces < numeric_limits<size_t>::max()/9);
+  assert(nFaces < numeric_limits< size_t >::max()/9);
   ret.coords.resize(nFaces * 9);
   ret.normals.resize(nFaces * 9);
   ret.indexes.resize(nFaces * 3);
@@ -735,7 +735,7 @@ arma::vec3 StlSolid::analyzeHole(int axisi)
 
   if (0) eprintf("analyzeHole(%d) corner=%s diagonal=%s\n", axisi, asJson(corner).it.c_str(), asJson(diagonal).it.c_str());
 
-  vector<arma::vec3> directions;
+  vector< arma::vec3 > directions;
 
   for (int testi = 0; testi < itercount && directions.size() < 20; testi++) {
     /*

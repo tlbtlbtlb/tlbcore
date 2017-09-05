@@ -619,7 +619,7 @@ TypeRegistry.prototype.emitConversions = function(files) {
 
   h(`
     template<typename T>
-    shared_ptr<T> convJsToDynamic(Isolate *isolate, Local<Value> it);
+    shared_ptr< T > convJsToDynamic(Isolate *isolate, Local<Value> it);
   `);
 
   _.each(bySuperTypename, function(sti, superTypename) {

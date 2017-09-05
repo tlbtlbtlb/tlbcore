@@ -384,14 +384,14 @@ void packet_rd_typetag(packet &p, arma::cx_double const &x);
   We use uint32_t rather than size_t for compatibility
 */
 template<typename T>
-void packet_wr_typetag(packet &p, vector<T> const &x) {
+void packet_wr_typetag(packet &p, vector< T > const &x) {
   p.add_typetag("vector:1");
   T dummy;
   packet_wr_typetag(p, dummy);
 }
 
 template<typename T>
-void packet_wr_value(packet &p, vector<T> const &x) {
+void packet_wr_value(packet &p, vector< T > const &x) {
   if (!(x.size() < 0x3fffffff)) throw fmt_runtime_error("Unreasonable size %zu", x.size());
   p.add((uint32_t)x.size());
   for (size_t i=0; i<x.size(); i++) {
@@ -400,13 +400,13 @@ void packet_wr_value(packet &p, vector<T> const &x) {
 }
 
 template<typename T>
-void packet_rd_typetag(packet &p, vector<T> const &x) {
+void packet_rd_typetag(packet &p, vector< T > const &x) {
   p.check_typetag("vector:1");
   packet_rd_typetag(p, T());
 }
 
 template<typename T>
-void packet_rd_value(packet &p, vector<T> &x) {
+void packet_rd_value(packet &p, vector< T > &x) {
   uint32_t size;
   p.get(size);
   if (!(size < 0x3fffffff)) throw fmt_runtime_error("Unreasonable size %lu", (u_long)size);
@@ -420,14 +420,14 @@ void packet_rd_value(packet &p, vector<T> &x) {
 // Armadillo math types
 
 template<typename T>
-void packet_wr_typetag(packet &p, arma::Col<T> const &x) {
+void packet_wr_typetag(packet &p, arma::Col< T > const &x) {
   p.add_typetag("arma::Col:1");
   T dummy;
   packet_wr_typetag(p, dummy);
 }
 
 template<typename T>
-void packet_wr_value(packet &p, arma::Col<T> const &x) {
+void packet_wr_value(packet &p, arma::Col< T > const &x) {
   assert(x.n_elem < 0x3fffffff);
   p.add((uint32_t)x.n_elem);
   for (size_t i=0; i<x.n_elem; i++) {
@@ -436,13 +436,13 @@ void packet_wr_value(packet &p, arma::Col<T> const &x) {
 }
 
 template<typename T>
-void packet_rd_typetag(packet &p, arma::Col<T> &x) {
+void packet_rd_typetag(packet &p, arma::Col< T > &x) {
   p.check_typetag("arma::Col:1");
   packet_rd_typetag(p, T());
 }
 
 template<typename T>
-void packet_rd_value(packet &p, arma::Col<T> &x) {
+void packet_rd_value(packet &p, arma::Col< T > &x) {
   uint32_t size;
   p.get(size);
   assert(size < 0x3fffffff);
@@ -455,14 +455,14 @@ void packet_rd_value(packet &p, arma::Col<T> &x) {
 }
 
 template<typename T>
-void packet_wr_typetag(packet &p, arma::Mat<T> const &x) {
+void packet_wr_typetag(packet &p, arma::Mat< T > const &x) {
   p.add_typetag("arma::Mat:1");
   T dummy;
   packet_wr_typetag(p, dummy);
 }
 
 template<typename T>
-void packet_wr_value(packet &p, arma::Mat<T> const &x) {
+void packet_wr_value(packet &p, arma::Mat< T > const &x) {
   assert(x.n_elem < 0x3fffffff);
   p.add((uint32_t)x.n_rows);
   p.add((uint32_t)x.n_cols);
@@ -472,13 +472,13 @@ void packet_wr_value(packet &p, arma::Mat<T> const &x) {
 }
 
 template<typename T>
-void packet_rd_typetag(packet &p, arma::Mat<T> const &x) {
+void packet_rd_typetag(packet &p, arma::Mat< T > const &x) {
   p.check_typetag("arma::Mat:1");
   packet_rd_typetag(p, T());
 }
 
 template<typename T>
-void packet_rd_value(packet &p, arma::Mat<T> &x) {
+void packet_rd_value(packet &p, arma::Mat< T > &x) {
   uint32_t n_rows, n_cols;
   p.get(n_rows);
   p.get(n_cols);
@@ -566,6 +566,6 @@ void packet_rd_value(packet &p, map<T1, T2> &x)
 
 // ----------------------------------------------------------------------
 
-using packet_queue = deque<packet>;
+using packet_queue = deque< packet >;
 
 ostream & operator <<(ostream &s, packet const &it);

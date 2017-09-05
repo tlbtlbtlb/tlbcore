@@ -154,8 +154,8 @@ typedef unsigned long long uint64_t;
 
 #ifdef __cplusplus
 #if defined(__GNUC__) || defined(WIN32)
-typedef complex<double> complexd;
-typedef complex<float> complexf;
+typedef complex< double > complexd;
+typedef complex< float > complexf;
 #endif
 #endif
 

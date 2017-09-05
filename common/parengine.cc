@@ -37,7 +37,7 @@ ParEngineRsv::ParEngineRsv(ParEngine *_owner, size_t _memNeeded)
    memNeeded(_memNeeded)
 {
   if (owner) {
-    unique_lock<mutex> lock(owner->mtx);
+    unique_lock< mutex > lock(owner->mtx);
     while (owner->threadsUsed + 1 > owner->threadsAvail ||
            owner->memUsed + min(memNeeded, owner->memAvail) > owner->memAvail) {
       if (owner->verbose) eprintf("ParEngine: wait (%zu + 1 > %zu || %zu + %zu > %zu)\n",
@@ -53,7 +53,7 @@ ParEngineRsv::ParEngineRsv(ParEngine *_owner, size_t _memNeeded)
 
 ParEngineRsv::~ParEngineRsv() {
   if (owner) {
-    unique_lock<mutex> lock(owner->mtx);
+    unique_lock< mutex > lock(owner->mtx);
     if (owner->verbose) eprintf("ParEngine: Release %zu\n", memNeeded);
     owner->threadsUsed -= 1;
     owner->memUsed -= memNeeded;

@@ -19,9 +19,9 @@ namespace v8 {
 struct AsyncEventQueueApi {
   virtual void async_emit(string const &eventName, jsonstr const &it) = 0;
   virtual void deliver_queued() = 0;
-  virtual void sync_emit(string const &eventName, v8::Local<v8::Value> arg) = 0;
+  virtual void sync_emit(string const &eventName, v8::Local< v8::Value > arg) = 0;
   virtual void sync_emit(string const &eventName) = 0;
-  virtual void on(string const &eventName, v8::Local<v8::Value> _onMessage) = 0;
+  virtual void on(string const &eventName, v8::Local< v8::Value > _onMessage) = 0;
 };
 
 struct AsyncCallbacks {
@@ -41,13 +41,13 @@ struct AsyncCallbacks {
 
   void async_emit(string const &eventName, jsonstr const &it);
   void sync_emit(string const &eventName);
-  void sync_emit(string const &eventName, v8::Local<v8::Value> arg);
+  void sync_emit(string const &eventName, v8::Local< v8::Value > arg);
 
-  void on(string const &eventName, v8::Local<v8::Value> _onMessage);
+  void on(string const &eventName, v8::Local< v8::Value > _onMessage);
 
 };
 
 using SyncCallbackFunction = std::function<void(jsonstr const &err, jsonstr const &result)>;
 
-void jsCallbackInvoke(v8::FunctionCallbackInfo<v8::Value> const &args);
-void jsCallbackCleanup(v8::WeakCallbackInfo<SyncCallbackFunction> const &args);
+void jsCallbackInvoke(v8::FunctionCallbackInfo< v8::Value > const &args);
+void jsCallbackCleanup(v8::WeakCallbackInfo< SyncCallbackFunction > const &args);
