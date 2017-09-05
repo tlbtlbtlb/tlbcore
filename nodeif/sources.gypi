@@ -9,6 +9,7 @@
     '../common/host_debug.cc',
     '../common/jsonio.cc',
     '../common/jsonio_types.cc',
+    '../common/jsonio_parse.cc',
     '../common/chunk_file.cc',
     '../common/typeschema.cc',
     '../common/parengine.cc',

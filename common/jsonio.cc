@@ -33,13 +33,15 @@ jsonstr::~jsonstr()
 {
 }
 
+static const size_t PADDING = 1000000;
+
 char *
 jsonstr::startWrite(size_t n)
 {
   if (n > 1000000000) {
     throw runtime_error("jsonstr: unreasonable size " + to_string(n));
   }
-  it.resize(n+2); // Allow for adding \n\0
+  it.resize(n + 2 + PADDING); // Allow for adding \n\0
   return &it[0];
 }
 
@@ -55,9 +57,13 @@ jsonstr::endWrite(char const *p)
   size_t n = p - &it[0];
   if (n + 1 > it.capacity()) {
     // Don't throw, since memory is corrupt
-    eprintf("jsonstr: buffer overrun, memory corrupted, aborting. %zu/%zu", n, it.capacity());
+    eprintf("jsonstr: buffer overrun, memory corrupted, aborting. %zu/%zu\n", n, it.capacity());
     eprintf("jsonstr: string was: %s\n", it.c_str());
     abort();
+  }
+  if (n + 1 > it.size() - PADDING) {
+    eprintf("jsonstr: buffer overrun. %zu/%zu\n", n, it.size()-PADDING);
+    eprintf("jsonstr: string was: %s\n", it.c_str());
   }
   if (jsonstr_logfp) {
     fprintf(jsonstr_logfp, "write %zu/%zu: %s\n", n, it.capacity(), it.substr(0, min((size_t)40, it.size())).c_str());
@@ -192,124 +198,4 @@ int jsonstr::readFromFile(string const &fn)
 jsonstr interpolate(jsonstr const &a, jsonstr const &b, double cb)
 {
   return (cb >= 0.5) ? b : a;
-}
-
-
-/* ----------------------------------------------------------------------
-   Low-level json stuff
-   Spec at http://www.json.org/
-*/
-
-bool jsonSkipValue(char const *&s, shared_ptr< ChunkFile > &blobs) {
-  jsonSkipSpace(s);
-  if (*s == '\"') {
-    string tmp;
-    shared_ptr< ChunkFile > blobs;
-    rdJson(s, blobs, tmp);
-  }
-  else if (*s == '[') {
-    s++;
-    jsonSkipSpace(s);
-    while (1) {
-      if (*s == ',') {
-        s++;
-      }
-      else if (*s == ']') {
-        s++;
-        break;
-      }
-      else {
-        if (!jsonSkipValue(s, blobs)) return false;
-      }
-    }
-  }
-  else if (*s == '{') {
-    s++;
-    jsonSkipSpace(s);
-    while (1) {
-      if (*s == ',') {
-        s++;
-      }
-      else if (*s == ':') {
-        s++;
-      }
-      else if (*s == '}') {
-        s++;
-        break;
-      }
-      else {
-        if (!jsonSkipValue(s, blobs)) return false;
-      }
-    }
-  }
-  else if (isalnum(*s) || *s=='.' || *s == '-') {
-    s++;
-    while (isalnum(*s) || *s=='.' || *s == '-') s++;
-  }
-  else {
-    return false;
-  }
-
-  return true;
-}
-
-bool jsonSkipMember(char const *&s, shared_ptr< ChunkFile > &blobs) {
-  jsonSkipSpace(s);
-  if (*s == '\"') {
-    string tmp;
-    rdJson(s, blobs, tmp);
-    jsonSkipSpace(s);
-    if (*s == ':') {
-      s++;
-      jsonSkipSpace(s);
-      if (!jsonSkipValue(s, blobs)) return false;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool jsonMatch(char const *&s, char const *pattern)
-{
-  char const *p = s;
-  while (*pattern) {
-    if (*p == *pattern) {
-      p++;
-      pattern++;
-    } else {
-      return false;
-    }
-  }
-  s = p;
-  return true;
-}
-
-bool jsonMatchKey(char const *&s, char const *pattern)
-{
-  char const *p = s;
-  jsonSkipSpace(p);
-  if (*p != '"') {
-    return false;
-  }
-  p++;
-  while (*pattern) {
-    if (*p == *pattern) {
-      p++;
-      pattern++;
-    } else {
-      return false;
-    }
-  }
-  if (*p != '"') {
-    return false;
-  }
-  p++;
-  jsonSkipSpace(p);
-  if (*p != ':') {
-    return false;
-  }
-  p++;
-  jsonSkipSpace(p);
-  s = p;
-  return true;
 }

@@ -290,13 +290,13 @@ StructCType.prototype.emitTypeDecl = function(f) {
   `);
   if (!type.noSerialize) {
     f(`
-      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, ${type.typename} const &obj);
-      bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, ${type.typename} &obj);
-      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, ${type.typename} const &x);
+      void wrJson(char *&s, shared_ptr<ChunkFile> const &blobs, ${type.typename} const &obj);
+      bool rdJson(char const *&s, shared_ptr<ChunkFile> const &blobs, ${type.typename} &obj);
+      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> const &blobs, ${type.typename} const &x);
 
-      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${type.typename}> > const &obj);
-      bool rdJson(const char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${type.typename}> > &obj);
-      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${type.typename}> > const &x);
+      void wrJson(char *&s, shared_ptr<ChunkFile> const &blobs, vector<shared_ptr<${type.typename}> > const &obj);
+      bool rdJson(const char *&s, shared_ptr<ChunkFile> const &blobs, vector<shared_ptr<${type.typename}> > &obj);
+      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> const &blobs, vector<shared_ptr<${type.typename}> > const &x);
     `);
   }
 
@@ -690,17 +690,21 @@ StructCType.prototype.emitWrJson = function(f) {
 
   if (1) {
     f(`
-      void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, ${type.typename} const &obj) {
+      void wrJson(char *&s, shared_ptr<ChunkFile> const &blobs, ${type.typename} const &obj) {
     `);
     var f1 = f.child();
     f(`
       }
-      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, ${type.typename} const &obj) {
+      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> const &blobs, ${type.typename} const &obj) {
     `);
     var f2 = f.child();
     f(`
       }
     `);
+
+    if (type.typename === 'ndarray') {
+      f1(`if (obj.shape.size() == 1 && obj.shape[0] == 3) abort();`);   // XXX
+    }
 
     sep = '';
     if (!type.omitTypeTag) {
@@ -743,7 +747,7 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
   var deopt = (memberCount > 250) ? '__attribute__((optnone))' : '';
 
   f(`
-    void wrJson(char *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${type.typename}> > const &arr) ${deopt} {
+    void wrJson(char *&s, shared_ptr<ChunkFile> const &blobs, vector<shared_ptr<${type.typename}> > const &arr) ${deopt} {
       if (!blobs) {
         wrJsonVec(s, blobs, arr);
         return;
@@ -752,7 +756,7 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
   f1 = f.child();
   f(`
     }
-    void wrJsonSize(size_t &size, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${type.typename}> > const &arr) {
+    void wrJsonSize(size_t &size, shared_ptr<ChunkFile> const &blobs, vector<shared_ptr<${type.typename}> > const &arr) {
       if (!blobs) {
         wrJsonSizeVec(size, blobs, arr);
         return;
@@ -780,59 +784,26 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
       if (ett.typename === 'double' || ett.typename === 'float' ||
           ett.typename === 'S64' || ett.typename === 'S32' ||
           ett.typename === 'U64' || ett.typename === 'U32' ||
-          ett.typename === 'bool') {
-        // Because STL does something fancy with vector<bool>
-        var binTypename = ett.typename === 'bool' ? 'U8': ett.typename;
+          ett.typename === 'bool' ||
+          ett.templateName === 'arma::Col::fixed' ||
+          ett.templateName === 'arma::Row::fixed' ||
+          ett.templateName === 'arma::Mat::fixed') {
+        var sliceTypename = ett.typename;
+        if (ett.templateName && ett.templateName.endsWith('::fixed')) {
+          sliceTypename = `${ett.templateName.slice(0, ett.templateName.length-7)}< ${ett.templateArgs[0]} >`;
+        }
         f1(`
           {
-            vector<${binTypename}> bulk(arr.size());
+            vector<${sliceTypename}> slice(arr.size());
             for (size_t i=0; i<arr.size(); i++) {
-              bulk[i] = arr[i]->${mkMemberRef(names)};
+              slice[i] = arr[i]->${mkMemberRef(names)};
             }
             s += sprintf(s, ",\\"${mkMemberRef(names)}\\":");
-            wrJson(s, blobs, bulk);
+            wrJson(s, blobs, slice);
           }
         `);
         f2(`
           size += 305 + ${mkMemberRef(names).length};
-        `);
-      }
-      else if ((ett.templateName === 'arma::Col::fixed' ||
-                ett.templateName === 'arma::Row::fixed' ||
-                ett.templateName === 'arma::Mat::fixed') && (
-                ett.templateArgs[0] === 'double' ||
-                ett.templateArgs[0] === 'float')) {
-        var baseType = type.reg.types[ett.templateArgs[0]];
-        var colSize = parseInt(ett.templateArgs[1]) * (ett.templateArgs.length > 2 ? parseInt(ett.templateArgs[2]) : 1);
-        f1(`
-          {
-            vector<${baseType.typename}> bulk(arr.size() * ${colSize});
-            ${baseType.typename} minRange = arr.size() > 0 ? arr[0]->${mkMemberRef(names)}.min() : 0.0;
-            ${baseType.typename} maxRange = arr.size() > 0 ? arr[0]->${mkMemberRef(names)}.max() : 0.0;
-            for (size_t i=0; i<arr.size(); i++) {
-              for (size_t k=0; k<${colSize}; k++) {
-                bulk[i*${colSize}+k] = arr[i]->${mkMemberRef(names)}[k];
-                minRange = std::min(minRange, bulk[i*${colSize}+k]);
-                maxRange = std::max(maxRange, bulk[i*${colSize}+k]);
-              }
-            }
-            ndarray nd;
-            nd.partBytes = mul_overflow<size_t>(bulk.size(), sizeof(${baseType.typename}));
-            nd.partOfs = blobs->writeChunk(reinterpret_cast<char *>(&bulk[0]), nd.partBytes);
-            nd.dtype = "${baseType.jsTypename}";
-            nd.shape.push_back(arr.size());
-            nd.shape.push_back(${colSize});
-            nd.range.min = (double)minRange;
-            nd.range.max = (double)maxRange;
-            s += sprintf(s, ",\\"${mkMemberRef(names)}\\":");
-            shared_ptr< ChunkFile> nullBlobs;
-            wrJson(s, nullBlobs, nd);
-          }
-        `);
-        f2(`
-          {
-            size += 305 + ${mkMemberRef(names).length};
-          }
         `);
       }
       else {
@@ -895,7 +866,7 @@ StructCType.prototype.emitRdJson = function(f) {
   };
 
   f(`
-    bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, ${type.typename} &obj) {
+    bool rdJson(char const *&s, shared_ptr<ChunkFile> const &blobs, ${type.typename} &obj) {
       bool typeOk = ${type.omitTypeTag ? 'true' : 'false'};
       char c;
       jsonSkipSpace(s);
@@ -984,35 +955,26 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
       if (ett.typename === 'double' || ett.typename === 'float' ||
           ett.typename === 'S64' || ett.typename === 'S32' ||
           ett.typename === 'U64' || ett.typename === 'U32' ||
-          ett.typename === 'bool') {
-        // Because STL does something fancy with vector<bool>
-        var binTypename = ett.typename === 'bool' ? 'U8': ett.typename;
+          ett.typename === 'bool' ||
+          ett.templateName === 'arma::Col::fixed') {
 
+        var sliceTypename = ett.typename;
+        if (ett.templateName && ett.templateName.endsWith('::fixed')) {
+          sliceTypename = `${ett.templateName.slice(0, ett.templateName.length-7)}< ${ett.templateArgs[0]} >`;
+        }
         actions[`"${mkMemberRef(names)}" :`] = function() {
           f(`
             {
-              ndarray nd;
-              if (!rdJson(s, blobs, nd)) return false;
-              if (nd.shape.size() !=1 || arr.size() != nd.shape[0]) {
-                eprintf("rdJson(${ett.typename}): Size mismatch:%zu %zu %zu\\n",
-                  (size_t)nd.shape.size(),
-                  (size_t)arr.size(),
-                  nd.shape.size()>0 ? (size_t)nd.shape[0] : (size_t)0);
-                return false;
-              }
-              vector<${binTypename}> tmp(nd.shape[0]);
-              if (tmp.size() * sizeof(${binTypename}) != nd.partBytes) {
-                eprintf("rdJson(${type.typename}::${mkMemberRef(names)}): size mismatch %zu*%zu != %zu\\n",
-                  tmp.size(), sizeof(${binTypename}), (size_t)nd.partBytes);
-                return false;
-              }
-              if (!blobs->readChunk(reinterpret_cast<char *>(tmp.data()), nd.partOfs, nd.partBytes)) {
-                eprintf("rdJson(${type.typename}::${mkMemberRef(names)}): no chunk %zu %zu\\n",
-                  (size_t)nd.partOfs, (size_t)nd.partBytes);
+              vector< ${sliceTypename} > slice;
+              if (!rdJson(s, blobs, slice)) return false;
+              if (slice.size() != arr.size()) {
+                eprintf("rdJson(${ett.typename}): Size mismatch: %zu %zu\\n",
+                  (size_t)slice.size(),
+                  (size_t)arr.size());
                 return false;
               }
               for (size_t i=0; i<arr.size(); i++) {
-                arr[i]->${mkMemberRef(names)} = (${ett.typename})tmp[i];
+                arr[i]->${mkMemberRef(names)} = slice[i];
               }
               jsonSkipSpace(s);
               c = *s++;
@@ -1033,7 +995,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
           f(`
             {
               ndarray nd;
-              if (!rdJson(s, blobs, nd)) return false;
+              if (!rdJson(s, nullptr, nd)) return false;
               if (nd.shape.size() != 2 || arr.size() != nd.shape[0] || nd.shape[1] != ${colSize}) {
                 eprintf("rdJson(${type.typename}::${mkMemberRef(names)}): Size mismatch: %zu %zu %zu %zu\\n",
                   (size_t)nd.shape.size(),
@@ -1111,7 +1073,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
   */
   var deopt = (_.keys(actions).length > 250) ? '__attribute__((optnone))' : '';
   f(`
-    bool rdJson(char const *&s, shared_ptr<ChunkFile> &blobs, vector<shared_ptr<${type.typename}> > &arr) ${deopt} {
+    bool rdJson(char const *&s, shared_ptr<ChunkFile> const &blobs, vector<shared_ptr<${type.typename}> > &arr) ${deopt} {
       bool typeOk = ${type.omitTypeTag ? 'true' : 'false'};
       char c;
       jsonSkipSpace(s);
@@ -1343,8 +1305,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         {args: ['string'], returnType: type, code: function(f) {
           f(`
             const char *a0s = a0.c_str();
-            shared_ptr<ChunkFile> blobs;
-            bool ok = rdJson(a0s, blobs, ret);
+            bool ok = rdJson(a0s, nullptr, ret);
             if (!ok) return ThrowInvalidArgs(isolate);
           `);
         }}
