@@ -631,10 +631,11 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     var valueType = type.reg.types[type.templateArgs[1]];
     f.emitJsNamedAccessors({
       get: function(f) {
-        // return an empty handle if not found, will be looked up on prototype chain
+        // return an empty handle if not found, will be looked up on prototype chain.
+        // Also, hasOwnProperty works by checking for empty
         // It doesn't work if you return Undefined
         f(`
-          ${type.typename}::iterator iter = thisObj->it->find(key);
+          auto iter = thisObj->it->find(key);
           if (iter == thisObj->it->end()) return;
           args.GetReturnValue().Set(Local<Value>(${type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisObj->it')}));
         `);
@@ -650,7 +651,30 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
             return ThrowTypeError(isolate, "Expected ${valueType.typename}");
           }
         `);
+      },
+      deleter: function(f) {
+        f(`
+          auto iter = thisObj->it->find(key);
+          if (iter != thisObj->it->end()) {
+            thisObj->it->erase(iter);
+            args.GetReturnValue().Set(Local<Boolean>(Boolean::New(isolate, true)));
+          } else {
+            args.GetReturnValue().Set(Local<Boolean>(Boolean::New(isolate, false)));
+          }
+        `);
+      },
+      enumerator: function(f) {
+        f(`
+          Local<Array> ret(Array::New(isolate, thisObj->it->size()));
+          uint32_t reti = 0;
+          for (auto &it : *thisObj->it) {
+            ret->Set(reti, Local<Value>::Cast(convStringToJs(isolate, it.first)));
+            reti++;
+          }
+          args.GetReturnValue().Set(ret);
+        `);
       }
+
     });
   }
 
@@ -1036,6 +1060,25 @@ CollectionCType.prototype.emitJsTestImpl = function(f) {
       it("should accept objects", function() {
         var t1 = new ur.${type.jsTypename}({a: 1, b: "foo",c:{d:1}});
         assert.strictEqual(t1.toJsonString(), "{\\"a\\":1,\\"b\\":\\"foo\\",\\"c\\":{\\"d\\":1}}");
+      });
+      it("hasOwnProperty should work", function() {
+        var t1 = new ur.${type.jsTypename}({a: 1, b: "foo",c:{d:1}});
+        assert.equal(t1.hasOwnProperty('a'), true);
+        assert.equal(t1.hasOwnProperty('x'), false);
+      });
+      it("deleter should work", function() {
+        var t1 = new ur.${type.jsTypename}({a: 1, b: "foo",c:{d:1}});
+        assert.equal(t1.hasOwnProperty('a'), true);
+        delete t1.a;
+        assert.equal(t1.hasOwnProperty('a'), false);
+      });
+      it("enumerator should work", function() {
+        var t1 = new ur.${type.jsTypename}({a: 1, b: "foo",c:{d:1}});
+        var t1keys = _.keys(t1);
+        assert.deepEqual(t1keys, ['a', 'b', 'c']);
+        delete t1.a;
+        var t1keys = _.keys(t1);
+        assert.deepEqual(t1keys, ['b', 'c']);
       });
     `);
 

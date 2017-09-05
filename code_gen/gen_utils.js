@@ -339,7 +339,7 @@ function withJsWrapUtils(f, type) {
   f.emitJsNamedAccessors = function(o) {
     if (o.get) {
       f(`
-        static void jsGetNamed_${ type.jsTypename }(Local<String> name, PropertyCallbackInfo<Value> const &args) {
+        static void jsGetNamed_${ type.jsTypename }(Local< Name > name, PropertyCallbackInfo< Value > const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
           auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
@@ -352,13 +352,51 @@ function withJsWrapUtils(f, type) {
     }
     if (o.set) {
       f(`
-        static void jsSetNamed_${ type.jsTypename }(Local<String> name, Local<Value> value, PropertyCallbackInfo<Value> const &args) {
+        static void jsSetNamed_${ type.jsTypename }(Local< Name > name, Local< Value > value, PropertyCallbackInfo< Value > const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
           auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
           string key = convJsToString(isolate, name);
       `);
       f(o.set);
+      f(`
+        }
+      `);
+    }
+    if (o.query) {
+      f(`
+        static void jsQueryNamed_${ type.jsTypename }(Local< Name > name, PropertyCallbackInfo< Integer > const &args) {
+          Isolate *isolate = args.GetIsolate();
+          HandleScope scope(isolate);
+          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          string key = convJsToString(isolate, name);
+      `);
+      f(o.query);
+      f(`
+        }
+      `);
+    }
+    if (o.deleter) {
+      f(`
+        static void jsDeleterNamed_${ type.jsTypename }(Local< Name > name, PropertyCallbackInfo< Boolean > const &args) {
+          Isolate *isolate = args.GetIsolate();
+          HandleScope scope(isolate);
+          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          string key = convJsToString(isolate, name);
+      `);
+      f(o.deleter);
+      f(`
+        }
+      `);
+    }
+    if (o.enumerator) {
+      f(`
+        static void jsEnumeratorNamed_${ type.jsTypename }(const PropertyCallbackInfo< Array > &args) {
+          Isolate *isolate = args.GetIsolate();
+          HandleScope scope(isolate);
+          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+      `);
+      f(o.enumerator);
       f(`
         }
       `);
@@ -366,23 +404,21 @@ function withJsWrapUtils(f, type) {
     f('');
 
     f.jsBindings.push(function(f) {
-      if (o.get && o.set) {
-        f(`
-          tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_${ type.jsTypename }, jsSetNamed_${ type.jsTypename });
-        `);
-      }
-      else if (o.get) {
-        f(`
-          tpl->InstanceTemplate()->SetNamedPropertyHandler(jsGetNamed_${ type.jsTypename });
-        `);
-      }
+      f(`
+        tpl->InstanceTemplate()->SetHandler(NamedPropertyHandlerConfiguration(
+          ${(o.get ? `jsGetNamed_${ type.jsTypename }` : `0`)},
+          ${(o.set ? `jsSetNamed_${ type.jsTypename }` : `0`)},
+          ${(o.query ? `jsQueryNamed_${ type.jsTypename }` : `0`)},
+          ${(o.deleter ? `jsDeleterNamed_${ type.jsTypename }` : `0`)},
+          ${(o.enumerator ? `jsEnumeratorNamed_${ type.jsTypename }` : `0`)}));
+      `);
     });
   };
 
   f.emitJsIndexedAccessors = function(o) {
     if (o.get) {
       f(`
-        static void jsGetIndexed_${ type.jsTypename }(unsigned int index, PropertyCallbackInfo<Value> const &args) {
+        static void jsGetIndexed_${ type.jsTypename }(uint32_t index, PropertyCallbackInfo<Value> const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
           auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
@@ -394,7 +430,7 @@ function withJsWrapUtils(f, type) {
     }
     if (o.set) {
       f(`
-        static void jsSetIndexed_${ type.jsTypename }(unsigned int index, Local<Value> value, PropertyCallbackInfo<Value> const &args) {
+        static void jsSetIndexed_${ type.jsTypename }(uint32_t index, Local<Value> value, PropertyCallbackInfo<Value> const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
           auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
@@ -405,16 +441,14 @@ function withJsWrapUtils(f, type) {
       `);
     }
     f.jsBindings.push(function(f) {
-      if (o.get && o.set) {
-        f(`
-          tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_${ type.jsTypename }, jsSetIndexed_${ type.jsTypename });
-        `);
-      }
-      else if (o.get) {
-        f(`
-          tpl->InstanceTemplate()->SetIndexedPropertyHandler(jsGetIndexed_${ type.jsTypename });
-        `);
-      }
+      f(`
+        tpl->InstanceTemplate()->SetHandler(IndexedPropertyHandlerConfiguration(
+          ${(o.get ? `jsGetIndexed_${ type.jsTypename }` : `0`)},
+          ${(o.set ? `jsSetIndexed_${ type.jsTypename }` : `0`)},
+          ${(o.query ? `jsQueryIndexed_${ type.jsTypename }` : `0`)},
+          ${(o.deleter ? `jsDeleterIndexed_${ type.jsTypename }` : `0`)},
+          ${(o.enumerator ? `jsEnumeratorIndexed_${ type.jsTypename }` : `0`)}));
+      `);
     });
     f('');
   };
