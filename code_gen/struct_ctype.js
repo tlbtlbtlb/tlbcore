@@ -956,7 +956,9 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
           ett.typename === 'S64' || ett.typename === 'S32' ||
           ett.typename === 'U64' || ett.typename === 'U32' ||
           ett.typename === 'bool' ||
-          ett.templateName === 'arma::Col::fixed') {
+          ett.templateName === 'arma::Col::fixed' ||
+          ett.templateName === 'arma::Row::fixed' ||
+          ett.templateName === 'arma::Mat::fixed') {
 
         var sliceTypename = ett.typename;
         if (ett.templateName && ett.templateName.endsWith('::fixed')) {
@@ -966,61 +968,15 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
           f(`
             {
               vector< ${sliceTypename} > slice;
-              if (!rdJson(s, blobs, slice)) return false;
+              if (!rdJson(s, blobs, slice)) return rdJsonFail("rdJson(slice)");
               if (slice.size() != arr.size()) {
-                eprintf("rdJson(${ett.typename}): Size mismatch: %zu %zu\\n",
+                return rdJsonFail(stringprintf(
+                  "Size mismatch: %zu %zu",
                   (size_t)slice.size(),
-                  (size_t)arr.size());
-                return false;
+                  (size_t)arr.size()).c_str());
               }
               for (size_t i=0; i<arr.size(); i++) {
                 arr[i]->${mkMemberRef(names)} = slice[i];
-              }
-              jsonSkipSpace(s);
-              c = *s++;
-              if (c == \',\') continue;
-              if (c == \'}\') return typeOk;
-            }
-          `);
-        };
-      }
-      else if ((ett.templateName === 'arma::Col::fixed' ||
-                ett.templateName === 'arma::Row::fixed' ||
-                ett.templateName === 'arma::Mat::fixed') && (
-                ett.templateArgs[0] === 'double' ||
-                ett.templateArgs[0] === 'float')) {
-        var baseType = type.reg.types[ett.templateArgs[0]];
-        var colSize = parseInt(ett.templateArgs[1]) * (ett.templateArgs.length > 2 ? parseInt(ett.templateArgs[2]) : 1);
-        actions[`"${mkMemberRef(names)}" :`] = function() {
-          f(`
-            {
-              ndarray nd;
-              if (!rdJson(s, nullptr, nd)) return false;
-              if (nd.shape.size() != 2 || arr.size() != nd.shape[0] || nd.shape[1] != ${colSize}) {
-                eprintf("rdJson(${type.typename}::${mkMemberRef(names)}): Size mismatch: %zu %zu %zu %zu\\n",
-                  (size_t)nd.shape.size(),
-                  (size_t)arr.size(),
-                  nd.shape.size()>0 ? (size_t)nd.shape[0] : (size_t)0,
-                  nd.shape.size()>1 ? (size_t)nd.shape[1] : (size_t)0);
-                return false;
-              }
-
-              vector<${baseType.typename}> tmp(nd.shape[0] * nd.shape[1]);
-              if (tmp.size() * sizeof(${baseType.typename}) != nd.partBytes) {
-                eprintf("rdJson(${type.typename}::${mkMemberRef(names)}): size mismatch %zu*%zu != %zu\\n",
-                  tmp.size(), sizeof(${baseType.typename}), (size_t)nd.partBytes);
-                return false;
-              }
-              if (!blobs->readChunk(reinterpret_cast<char *>(tmp.data()), nd.partOfs, nd.partBytes)) {
-                eprintf("rdJson(${type.typename}::${mkMemberRef(names)}): no chunk %zu %zu\\n",
-                  (size_t)nd.partOfs, (size_t)nd.partBytes);
-                return false;
-              }
-
-              for (size_t i=0; i<arr.size(); i++) {
-                for (size_t k=0; k<${colSize}; k++) {
-                  arr[i]->${mkMemberRef(names)}[k] = tmp[i*${colSize}+k];
-                }
               }
               jsonSkipSpace(s);
               c = *s++;
@@ -1034,9 +990,11 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
         actions[`"${mkMemberRef(names)}" :`] = function() {
           f(`
             vector<${ett.typename}> tmp;
-            if (!rdJson(s, blobs, tmp)) return false;
+            if (!rdJson(s, blobs, tmp)) return rdJsonFail("rdJson(tmp)");
             if (arr.size() != tmp.size()) {
-              return false;
+              return rdJsonFail(stringprintf(
+                "Size mismatch %zu %zu",
+                arr.size(), tmp.size()).c_str());
             }
             for (size_t i=0; i<tmp.size(); i++) {
               arr[i]->${mkMemberRef(names)} = tmp[i];
@@ -1057,7 +1015,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
   actions['"__bulk_size" : '] = function() {
     f(`
       U64 bulk_size {0};
-      if (!rdJson(s, blobs, bulk_size)) return false;
+      if (!rdJson(s, blobs, bulk_size)) return rdJsonFail("rdJson(bulk_size)");
       arr.resize((size_t)bulk_size);
       for (auto &it : arr) {
         it = make_shared<${type.typename}>();

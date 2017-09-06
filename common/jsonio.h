@@ -81,7 +81,7 @@ inline void jsonSkipSpace(char const *&s) {
 }
 
 /*
-  If the pattern matches, advance s past it and return true. Otherwise leave s the same and return false.a
+  If the pattern matches, advance s past it and return true. Otherwise leave s the same and return false.
   jsonMatchKey matches "pattern":
 */
 bool jsonMatch(char const *&s, char const *pattern);
