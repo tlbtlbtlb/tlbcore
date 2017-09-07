@@ -290,13 +290,13 @@ StructCType.prototype.emitTypeDecl = function(f) {
   `);
   if (!type.noSerialize) {
     f(`
-      void wrJson(char *&s, shared_ptr<ChunkFile> const &blobs, ${type.typename} const &obj);
-      bool rdJson(char const *&s, shared_ptr<ChunkFile> const &blobs, ${type.typename} &obj);
-      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> const &blobs, ${type.typename} const &x);
+      void wrJson(char *&s, shared_ptr< ChunkFile > const &blobs, ${type.typename} const &obj);
+      bool rdJson(char const *&s, shared_ptr< ChunkFile > const &blobs, ${type.typename} &obj);
+      void wrJsonSize(size_t &size, shared_ptr< ChunkFile > const &blobs, ${type.typename} const &x);
 
-      void wrJson(char *&s, shared_ptr<ChunkFile> const &blobs, vector<shared_ptr<${type.typename}> > const &obj);
-      bool rdJson(const char *&s, shared_ptr<ChunkFile> const &blobs, vector<shared_ptr<${type.typename}> > &obj);
-      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> const &blobs, vector<shared_ptr<${type.typename}> > const &x);
+      void wrJson(char *&s, shared_ptr< ChunkFile > const &blobs, vector< shared_ptr< ${type.typename} > > const &obj);
+      bool rdJson(const char *&s, shared_ptr< ChunkFile > const &blobs, vector< shared_ptr< ${type.typename} > > &obj);
+      void wrJsonSize(size_t &size, shared_ptr< ChunkFile > const &blobs, vector< shared_ptr< ${type.typename} > > const &x);
     `);
   }
 
@@ -690,12 +690,12 @@ StructCType.prototype.emitWrJson = function(f) {
 
   if (1) {
     f(`
-      void wrJson(char *&s, shared_ptr<ChunkFile> const &blobs, ${type.typename} const &obj) {
+      void wrJson(char *&s, shared_ptr< ChunkFile > const &blobs, ${type.typename} const &obj) {
     `);
     var f1 = f.child();
     f(`
       }
-      void wrJsonSize(size_t &size, shared_ptr<ChunkFile> const &blobs, ${type.typename} const &obj) {
+      void wrJsonSize(size_t &size, shared_ptr< ChunkFile > const &blobs, ${type.typename} const &obj) {
     `);
     var f2 = f.child();
     f(`
@@ -747,7 +747,7 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
   var deopt = (memberCount > 250) ? '__attribute__((optnone))' : '';
 
   f(`
-    void wrJson(char *&s, shared_ptr<ChunkFile> const &blobs, vector<shared_ptr<${type.typename}> > const &arr) ${deopt} {
+    void wrJson(char *&s, shared_ptr< ChunkFile > const &blobs, vector< shared_ptr< ${type.typename} > > const &arr) ${deopt} {
       if (!blobs) {
         wrJsonVec(s, blobs, arr);
         return;
@@ -756,7 +756,7 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
   f1 = f.child();
   f(`
     }
-    void wrJsonSize(size_t &size, shared_ptr<ChunkFile> const &blobs, vector<shared_ptr<${type.typename}> > const &arr) {
+    void wrJsonSize(size_t &size, shared_ptr< ChunkFile > const &blobs, vector< shared_ptr< ${type.typename} > > const &arr) {
       if (!blobs) {
         wrJsonSizeVec(size, blobs, arr);
         return;
@@ -794,7 +794,7 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
         }
         f1(`
           {
-            vector<${sliceTypename}> slice(arr.size());
+            vector< ${sliceTypename} > slice(arr.size());
             for (size_t i=0; i<arr.size(); i++) {
               slice[i] = arr[i]->${mkMemberRef(names)};
             }
@@ -866,7 +866,7 @@ StructCType.prototype.emitRdJson = function(f) {
   };
 
   f(`
-    bool rdJson(char const *&s, shared_ptr<ChunkFile> const &blobs, ${type.typename} &obj) {
+    bool rdJson(char const *&s, shared_ptr< ChunkFile > const &blobs, ${type.typename} &obj) {
       bool typeOk = ${type.omitTypeTag ? 'true' : 'false'};
       char c;
       jsonSkipSpace(s);
@@ -878,20 +878,15 @@ StructCType.prototype.emitRdJson = function(f) {
   `);
   emitPrefix('');
   f(`
-        s = memberStart;
-        if (!jsonSkipMember(s, blobs)) return false;
-        c = *s++;
-        if (c == \',\') continue;
-        if (c == \'}\') return typeOk;
+          s = memberStart;
+          if (!jsonSkipMember(s, blobs)) return false;
+          c = *s++;
+          if (c == \',\') continue;
+          if (c == \'}\') return typeOk;
+        }
       }
-    }
-    s--;
-  `);
-  if (type.reg.debugJson) f(`
-      eprintf("rdJson fail at %s\\n", s);
-  `)
-  f(`
-      return false;
+      s--;
+      return rdJsonFail("Expected {");
     }
   `);
 
@@ -952,56 +947,31 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
   _.each(rm, function(members, et) {
     var ett = type.reg.types[et];
     _.each(members, function(names) {
-      if (ett.typename === 'double' || ett.typename === 'float' ||
-          ett.typename === 'S64' || ett.typename === 'S32' ||
-          ett.typename === 'U64' || ett.typename === 'U32' ||
-          ett.typename === 'bool' ||
-          ett.templateName === 'arma::Col::fixed' ||
-          ett.templateName === 'arma::Row::fixed' ||
-          ett.templateName === 'arma::Mat::fixed') {
-
-        var sliceTypename = ett.typename;
-        if (ett.templateName && ett.templateName.endsWith('::fixed')) {
-          sliceTypename = `${ett.templateName.slice(0, ett.templateName.length-7)}< ${ett.templateArgs[0]} >`;
-        }
-        actions[`"${mkMemberRef(names)}" :`] = function() {
-          f(`
-            {
-              vector< ${sliceTypename} > slice;
-              if (!rdJson(s, blobs, slice)) return rdJsonFail("rdJson(slice)");
-              if (slice.size() != arr.size()) {
-                return rdJsonFail(stringprintf(
-                  "Size mismatch: %zu %zu",
-                  (size_t)slice.size(),
-                  (size_t)arr.size()).c_str());
-              }
-              for (size_t i=0; i<arr.size(); i++) {
-                arr[i]->${mkMemberRef(names)} = slice[i];
-              }
-              jsonSkipSpace(s);
-              c = *s++;
-              if (c == \',\') continue;
-              if (c == \'}\') return typeOk;
-            }
-          `);
-        };
+      var sliceTypename = ett.typename;
+      if (ett.templateName && ett.templateName.endsWith('::fixed')) {
+        sliceTypename = `${ett.templateName.slice(0, ett.templateName.length-7)}< ${ett.templateArgs[0]} >`;
       }
-      else {
-        actions[`"${mkMemberRef(names)}" :`] = function() {
-          f(`
-            vector<${ett.typename}> tmp;
-            if (!rdJson(s, blobs, tmp)) return rdJsonFail("rdJson(tmp)");
-            if (arr.size() != tmp.size()) {
+      actions[`"${mkMemberRef(names)}" :`] = function() {
+        f(`
+          {
+            vector< ${sliceTypename} > slice;
+            if (!rdJson(s, blobs, slice)) return rdJsonFail("rdJson(slice)");
+            if (slice.size() != arr.size()) {
               return rdJsonFail(stringprintf(
-                "Size mismatch %zu %zu",
-                arr.size(), tmp.size()).c_str());
+                "Size mismatch: %zu %zu",
+                (size_t)slice.size(),
+                (size_t)arr.size()).c_str());
             }
-            for (size_t i=0; i<tmp.size(); i++) {
-              arr[i]->${mkMemberRef(names)} = tmp[i];
+            for (size_t i=0; i<arr.size(); i++) {
+              arr[i]->${mkMemberRef(names)} = slice[i];
             }
-          `);
-        };
-      }
+            jsonSkipSpace(s);
+            c = *s++;
+            if (c == \',\') continue;
+            if (c == \'}\') return typeOk;
+          }
+        `);
+      };
     });
   });
   actions[`"__type" : "bulk_vector_${type.jsTypename}"`] = function() {
@@ -1018,7 +988,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
       if (!rdJson(s, blobs, bulk_size)) return rdJsonFail("rdJson(bulk_size)");
       arr.resize((size_t)bulk_size);
       for (auto &it : arr) {
-        it = make_shared<${type.typename}>();
+        it = make_shared< ${type.typename} >();
       }
       c = *s++;
       if (c == \',\') continue;
@@ -1031,7 +1001,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
   */
   var deopt = (_.keys(actions).length > 250) ? '__attribute__((optnone))' : '';
   f(`
-    bool rdJson(char const *&s, shared_ptr<ChunkFile> const &blobs, vector<shared_ptr<${type.typename}> > &arr) ${deopt} {
+    bool rdJson(char const *&s, shared_ptr< ChunkFile > const &blobs, vector< shared_ptr< ${type.typename} > > &arr) ${deopt} {
       bool typeOk = ${type.omitTypeTag ? 'true' : 'false'};
       char c;
       jsonSkipSpace(s);
@@ -1043,20 +1013,15 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
   `);
   emitPrefix('');
   f(`
-        s = memberStart;
-        if (!jsonSkipMember(s, blobs)) return false;
-        c = *s++;
-        if (c == \',\') continue;
-        if (c == \'}\') return typeOk;
+          s = memberStart;
+          if (!jsonSkipMember(s, blobs)) return false;
+          c = *s++;
+          if (c == \',\') continue;
+          if (c == \'}\') return typeOk;
+        }
       }
-    }
-    s--;
-  `);
-  if (type.reg.debugJson) f(`
-      eprintf("rdJson fail at %s\\n", s);
-  `)
-  f(`
-      return false;
+      s--;
+      return rdJsonFail("Expected {");
     }
   `);
 
@@ -1112,8 +1077,8 @@ StructCType.prototype.emitJsWrapDecl = function(f) {
   var type = this;
   f(`
     using JsWrap_${type.jsTypename} = JsWrapGeneric< ${type.typename} >;
-    void jsConstructor_${type.jsTypename}(JsWrap_${type.jsTypename} *thisObj, FunctionCallbackInfo<Value> const &args);
-    Handle<Value> jsToJSON_${type.jsTypename}(Isolate *isolate, ${type.typename} const &it);
+    void jsConstructor_${type.jsTypename}(JsWrap_${type.jsTypename} *thisObj, FunctionCallbackInfo< Value > const &args);
+    Handle< Value > jsToJSON_${type.jsTypename}(Isolate *isolate, ${type.typename} const &it);
   `);
 };
 
@@ -1146,7 +1111,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
             var memberType = type.reg.getType(argInfo.type);
 
             f(`
-              Local<Value> a0_${memberName}_js = a0->Get(String::NewFromUtf8(isolate, "${memberName}"));
+              Local< Value > a0_${memberName}_js = a0->Get(String::NewFromUtf8(isolate, "${memberName}"));
               if (a0_${memberName}_js->IsUndefined()) {
               }
               else if (${ memberType.getJsToCppTest('a0_' + memberName + '_js', {conv: true}) }) {
@@ -1165,9 +1130,9 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   if (!type.noSerialize) {
 
     f(`
-      Handle<Value> jsToJSON_${type.jsTypename}(Isolate *isolate, const ${type.typename} &it) {
+      Handle< Value > jsToJSON_${type.jsTypename}(Isolate *isolate, const ${type.typename} &it) {
         EscapableHandleScope scope(isolate);
-        Local<Object> ret = Object::New(isolate);
+        Local< Object > ret = Object::New(isolate);
 
         ret->Set(String::NewFromUtf8(isolate, "__type"), String::NewFromUtf8(isolate, "${type.jsTypename}"));
     `);
@@ -1217,7 +1182,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: [], ignoreExtra: true, code: function(f) {
           f(`
-            args.GetReturnValue().Set(Local<Value>(jsToJSON_${type.jsTypename}(isolate, *thisObj->it)));
+            args.GetReturnValue().Set(Local< Value >(jsToJSON_${type.jsTypename}(isolate, *thisObj->it)));
           `);
         }}
       ]);
@@ -1288,7 +1253,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
           f(`
             packet wr;
             wr.add_checked(*thisObj->it);
-            Local<Value> retbuf = node::Buffer::New(isolate, wr.size()).ToLocalChecked();
+            Local< Value > retbuf = node::Buffer::New(isolate, wr.size()).ToLocalChecked();
             memcpy(node::Buffer::Data(retbuf), wr.rd_ptr(), wr.size());
             args.GetReturnValue().Set(retbuf);
           `);
@@ -1333,7 +1298,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsAccessors(name, {
       get: function(f) {
         f(`
-          args.GetReturnValue().Set(Local<Value>(${ memberType.getCppToJsExpr(`${memberType.isPtr() ? '' : '&'}thisObj->it->${name}`, 'thisObj->it')}));
+          args.GetReturnValue().Set(Local< Value >(${ memberType.getCppToJsExpr(`${memberType.isPtr() ? '' : '&'}thisObj->it->${name}`, 'thisObj->it')}));
         `);
       },
       set: function(f) {
@@ -1351,9 +1316,9 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
   if (1) { // Setup template and prototype
     f(`
-      void jsInit_${type.jsTypename}(Handle<Object> exports) {
+      void jsInit_${type.jsTypename}(Handle< Object > exports) {
         Isolate *isolate = Isolate::GetCurrent();
-        Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, jsNew_${type.jsTypename});
+        Local< FunctionTemplate > tpl = FunctionTemplate::New(isolate, jsNew_${type.jsTypename});
         tpl->SetClassName(String::NewFromUtf8(isolate, "${type.jsTypename}"));
         tpl->InstanceTemplate()->SetInternalFieldCount(1);
     `);

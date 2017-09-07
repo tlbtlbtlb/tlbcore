@@ -3,11 +3,6 @@
 #include <zlib.h>
 #include "build.src/ndarray_decl.h"
 
-/*
-  Consider basing on https://github.com/esnme/ultrajson instead
-*/
-
-
 jsonstr::jsonstr()
   :it("null")
 {
@@ -33,7 +28,7 @@ jsonstr::~jsonstr()
 {
 }
 
-static const size_t PADDING = 1000000;
+static const size_t PADDING = 0;
 
 char *
 jsonstr::startWrite(size_t n)
@@ -44,12 +39,6 @@ jsonstr::startWrite(size_t n)
   it.resize(n + 2 + PADDING); // Allow for adding \n\0
   return &it[0];
 }
-
-#if 0
-static FILE *jsonstr_logfp = fopen((string("/tmp/jsonstr") + to_string(getpid()) + ".log").c_str(), "w");
-#else
-static FILE *jsonstr_logfp = nullptr;
-#endif
 
 void
 jsonstr::endWrite(char const *p)
@@ -64,9 +53,6 @@ jsonstr::endWrite(char const *p)
   if (n + 1 > it.size() - PADDING) {
     eprintf("jsonstr: buffer overrun. %zu/%zu\n", n, it.size()-PADDING);
     eprintf("jsonstr: string was: %s\n", it.c_str());
-  }
-  if (jsonstr_logfp) {
-    fprintf(jsonstr_logfp, "write %zu/%zu: %s\n", n, it.capacity(), it.substr(0, min((size_t)40, it.size())).c_str());
   }
   it[n] = 0; // terminating null. Observe that we provided the extra byte in startWrite.
   it.resize(n);
@@ -194,6 +180,13 @@ int jsonstr::readFromFile(string const &fn)
 
   return -1;
 }
+
+
+ostream & operator<<(ostream &s, const jsonstr &obj)
+{
+  return s << obj.it;
+}
+
 
 jsonstr interpolate(jsonstr const &a, jsonstr const &b, double cb)
 {
