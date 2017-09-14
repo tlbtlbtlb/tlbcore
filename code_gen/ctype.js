@@ -1,14 +1,14 @@
-var _                   = require('underscore');
-var assert              = require('assert');
-var util                = require('util');
-var crypto              = require('crypto');
-var cgen                = require('./cgen');
-var gen_utils           = require('./gen_utils');
+const _ = require('underscore');
+const assert = require('assert');
+const util = require('util');
+const crypto = require('crypto');
+const cgen = require('./cgen');
+const gen_utils = require('./gen_utils');
 
 exports.CType = CType;
 
 function CType(reg, typename) {
-  var type = this;
+  let type = this;
   assert.ok(typename);
   type.reg = reg;
   type.typename = typename;
@@ -33,7 +33,7 @@ function CType(reg, typename) {
 }
 
 CType.prototype.extend = function(options) {
-  var type = this;
+  let type = this;
   _.extendOwn(this, options);
   return this;
 };
@@ -52,8 +52,8 @@ CType.prototype.addJswrapMethod = function(x) { this.extraJswrapMethods.push(x);
 CType.prototype.addJswrapAccessor = function(x) { this.extraJswrapAccessors.push(x); };
 
 CType.prototype.addSuperType = function(superTypename) {
-  var type = this;
-  var superType = type.reg.getType(superTypename);
+  let type = this;
+  let superType = type.reg.getType(superTypename);
   if (!superType) throw new Error('No supertype ' + superTypename);
   type.superTypes.push(superType);
 };
@@ -89,7 +89,7 @@ CType.prototype.getSchema = function() {
 };
 
 CType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
-  var type = this;
+  let type = this;
   throw new Error('no ValueNew for ' + type.typename);
 };
 
@@ -103,8 +103,8 @@ CType.prototype.getFnBase = function() {
 };
 
 CType.prototype.getFns = function() {
-  var type = this;
-  var base = type.getFnBase();
+  let type = this;
+  let base = type.getFnBase();
   return {
     hostCode: type.noHostCode ? undefined : base + '_host.cc',
     jsTestCode: 'test_' + base + '.js',
@@ -116,8 +116,8 @@ CType.prototype.getFns = function() {
 };
 
 CType.prototype.emitAll = function(files) {
-  var type = this;
-  var fns = type.getFns();
+  let type = this;
+  let fns = type.getFns();
   if (0) console.log('emitAll', type.typename, fns);
   if (fns.hostCode) {
     type.emitHostCode(files.getFile(fns.hostCode).child({TYPENAME: type.typename}));
@@ -138,17 +138,17 @@ CType.prototype.emitAll = function(files) {
 
 
 CType.prototype.getCustomerIncludes = function() {
-  var type = this;
-  var base = type.getFnBase();
+  let type = this;
+  let base = type.getFnBase();
   return [`#include "${base}_decl.h"`].concat(type.extraCustomerIncludes);
 };
 
 CType.prototype.getHeaderIncludes = function() {
-  var type = this;
-  var ret = [];
+  let type = this;
+  let ret = [];
   _.each(type.getDeclDependencies(), function(othertype) {
     othertype = type.reg.getType(othertype);
-    var fns = othertype.getFns();
+    let fns = othertype.getFns();
     if (fns && fns.typeHeader) {
       ret.push('#include "' + fns.typeHeader + '"');
     }
@@ -157,15 +157,15 @@ CType.prototype.getHeaderIncludes = function() {
 };
 
 CType.prototype.getSignature = function() {
-  var type = this;
-  var syn = type.getSynopsis();
-  var h = crypto.createHash('sha1');
+  let type = this;
+  let syn = type.getSynopsis();
+  let h = crypto.createHash('sha1');
   h.update(syn);
   return h.digest('base64').substr(0, 8);
 };
 
 CType.prototype.getTypeAndVersion = function() {
-  var type = this;
+  let type = this;
   return type.typename + '@' + type.getSignature();
 };
 
@@ -176,32 +176,32 @@ CType.prototype.getTypeAndVersion = function() {
 */
 
 CType.prototype.addDefnDependency = function(x) {
-  var type = this;
+  let type = this;
   type.extraDefnDependencies.push(x);
 };
 
 CType.prototype.getDefnDependencies = function() {
-  var type = this;
+  let type = this;
   return gen_utils.sortTypes(type.extraDefnDependencies);
 };
 
 CType.prototype.getAllTypes = function() {
-  var type = this;
-  var subtypes = gen_utils.sortTypes(gen_utils.nonPtrTypes([type].concat(_.flatten(_.map(type.getMemberTypes(), function(t) { return [t].concat(t.getAllTypes()); })))));
+  let type = this;
+  let subtypes = gen_utils.sortTypes(gen_utils.nonPtrTypes([type].concat(_.flatten(_.map(type.getMemberTypes(), function(t) { return [t].concat(t.getAllTypes()); })))));
   if (0) console.log('CType.getAllTypes', type.typename, _.map(subtypes, function(type) { return type.typename; }));
 
   return subtypes;
 };
 
 CType.prototype.getDeclDependencies = function() {
-  var type = this;
-  var subtypes = gen_utils.sortTypes(type.getAllTypes().concat(type.extraDeclDependencies));
+  let type = this;
+  let subtypes = gen_utils.sortTypes(type.getAllTypes().concat(type.extraDeclDependencies));
   if (0) console.log('CType.getDeclDependencies', type.typename, _.map(subtypes, function(type) { return type.typename; }));
   return subtypes;
 };
 
 CType.prototype.addDeclDependency = function(t) {
-  var type = this;
+  let type = this;
   assert.ok(t);
   type.extraDeclDependencies.push(t);
 };
@@ -211,29 +211,29 @@ CType.prototype.getMemberTypes = function() {
 };
 
 CType.prototype.getRecursiveMembers = function() {
-  var type = this;
-  var acc = {};
+  let type = this;
+  let acc = {};
   type.accumulateRecursiveMembers([], acc);
   return acc;
 };
 
 CType.prototype.accumulateRecursiveMembers = function(context, acc) {
-  var type = this;
+  let type = this;
   if (!acc[type.typename]) {
     acc[type.typename] = [];
   }
   acc[type.typename].push(context);
-}
+};
 
 CType.prototype.refRecursiveMember = function(context) {
-  var type = this;
+  let type = this;
 };
 
 
 // ----------------------------------------------------------------------
 
 CType.prototype.emitHeader = function(f) {
-  var type = this;
+  let type = this;
   f('#include "common/jsonio.h"');
   type.emitForwardDecl(f);
   _.each(type.getHeaderIncludes(), function(l) {
@@ -244,7 +244,7 @@ CType.prototype.emitHeader = function(f) {
 };
 
 CType.prototype.emitHostCode = function(f) {
-  var type = this;
+  let type = this;
   f(`
     /*
       CType Attributes:
@@ -261,13 +261,13 @@ CType.prototype.emitHostCode = function(f) {
   `);
 
   f(`#include "common/std_headers.h"`);
-  var fns = type.getFns();
+  let fns = type.getFns();
   if (fns.typeHeader) {
     f(`#include "${fns.typeHeader}"`);
   }
   _.each(type.getDefnDependencies(), function(othertype) {
     othertype = type.reg.getType(othertype);
-    var fns = othertype.getFns();
+    let fns = othertype.getFns();
     if (fns && fns.typeHeader) {
       f(`#include "${fns.typeHeader}"`);
     }
@@ -280,10 +280,10 @@ CType.prototype.emitHostCode = function(f) {
 };
 
 CType.prototype.emitJsWrapHeader = function(f) {
-  var type = this;
+  let type = this;
   _.each(type.getDeclDependencies().concat([type]), function(othertype) {
     othertype = type.reg.getType(othertype);
-    var fns = othertype.getFns();
+    let fns = othertype.getFns();
     if (fns && fns.typeHeader) {
       f(`#include "${fns.typeHeader}"`);
     }
@@ -296,13 +296,13 @@ CType.prototype.emitJsWrapHeader = function(f) {
 };
 
 CType.prototype.emitJsWrapCode = function(f) {
-  var type = this;
+  let type = this;
   f(`
     #include "common/std_headers.h"
     #include "nodebase/jswrapbase.h"
   `);
   if (0) {
-    var fns = type.getFns();
+    let fns = type.getFns();
     if (fns.typeHeader) {
       f(`#include "${fns.typeHeader}"`);
     }
@@ -315,7 +315,7 @@ CType.prototype.emitJsWrapCode = function(f) {
   `);
   _.each(type.getDeclDependencies(), function(othertype) {
     othertype = type.reg.getType(othertype);
-    var fns = othertype.getFns();
+    let fns = othertype.getFns();
     if (fns && fns.jsWrapHeader) {
       f(`#include "${fns.jsWrapHeader}"`);
     }
@@ -329,7 +329,7 @@ CType.prototype.emitJsWrapCode = function(f) {
 };
 
 CType.prototype.emitRosCode = function(f) {
-  var type = this;
+  let type = this;
   // WRITEME: use blobs if we care about using this
   f(`
     #include <ros/ros.h>
@@ -360,7 +360,7 @@ CType.prototype.emitRosCode = function(f) {
       }
     }
   `);
-}
+};
 
 CType.prototype.emitJsTestImpl = function(f) {
 };
@@ -375,7 +375,7 @@ CType.prototype.emitTypeDecl = function(f) {
 };
 
 CType.prototype.emitFunctionDecl = function(f) {
-  var type = this;
+  let type = this;
   _.each(type.extraFunctionDecls, function(l) {
     f(l);
   });
@@ -391,12 +391,12 @@ CType.prototype.emitJsWrapImpl = function(f) {
 };
 
 CType.prototype.getVarDecl = function(varname) {
-  var type = this;
+  let type = this;
   return type.typename + ' ' + varname;
 };
 
 CType.prototype.getFormalParameter = function(varname) {
-  var type = this;
+  let type = this;
   return type.typename + ' ' + varname;
 };
 

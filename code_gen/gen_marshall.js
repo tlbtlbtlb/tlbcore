@@ -18,9 +18,9 @@
       A Mocha test file, exercises the basics
 
 */
-var _                   = require('underscore');
-var cgen                = require('./cgen');
-var TypeRegistry        = require('./type_registry').TypeRegistry;
+const _ = require('underscore');
+const cgen = require('./cgen');
+const TypeRegistry = require('./type_registry').TypeRegistry;
 
 exports.TypeRegistry = TypeRegistry;
 

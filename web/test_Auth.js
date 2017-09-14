@@ -1,11 +1,11 @@
-var Auth                = require('./Auth');
+const Auth = require('./Auth');
 
 describe('generateCookie', function() {
   it('should have reasonable characters', function() {
-    var i;
-    var tokens = [];
+    let i;
+    let tokens = [];
     for (i=0; i<10000; i++) {
-      var c = Auth.generateCookie();
+      let c = Auth.generateCookie();
       if (!(/^[a-zA-Z0-9]+$/.exec(c))) {
         throw new Error('Bad characters in ' + c);
       }

@@ -1,21 +1,21 @@
-
+/* globals CodeMirror, replaceLocationHash, gotoCurrentState */
 
 $.startEditUrl = function() {
 
   $(window).on('keydown', function(ev) {
+    let cm, eu, pageid;
     if (ev.ctrlKey && !ev.metaKey && !ev.altKey && !ev.shiftKey && ev.which === 69) { // C-E
 
-      var eu = $('#popupEditUrl');
+      eu = $('#popupEditUrl');
       if (eu.length) return undefined; // already doing it, let key event propagate
-
       eu = $('<div id="popupEditBlock"></div><div id="popupEditUrl"></div>').appendTo(document.body);
 
-      var state = history.state;
-      var pageid = history.state.pageid;
-      var options = history.state.o;
-      var optionsStr = JSON.stringify(options, false, 2);
+      let state = history.state;
+      pageid = history.state.pageid;
+      let options = history.state.o;
+      let optionsStr = JSON.stringify(options, false, 2);
 
-      var cm = CodeMirror(eu[1], {
+      cm = CodeMirror(eu[1], {
         value: optionsStr,
         mode:  {name: 'javascript', json: true},
         keyMap: 'emacs',
@@ -35,8 +35,8 @@ $.startEditUrl = function() {
     }
 
     function saveOptions() {
-      var optionsStr2 = cm.getValue();
-      var options2 = {};
+      let optionsStr2 = cm.getValue();
+      let options2 = {};
       try {
         options2 = JSON.parse(optionsStr2);
       } catch(ex) {

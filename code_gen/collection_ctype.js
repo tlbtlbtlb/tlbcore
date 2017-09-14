@@ -1,9 +1,9 @@
-var _                   = require('underscore');
-var assert              = require('assert');
-var util                = require('util');
-var cgen                = require('./cgen');
-var gen_utils           = require('./gen_utils');
-var CType               = require('./ctype').CType;
+const _ = require('underscore');
+const assert = require('assert');
+const util = require('util');
+const cgen = require('./cgen');
+const gen_utils = require('./gen_utils');
+const CType = require('./ctype').CType;
 
 exports.CollectionCType = CollectionCType;
 
@@ -12,15 +12,15 @@ exports.CollectionCType = CollectionCType;
 */
 
 function CollectionCType(reg, typename) {
-  var type = this;
+  let type = this;
   CType.call(type, reg, typename);
 
   type.templateName = '';
   type.templateArgs = [];
   type.constructorJswrapCases = [];
 
-  var depth = 0;
-  var argi = 0;
+  let depth = 0;
+  let argi = 0;
   _.each(typename, function(c) {
     if (c === '<') {
       if (type.templateArgs[argi]) {
@@ -68,7 +68,7 @@ function CollectionCType(reg, typename) {
       return null;
     }
     else {
-      var t = type.reg.getType(name);
+      let t = type.reg.getType(name);
       if (!t) {
         console.log(`No type for template arg ${name} in ${type.templateName} < ${type.templateArgs.join(' , ')} >`);
         console.log(util.inspect(type.templateArgs));
@@ -92,11 +92,11 @@ function CollectionCType(reg, typename) {
   if (0) console.log(`template ${typename} ${type.templateName} ${type.templateArgs}`);
 }
 CollectionCType.prototype = Object.create(CType.prototype);
-CollectionCType.prototype.isCollection = function() { return true; }
+CollectionCType.prototype.isCollection = function() { return true; };
 
 
 CollectionCType.prototype.emitTypeDecl = function(f) {
-  var type = this;
+  let type = this;
   f(`
     char const * getTypeVersionString(${type.typename} const &);
     char const * getTypeName(${type.typename} const &);
@@ -107,9 +107,9 @@ CollectionCType.prototype.emitTypeDecl = function(f) {
 };
 
 CollectionCType.prototype.emitHostImpl = function(f) {
-  var type = this;
+  let type = this;
 
-  var schema = {
+  let schema = {
     typename: type.jsTypename,
     hasArraynature: false,
     members: []
@@ -129,8 +129,8 @@ CollectionCType.prototype.emitHostImpl = function(f) {
 };
 
 CollectionCType.prototype.getAllTypes = function() {
-  var type = this;
-  var ret = _.flatten(_.map(type.templateArgTypes, function(t) {
+  let type = this;
+  let ret = _.flatten(_.map(type.templateArgTypes, function(t) {
     return t ? t.getAllTypes() : [];
   }), true);
   ret.push(type);
@@ -147,8 +147,8 @@ CollectionCType.prototype.getAllTypes = function() {
 
 
 CollectionCType.prototype.getSpecialIncludes = function() {
-  var type = this;
-  var ret = [];
+  let type = this;
+  let ret = [];
   if (type.templateName === 'Timeseq') {
     ret.push(`#include "timeseq/timeseq.h"`);
     ret.push(`#include "build.src/${type.jsTypename}_decl.h"`);
@@ -163,8 +163,8 @@ CollectionCType.prototype.getSpecialIncludes = function() {
 };
 
 CollectionCType.prototype.getHeaderIncludes = function() {
-  var type = this;
-  var ret = _.flatten(_.map(type.templateArgTypes, function(t) {
+  let type = this;
+  let ret = _.flatten(_.map(type.templateArgTypes, function(t) {
     return t ? t.getCustomerIncludes() : [];
   }), true).concat(type.extraHeaderIncludes, type.getSpecialIncludes());
 
@@ -173,8 +173,8 @@ CollectionCType.prototype.getHeaderIncludes = function() {
 };
 
 CollectionCType.prototype.getCustomerIncludes = function() {
-  var type = this;
-  var ret = _.flatten(_.map(type.templateArgTypes, function(t) {
+  let type = this;
+  let ret = _.flatten(_.map(type.templateArgTypes, function(t) {
     return t ? t.getCustomerIncludes() : [];
   }), true).concat(type.extraCustomerIncludes, type.getSpecialIncludes());
   if (0) console.log(type.typename, 'getCustomerIncludes', util.inspect(ret));
@@ -187,12 +187,12 @@ CollectionCType.prototype.hasJsWrapper = function() {
 };
 
 CollectionCType.prototype.getSynopsis = function() {
-  var type = this;
+  let type = this;
   return `(${type.typename})`;
 };
 
 CollectionCType.prototype.getInitializer = function() {
-  var type = this;
+  let type = this;
   if (/^arma::.*::fixed$/.test(type.templateName)) {
     return 'arma::fill::zeros';
   } else {
@@ -201,7 +201,7 @@ CollectionCType.prototype.getInitializer = function() {
 };
 
 CollectionCType.prototype.getAllZeroExpr = function() {
-  var type = this;
+  let type = this;
   if (/^arma::.*::fixed$/.test(type.templateName)) {
     return `${type.typename}(arma::fill::zeros)`;
   }
@@ -223,23 +223,23 @@ CollectionCType.prototype.isPod = function() {
 };
 
 CollectionCType.prototype.getFormalParameter = function(varname) {
-  var type = this;
+  let type = this;
   return `${type.typename} const &${varname}`;
 };
 
 CollectionCType.prototype.getArgTempDecl = function(varname) {
-  var type = this;
+  let type = this;
   return `${type.typename} &${ varname}`;
 };
 
 CollectionCType.prototype.getVarDecl = function(varname) {
-  var type = this;
+  let type = this;
   return `${type.typename} ${varname}`;
 };
 
 CollectionCType.prototype.getJsToCppTest = function(valueExpr, o) {
-  var type = this;
-  var ret = `(JsWrap_${type.jsTypename}::Extract(isolate, ${valueExpr}) != nullptr)`;
+  let type = this;
+  let ret = `(JsWrap_${type.jsTypename}::Extract(isolate, ${valueExpr}) != nullptr)`;
   if (o.conv) {
     if (type.templateName === 'arma::Col' || type.templateName === 'arma::Col::fixed') {
       ret = `(${ret} || canConvJsToArmaCol< ${type.templateArgs[0]} >(isolate, ${valueExpr}))`;
@@ -261,7 +261,7 @@ CollectionCType.prototype.getJsToCppTest = function(valueExpr, o) {
 };
 
 CollectionCType.prototype.accumulateRecursiveMembers = function(context, acc) {
-  var type = this;
+  let type = this;
   // Don't need to index into arma types, because StructCType.emitWrJsonBulk handles them
   if (0 && type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
     _.each(_.range(0, parseInt(type.templateArgs[1])), function(i) {
@@ -280,8 +280,8 @@ CollectionCType.prototype.accumulateRecursiveMembers = function(context, acc) {
 
 
 CollectionCType.prototype.getJsToCppExpr = function(valueExpr, o) {
-  var type = this;
-  var ret = `(*JsWrap_${type.jsTypename}::Extract(isolate, ${valueExpr}))`;
+  let type = this;
+  let ret = `(*JsWrap_${type.jsTypename}::Extract(isolate, ${valueExpr}))`;
 
   if (o.conv) {
     if (type.templateName === 'arma::Col' || type.templateName === 'arma::Col::fixed') {
@@ -307,7 +307,7 @@ CollectionCType.prototype.getJsToCppExpr = function(valueExpr, o) {
 };
 
 CollectionCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
-  var type = this;
+  let type = this;
 
   if (ownerExpr) {
     return `JsWrap_${type.jsTypename}::MemberInstance(isolate, ${ownerExpr}, ${valueExpr})`;
@@ -318,8 +318,8 @@ CollectionCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
 };
 
 CollectionCType.prototype.getMemberTypes = function() {
-  var type = this;
-  var subtypes = gen_utils.sortTypes(_.filter(_.map(type.typename.split(/\s*[<,>]\s*/), function(typename1) {
+  let type = this;
+  let subtypes = gen_utils.sortTypes(_.filter(_.map(type.typename.split(/\s*[<,>]\s*/), function(typename1) {
     return typename1.length > 0 ? type.reg.types[typename1] : null;
   }), function(type) { return type; }));
   if (0) console.log('CollectionCType.getMemberTypes', type.typename, _.map(subtypes, function(t) { return t.typename; }));
@@ -327,7 +327,7 @@ CollectionCType.prototype.getMemberTypes = function() {
 };
 
 CollectionCType.prototype.emitJsWrapDecl = function(f) {
-  var type = this;
+  let type = this;
   f(`
     using JsWrap_${type.jsTypename} = JsWrapGeneric< ${type.typename} >;
     void jsConstructor_${type.jsTypename}(JsWrap_${type.jsTypename} *thisObj, FunctionCallbackInfo<Value> const &args);
@@ -336,7 +336,7 @@ CollectionCType.prototype.emitJsWrapDecl = function(f) {
 };
 
 CollectionCType.prototype.emitJsWrapImpl = function(f) {
-  var type = this;
+  let type = this;
 
   f(`
     /*
@@ -628,7 +628,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
   }
 
   if (type.templateName === 'map' && type.templateArgs[0] === 'string') {
-    var valueType = type.reg.types[type.templateArgs[1]];
+    let valueType = type.reg.types[type.templateArgs[1]];
     f.emitJsNamedAccessors({
       get: function(f) {
         // return an empty handle if not found, will be looked up on prototype chain.
@@ -699,7 +699,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       type.templateName === 'arma::Row::fixed' ||
       type.templateName === 'arma::subview_row' ||
       type.templateName === 'arma::subview_col') {
-    var elType = type.reg.types[type.templateArgs[0]];
+    let elType = type.reg.types[type.templateArgs[0]];
     f.emitJsAccessors('n_rows', {
       get: `args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_rows));`
     });
@@ -741,7 +741,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
   if (type.templateName === 'arma::Mat' ||
       type.templateName === 'arma::Mat::fixed') {
-    var elType = type.reg.types[type.templateArgs[0]];
+    let elType = type.reg.types[type.templateArgs[0]];
     f.emitJsAccessors('n_rows', {
       get: `args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_rows));`
     });
@@ -819,7 +819,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         `);
       },
       set: function(f) {
-        var elType = type.reg.types[type.templateArgs[0]];
+        let elType = type.reg.types[type.templateArgs[0]];
         f(`
           if (${ elType.getJsToCppTest('value', {conv: true}) }) {
             ${type.templateArgs[0]} cvalue(${ elType.getJsToCppExpr('value', {conv: true}) });
@@ -929,9 +929,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         f.emitArgSwitch([
           {args: ['string'], returnType: type.ptrType(), code: function(f) {
             f(`
-              const char *a0s = a0.c_str();
-              shared_ptr<ChunkFile> blobs;
-              bool ok = rdJson(a0s, blobs, ret);
+              bool ok = fromJson(a0, ret);
               if (!ok) return ThrowInvalidArgs(isolate);
             `);
           }}
@@ -992,7 +990,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
 
 CollectionCType.prototype.emitJsTestImpl = function(f) {
-  var type = this;
+  let type = this;
   f(`
     describe("${type.jsTypename} C++ impl", function() {
       it("should work", function() {
@@ -1002,20 +1000,20 @@ CollectionCType.prototype.emitJsTestImpl = function(f) {
       type.templateName !== 'arma::Mat' &&
       type.templateName !== 'arma::Row') { // WRITEME: implement fromString for Mat and Row
     f(`
-      var t1 = ${type.getExampleValueJs()};
-      var t1s = t1.toString();
+      let t1 = ${type.getExampleValueJs()};
+      let t1s = t1.toString();
     `);
     if (!type.noSerialize) {
       f(`
-        var t2 = ur.${type.jsTypename}.fromString(t1s);
+        let t2 = ur.${type.jsTypename}.fromString(t1s);
         assert.strictEqual(t1.toString(), t2.toString());
       `);
     }
 
     if (!type.noPacket) {
       f(`
-        var t1b = t1.toPacket();
-        var t3 = ur.${type.jsTypename}.fromPacket(t1b);
+        let t1b = t1.toPacket();
+        let t3 = ur.${type.jsTypename}.fromPacket(t1b);
         assert.strictEqual(t1.toString(), t3.toString());
       `);
     }
@@ -1028,18 +1026,18 @@ CollectionCType.prototype.emitJsTestImpl = function(f) {
     if (0) { // not yet
       f(`
         it("should accept vanilla arrays", function() {
-          var t1 = new ur.${type.jsTypename}([1.5,2,2.5]);
+          let t1 = new ur.${type.jsTypename}([1.5,2,2.5]);
           t1.pushBack(2.75);
           assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5,2.75]");
         });
 
         it("should accept Float64 arrays", function() {
-          var t1 = new ur.${type.jsTypename}(new Float64Array([1.5,2,2.5]));
+          let t1 = new ur.${type.jsTypename}(new Float64Array([1.5,2,2.5]));
           assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5]");
         });
 
         it("should accept Float32 arrays", function() {
-          var t1 = new ur.${type.jsTypename}(new Float32Array([1.5,2,2.5]));
+          let t1 = new ur.${type.jsTypename}(new Float32Array([1.5,2,2.5]));
           assert.strictEqual(t1.toJsonString(), "[1.5,2,2.5]");
         });
       `);
@@ -1047,7 +1045,7 @@ CollectionCType.prototype.emitJsTestImpl = function(f) {
 
     f(`
       it("should allow pushBack", function() {
-        var t1 = new ur.${type.jsTypename}();
+        let t1 = new ur.${type.jsTypename}();
         t1.pushBack(1.5);
         t1.pushBack(2.5);
         assert.strictEqual(t1.toJsonString(), "[1.5,2.5]");
@@ -1058,27 +1056,27 @@ CollectionCType.prototype.emitJsTestImpl = function(f) {
   if (type.templateName === 'map' && type.templateArgs[0] === 'string' && type.templateArgs[1] === 'jsonstr') {
     f(`
       it("should accept objects", function() {
-        var t1 = new ur.${type.jsTypename}({a: 1, b: "foo",c:{d:1}});
+        let t1 = new ur.${type.jsTypename}({a: 1, b: "foo",c:{d:1}});
         assert.strictEqual(t1.toJsonString(), "{\\"a\\":1,\\"b\\":\\"foo\\",\\"c\\":{\\"d\\":1}}");
       });
       it("hasOwnProperty should work", function() {
-        var t1 = new ur.${type.jsTypename}({a: 1, b: "foo",c:{d:1}});
+        let t1 = new ur.${type.jsTypename}({a: 1, b: "foo",c:{d:1}});
         assert.equal(t1.hasOwnProperty('a'), true);
         assert.equal(t1.hasOwnProperty('x'), false);
       });
       it("deleter should work", function() {
-        var t1 = new ur.${type.jsTypename}({a: 1, b: "foo",c:{d:1}});
+        let t1 = new ur.${type.jsTypename}({a: 1, b: "foo",c:{d:1}});
         assert.equal(t1.hasOwnProperty('a'), true);
         delete t1.a;
         assert.equal(t1.hasOwnProperty('a'), false);
       });
       it("enumerator should work", function() {
-        var t1 = new ur.${type.jsTypename}({a: 1, b: "foo",c:{d:1}});
-        var t1keys = _.keys(t1);
-        assert.deepEqual(t1keys, ['a', 'b', 'c']);
+        let t1 = new ur.${type.jsTypename}({a: 1, b: "foo",c:{d:1}});
+        let t1keysa = _.keys(t1);
+        assert.deepEqual(t1keysa, ['a', 'b', 'c']);
         delete t1.a;
-        var t1keys = _.keys(t1);
-        assert.deepEqual(t1keys, ['b', 'c']);
+        let t1keysb = _.keys(t1);
+        assert.deepEqual(t1keysb, ['b', 'c']);
       });
     `);
 

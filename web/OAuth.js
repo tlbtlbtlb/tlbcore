@@ -1,28 +1,28 @@
 'use strict';
-var _                   = require('underscore');
-var async               = require('async');
-var path                = require('path');
-var fs                  = require('fs');
-var url                 = require('url');
-var querystring         = require('querystring');
-var https               = require('https');
-var cookie              = require('cookie');
-var logio               = require('./logio');
-var Safety              = require('./Safety');
-var Auth                = require('./Auth');
-var Provider            = require('./Provider');
+const _ = require('underscore');
+const async = require('async');
+const path = require('path');
+const fs = require('fs');
+const url = require('url');
+const querystring = require('querystring');
+const https = require('https');
+const cookie = require('cookie');
+const logio = require('./logio');
+const Safety = require('./Safety');
+const Auth = require('./Auth');
+const Provider = require('./Provider');
 
 exports.OAuthProvider = OAuthProvider;
 exports.getHttpRequestAccessToken = getHttpRequestAccessToken;
 
 function getHttpRequestAccessToken(req) {
-  var headers = req.headers;
+  let headers = req.headers;
   if (headers.cookie) {
-    var cookies = cookie.parse(headers.cookie);
+    let cookies = cookie.parse(headers.cookie);
     if (cookies) {
-      var accessToken = cookies['access_token'];
+      let accessToken = cookies['access_token'];
       if (accessToken) {
-        var accessTokenParts = accessToken.split(' ');
+        let accessTokenParts = accessToken.split(' ');
         if (!_.every(accessTokenParts, Safety.isValidToken)) {
           logio.E(req.connection.remoteAddress, 'Invalid access_token cookie:', accessToken);
           return null;
@@ -66,23 +66,23 @@ OAuthProvider.prototype.isDir = function() { return true; };
 */
 
 OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
-  var self = this;
+  let self = this;
 
-  var remote = res.connection.remoteAddress + '!http';
+  let remote = res.connection.remoteAddress + '!http';
 
-  var up = req.urlParsed;
+  let up = req.urlParsed;
 
   if (suffix === 'login') {
 
-    var appRedirectUrl = up.query['redirect_url'];
+    let appRedirectUrl = up.query['redirect_url'];
 
-    var callbackUrl = up.protocol + '//' + up.host + path.dirname(up.pathname) + '/callback';
+    let callbackUrl = up.protocol + '//' + up.host + path.dirname(up.pathname) + '/callback';
 
-    var stateCookie = Auth.generateCookie();
+    let stateCookie = Auth.generateCookie();
     self.codesCache[stateCookie] = {
       redirectUrl: appRedirectUrl
     };
-    var location = self.oauthUrl + 'authorize?' + querystring.stringify({
+    let location = self.oauthUrl + 'authorize?' + querystring.stringify({
       'client_id': self.clientId,
       'redirect_url': callbackUrl,
       'scope': self.scopes.join(','),
@@ -96,9 +96,9 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
     return;
   }
   else if (suffix === 'callback') {
-    var authCode = up.query['code'];
-    var stateCookie = up.query['state'];
-    var codeInfo = self.codesCache[stateCookie];
+    let authCode = up.query['code'];
+    let stateCookie = up.query['state'];
+    let codeInfo = self.codesCache[stateCookie];
 
     if (codeInfo && codeInfo.redirectUrl) {
       self.getAccessToken(authCode, up, function(err, accessTokenInfo) {
@@ -122,7 +122,7 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
     }
   }
   else if (suffix === 'logout') {
-    var appRedirectUrl = up.query['redirect_url'];
+    let appRedirectUrl = up.query['redirect_url'];
     res.writeHead(302, {
       'Set-Cookie': cookie.serialize('access_token', '', {
         path: '/',
@@ -140,25 +140,25 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
 };
 
 OAuthProvider.prototype.getAccessToken = function(authCode, up, cb) {
-  var self = this;
+  let self = this;
 
-  var accessTokenArgs = {
+  let accessTokenArgs = {
     hostname: self.oauthUrlParsed.hostname,
     port: 443,
     method: 'POST',
     path: self.oauthUrlParsed.path + 'access_token',
   };
-  var remote = 'https://' + accessTokenArgs.hostname + accessTokenArgs.path;
+  let remote = 'https://' + accessTokenArgs.hostname + accessTokenArgs.path;
   logio.O(remote, 'POST');
 
-  var postReq = https.request(accessTokenArgs, function(res) {
-    var datas = [];
+  let postReq = https.request(accessTokenArgs, function(res) {
+    let datas = [];
     res.on('data', function(d) {
       datas.push(d);
     });
     res.on('end', function() {
-      var data = datas.join('');
-      var accessTokenInfo = querystring.parse(data);
+      let data = datas.join('');
+      let accessTokenInfo = querystring.parse(data);
       logio.I(remote, accessTokenInfo);
       if (cb) {
         cb(null, accessTokenInfo);

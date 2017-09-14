@@ -1,6 +1,6 @@
 'use strict';
-var _                   = require('underscore');
-var child_process       = require('child_process');
+const _ = require('underscore');
+const child_process = require('child_process');
 require('../common/MoreUnderscore');
 
 exports.vsystem = vsystem;
@@ -8,11 +8,11 @@ exports.logDataSep = logDataSep;
 exports.I = I;
 exports.O = O;
 exports.E = E;
-exports.setMaxLength = function(v) { maxLength = v; }
+exports.setMaxLength = function(v) { maxLength = v; };
 
-var maxLength = parseInt(process.env.LOGIO_MAX_LENGTH || '500');;
-var includeTimestamp = !!parseInt(process.env.LOGIO_TIMESTAMP || '0');
-var baseTimestamp = +Date.now();
+let maxLength = parseInt(process.env.LOGIO_MAX_LENGTH || '500');
+let includeTimestamp = !!parseInt(process.env.LOGIO_TIMESTAMP || '0');
+let baseTimestamp = +Date.now();
 
 // ----------------------------------------------------------------------
 
@@ -30,16 +30,16 @@ function vsystem(cmd, cb) {
 
 function logDataSep(remote, sep, args) {
   if (typeof(remote) === 'undefined') remote = '?';
-  var infos = [];
-  var stacks = [];
-  var prefix = '', emptyPrefix='';
+  let infos = [];
+  let stacks = [];
+  let prefix = '', emptyPrefix='';
   if (includeTimestamp) {
     prefix = ('          ' + ((+Date.now() - baseTimestamp) / 1000).toFixed(3)).slice(-8) + '  ';
     emptyPrefix = '            ';
   }
-  var maxLength0 = maxLength;
-  for (var argi = 1; argi < args.length; argi++) {
-    var arg = args[argi];
+  let maxLength0 = maxLength;
+  for (let argi = 1; argi < args.length; argi++) {
+    let arg = args[argi];
     if (arg === null) {
       infos.push('null');
     }
@@ -64,13 +64,13 @@ function logDataSep(remote, sep, args) {
       infos.push(arg.toString());
     }
   }
-  var info = infos.join(' ');
+  let info = infos.join(' ');
   if (info.length > maxLength0) {
     info = info.substr(0, maxLength0 - 11) + ' ...[' + info.length.toString() + ' long]';
   }
   if (remote.length < 40) remote = remote + '                                        '.substr(0, 40-remote.length);
   console.log(prefix + remote + sep + info.replace(/\n/g, '\n                                         . '));
-  for (var sti = 0; sti < stacks.length; sti++) {
+  for (let sti = 0; sti < stacks.length; sti++) {
     console.log(emptyPrefix + '                                         | ' + stacks[sti].replace(/\n/g, '\n                                         | '));
   }
 }

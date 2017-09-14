@@ -1,14 +1,14 @@
-var github_api          = require('./github_api');
-var assert              = require('assert');
-var util                = require('util');
+const github_api = require('./github_api');
+const assert = require('assert');
+const util = require('util');
 
 // This token just gives access to my email address
-var tlbtlbtlbApiKey = '6f6c07bf7f3b50317f04f5cdd5f876573dfd8fa2';
+const tlbtlbtlbApiKey = '6f6c07bf7f3b50317f04f5cdd5f876573dfd8fa2';
 
 describe('GithubApi', function() {
   if (0) it('should work for tlbtlbtlb', function(cb) {
     this.timeout(5000);
-    var api = new github_api.GithubApi(tlbtlbtlbApiKey);
+    let api = new github_api.GithubApi(tlbtlbtlbApiKey);
     api.getUserInfo(function(err, userInfo) {
       if (err) {
         // Allow ENOTFOUND if we're not on the internet
@@ -28,7 +28,7 @@ describe('GithubApi', function() {
 
   if (0) it('should report errors', function(cb) {
     this.timeout(5000);
-    var api = new github_api.GithubApi('foobar');
+    let api = new github_api.GithubApi('foobar');
     api.getUserInfo(function(err, userInfo) {
       if (!err) {
         return cb(new Error('Expected error using fake Github credentials'));

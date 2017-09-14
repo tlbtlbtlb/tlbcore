@@ -1,8 +1,8 @@
-var _                   = require('underscore');
-var assert              = require('assert');
-var util                = require('util');
-var cgen                = require('./cgen');
-var CType               = require('./ctype').CType;
+const _ = require('underscore');
+const assert = require('assert');
+const util = require('util');
+const cgen = require('./cgen');
+const CType = require('./ctype').CType;
 
 exports.PrimitiveCType = PrimitiveCType;
 
@@ -18,7 +18,7 @@ PrimitiveCType.prototype.getFns = function() {
 };
 
 PrimitiveCType.prototype.emitJsWrapDecl = function(f) {
-  var type = this;
+  let type = this;
   f(`
     char const * getTypeVersionString(${ type.typename } const &);
     char const * getTypeName(${ type.typename } const &);
@@ -29,17 +29,17 @@ PrimitiveCType.prototype.emitJsWrapDecl = function(f) {
 };
 
 PrimitiveCType.prototype.getCustomerIncludes = function() {
-  var type = this;
+  let type = this;
   return type.extraCustomerIncludes;
 };
 
 PrimitiveCType.prototype.getSynopsis = function() {
-  var type = this;
+  let type = this;
   return `( ${ type.typename })`;
 };
 
 PrimitiveCType.prototype.getAllZeroExpr = function() {
-  var type = this;
+  let type = this;
   switch (type.typename) {
   case 'float': return '0.0f';
   case 'double': return '0.0';
@@ -56,7 +56,7 @@ PrimitiveCType.prototype.getAllZeroExpr = function() {
 };
 
 PrimitiveCType.prototype.getAllNanExpr = function() {
-  var type = this;
+  let type = this;
   switch (type.typename) {
   case 'float': return 'numeric_limits<float>::quiet_NaN()';
   case 'double': return 'numeric_limits<double>::quiet_NaN()';
@@ -73,7 +73,7 @@ PrimitiveCType.prototype.getAllNanExpr = function() {
 };
 
 PrimitiveCType.prototype.getExampleValueJs = function() {
-  var type = this;
+  let type = this;
   switch (type.typename) {
   case 'S32':
     return '7';
@@ -101,7 +101,7 @@ PrimitiveCType.prototype.getExampleValueJs = function() {
 };
 
 PrimitiveCType.prototype.isPod = function() {
-  var type = this;
+  let type = this;
   switch (type.typename) {
   case 'string':
   case 'jsonstr':
@@ -112,7 +112,7 @@ PrimitiveCType.prototype.isPod = function() {
 };
 
 PrimitiveCType.prototype.getFormalParameter = function(varname) {
-  var type = this;
+  let type = this;
   switch (type.typename) {
   case 'string':
   case 'jsonstr':
@@ -123,7 +123,7 @@ PrimitiveCType.prototype.getFormalParameter = function(varname) {
 };
 
 PrimitiveCType.prototype.getArgTempDecl = function(varname) {
-  var type = this;
+  let type = this;
   switch (type.typename) {
   case 'X_string':
   case 'X_jsonstr':
@@ -134,12 +134,12 @@ PrimitiveCType.prototype.getArgTempDecl = function(varname) {
 };
 
 PrimitiveCType.prototype.getVarDecl = function(varname) {
-  var type = this;
+  let type = this;
   return type.typename + ' ' + varname;
 };
 
 PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
-  var type = this;
+  let type = this;
   switch (type.typename) {
   case 'S32':
   case 'S64':
@@ -164,7 +164,7 @@ PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {
 };
 
 PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
-  var type = this;
+  let type = this;
   switch (type.typename) {
   case 'S32':
   case 'U32':
@@ -188,7 +188,7 @@ PrimitiveCType.prototype.getJsToCppExpr = function(valueExpr, o) {
 };
 
 PrimitiveCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
-  var type = this;
+  let type = this;
   if (ownerExpr && valueExpr.startsWith('&')) valueExpr = valueExpr.substr(1);
   switch (type.typename) {
   case 'S32':

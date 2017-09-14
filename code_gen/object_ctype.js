@@ -1,8 +1,8 @@
-var _                   = require('underscore');
-var assert              = require('assert');
-var util                = require('util');
-var cgen                = require('./cgen');
-var CType               = require('./ctype').CType;
+const _ = require('underscore');
+const assert = require('assert');
+const util = require('util');
+const cgen = require('./cgen');
+const CType = require('./ctype').CType;
 
 exports.ObjectCType = ObjectCType;
 
@@ -42,32 +42,32 @@ ObjectCType.prototype.isPod = function() {
 };
 
 ObjectCType.prototype.getFormalParameter = function(varname) {
-  var type = this;
+  let type = this;
   return `shared_ptr< ${ type.baseType.typename } > ${ varname}`;
 };
 
 ObjectCType.prototype.getArgTempDecl = function(varname) {
-  var type = this;
+  let type = this;
   return `shared_ptr< ${ type.baseType.typename } > ${ varname}`;
 };
 
 ObjectCType.prototype.getVarDecl = function(varname) {
-  var type = this;
+  let type = this;
   return `shared_ptr< ${ type.baseType.typename } > ${ varname }`;
 };
 
 ObjectCType.prototype.getJsToCppTest = function(valueExpr, o) {
-  var type = this;
+  let type = this;
   return `(JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr }) != nullptr)`;
 };
 
 ObjectCType.prototype.getJsToCppExpr = function(valueExpr, o) {
-  var type = this;
+  let type = this;
   return `JsWrap_${ type.jsTypename }::Extract(isolate, ${ valueExpr })`;
 };
 
 ObjectCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
-  var type = this;
+  let type = this;
   if (ownerExpr) {
     return `JsWrap_${ type.jsTypename }::MemberInstance(isolate, ${ ownerExpr }, ${ valueExpr })`;
   }

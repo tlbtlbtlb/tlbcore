@@ -1,11 +1,11 @@
-var _ = require('underscore');
-var async = require('async');
-var assert = require('assert');
-var parent_pipe = require('./parent_pipe');
-var logio = require('../web/logio');
+const _ = require('underscore');
+const async = require('async');
+const assert = require('assert');
+const parent_pipe = require('./parent_pipe');
+const logio = require('../web/logio');
 
 function main() {
-  var pp = new parent_pipe.ParentJsonPipe({}, {
+  let pp = new parent_pipe.ParentJsonPipe({}, {
     rpc_test1: function(v, cb) {
       cb(null, v+1);
     },

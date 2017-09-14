@@ -1,9 +1,9 @@
 
-var modules = {};
+let modules = {};
 
 function require(name) {
   if (!(name in modules)) {
-    var exports = {};
+    let exports = {};
     modules[name] = {name: name, exports: exports};
     window[name] = exports;
     if (console) console.log('require(' + name + ') before load');
@@ -16,11 +16,11 @@ function require(name) {
 */
 function defmodule(name, f) {
   if (!(name in modules)) {
-    var exports = {};
+    let exports = {};
     modules[name] = {name: name, exports: exports};
     window[name] = exports;
   }
-  var module = modules[name];
-  var ret = f(module.exports, require, module, name);
+  let module = modules[name];
+  let ret = f.call(window, module.exports, require, module, name);
   window[name] = module.exports;  // In case f assigns module.exports = ...
 }

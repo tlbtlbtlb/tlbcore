@@ -1,17 +1,17 @@
 'use strict';
-var _                   = require('underscore');
-var child_process       = require('child_process');
+const _ = require('underscore');
+const child_process = require('child_process');
 
-var logio               = require('./logio');
-var Topology            = require('./Topology');
-var Storage             = require('./Storage');
-var Safety              = require('./Safety');
+const logio = require('./logio');
+const Topology = require('./Topology');
+const Storage = require('./Storage');
+const Safety = require('./Safety');
 
 exports.mkImageVersions = mkImageVersions;
 
-var verbose    = 2;
+let verbose    = 2;
 
-var filesToSync = [];
+let filesToSync = [];
 
 /*
   Create a resized or otherwise tweaked version of an image.
@@ -21,8 +21,8 @@ var filesToSync = [];
 */
 function fillImageVersion(fn, version, options, sizeCb)
 {
-  var cmd;
-  var fn2 = fn;
+  let cmd;
+  let fn2 = fn;
 
   if (version !== 'orig') {
     fn2 = fn.replace(/\.(\w+)$/, '_' + version + '.jpg');
@@ -69,18 +69,18 @@ function fillImageVersion(fn, version, options, sizeCb)
   }
   else if (version.match(/^onqbhead$/)) {
 
-    var hsScale = Math.min(28.0/options.origWidth, 25.0/options.origHeight);
-    var drawWidth = Math.round(options.origWidth * hsScale);
-    var drawHeight = Math.round(options.origHeight * hsScale);
-    var drawX = Math.round(45 - drawWidth/2);
-    var drawY = Math.round(15 - drawHeight/2);
+    let hsScale = Math.min(28.0/options.origWidth, 25.0/options.origHeight);
+    let drawWidth = Math.round(options.origWidth * hsScale);
+    let drawHeight = Math.round(options.origHeight * hsScale);
+    let drawX = Math.round(45 - drawWidth/2);
+    let drawY = Math.round(15 - drawHeight/2);
 
     cmd = 'convert -size 120x92 xc:white';
     cmd += ' -draw "image over '  + drawX + ',' + drawY + ' ' + drawWidth + ',' + drawHeight + ' \'' + fn + '\'"';
     cmd += ' -draw "image over 0,0 0,0 \'website/images/qbheadBlankscreenW120.png\'"';
     if (options.fullName && options.fullName.length <= 28) {
       cmd += ' -pointsize 1.5';
-      var textX = 45 - options.fullName.length/2;
+      let textX = 45 - options.fullName.length/2;
       cmd += ' -draw "text ' + textX + ',7 \'' + options.fullName.replace(/^[\w ]/g, ' ') + '\'"';
     } else {
       cmd += ' -draw "line 38,7 52,8"';
@@ -100,10 +100,10 @@ function fillImageVersion(fn, version, options, sizeCb)
       sizeCb('fillImageVersion err=' + err + ' cmd=' + cmd);
       return;
     }
-    var m = stdout.match(/^\S+ \S+ (\d+)x(\d+)/m, stdout);
+    let m = stdout.match(/^\S+ \S+ (\d+)x(\d+)/m, stdout);
     if (m) {
-      var realwidth = parseInt(m[1], 10);
-      var realheight = parseInt(m[2], 10);
+      let realwidth = parseInt(m[1], 10);
+      let realheight = parseInt(m[2], 10);
       logio.I('magick', fn2 + ' ' + realwidth.toString() + 'x' + realheight.toString());
       sizeCb(null, fn2, realwidth, realheight);
       return;
@@ -117,40 +117,40 @@ function fillImageVersion(fn, version, options, sizeCb)
   filesToSync.push(fn2);
 }
 
-var syncActiveCount = 0;
+let syncActiveCount = 0;
 function syncPendingFiles() {
   if (filesToSync.length === 0 || syncActiveCount > 0) return;
 
-  var todo = _.uniq(_.sortBy(filesToSync, _.identity), true);
+  let todo = _.uniq(_.sortBy(filesToSync, _.identity), true);
   filesToSync = [];
 
-  var dests = Topology.getRoleServers({web: true});
+  let dests = Topology.getRoleServers({web: true});
 
   syncActiveCount ++;
-  _.arrayMapPar(_.keys(dests), function(destName, parCb) {
+  async.each(_.keys(dests), function(destName, parCb) {
     if (destName === Topology.getHostname()) return parCb();
 
-    var cmd = 'rsync -Rr --ignore-existing ' + _.map(todo, Safety.shellQuote).join(' ') + ' ' + destName + ':/home/otto/robot/. </dev/null';
+    let cmd = 'rsync -Rr --ignore-existing ' + _.map(todo, Safety.shellQuote).join(' ') + ' ' + destName + ':/home/otto/robot/. </dev/null';
     logio.O('os', cmd);
 
     child_process.exec(cmd, function(err, stdout, stderr) {
       if (err) logio.E(destName, 'rsync exec error');
       if (stderr && stderr.length) logio.E(destName, stderr);
-      parCb();
+      parCb(null);
     });
 
-  }, function() {
+  }, function(err) {
     syncActiveCount --;
   }, 4);
 }
 
 function syncOneDir() {
-  var updir = Storage.chooseUploadDir();
+  let updir = Storage.chooseUploadDir();
   filesToSync.push(updir);
   syncPendingFiles();
 }
 
-var syncInterval = null;
+let syncInterval = null;
 function startPeriodicSync() {
   if (!syncInterval) {
     syncInterval = setInterval(syncOneDir, 60000);  // sync one directory every minute
@@ -185,7 +185,7 @@ function startPeriodicSync() {
 */
 
 function mkImageVersions(origFn, options, cb) {
-  var ii = { origFn: origFn, tagsByVersion: {}};
+  let ii = { origFn: origFn, tagsByVersion: {}};
 
   startPeriodicSync();
 
@@ -199,17 +199,17 @@ function mkImageVersions(origFn, options, cb) {
 
     ii.tagsByVersion.orig = '<img src="' + origFn + '" width="' + origWidth.toString() + '" height="' + origHeight.toString() + '">';
 
-    var versions = ['S640x480', 'S320x240', 'R320x240', 'S160x120', 'onqbhead', 'onqb'];
-    _.arrayMapPar(versions, function(sizetag, cb1) {
+    let versions = ['S640x480', 'S320x240', 'R320x240', 'S160x120', 'onqbhead', 'onqb'];
+    async.each(versions, function(sizetag, cb1) {
       fillImageVersion(origFn, sizetag, {origWidth: origWidth, origHeight: origHeight, fullName: options.fullName}, function(err, newFn, newWidth, newHeight) {
         if (err) {
           console.log(origFn + '(' + sizetag + '): ' + err);
         } else {
           ii.tagsByVersion[sizetag] = '<img src="' + newFn + '" width="' + newWidth + '" height="' + newHeight + '">';
         }
-        cb1();
+        cb1(null);
       });
-    }, function() {
+    }, function(err) {
       cb(ii);
       syncPendingFiles();
     });
@@ -218,5 +218,3 @@ function mkImageVersions(origFn, options, cb) {
 
   return ii;
 }
-
-

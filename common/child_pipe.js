@@ -1,15 +1,15 @@
-var _ = require('underscore');
-var async = require('async');
-var path = require('path');
-var child_process = require('child_process');
-var events = require('events');
-var logio = require('../web/logio');
+const _ = require('underscore');
+const async = require('async');
+const path = require('path');
+const child_process = require('child_process');
+const events = require('events');
+const logio = require('../web/logio');
 
 exports.ChildJsonPipe = ChildJsonPipe;
 exports.sshify = sshify;
 
 function ChildJsonPipe(execName, execArgs, execOptions, o) {
-  var m = this;
+  let m = this;
 
   if (o.shareMem) {
     // WRITEME: create a SHM or shared mmapped file with the child, for passing large
@@ -23,7 +23,7 @@ function ChildJsonPipe(execName, execArgs, execOptions, o) {
     console.log(execName, execArgs.join(' '));
   }
   m.verbose = o.verbose || 0;
-  var nChildren = o.nChildren || 1;
+  let nChildren = o.nChildren || 1;
 
   m.children = _.map(_.range(nChildren), function(childi) {
     return child_process.spawn(execName, execArgs, _.extend({stdio: [
@@ -38,17 +38,18 @@ function ChildJsonPipe(execName, execArgs, execOptions, o) {
   m.logs = [];
   m.rpcIdCtr = Math.floor(Math.random()*1000000000);
   _.each(_.range(m.children.length), function(childi) {
-    var datas=[];
+    let datas=[];
     m.children[childi].stdout.on('data', function(buf) {
       while (buf.length) {
-        var eol = buf.indexOf(10); // newline
+        let eol = buf.indexOf(10); // newline
         if (eol < 0) {
           datas.push(buf);
           return;
         } else {
           datas.push(buf.slice(0, eol));
+          let rep;
           try {
-            var rep = JSON.parse(datas.join(''));
+            rep = JSON.parse(datas.join(''));
           }
           catch(ex) {
             console.log('Error parsing', datas.join(''));
@@ -86,8 +87,8 @@ function ChildJsonPipe(execName, execArgs, execOptions, o) {
 ChildJsonPipe.prototype = Object.create(events.EventEmitter.prototype);
 
 ChildJsonPipe.prototype.close = function() {
-  var m = this;
-  for (var childi=0; childi<m.children.length; childi++) {
+  let m = this;
+  for (let childi=0; childi<m.children.length; childi++) {
     m.children[childi].stdin.end();
   }
   m.emit('close');
@@ -95,10 +96,10 @@ ChildJsonPipe.prototype.close = function() {
 
 // Return index of child with shortest outstanding queue length
 ChildJsonPipe.prototype.chooseAvailChild = function() {
-  var m = this;
-  var bestLen = m.queues[0].length
-  var besti = 0;
-  for (var childi=1; childi<m.children.length; childi++) {
+  let m = this;
+  let bestLen = m.queues[0].length
+  let besti = 0;
+  for (let childi=1; childi<m.children.length; childi++) {
     if (m.queues[childi].length < bestLen) {
       bestLen = m.queues[childi].length;
       besti = childi;
@@ -108,17 +109,17 @@ ChildJsonPipe.prototype.chooseAvailChild = function() {
 };
 
 ChildJsonPipe.prototype.tx = function(childi, req) {
-  var m = this;
+  let m = this;
   m.children[childi].stdin.write(JSON.stringify(req));
   m.children[childi].stdin.write('\n');
 };
 
 ChildJsonPipe.prototype.handleRx = function(childi, rx) {
-  var m = this;
-  var q = m.queues[childi];
-  var repInfo = null;
+  let m = this;
+  let q = m.queues[childi];
+  let repInfo = null;
   if (rx.result || rx.error) {
-    for (var qi=0; qi<q.length; qi++) {
+    for (let qi=0; qi<q.length; qi++) {
       if (q[qi].id === rx.id) {
         repInfo = q[qi];
         if (!(rx.error && rx.error === 'progress')) {
@@ -152,10 +153,10 @@ ChildJsonPipe.prototype.handleRx = function(childi, rx) {
 
 // run result = method(params...) in child, call cb(exception, result)
 ChildJsonPipe.prototype.rpc = function(method, params, cb) {
-  var m = this;
-  var childi = m.chooseAvailChild();
+  let m = this;
+  let childi = m.chooseAvailChild();
   if (cb) {
-    var id = m.rpcIdCtr++;
+    let id = m.rpcIdCtr++;
     m.queues[childi].push({id: id, cb: cb, method: method, t0: Date.now()});
     m.tx(childi, {method: method, params: params, id: id});
   }
@@ -166,21 +167,21 @@ ChildJsonPipe.prototype.rpc = function(method, params, cb) {
 
 // Do initial interaction with all the children
 ChildJsonPipe.prototype.handshake = function(cb) {
-  var m = this;
+  let m = this;
   async.each(_.range(m.children.length), function(childi, childDone) {
-    var method = 'handshake';
-    var params = [];
-    var id = m.rpcIdCtr++;
+    let method = 'handshake';
+    let params = [];
+    let id = m.rpcIdCtr++;
     m.queues[childi].push({id: id, cb: childDone, method: method, t0: Date.now()});
     m.tx(childi, {method: method, params: params, id: id});
   }, cb);
 };
 
 ChildJsonPipe.prototype.handleClose = function(childi) {
-  var m = this;
+  let m = this;
   m.children[childi] = null;
   while (m.queues[childi].length > 0) {
-    var repInfo = m.queues[childi].shift();
+    let repInfo = m.queues[childi].shift();
     repInfo.cb('closed', null);
   }
 };
@@ -190,9 +191,9 @@ ChildJsonPipe.prototype.handleClose = function(childi) {
   ie, sshify('python', 'foo.py', 'remote') => ['remote', 'cd dir && python foo.py']
 */
 function sshify(execName, execArgs, sshHost) {
-  var relDir = path.relative(process.env.HOME, process.cwd());
+  let relDir = path.relative(process.env.HOME, process.cwd());
 
-  var newArgs = _.map(execArgs, function(a) {
+  let newArgs = _.map(execArgs, function(a) {
     if (/^\//.exec(a)) {
       a = path.relative(process.cwd(), a);
     }

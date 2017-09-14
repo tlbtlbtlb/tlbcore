@@ -1,5 +1,5 @@
 'use strict';
-var _                   = require('underscore');
+const _ = require('underscore');
 
 exports.fmtUploadDir = fmtUploadDir;
 exports.chooseUploadDir = chooseUploadDir;
@@ -19,7 +19,7 @@ function chooseUploadDir() {
     we change the directory every 15 seconds.
    */
 
-  var t = Date.now();
-  var diri = Math.floor(t / 15000) % 256;
+  let t = Date.now();
+  let diri = Math.floor(t / 15000) % 256;
   return fmtUploadDir(diri);
 }

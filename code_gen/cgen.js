@@ -1,8 +1,8 @@
 'use strict';
-var os                  = require('os');
-var fs                  = require('fs');
-var assert              = require('assert');
-var _                   = require('underscore');
+const os = require('os');
+const fs = require('fs');
+const assert = require('assert');
+const _ = require('underscore');
 require('../common/MoreUnderscore');
 
 exports.FileGen = FileGen;
@@ -14,19 +14,19 @@ function escapeCString(s) {
 }
 
 function escapeCJson(o) {
-  var oStr = JSON.stringify(o);
-  var oStrLen = oStr.length;
-  var cStrings = ['""'];
-  var chunk = 80;
-  for (var i=0; i<oStrLen; i+= chunk) {
+  let oStr = JSON.stringify(o);
+  let oStrLen = oStr.length;
+  let cStrings = ['""'];
+  let chunk = 80;
+  for (let i=0; i<oStrLen; i+= chunk) {
     cStrings.push('"' + escapeCString(oStr.substr(i, chunk)) + '"');
   }
   return cStrings.join('\n    ');
 }
 
 function mkCodeGen(filename, subs) {
-  var contents = [];
-  var subsPattern = new RegExp('(' + _.map(_.keys(subs), _.requote).join('|') + ')', 'g');
+  let contents = [];
+  let subsPattern = new RegExp('(' + _.map(_.keys(subs), _.requote).join('|') + ')', 'g');
 
   function line(code) {
     if (_.isFunction(code)) {
@@ -59,7 +59,7 @@ function mkCodeGen(filename, subs) {
   }
 
   function end() {
-    var expContents = [];
+    let expContents = [];
     expandContents(expContents);
 
     if (/\.(c|cc|cpp|h|js)$/.exec(filename)) {
@@ -69,15 +69,15 @@ function mkCodeGen(filename, subs) {
       hProtect(expContents);
     }
 
-    var expContentsStr = expContents.join('');
+    let expContentsStr = expContents.join('');
     if (fs.existsSync(filename)) {
-      var text1 = fs.readFileSync(filename, 'utf8');
+      let text1 = fs.readFileSync(filename, 'utf8');
       if (withoutGeneratedLine(text1) === expContentsStr) {
         return;
       }
     }
 
-    var fullContentsStr;
+    let fullContentsStr;
     if (/\.(gypi|json)$/.exec(filename)) {
       fullContentsStr = expContentsStr;
     } else {
@@ -89,30 +89,30 @@ function mkCodeGen(filename, subs) {
   }
 
   function hProtect(expContents) {
-    var hpsym = 'INCLUDE_' + filename.replace(/[^a-zA-Z0-9]+/g, '_');
+    let hpsym = 'INCLUDE_' + filename.replace(/[^a-zA-Z0-9]+/g, '_');
     expContents.unshift('#define ' + hpsym + '\n');
     expContents.unshift('#ifndef ' + hpsym + '\n');
     expContents.push('#endif\n');
   }
 
   function cIndent(expContents) {
-    var braceLevel = 0;
-    var parenLevel = 0;
-    var spaces = '                                                                                ';
-    for (var ci=0; ci < expContents.length; ci++) {
-      var l = expContents[ci];
+    let braceLevel = 0;
+    let parenLevel = 0;
+    let spaces = '                                                                                ';
+    for (let ci=0; ci < expContents.length; ci++) {
+      let l = expContents[ci];
 
-      var ll = l.length;
+      let ll = l.length;
       if (!(ll === 0 || l.charCodeAt(0) === 35)) {
-        var minBraceLevel = braceLevel;
-        var origParenLevel = parenLevel;
-        var inDoubleQuote = false;
-        var inSingleQuote = false;
-        var inSingleLineComment = false;
-        var escaped;
-        var lastc = 0;
-        for (var i = 0; i < ll; i++) {
-          var c = l.charCodeAt(i);
+        let minBraceLevel = braceLevel;
+        let origParenLevel = parenLevel;
+        let inDoubleQuote = false;
+        let inSingleQuote = false;
+        let inSingleLineComment = false;
+        let escaped;
+        let lastc = 0;
+        for (let i = 0; i < ll; i++) {
+          let c = l.charCodeAt(i);
           if (c === 92) {
             escaped = true;
             continue;
@@ -132,7 +132,7 @@ function mkCodeGen(filename, subs) {
           escaped = false;
           lastc = c;
         }
-        var indentLevel = minBraceLevel * 2 + origParenLevel * 4;
+        let indentLevel = minBraceLevel * 2 + origParenLevel * 4;
         if (l === '}\n' && indentLevel === 0) {
           l = l + '\n';
         }
@@ -142,13 +142,13 @@ function mkCodeGen(filename, subs) {
   }
 
   function child(moreSubs) {
-    var childSubs;
+    let childSubs;
     if (moreSubs) {
       childSubs = _.extend(_.clone(subs), moreSubs);
     } else {
       childSubs = subs;
     }
-    var ret = mkCodeGen(filename, childSubs);
+    let ret = mkCodeGen(filename, childSubs);
     contents.push(ret);
     return ret;
   }
@@ -174,7 +174,7 @@ function FileGen(prefix) {
 }
 
 FileGen.prototype.getFile = function(name) {
-  var fn = this.prefix + name;
+  let fn = this.prefix + name;
 
   if (!(fn in this.files)) {
     this.files[fn] = mkCodeGen(fn, {FILENAME: name});

@@ -3,8 +3,9 @@
   We stick a lot of stuff in jquery's $.XXX namespace
 */
 /* globals HitDetector */
-var _                   = require('underscore');
-var WebSocketBrowser    = require('WebSocketBrowser');
+const web_socket_browser = require('web_socket_browser');
+const hit_detector = require('hit_detector');
+const box_layout = require('box_layout');
 
 
 $.action = {};
@@ -15,7 +16,7 @@ $.allContent = {};
 /*
   Cheap version of safety checks, vaguely compatible with Server.js which is server-side
 */
-var Safety = {
+let Safety = {
   isValidServerName: function(serverName) {
     if (!(/^[\w_\.]+$/.test(serverName))) return false;
     if (serverName === 'all') return false;
@@ -39,11 +40,11 @@ var Safety = {
 // Might want to write something that works without window.crypto
 function mkRandomToken(len) {
   if (!len) len = 12;
-  var alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'; // Bitcoin's base52
-  var a = new Uint32Array(len);
+  let alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'; // Bitcoin's base52
+  let a = new Uint32Array(len);
   window.crypto.getRandomValues(a);
-  var ret = [];
-  for (var i=0; i < len; i++) {
+  let ret = [];
+  for (let i=0; i < len; i++) {
     ret.push(alphabet.substr(a[i] % alphabet.length, 1));
   }
   return ret.join('');
@@ -65,7 +66,7 @@ function mkRandomToken(len) {
 
 */
 $.defPage = function(pageid, fmtPage) {
-  var pageFuncName = 'page_' + pageid;
+  let pageFuncName = 'page_' + pageid;
 
   $.action[pageid] = function(o) {
     $.fn[pageFuncName].call(this, o);
@@ -91,6 +92,30 @@ $.setPageTitle = function(title) {
   document.title = title;
 };
 
+/*
+  Event & callback utilities
+*/
+
+function interactiveLimitOutstanding(maxOutstanding, f) {
+  let outstanding = 0;
+  let queued = 0;
+  return doit;
+
+  function doit() {
+    if (outstanding >= maxOutstanding) {
+      queued = 1;
+      return;
+    }
+    outstanding++;
+    f(function(err) {
+      outstanding--;
+      if (queued) {
+        queued = 0;
+        doit();
+      }
+    });
+  }
+}
 
 /*
   Poll history to notice when the fragment changes and switch pages. Before window.onpopstate worked, this was the only way to make the back button work.
@@ -103,11 +128,11 @@ function startHistoryPoll() {
 }
 
 function gotoCurrentState() {
-  var state = history.state;
+  let state = history.state;
   if (state && state.pageid !== undefined) {
-    var pageid = state.pageid;
-    var options = state.o;
-    var action = $.action[pageid];
+    let pageid = state.pageid;
+    let options = state.o;
+    let action = $.action[pageid];
     if (action) {
       try {
         action.call($(document.body), options);
@@ -123,18 +148,18 @@ function gotoCurrentState() {
 }
 
 function gotoCurrentHash() {
-  var hash = window.location.hash;
-  var pageid = '';
-  var options = {};
+  let hash = window.location.hash;
+  let pageid = '';
+  let options = {};
   if (hash.length >= 1) {
-    var parts = hash.substr(1).split('_');
+    let parts = hash.substr(1).split('_');
     pageid = parts[0] || '';
-    var optionsEnc = decodeURIComponent(parts.slice(1).join('_'));
-    var humanUrl = $.humanUrl[pageid];
+    let optionsEnc = decodeURIComponent(parts.slice(1).join('_'));
+    let humanUrl = $.humanUrl[pageid];
     if (humanUrl && optionsEnc[0] !== '.') {
       try {
         options = humanUrl.parse(optionsEnc);
-        var optionsEnc2 = humanUrl.fmt(options);
+        let optionsEnc2 = humanUrl.fmt(options);
         if (optionsEnc !== optionsEnc2) {
           console.log('gotoCurrentHash mismatch', optionsEnc, optionsEnc2);
         }
@@ -156,18 +181,18 @@ function gotoCurrentHash() {
 
 
 function fmtHashOptions(pageid, o) {
-  var humanUrl = $.humanUrl[pageid];
+  let humanUrl = $.humanUrl[pageid];
   if (humanUrl) {
-    var optionsEnc = humanUrl.fmt(o);
+    let optionsEnc = humanUrl.fmt(o);
     if (optionsEnc !== null) {
       return '#' + pageid + '_' + encodeURIComponent(optionsEnc).replace(/%3D/g, '=');
     }
   }
-  var oStr = o ? JSON.stringify(o) : '';
+  let oStr = o ? JSON.stringify(o) : '';
   if (oStr === '{}') { // common special case, make less ugly
     return '#' + pageid;
   }
-  var encoded = btoa(JSON.stringify(o));
+  let encoded = btoa(JSON.stringify(o));
   return '#' + pageid + '_.' + encoded;
 }
 
@@ -205,10 +230,10 @@ $.event.special.destroyed = {
   Great if you want to do something special with window resize while an item is on screen
 */
 $.fn.bogartWindowEvents = function(evMap) {
-  var top = this;
+  let top = this;
   _.each(evMap, function(fn, name) {
 
-    var handler = function(ev) {
+    let handler = function(ev) {
       // But don't work when there's a popupEditUrl dialog going. See VjsEditUrl.js
       if ($('#popupEditUrl').length) return;
       return fn.call(this, ev);
@@ -225,11 +250,11 @@ $.fn.bogartWindowEvents = function(evMap) {
 };
 
 $.fn.bogartBodyEvents = function(evMap) {
-  var top = this;
+  let top = this;
 
   _.each(evMap, function(fn, name) {
 
-    var handler = function(ev) {
+    let handler = function(ev) {
       // But don't work when there's a popupEditUrl dialog going. See VjsEditUrl.js
       if ($('#popupEditUrl').length) return;
       fn.call(this, ev);
@@ -267,9 +292,9 @@ $.fn.fmtContent = function(contentName) {
 };
 
 $.fn.enhance = function() {
-  for (var k in $.enhance) {
+  for (let k in $.enhance) {
     if ($.enhance.hasOwnProperty(k)) {
-      var el = this.find(k);
+      let el = this.find(k);
       if (el.length) {
         $.enhance[k].call(el);
       }
@@ -278,7 +303,7 @@ $.fn.enhance = function() {
 };
 
 $.enhance['div.includeContent'] = function() {
-  var contentName = this.data('name');
+  let contentName = this.data('name');
   this.fmtContent(contentName);
 };
 
@@ -324,7 +349,7 @@ $.fn.utVal = function(value) {
   if (!this.hasClass('inputChanged')) {
     this.val(value);
     if (this.length === 1 && this.hasClass('autoExpand')) {
-      var nl = value.split('\n').length + 3;
+      let nl = value.split('\n').length + 3;
       nl = Math.max(nl, this.attr('rows') || 5);
       this.attr({rows: nl.toString()});
     }
@@ -427,7 +452,7 @@ $.fn.fmtTimeSince = function(lastUpdate) {
     this.html('unknown');
     return this;
   }
-  var seconds = +(new Date()) - lastUpdate;
+  let seconds = +(new Date()) - lastUpdate;
   if (seconds < 0) seconds = 1;
   this.fmtTimeInterval(seconds);
 };
@@ -442,16 +467,16 @@ $.fn.fmtTimeInterval = function(seconds) {
     return this.html(seconds.toString() + 's');
   }
 
-  var minutes = (seconds - (seconds % 60)) / 60;
+  let minutes = (seconds - (seconds % 60)) / 60;
   if (minutes < 100) {
     return this.html(minutes.toString() + 'm');
   }
-  var hours = (minutes - (minutes % 60)) / 60;
+  let hours = (minutes - (minutes % 60)) / 60;
   minutes = minutes % 60;
   if (hours < 24) {
     return this.html(hours.toString() + 'h ' + minutes.toString() + 'm');
   }
-  var days = (hours - (hours % 24)) /24;
+  let days = (hours - (hours % 24)) /24;
   hours = hours % 24;
   return this.html(days.toString() + 'd ' + hours.toString() + 'h ' + minutes.toString() + 'm');
 };
@@ -464,11 +489,11 @@ $.fn.fmtErrorMessage = function(err) {
   this.clearSpinner();
   this.clearSuccessMessage();
 
-  var em = this.find('.errorMessage').last();
+  let em = this.find('.errorMessage').last();
   if (!em.length) em = this.find('.errorBox');
   if (!em.length) {
     em = $('<span class="errorMessage">');
-    var eml = this.find('.errorMessageLoc');
+    let eml = this.find('.errorMessageLoc');
     if (eml.length) {
       eml.append(em);
     } else {
@@ -501,7 +526,7 @@ $.fn.fmtSuccessMessage = function(msg, specials) {
   this.clearSpinner();
   this.clearErrorMessage();
 
-  var sm = this.find('.successMessage');
+  let sm = this.find('.successMessage');
   if (!sm.length) sm = this.find('.successBox');
   if (!sm) {
     sm = $('span class="successMessage">');
@@ -526,18 +551,18 @@ $.fn.clearSuccessMessage = function() {
   return this;
 };
 
-var flashErrorMessageTimeout = null;
+let flashErrorMessageTimeout = null;
 
 $.flashErrorMessage = function(msg) {
   console.log('Error', msg);
-  var fem = $('#flashErrorMessage');
+  let fem = $('#flashErrorMessage');
   if (fem.length === 0) {
     fem = $('<div id="flashErrorMessage">').appendTo(document.body);
   }
-  var sw = $(window).width();
-  var fw = fem.width();
+  let sw = $(window).width();
+  let fw = fem.width();
   fem.css({left: Math.floor((sw-fw)/2 - 30).toString() + 'px'});
-  var em = $('<div class="errorMessage">');
+  let em = $('<div class="errorMessage">');
   fem.append(em).show();
   fem.fmtErrorMessage(msg);
   if (flashErrorMessageTimeout) {
@@ -550,17 +575,17 @@ $.flashErrorMessage = function(msg) {
   }, 2000);
 };
 
-var flashSuccessMessageTimeout = null;
+let flashSuccessMessageTimeout = null;
 
 $.flashSuccessMessage = function(msg) {
-  var fem = $('#flashSuccessMessage');
+  let fem = $('#flashSuccessMessage');
   if (fem.length === 0) {
     fem = $('<div id="flashSuccessMessage">').appendTo(document.body);
   }
-  var sw = $(window).width();
-  var fw = fem.width();
+  let sw = $(window).width();
+  let fw = fem.width();
   fem.css({left: Math.floor((sw-fw)/2 - 30).toString() + 'px'});
-  var em = $('<div class="successMessage">');
+  let em = $('<div class="successMessage">');
   fem.append(em).show();
   fem.fmtSuccessMessage(msg);
   if (flashSuccessMessageTimeout) {
@@ -579,7 +604,7 @@ $.flashSuccessMessage = function(msg) {
 */
 
 $.fn.findOrCreate = function(sel, constructor) {
-  var findSel = this.find(sel);
+  let findSel = this.find(sel);
   if (findSel.length) {
     return findSel;
   } else {
@@ -594,36 +619,36 @@ $.fn.toplevel = function() {
 
 
 $.fn.syncChildren = function(newItems, options) {
-  var top = this;
+  let top = this;
   if (top.length === 0) return;
   if (top.length > 1) return top.first().syncChildren(newItems, options);
 
-  var domKey = options.domKey || 'syncDomChildren';
-  var domClass = options.domClass || 'syncDomChildren';
+  let domKey = options.domKey || 'syncDomChildren';
+  let domClass = options.domClass || 'syncDomChildren';
 
-  var removeEl = options.removeEl || function(name) {
+  let removeEl = options.removeEl || function(name) {
     $(this).remove();
   };
-  var createEl = options.createEl || function(name) {
+  let createEl = options.createEl || function(name) {
     return $('<div class="' + domClass + '">');
   };
-  var setupEl = options.setupEl || function() {
+  let setupEl = options.setupEl || function() {
   };
-  var updateEl = options.updateEl || function() {
+  let updateEl = options.updateEl || function() {
   };
 
   // Find all contained dom elements with domClass, index them by domKey
-  var oldEls = {};
+  let oldEls = {};
 
   _.each(top.children(), function(oldEl) {
-    var name = $(oldEl).data(domKey);
+    let name = $(oldEl).data(domKey);
     if (name !== undefined) {
       oldEls[name] = oldEl;
     }
   });
 
   // Index newItems by name
-  var itemToIndex = {};
+  let itemToIndex = {};
   _.each(newItems, function(name, itemi) {
     itemToIndex[name] = itemi;
   });
@@ -636,12 +661,12 @@ $.fn.syncChildren = function(newItems, options) {
   });
 
   // Insert new elems into dom
-  var afterEl = null;
+  let afterEl = null;
   _.each(newItems, function(name, itemi) {
     if (oldEls.hasOwnProperty(name)) {
       afterEl = oldEls[name];
     } else {
-      var newEl = createEl(name);
+      let newEl = createEl(name);
       if (!newEl) return;
       if (newEl.length) newEl = newEl[0]; // unwrap if already wrapped in jquery
       $(newEl).data(domKey, name);
@@ -660,8 +685,8 @@ $.fn.syncChildren = function(newItems, options) {
       It should be a signature across everything that matters for the content
     */
     if (options.calcSignature) {
-      var signature = options.calcSignature(name);
-      var oldSignature = $(oldEls[name]).attr('signature');
+      let signature = options.calcSignature(name);
+      let oldSignature = $(oldEls[name]).attr('signature');
       if (signature !== oldSignature) {
         $(oldEls[name]).attr('signature', signature);
         updateEl.call($(oldEls[name]), name);
@@ -683,9 +708,9 @@ $.fn.syncChildren = function(newItems, options) {
 
 // Polyfill for browsers with no requestAnimationFrame
 (function() {
-  var lastTime = 0;
-  var vendors = ['ms', 'moz', 'webkit', 'o'];
-  for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+  let lastTime = 0;
+  let vendors = ['ms', 'moz', 'webkit', 'o'];
+  for (let x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
     window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
     window.cancelAnimationFrame =
       window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
@@ -693,9 +718,9 @@ $.fn.syncChildren = function(newItems, options) {
 
   if (!window.requestAnimationFrame)
     window.requestAnimationFrame = function(callback, element) {
-      var currTime = new Date().getTime();
-      var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-      var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+      let currTime = new Date().getTime();
+      let timeToCall = Math.max(0, 16 - (currTime - lastTime));
+      let id = window.setTimeout(function() { callback(currTime + timeToCall); },
                                  timeToCall);
       lastTime = currTime + timeToCall;
       return id;
@@ -739,18 +764,18 @@ $.fn.nowAndOnEventsFrom = function(m, eventName, handler) {
   but can be more if we should jump multiple steps due to slow redraw
 */
 $.fn.animation = function(f, deltat) {
-  var self = this;
+  let self = this;
   window.requestAnimationFrame(wrap);
-  var lasttick = 0;
+  let lasttick = 0;
   if (!deltat) deltat = 1;
-  var maxTicks = Math.max(5, (100 / deltat));
+  let maxTicks = Math.max(5, (100 / deltat));
 
   function wrap(curtime) {
     // Make sure dom object still exists, otherwise give up
     if (self.closest('body').length) {
-      var curtick = Math.floor(curtime / deltat);
+      let curtick = Math.floor(curtime / deltat);
 
-      var nticks = 0;
+      let nticks = 0;
       if (curtick <= lasttick) {
       }
       else if (curtick - lasttick >= maxTicks) {
@@ -791,13 +816,13 @@ $.fn.animation = function(f, deltat) {
 
 */
 $.fn.animation2 = function(m) {
-  var top = this;
+  let top = this;
 
   m.animation2LastTime = 0;
-  var mChangeCounter = 0;
-  var vChangeCounter = 0;
-  var afActive = false;
-  var changesPending = 0;
+  let mChangeCounter = 0;
+  let vChangeCounter = 0;
+  let afActive = false;
+  let changesPending = 0;
   top.onEventsFrom(m, 'changed', function() {
     if (mChangeCounter === vChangeCounter) mChangeCounter++;
     if (changesPending < 2) changesPending++;
@@ -818,7 +843,7 @@ $.fn.animation2 = function(m) {
     if (vChangeCounter !== mChangeCounter) {
       vChangeCounter = mChangeCounter;
 
-      var dt = (m.animation2LastTime ? Math.min(curTime - m.animation2LastTime, 200) : 20) * 0.001;
+      let dt = (m.animation2LastTime ? Math.min(curTime - m.animation2LastTime, 200) : 20) * 0.001;
       m.animation2LastTime = curTime;
       if (m.animate) m.animate(dt);
       m.emit('animate', dt);
@@ -838,86 +863,6 @@ $.fn.animation2 = function(m) {
     }
   }
 };
-
-/*
-  Super-simple layout helper for drawing in canvases.
-  If you want to create a sub-box, do something like:
-    lo.child({boxL: (lo.boxL+lo.boxR)/2})
-
-  Use .snap or .snap5 to snap a coordinate to the corner or center of a device pixel
-*/
-function BoxLayout(t, r, b, l, pixelRatio, o) {
-  var lo = this;
-  if (!o) o = {};
-  lo.boxT = lo.canvasT = t;
-  lo.boxR = lo.canvasR = r;
-  lo.boxB = lo.canvasB = b;
-  lo.boxL = lo.canvasL = l;
-  lo.pixelRatio = pixelRatio;
-  lo.thinWidth = 1 / pixelRatio;
-  if (pixelRatio >= 2) {
-    lo.lrgFont = '20px Arial';
-    lo.lrgSize = 20;
-    lo.tooltipFont = '12px Arial';
-    lo.tooltipSize = 12;
-    lo.medFont = '10px Arial';
-    lo.medSize = 10;
-    lo.smlFont = '9px Arial';
-    lo.smlSize = 9;
-    lo.tinyFont = '7px Arial';
-    lo.tinySize = 7;
-  } else {
-    lo.lrgFont = '25px Arial';
-    lo.lrgSize = 25;
-    lo.tooltipFont = '12px Arial';
-    lo.tooltipSize = 12;
-    lo.medFont = '12px Arial';
-    lo.medSize = 12;
-    lo.smlFont = '10px Arial';
-    lo.smlSize = 10;
-    lo.tinyFont = '8px Arial';
-    lo.tinySize = 8;
-  }
-  lo.sizeFont = function(s) {
-    return s.toFixed(0) + 'px Arial';
-  };
-  lo.tooltipPadding = o.comfy ? 3 : 0;
-  lo.tooltipFillStyle = 'rgba(255,255,202,0.9)';
-  lo.tooltipTextStyle = '#000023';
-}
-
-BoxLayout.prototype.snap = function(x) {
-  var lo = this;
-  return Math.round(x * lo.pixelRatio) / lo.pixelRatio;
-};
-BoxLayout.prototype.snap5 = function(x) {
-  var lo = this;
-return (Math.round(x * lo.pixelRatio - 0.5) + 0.5) / lo.pixelRatio;
-};
-BoxLayout.prototype.child = function(changes) {
-  var lo = this;
-  if (changes) {
-    return _.extend(Object.create(lo), changes);
-  } else {
-    return Object.create(lo);
-  }
-};
-BoxLayout.prototype.toString = function() {
-  var lo = this;
-  return 'box(' + lo.boxL.toFixed(1) + ',' + lo.boxT.toFixed(1) + ',' + lo.boxR.toFixed(1) + ',' + lo.boxB.toFixed(1) + ')';
-};
-BoxLayout.prototype.childBox = function(t, r, b, l, o) {
-  var lo2 = Object.create(this);
-  lo2.boxT = t;
-  lo2.boxR = r;
-  lo2.boxB = b;
-  lo2.boxL = l;
-  if (o) {
-    _.extend(lo2, o);
-  }
-  return lo2;
-};
-
 
 /*
   Animate a canvas based on a model.
@@ -956,7 +901,7 @@ BoxLayout.prototype.childBox = function(t, r, b, l, o) {
   queue to be rendered after the rest of rendering is done. Usage:
 
       ctx.tooltipLayer(function() {
-        drawTooltip(ctx, ...);
+        canvasutils.drawTooltip(ctx, ...);
       })
 
   There's also .textLayer, .cursorLayer, .buttonLayer and .curLayer, which calls its argument
@@ -964,16 +909,16 @@ BoxLayout.prototype.childBox = function(t, r, b, l, o) {
 
 */
 $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
-  var top = this;
+  let top = this;
   if (top.length === 0) return;
   if (!o.autoSize) {
     top.maximizeCanvasResolution();
   }
-  var canvas = top[0];
+  let canvas = top[0];
 
-  var avgTime = null;
-  var drawCount = 0;
-  var hd = new HitDetector(); // Persistent
+  let avgTime = null;
+  let drawCount = 0;
+  let hd = new hit_detector.HitDetector(); // Persistent
 
   // Isn't this what jQuery is supposed to do for me?
   // http://stackoverflow.com/questions/12704686/html5-with-jquery-e-offsetx-is-undefined-in-firefox
@@ -1004,13 +949,13 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   }
 
   top.on('wheel', function(ev) {
-    var md = eventOffsets(ev);
+    let md = eventOffsets(ev);
     if (!md) return;
-    var action = hd.findScroll(md.x, md.y);
+    let action = hd.findScroll(md.x, md.y);
     if (action && action.onScroll) {
-      var deltas = eventDeltas(ev);
+      let deltas = eventDeltas(ev);
       if (deltas) {
-        var scrollRate = Math.min(15, Math.max(Math.abs(deltas.x), Math.abs(deltas.y)));
+        let scrollRate = Math.min(15, Math.max(Math.abs(deltas.x), Math.abs(deltas.y)));
         action.onScroll(deltas.x*scrollRate, deltas.y*scrollRate);
         requestAnimationFrame(redrawCanvas);
       }
@@ -1019,8 +964,8 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   });
 
   top.on('mousedown', function(ev) {
-    var md = eventOffsets(ev);
-    var action = hd.find(md.x, md.y) || hd.defaultActions;
+    let md = eventOffsets(ev);
+    let action = hd.find(md.x, md.y) || hd.defaultActions;
     if (action) {
       if (action.onDown || action.onClick || action.onUp) {
         hd.buttonDown = true;
@@ -1044,8 +989,8 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   });
 
   top.on('mousemove', function(ev) {
-    var md = eventOffsets(ev);
-    var action = hd.find(md.x, md.y);
+    let md = eventOffsets(ev);
+    let action = hd.find(md.x, md.y);
     if (hd.buttonDown || hd.hoverActive || hd.dragging || (action && action.onHover)) {
       hd.mdX = md.x;
       hd.mdY = md.y;
@@ -1074,8 +1019,8 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     hd.altKey = ev.altKey;
     hd.ctrlKey = ev.ctrlKey;
     hd.buttonDown = false;
-    var md = eventOffsets(ev);
-    var action = hd.find(md.x, md.y);
+    let md = eventOffsets(ev);
+    let action = hd.find(md.x, md.y);
     if (action && action.onClick) {
       action.onClick();
     }
@@ -1122,21 +1067,21 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       console.log('mkAnimatedCanvas.redrawCanvas: dead');
       return;
     }
-    var t0 = Date.now();
+    let t0 = Date.now();
     drawCount++;
-    var ctx = canvas.getContext(o.contextStyle || '2d');
+    let ctx = canvas.getContext(o.contextStyle || '2d');
 
     if (o.autoSize) {
-      var devicePixelRatio = window.devicePixelRatio || 1;
-      var backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
+      let devicePixelRatio = window.devicePixelRatio || 1;
+      let backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
                                ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1);
-      var ratio = devicePixelRatio / backingStoreRatio;
+      let ratio = devicePixelRatio / backingStoreRatio;
       canvas.pixelRatio = ratio;
-      var cssWidth = o.autoSizeToParent ? $(canvas).parent().width() : $(canvas).width();
-      var cssHeight = o.autoSizeToParent ? $(canvas).parent().height() : $(canvas).height();
+      let cssWidth = o.autoSizeToParent ? $(canvas).parent().width() : $(canvas).width();
+      let cssHeight = o.autoSizeToParent ? $(canvas).parent().height() : $(canvas).height();
       if (0) console.log('autoSize', cssWidth, cssHeight);
-      var canvasPixelWidth = Math.floor(cssWidth * ratio);
-      var canvasPixelHeight = Math.floor(cssHeight * ratio);
+      let canvasPixelWidth = Math.floor(cssWidth * ratio);
+      let canvasPixelHeight = Math.floor(cssHeight * ratio);
       if (canvasPixelWidth != canvas.width || canvasPixelHeight != canvas.height) {
         canvas.width = cssWidth * ratio;
         canvas.height = cssHeight * ratio;
@@ -1146,7 +1091,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     if (canvas.width === 0 || canvas.height === 0) return;
 
 
-    var pixelRatio = canvas.pixelRatio || 1;
+    let pixelRatio = canvas.pixelRatio || 1;
     ctx.save();
     ctx.scale(pixelRatio, pixelRatio);
 
@@ -1156,9 +1101,9 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     ctx.cursorLayer = mkDeferQ();
     ctx.tooltipLayer = mkDeferQ();
     hd.beginDrawing(ctx);
-    var cw = canvas.width / pixelRatio;
-    var ch = canvas.height / pixelRatio;
-    var lo = new BoxLayout(0, cw, ch, 0, pixelRatio, o);
+    let cw = canvas.width / pixelRatio;
+    let ch = canvas.height / pixelRatio;
+    let lo = new box_layout.BoxLayout(0, cw, ch, 0, pixelRatio, o);
 
     if (o.bgFillStyle) {
       ctx.fillStyle = o.bgFillStyle;
@@ -1179,7 +1124,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     ctx.textLayer = ctx.buttonLayer = ctx.cursorLayer = ctx.tooltipLayer = ctx.curLayer = undefined; // GC paranoia
 
     if (m.uiDebug >= 1) {
-      var t1 = Date.now();
+      let t1 = Date.now();
       if (avgTime === null) {
         avgTime = t1 - t0;
       } else {
@@ -1201,16 +1146,16 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     movieOptions.onBegin({el: top});
 
     if (movieOptions.cmd === 'start') {
-      var cropInfo = movieOptions.crop ? movieOptions.crop(canvas.width, canvas.height) : null;
+      let cropInfo = movieOptions.crop ? movieOptions.crop(canvas.width, canvas.height) : null;
       if (!cropInfo) {
         cropInfo = {width: Math.floor(canvas.width/2)*2, height: Math.floor(canvas.height/2)*2, left:0, top: 0};
       }
-      var createMovieReq = new FormData();
-      var createMovieRsp = null;
+      let createMovieReq = new FormData();
+      let createMovieRsp = null;
       if (cropInfo) {
         createMovieReq.append('crop', cropInfo.width.toFixed(0) + ':' + cropInfo.height.toFixed(0) + ':' + cropInfo.left.toFixed(0) + ':' + cropInfo.top.toFixed(0));
       }
-      var createMovieXhr = new XMLHttpRequest();
+      let createMovieXhr = new XMLHttpRequest();
       createMovieXhr.open('POST', 'create_movie', true);
       createMovieXhr.onload = function(e) {
         if (0) console.log('create_movie returns', createMovieXhr.response);
@@ -1222,8 +1167,8 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       createMovieXhr.send(createMovieReq);
     }
     else if (movieOptions.cmd === 'frame') {
-      var origLoadPendingTot = m.loadPendingTot;
-      var tmpBgFillStyle = o.bgFillStyle;
+      let origLoadPendingTot = m.loadPendingTot;
+      let tmpBgFillStyle = o.bgFillStyle;
       o.bgFillStyle = '#ffffff';
       redrawCanvas();
       o.bgFillStyle = tmpBgFillStyle;
@@ -1233,11 +1178,11 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       }
       else {
         canvas.toBlob(function(blob) {
-          var addFrameReq = new FormData();
+          let addFrameReq = new FormData();
           addFrameReq.append('frame_data', blob);
           addFrameReq.append('framei', movieOptions.framei);
           addFrameReq.append('movie_id', hd.movieId);
-          var addFrameXhr = new XMLHttpRequest();
+          let addFrameXhr = new XMLHttpRequest();
           addFrameXhr.open('POST', 'add_frame', true);
           addFrameXhr.onload = function(e) {
             movieOptions.onDone(null, {});
@@ -1248,9 +1193,9 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       }
     }
     else if (movieOptions.cmd === 'end') {
-      var endMovieReq = new FormData();
+      let endMovieReq = new FormData();
       endMovieReq.append('movie_id', hd.movieId);
-      var endMovieXhr = new XMLHttpRequest();
+      let endMovieXhr = new XMLHttpRequest();
       endMovieXhr.open('POST', 'end_movie', true);
       endMovieXhr.onload = function(e) {
         movieOptions.onDone(null, {movieUrl: 'download_movie?movie_id=' + hd.movieId});
@@ -1271,12 +1216,12 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
 
 $.fn.trackKeys = function(down, changed) {
   $(window).on('keydown', function(ev) {
-    var keyChar = String.fromCharCode(ev.which);
+    let keyChar = String.fromCharCode(ev.which);
     down[keyChar] = true;
     if (changed) changed();
   });
   $(window).on('keyup', function(ev) {
-    var keyChar = String.fromCharCode(ev.which);
+    let keyChar = String.fromCharCode(ev.which);
     down[keyChar] = false;
     if (changed) changed();
   });
@@ -1288,14 +1233,14 @@ $.fn.trackKeys = function(down, changed) {
 */
 $.fn.maximizeCanvasResolution = function() {
   this.each(function(index, canvas) {
-    var ctx = canvas.getContext('2d');
-    var devicePixelRatio = window.devicePixelRatio || 1;
-    var backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
+    let ctx = canvas.getContext('2d');
+    let devicePixelRatio = window.devicePixelRatio || 1;
+    let backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
                              ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1);
     if (devicePixelRatio !== backingStoreRatio) {
-      var ratio = devicePixelRatio / backingStoreRatio;
-      var oldWidth = canvas.width;
-      var oldHeight = canvas.height;
+      let ratio = devicePixelRatio / backingStoreRatio;
+      let oldWidth = canvas.width;
+      let oldHeight = canvas.height;
 
       // Store pixelRatio here for use by client code
       canvas.pixelRatio = ratio;
@@ -1314,13 +1259,13 @@ $.fn.maximizeCanvasResolution = function() {
 
 $.fn.setCanvasSize = function(cssWidth, cssHeight, ctx) {
   if (!this.length) return;
-  var canvas = this[0];
+  let canvas = this[0];
   if (!ctx) ctx = canvas.getContext('2d');
-  var devicePixelRatio = window.devicePixelRatio || 1;
-  var backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
+  let devicePixelRatio = window.devicePixelRatio || 1;
+  let backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
                            ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1);
 
-  var ratio = devicePixelRatio / backingStoreRatio;
+  let ratio = devicePixelRatio / backingStoreRatio;
   if (0) console.log('SCS', cssWidth, cssHeight, ratio);
 
   // Store pixelRatio here for use by client code
@@ -1348,12 +1293,12 @@ $.fn.setCanvasSize = function(cssWidth, cssHeight, ctx) {
 */
 
 function mkDeferQ() {
-  var q = [];
+  let q = [];
   function defer(f) {
     q.push(f);
   }
   defer.now = function() {
-    for (var i=0; i<q.length; i++) {
+    for (let i=0; i<q.length; i++) {
       q[i]();
     }
     q.length = 0;
@@ -1363,7 +1308,7 @@ function mkDeferQ() {
 }
 
 function mkImage(src, width, height) {
-  var ret = new Image();
+  let ret = new Image();
   ret.src = src;
   ret.width = width;
   ret.height = height;
@@ -1376,15 +1321,15 @@ function mkImage(src, width, height) {
   On any failure, it writes a message to the jQuery item
 */
 $.fn.withJsonItems = function(items, f) {
-  var top = this;
-  var datas = {};
-  var pending = 0;
-  var errs = [];
+  let top = this;
+  let datas = {};
+  let pending = 0;
+  let errs = [];
   _.each(_.keys(items), function(name) {
     pending += 1;
-    var item = items[name];
-    var url;
-    var data = null;
+    let item = items[name];
+    let url;
+    let data = null;
     if (_.isArray(item)) {
       url = item[0];
       data = JSON.stringify(item[1]);
@@ -1426,10 +1371,10 @@ function setupConsole(reloadKey, contentMac) {
   // Gracefully degrade firebug logging
   function donothing () {}
   if (!window.console) {
-    var names = ['log', 'debug', 'info', 'warn', 'error', 'assert', 'dir', 'dirxml', 'group',
+    let names = ['log', 'debug', 'info', 'warn', 'error', 'assert', 'dir', 'dirxml', 'group',
                  'groupEnd', 'time', 'timeEnd', 'count', 'trace', 'profile', 'profileEnd'];
     window.console = {};
-    for (var i = 0; i<names.length; i++) window.console[names[i]] = donothing;
+    for (let i = 0; i<names.length; i++) window.console[names[i]] = donothing;
   }
 
   // Create remote console over a websocket connection
@@ -1463,7 +1408,7 @@ function setupConsole(reloadKey, contentMac) {
 
 function disableConsole() {
   try {
-    var _console = window.console;
+    let _console = window.console;
     Object.defineProperty(window, 'console', {
       get: function() {
         if (_console._commandLineAPI) {
@@ -1487,11 +1432,11 @@ function errlog() {
   // console.log isn't a function in IE8
   if (console && _.isFunction(console.log)) console.log.apply(console, arguments);
   if (window.rconsole) {
-    var stack = '';
-    var err = '';
-    var sep = '';
-    for (var i=0; i<arguments.length; i++) {
-      var arg = arguments[i];
+    let stack = '';
+    let err = '';
+    let sep = '';
+    for (let i=0; i<arguments.length; i++) {
+      let arg = arguments[i];
       if (arg) {
         if (_.isObject(arg)) {
           err += sep + JSON.stringify(arg);
@@ -1522,10 +1467,10 @@ function errlog() {
 
 function setupClicks() {
   $(document.body).bind('click', function(e) {
-    var closestA = $(e.target).closest('a');
+    let closestA = $(e.target).closest('a');
     if (closestA.length) {
       if (closestA.hasClass('ui-tabs-anchor')) return; // don't interfere with jquery-ui
-      var href = closestA.attr('href');
+      let href = closestA.attr('href');
       if (console) console.log('click a href ' + href);
       if (href && href.substr(0,1) === '#') {
         gotoLocationHash(href.substr(1), {});
@@ -1542,7 +1487,7 @@ function setupClicks() {
 
 function setupMixpanel() {
   try {
-    var mpkey = null, mpid = null;
+    let mpkey = null, mpid = null;
     // WRITEME: add mixpanel key here
     if (0 && window.anyCloudHost === 'localhost') {
       mpkey = 'dd77bca94d9b6ade709f734c3026b305';   // Devel
@@ -1566,15 +1511,15 @@ function setupMixpanel() {
 function mkWebSocket(path, handlers) {
 
   // One way to turn it into an absolute URL
-  var el = $('<a>');
+  let el = $('<a>');
   el.prop('href', path);
-  var url = el.prop('href');
-  var wsUrl = url.replace(/^http/, 'ws'); // and https: turns in to wss:
+  let url = el.prop('href');
+  let wsUrl = url.replace(/^http/, 'ws'); // and https: turns in to wss:
 
   // WRITEME: detect vendor-prefixed WebSocket.
   // WRITEME: Give some appropriately dire error message if websocket not found or fails to connect
   if (0) console.log('Opening websocket to', wsUrl);
-  return WebSocketBrowser.mkWebSocketClientRpc(wsUrl, handlers);
+  return web_socket_browser.mkWebSocketClientRpc(wsUrl, handlers);
 }
 
 /* ----------------------------------------------------------------------

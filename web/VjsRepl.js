@@ -1,15 +1,15 @@
 /* globals console, process, exports, require */
 'use strict';
-var _                   = require('underscore');
-var net                 = require('net');
-var util                = require('util');
-var repl                = require('repl');
+const _ = require('underscore');
+const net = require('net');
+const util = require('util');
+const repl = require('repl');
 
 exports.setupReplServer = setupReplServer;
 exports.addToContext = addToContext;
 
-var gContexts = [];
-var pendingContext = {};
+let gContexts = [];
+let pendingContext = {};
 
 function addToContext(name, value) {
   _.each(gContexts, function(ctx) {
@@ -32,14 +32,14 @@ function setupReplCommon(r) {
   r.context.VjsSite = require('./VjsSite');
 
   r.context.p = function() {
-    for (var i=0; i<arguments.length; i++) {
+    for (let i=0; i<arguments.length; i++) {
       r.outputStream.write(util.inspect(arguments[i]));
       r.outputStream.write((i===arguments.length-1) ? '\n': ', ');
     }
   };
 
   r.context.write = r.outputStream.write;
-  var puts = r.context.puts = function(line) {
+  let puts = r.context.puts = function(line) {
     r.outputStream.write(line);
     r.outputStream.write('\n');
   };
@@ -60,7 +60,7 @@ function setupReplCommon(r) {
 function setupReplServer() {
   net.createServer(function(socket) {
     socket.write('VJS Repl. Try help()\n');
-    var r = repl.start('node> ', socket);
+    let r = repl.start('node> ', socket);
     setupReplCommon(r);
   }).listen(5001, '127.0.0.1');
   console.log('Use "rlwrap nc 127.0.0.1 5001" for a repl');

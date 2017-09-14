@@ -1,25 +1,26 @@
+/* globals WebSocket */
 /*
   This and WebSocketServer.js provide nearly identical functionality, but because the browser and
   node environments are slightly different there are two versions. See there for doc
 */
-var _                   = require('underscore');
-var WebSocketHelper     = require('WebSocketHelper');
+const _ = require('underscore');
+const web_socket_helper = require('web_socket_helper');
 
-var verbose = 1;
+let verbose = 1;
 
 exports.mkWebSocketClientRpc = mkWebSocketClientRpc;
 
 
 function mkWebSocketClientRpc(wscUrl, handlers) {
-  var txQueue = [];
-  var pending = new WebSocketHelper.RpcPendingQueue();
-  var callbacks = {};
-  var rxBinaries = [];
-  var shutdownRequested = false;
-  var interactivePending = null;
-  var reopenBackoff = 1000; // milliseconds
+  let txQueue = [];
+  let pending = new web_socket_helper.RpcPendingQueue();
+  let callbacks = {};
+  let rxBinaries = [];
+  let shutdownRequested = false;
+  let interactivePending = null;
+  let reopenBackoff = 1000; // milliseconds
 
-  var wsc = null;
+  let wsc = null;
 
   setupWsc();
   setupHandlers();
@@ -34,7 +35,7 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
         if (verbose >= 3) console.log(wsc.url + ' > binary length=', event.data.byteLength);
         rxBinaries.push(event.data);
       } else {
-        var msg = WebSocketHelper.parse(event.data, rxBinaries);
+        let msg = web_socket_helper.parse(event.data, rxBinaries);
         rxBinaries = [];
         if (verbose >= 2) console.log(wscUrl + ' >', msg);
         handleMsg(msg);
@@ -74,16 +75,16 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
 
   function handleMsg(msg) {
     if (msg.method) {
-      var f = handlers['rpc_' + msg.method];
+      let f = handlers['rpc_' + msg.method];
       if (!f) {
         if (verbose >= 1) console.log(wscUrl, 'Unknown method', msg.method);
         return;
       }
-      var done = false;
+      let done = false;
       try {
         f.apply(handlers, msg.params.concat([function(error /* ... */) {
-          var result = Array.prototype.slice.call(arguments, 1);
-          if (!WebSocketHelper.isRpcProgressError(error)) {
+          let result = Array.prototype.slice.call(arguments, 1);
+          if (!web_socket_helper.isRpcProgressError(error)) {
             done = true;
           }
           handlers.tx({ id: msg.id, error: error, result: result });
@@ -96,9 +97,9 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
       }
     }
     else if (msg.id) {
-      var result = msg.result || [];
-      var cb;
-      if (WebSocketHelper.isRpcProgressError(msg.error)) {
+      let result = msg.result || [];
+      let cb;
+      if (web_socket_helper.isRpcProgressError(msg.error)) {
         cb = pending.getPreserve(msg.id);
       } else {
         cb = pending.get(msg.id);
@@ -111,7 +112,7 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
       cb.apply(handlers, [msg.error].concat(msg.result));
 
       if (interactivePending && pending.pendingCount < 3) {
-        var tip = interactivePending;
+        let tip = interactivePending;
         interactivePending = null;
         handlers.rpc.apply(handlers, [tip.method].concat(tip.params, [tip.cb]));
       }
@@ -124,9 +125,9 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
 
   function setupHandlers() {
     handlers.rpc = function(method /* ... */) {
-      var id = pending.getNewId();
-      var params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
-      var cb = arguments[arguments.length - 1];
+      let id = pending.getNewId();
+      let params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
+      let cb = arguments[arguments.length - 1];
       if (verbose >= 2) console.log('method=', method, 'params=', params);
 
       pending.add(id, cb);
@@ -136,8 +137,8 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
       if (pending.pendingCount < 3) {
         return handlers.rpc.apply(handlers, arguments);
       }
-      var cb = arguments[arguments.length - 1];
-      var params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
+      let cb = arguments[arguments.length - 1];
+      let params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
       // overwrite any previous one
       interactivePending = {method: method, params: params, cb: cb};
     };
@@ -162,8 +163,8 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
 
   function emitMsg(msg) {
     // Consider async.queue to limit concurrency here if it's a problem
-    var binaries = [];
-    var json = WebSocketHelper.stringify(msg, binaries);
+    let binaries = [];
+    let json = web_socket_helper.stringify(msg, binaries);
     _.each(binaries, function(data) {
       wsc.send(data);
       if (verbose >= 3) console.log(wscUrl + ' < binary length=', data.byteLength);

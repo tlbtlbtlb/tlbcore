@@ -1,16 +1,16 @@
 'use strict';
-var _                   = require('underscore');
-var async               = require('async');
-var util                = require('util');
-var path                = require('path');
-var url                 = require('url');
-var querystring         = require('querystring');
-var https               = require('https');
-var http                = require('http');
-var assert              = require('assert');
-var logio               = require('./logio');
-var Safety              = require('./Safety');
-var bogocache           = require('./bogocache');
+const _ = require('underscore');
+const async = require('async');
+const util = require('util');
+const path = require('path');
+const url = require('url');
+const querystring = require('querystring');
+const https = require('https');
+const http = require('http');
+const assert = require('assert');
+const logio = require('./logio');
+const Safety = require('./Safety');
+const bogocache = require('./bogocache');
 
 exports.GithubApi = GithubApi;
 
@@ -22,17 +22,17 @@ exports.GithubApi = GithubApi;
   Cache userInfo. GithubApi objects are often created and destroyed, so we keep the cache outside
   the object and index by accessToken.
 */
-var userInfoCache = new bogocache.BogoCache(300000);
+let userInfoCache = new bogocache.BogoCache(300000);
 
 function GithubApi(accessToken) {
-  var api = this;
+  let api = this;
   api.accessToken = accessToken;
 }
 
 GithubApi.prototype.getUserInfo = function(cb) {
-  var api = this;
+  let api = this;
   // This is the most common call, and pinging Github takes 400 mS or so
-  var cached = userInfoCache.get(api.accessToken);
+  let cached = userInfoCache.get(api.accessToken);
   if (cached) {
     setImmediate(function() {
       cb(null, cached);
@@ -48,9 +48,9 @@ GithubApi.prototype.getUserInfo = function(cb) {
 
 
 GithubApi.prototype.getApiCall = function(path, args, cb) {
-  var api = this;
+  let api = this;
 
-  var httpsReqInfo = {
+  let httpsReqInfo = {
     method: 'GET',
     hostname: 'api.github.com',
     port: 443,
@@ -62,15 +62,15 @@ GithubApi.prototype.getApiCall = function(path, args, cb) {
     },
   };
   https.get(httpsReqInfo, function(res) {
-    var datas = [];
+    let datas = [];
     res.on('data', function(d) {
       datas.push(d);
     });
     res.on('end', function() {
-      var data = datas.join('');
+      let data = datas.join('');
       if (1) logio.I('https://api.github.com'+ path + '?' + querystring.stringify(args), data);
       if (res.statusCode !== 200) return cb(new Error('api.github.com returned status code ' + res.statusCode + ': ' + data));
-      var info = JSON.parse(data);
+      let info = JSON.parse(data);
       cb(null, info);
     });
   }).on('error', function(err) {
