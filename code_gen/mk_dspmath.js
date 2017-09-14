@@ -253,11 +253,6 @@ function genAll(f) {
       });
     });
   }
-  if (0) {
-    _.each(stdTypes, function(valt) {
-      genInterp(f, valt, new DspFormat(8, 24));
-    });
-  }
 }
 
 function main() {

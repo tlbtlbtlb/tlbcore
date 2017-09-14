@@ -1,15 +1,17 @@
 {
-  "esversion": 6,
-  "boss":      true,
-	"node":      true,
-	"white":     true,
-	"smarttabs": true,
-	"newcap":    false,
-	"undef":     true,
-	"unused":    false,
-	"onecase":   true,
-	"indent":    2,
-  "typed":     true,
-  "predef":    [
-  ]
+    "esversion": 6,
+    "boss":      true,
+    "node":      true,
+    "white":     true,
+    "loopfunc":  true,
+    "smarttabs": true,
+    "newcap":    false,
+    "undef":     true,
+    "unused":    false,
+    "onecase":   true,
+    "indent":    2,
+    "typed":     true,
+    "sub":       true,
+    "predef":    [
+    ]
 }

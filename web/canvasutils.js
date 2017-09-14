@@ -2,7 +2,8 @@
 
   https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
 */
-/* globals _ */
+'use strict';
+const _ = require('underscore');
 
 exports.drawTooltip = drawTooltip;
 exports.goodGraphColor = goodGraphColor;
@@ -99,7 +100,7 @@ function drawSpinner(ctx, spinnerX, spinnerY, spinnerSize, phase) {
   let I = Geom2D.I, T = Geom2D.T, R = Geom2D.R, R0 = Geom2D.R0, S = Geom2D.S, S1 = Geom2D.S1, D = Geom2D.D, A = Geom2D.A;
 */
 
-let Geom2D = {
+const Geom2D = {
   I: function() { // identity matrix
     return [[1, 0, 0],
             [0, 1, 0]];
@@ -146,7 +147,7 @@ exports.Geom2D = Geom2D;
   let I = Geom3D.I, T = Geom3D.T, S = Geom3D.S
 */
 
-let Geom3D = {
+const Geom3D = {
   I: function() { // identity matrix
     return Float64Array.of(
       1, 0, 0,
@@ -303,7 +304,7 @@ function blendColors(c0, c1, p) {
 }
 
 
-let _goodGraphColors = [
+const _goodGraphColors = [
   '#F15854', // red
   '#5DA5DA', // blue
   '#FAA43A', // orange
@@ -345,7 +346,7 @@ let _goodGraphColors = [
   '#999900'
 ];
 
-let _darkGraphColors = _.map(_goodGraphColors, function(c) { blendColors(c, '#000000', 0.33); });
+const _darkGraphColors = _.map(_goodGraphColors, function(c) { blendColors(c, '#000000', 0.33); });
 
 function goodGraphColor(i) {
   return _goodGraphColors[i % _goodGraphColors.length];

@@ -1,5 +1,3 @@
-/* globals console, process, exports, require, Buffer, Uint8Array */
-'use strict';
 /*
   The server side (nodejs) of a WebSocket connection.
   The API is symmetrical, but the browser end is implemented in web_socket_browser because of the narcissism of small differences.
@@ -27,6 +25,8 @@
     https://tools.ietf.org/html/rfc6455
     https://github.com/Worlize/WebSocket-Node/wiki/Documentation
 */
+
+'use strict';
 const _ = require('underscore');
 const logio = require('./logio');
 const web_socket_helper = require('./web_socket_helper');

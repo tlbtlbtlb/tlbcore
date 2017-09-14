@@ -3,6 +3,7 @@
   This and WebSocketServer.js provide nearly identical functionality, but because the browser and
   node environments are slightly different there are two versions. See there for doc
 */
+'use strict';
 const _ = require('underscore');
 const web_socket_helper = require('web_socket_helper');
 

@@ -1,4 +1,3 @@
-/* globals console, process, exports, require */
 'use strict';
 const _ = require('underscore');
 const net = require('net');

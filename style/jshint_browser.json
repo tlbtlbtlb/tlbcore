@@ -1,18 +1,21 @@
 {
-  "esversion": 6,
-  "boss":      true,
-	"browser":   true,
-  "devel":     true,
-	"strict":    false,
-	"white":     true,
-	"smarttabs": true,
-	"newcap":    false,
-	"undef":     true,
-	"unused":    false,
-	"onecase":   true,
-	"indent":    2,
-  "typed":     true,
-  "predef":    [
-    "_", "$", "mkWebSocket", "EventEmitter", "replaceLocationHash", "window", "require", "exports"
-  ]
+    "esversion": 6,
+    "boss":      true,
+    "browser":   true,
+    "jquery":    true,
+    "devel":     true,
+    "strict":    "global",
+    "white":     true,
+    "loopfunc":  true,
+    "smarttabs": true,
+    "newcap":    false,
+    "undef":     true,
+    "unused":    false,
+    "onecase":   true,
+    "indent":    2,
+    "typed":     true,
+    "sub":       true,
+    "predef":    [
+        "require", "exports"
+    ]
 }

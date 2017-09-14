@@ -1,4 +1,7 @@
-/* globals exports, DataView, crypto */
+
+/* globals DataView, crypto */
+'use strict';
+const _ = require('underscore');
 
 exports.sha256 = sha256;
 

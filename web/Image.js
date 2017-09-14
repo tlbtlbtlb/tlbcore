@@ -1,7 +1,7 @@
 'use strict';
 const _ = require('underscore');
 const child_process = require('child_process');
-
+const async = require('async');
 const logio = require('./logio');
 const Topology = require('./Topology');
 const Storage = require('./Storage');
@@ -9,7 +9,7 @@ const Safety = require('./Safety');
 
 exports.mkImageVersions = mkImageVersions;
 
-let verbose    = 2;
+let verbose = 2;
 
 let filesToSync = [];
 

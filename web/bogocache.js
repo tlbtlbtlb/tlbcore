@@ -1,4 +1,3 @@
-/* globals require, exports */
 'use strict';
 const _ = require('underscore');
 const async = require('async');

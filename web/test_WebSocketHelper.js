@@ -1,7 +1,6 @@
 const _ = require('underscore');
 const assert = require('assert');
 const web_socket_helper = require('./web_socket_helper');
-//const ur = require('ur');
 
 function wshPipe(msg) {
   let binaries = [];
@@ -31,18 +30,6 @@ describe('web_socket_helper', function() {
       assert.ok(msg2.bar.constructor === T);
       assert.ok(msg2.bar.length === 3);
     });
-  });
-});
-
-describe('web_socket_helper', function() {
-  if (0) it('should be fast for large arma vectors collections', function() {
-    let vd = new ur.vec.linspace(0, 123000, 1001);
-    let msg1 = {foo: vd};
-    let msg2;
-    for (let iter=0; iter<50; iter++) {
-      msg2 = wshPipe(msg1);
-    }
-    assert.equal(msg2.foo[10], 1230);
   });
 });
 

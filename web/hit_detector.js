@@ -1,4 +1,5 @@
 'use strict';
+const _ = require('underscore');
 
 exports.HitDetector = HitDetector;
 

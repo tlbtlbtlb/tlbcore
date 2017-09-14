@@ -1,4 +1,3 @@
-/* globals console, process, exports, require */
 'use strict';
 /*
   It's reasonable to use this behind nginx. See http://nginx.org/en/docs/
@@ -20,7 +19,7 @@ const Provider = require('./Provider');
 const Topology = require('./Topology');
 const Safety = require('./Safety');
 const Image = require('./Image');
-const WebSocketServer = require('./WebSocketServer');
+const web_socket_server = require('./web_socket_server');
 
 exports.WebServer = WebServer;
 exports.setVerbose = function(v) { verbose = v; };
@@ -109,6 +108,8 @@ WebServer.prototype.setupBaseProvider = function() {
   if (1) p.addScript(require.resolve('./web_socket_browser.js'), 'web_socket_browser');
   if (1) p.addScript(require.resolve('./box_layout.js'), 'box_layout');
   if (1) p.addScript(require.resolve('./VjsBrowser.js'));
+  if (1) p.addScript(require.resolve('./vjs_animation.js'), 'vjs_animation');
+  if (1) p.addScript(require.resolve('./vjs_error.js'), 'vjs_error');
   if (1) p.addScript(require.resolve('./hit_detector.js'), 'hit_detector');
   if (1) p.addScript(require.resolve('./canvasutils.js'), 'canvasutils');
 
@@ -339,7 +340,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
       return;
     }
 
-    WebSocketServer.mkWebSocketRpc(wsr, wsc, handlers);
+    web_socket_server.mkWebSocketRpc(wsr, wsc, handlers);
   }
 
   function annotateReq(req) {

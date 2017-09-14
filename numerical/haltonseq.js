@@ -32,7 +32,7 @@ function unipolarHaltonAxis(i, radix)
 */
 function unipolarHaltonRow(i, nCols)
 {
-  if (!(nCols <= haltonAxes.length)) throw "nCols too large";
+  if (nCols > haltonAxes.length) throw "nCols too large";
   let ret = [];
   for (let ci = 0; ci < nCols; ci++) {
     ret.push(unipolarHaltonAxis(i, haltonAxes[i]));
@@ -57,7 +57,7 @@ function bipolarHaltonAxis(i, radix)
 
 function bipolarHaltonRow(i, nCols)
 {
-  if (!(nCols <= haltonAxes.length)) throw "nCols too large";
+  if (nCols > haltonAxes.length) throw "nCols too large";
   let ret = [];
   for (let ci = 0; ci < nCols; ci++) {
     ret.push(bipolarHaltonAxis(i, haltonAxes[i]));
@@ -78,7 +78,7 @@ function boxMullerTransform(u1, u2) {
 
 function gaussianHaltonRow(i, nCols)
 {
-  if (!(nCols <= haltonAxes.length)) throw "nCols too large";
+  if (nCols > haltonAxes.length) throw "nCols too large";
   let ret = [];
   for (let ci = 0; ci < nCols; ci+=2) {
     let u1 = unipolarHaltonAxis(i+1, haltonAxes[ci+0]);

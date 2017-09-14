@@ -71,7 +71,7 @@ function ChildJsonPipe(execName, execArgs, execOptions, o) {
     }
 
     m.children[childi].on('close', function(code, signal) {
-      if (m.verbose >= 1 || code != 0) {
+      if (m.verbose >= 1 || code !== 0) {
         logio.I(m.baseName + childi.toString(), 'close, code=', code, 'signal=', signal);
         //logio.I(m.baseName + childi.toString(), m.logs);
       }
@@ -82,7 +82,7 @@ function ChildJsonPipe(execName, execArgs, execOptions, o) {
       logio.E(m.baseName + childi.toString(), 'Failed to start child process', err);
     });
   });
-};
+}
 
 ChildJsonPipe.prototype = Object.create(events.EventEmitter.prototype);
 
@@ -97,7 +97,7 @@ ChildJsonPipe.prototype.close = function() {
 // Return index of child with shortest outstanding queue length
 ChildJsonPipe.prototype.chooseAvailChild = function() {
   let m = this;
-  let bestLen = m.queues[0].length
+  let bestLen = m.queues[0].length;
   let besti = 0;
   for (let childi=1; childi<m.children.length; childi++) {
     if (m.queues[childi].length < bestLen) {
@@ -129,14 +129,14 @@ ChildJsonPipe.prototype.handleRx = function(childi, rx) {
     }
     if (repInfo) {
       if (rx.error && rx.error === 'progress') {
-        if (m.verbose>=2) logio.E(m.baseName + childi.toString(), 'rx', repInfo.method, 'progress', Date.now()-repInfo.t0)
+        if (m.verbose>=2) logio.E(m.baseName + childi.toString(), 'rx', repInfo.method, 'progress', Date.now()-repInfo.t0);
         repInfo.cb('progress', rx.result);
       }
       else if (rx.error) {
-        if (m.verbose>=1) logio.E(m.baseName + childi.toString(), 'rx', repInfo.method, rx.error, Date.now()-repInfo.t0)
+        if (m.verbose>=1) logio.E(m.baseName + childi.toString(), 'rx', repInfo.method, rx.error, Date.now()-repInfo.t0);
         repInfo.cb(new Error(rx.error), rx.result);
       } else {
-        if (m.verbose>=2) logio.I(m.baseName + childi.toString(), repInfo.method, Date.now()-repInfo.t0)
+        if (m.verbose>=2) logio.I(m.baseName + childi.toString(), repInfo.method, Date.now()-repInfo.t0);
         repInfo.cb(null, rx.result);
       }
     } else {
@@ -149,7 +149,7 @@ ChildJsonPipe.prototype.handleRx = function(childi, rx) {
   else {
     logio.E(m.baseName + childi.toString(), 'Unknown message', rx);
   }
-}
+};
 
 // run result = method(params...) in child, call cb(exception, result)
 ChildJsonPipe.prototype.rpc = function(method, params, cb) {
@@ -202,6 +202,6 @@ function sshify(execName, execArgs, sshHost) {
     } else {
       return '"' + a.replace(/[^-_a-zA-Z0-9\/\. @{}\[\]]/g, '\\$&') + '"';
     }
-  })
-  return [sshHost, 'source /etc/profile && source .profile && cd ' + relDir + ' && ' + execName + ' ' + newArgs.join(' ')]
+  });
+  return [sshHost, `source /etc/profile && source .profile && cd ${relDir} && ${execName} ${newArgs.join(' ')}`];
 }
