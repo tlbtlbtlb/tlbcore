@@ -2,7 +2,7 @@
 'use strict';
 /*
   The server side (nodejs) of a WebSocket connection.
-  The API is symmetrical, but the browser end is implemented in WebSocketBrowser because of the narcissism of small differences.
+  The API is symmetrical, but the browser end is implemented in web_socket_browser because of the narcissism of small differences.
 
   Call mkWebSocketRpc(aWebSocketRequest, aWebSocketConnection, handlers)
 
@@ -29,17 +29,17 @@
 */
 const _ = require('underscore');
 const logio = require('./logio');
-const WebSocketHelper = require('./WebSocketHelper');
+const web_socket_helper = require('./web_socket_helper');
 
-var verbose = 1;
+let verbose = 1;
 
 exports.mkWebSocketRpc = mkWebSocketRpc;
 
 
 function mkWebSocketRpc(wsr, wsc, handlers) {
-  var pending = new WebSocketHelper.RpcPendingQueue();
-  var callbacks = {};
-  var rxBinaries = [];
+  let pending = new web_socket_helper.RpcPendingQueue();
+  let callbacks = {};
+  let rxBinaries = [];
 
   setupHandlers();
   if (handlers.start) {
@@ -55,7 +55,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     wsc.on('message', function(event) {
       if (event.type === 'utf8') {
         if (verbose >= 3) logio.I(handlers.label, event.utf8Data);
-        var msg = WebSocketHelper.parse(event.utf8Data, rxBinaries);
+        let msg = web_socket_helper.parse(event.utf8Data, rxBinaries);
         rxBinaries = [];
         handleMsg(msg);
       }
@@ -75,18 +75,18 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
 
   function handleMsg(msg) {
     if (msg.method) {
-      var f = handlers['rpc_' + msg.method];
+      let f = handlers['rpc_' + msg.method];
       if (!f) {
         if (verbose >= 1) logio.E(handlers.label, 'Unknown method in ', msg);
         handlers.tx({id: msg.id, error: 'unknownMethod'});
         return;
       }
-      var done = false;
+      let done = false;
       if (verbose >= 2) logio.I(handlers.label, 'rpc', msg.method, msg.params);
       try {
         f.apply(handlers, msg.params.concat([function(error /* ... */) {
-          var result = Array.prototype.slice.call(arguments, 1);
-          if (!WebSocketHelper.isRpcProgressError(error)) {
+          let result = Array.prototype.slice.call(arguments, 1);
+          if (!web_socket_helper.isRpcProgressError(error)) {
             done = true;
           }
           handlers.tx({ id: msg.id, error: error, result: result });
@@ -100,9 +100,9 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
       }
     }
     else if (msg.id) {
-      var result = msg.result || [];
-      var cb;
-      if (WebSocketHelper.isRpcProgressError(msg.error)) {
+      let result = msg.result || [];
+      let cb;
+      if (web_socket_helper.isRpcProgressError(msg.error)) {
         cb = pending.getPreserve(msg.id);
       } else {
         cb = pending.get(msg.id);
@@ -123,9 +123,9 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     handlers.remoteLabel = handlers.label = wsr.remoteLabel;
     handlers.rpc = function(method /* ... */) {
       if (arguments.length < 2) throw new Error('rpc: bad args');
-      var id = pending.getNewId();
-      var cb = arguments[arguments.length - 1];
-      var params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
+      let id = pending.getNewId();
+      let cb = arguments[arguments.length - 1];
+      let params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
       pending.add(id, cb);
       handlers.tx({method: method, id: id, params: params});
     };
@@ -135,12 +135,12 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
   }
 
   function emitMsg(msg) {
-    var binaries = [];
-    var json = WebSocketHelper.stringify(msg, binaries);
+    let binaries = [];
+    let json = web_socket_helper.stringify(msg, binaries);
     _.each(binaries, function(data) {
       // See http://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer
       // and http://nodejs.org/api/buffer.html
-      var buf = Buffer.isBuffer(data) ? data : new Buffer(new Uint8Array(data));
+      let buf = Buffer.isBuffer(data) ? data : new Buffer(new Uint8Array(data));
       if (verbose >= 3) logio.O(handlers.label, 'buffer length ' + buf.length);
       wsc.sendBytes(buf);
     });

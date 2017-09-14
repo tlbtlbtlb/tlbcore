@@ -10,7 +10,7 @@ const logio = require('../web/logio');
 exports.ParentJsonPipe = ParentJsonPipe;
 
 function ParentJsonPipe(o, handlers) {
-  var m = this;
+  let m = this;
 
   m.handlers = _.extend({
     rpc_handshake: function(cb) {
@@ -21,16 +21,16 @@ function ParentJsonPipe(o, handlers) {
   m.stdout = process.stdout;
   console._stdout = process.stderr;
 
-  var datas = [];
+  let datas = [];
   m.stdin.on('data', function(buf) {
     while (buf.length) {
-      var eol = buf.indexOf(10); // newline
+      let eol = buf.indexOf(10); // newline
       if (eol < 0) {
         datas.push(buf);
         return;
       } else {
         datas.push(buf.slice(0, eol));
-        var rx = JSON.parse(datas.join(''));
+        let rx = JSON.parse(datas.join(''));
         datas = [];
         m.handleRx(rx);
         buf = buf.slice(eol+1);
@@ -40,13 +40,13 @@ function ParentJsonPipe(o, handlers) {
 }
 
 ParentJsonPipe.prototype.tx = function(tx) {
-  var m = this;
+  let m = this;
   m.stdout.write(JSON.stringify(tx));
   m.stdout.write('\n');
 };
 
 ParentJsonPipe.prototype.emitInParent = function() {
-  var m = this;
+  let m = this;
   m.tx({
     cmd: 'emit',
     params: arguments,
@@ -54,13 +54,13 @@ ParentJsonPipe.prototype.emitInParent = function() {
 };
 
 ParentJsonPipe.prototype.handleRx = function(rx) {
-  var m = this;
+  let m = this;
 
   if (rx.method) {
-    var cb = function(err, result) {
+    let cb = function(err, result) {
       m.tx({ id:rx.id, error: err, result: result });
     };
-    var methodFunc = m.handlers['rpc_' + rx.method];
+    let methodFunc = m.handlers['rpc_' + rx.method];
     if (!methodFunc) {
       logio.E('parent', 'No such method', rx.method);
       return cb('No such method', null);

@@ -13,14 +13,14 @@ function scanFile(fn, cb) {
 }
 
 function scanText(fn, text, cb) {
-  var lines = text.split('\n');
-  var s = new Scanner();
+  let lines = text.split('\n');
+  let s = new Scanner();
   s.scanText(fn, lines);
   cb(null, s)
 }
 
 function Scanner() {
-  var s = this;
+  let s = this;
   s.lastc = '';
   s.mode = 'top';
   s.nesting = [];
@@ -29,22 +29,22 @@ function Scanner() {
 }
 
 Scanner.prototype.err = function(pos, msg) {
-  var s = this;
+  let s = this;
   console.log(pos, msg);
   s.errs.push({pos: pos, msg: msg});
 }
 
 Scanner.prototype.scanText = function(fn, lines) {
-  var s = this;
-  for (var linei=0; linei<lines.length; linei++) {
-    var line = lines[linei];
-    for (var coli=0; coli<line.length; coli++) {
+  let s = this;
+  for (let linei=0; linei<lines.length; linei++) {
+    let line = lines[linei];
+    for (let coli=0; coli<line.length; coli++) {
       s.scan({line: linei, col: coli, fn: fn}, line[coli]);
     }
     s.scan({line: linei, col: coli, fn: fn}, '\n');
   }
   while (s.nesting.length) {
-    var old = s.nesting.pop();
+    let old = s.nesting.pop();
     s.err(old.startPos, 'Unclosed ' + old.type);
   }
   /*
@@ -60,7 +60,7 @@ Scanner.prototype.scanText = function(fn, lines) {
 }
 
 Scanner.prototype.scan = function(pos, c) {
-  var s = this;
+  let s = this;
   if (s.mode === 'top') {
     if (s.lastc === '/' && c === '*') {
       s.mode = 'comment';
@@ -72,7 +72,7 @@ Scanner.prototype.scan = function(pos, c) {
       s.nesting.push({startPos: pos, type: '{}'});
     }
     else if (c === '}') {
-      var old = s.nesting.pop();
+      let old = s.nesting.pop();
       if (old.type != '{}') {
         s.err('Saw } within ' + old.type);
       } else {
@@ -83,7 +83,7 @@ Scanner.prototype.scan = function(pos, c) {
       s.nesting.push({startPos: pos, type: '[]'});
     }
     else if (c === ']') {
-      var old = s.nesting.pop();
+      let old = s.nesting.pop();
       if (old.type != '[]') {
         s.err('Saw ] within ' + old);
       } else {
@@ -94,7 +94,7 @@ Scanner.prototype.scan = function(pos, c) {
       s.nesting.push({startPos: pos, type: '()'});
     }
     else if (c === ')') {
-      var old = s.nesting.pop();
+      let old = s.nesting.pop();
       if (old.type != '()') {
         s.err('Saw ) within ' + old);
       } else {

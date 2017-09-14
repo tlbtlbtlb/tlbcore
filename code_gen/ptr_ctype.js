@@ -7,7 +7,7 @@ const CType = require('./ctype').CType;
 exports.PtrCType = PtrCType;
 
 function PtrCType(reg, baseType) {
-  var type = this;
+  let type = this;
   type.baseType = baseType;
   CType.call(type, reg, `shared_ptr< ${baseType.typename} >`);
   type.jsTypename = baseType.jsTypename;
@@ -49,32 +49,32 @@ PtrCType.prototype.getExampleValueJs = function() {
 };
 
 PtrCType.prototype.getFormalParameter = function(varname) {
-  var type = this;
+  let type = this;
   return `shared_ptr< ${ type.baseType.typename } > ${ varname }`;
 };
 
 PtrCType.prototype.getArgTempDecl = function(varname) {
-  var type = this;
+  let type = this;
   return `shared_ptr< ${ type.baseType.typename } > ${ varname }`;
 };
 
 PtrCType.prototype.getVarDecl = function(varname) {
-  var type = this;
+  let type = this;
   return `shared_ptr< ${ type.baseType.typename } > ${ varname }`;
 };
 
 PtrCType.prototype.getJsToCppTest = function(valueExpr, o) {
-  var type = this;
+  let type = this;
   return `(JsWrap_${ type.baseType.jsTypename }::Extract(isolate, ${ valueExpr }) != nullptr)`;
 };
 
 PtrCType.prototype.getJsToCppExpr = function(valueExpr, o) {
-  var type = this;
+  let type = this;
   return `JsWrap_${ type.baseType.jsTypename }::Extract(isolate, ${ valueExpr })`;
 };
 
 PtrCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
-  var type = this;
+  let type = this;
   /*
     Because these are shared_ptr< T >, no need to keep owner alive in order to keep *value alive.
   */

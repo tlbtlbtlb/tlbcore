@@ -18,17 +18,17 @@ function setupErrorHandling() {
   });
 }
 
-var webServer0 = null;
+let webServer0 = null;
 
 function main() {
 
   webServer0 = new VjsSite.WebServer();
-  var sites = [];
-  var servers = [];
-  var curServer = null;
+  let sites = [];
+  let servers = [];
+  let curServer = null;
 
-  for (var argi=2; argi < process.argv.length; argi++) {
-    var arg = process.argv[argi];
+  for (let argi=2; argi < process.argv.length; argi++) {
+    let arg = process.argv[argi];
     switch (arg) {
 
     case '--noMin':
@@ -42,8 +42,8 @@ function main() {
 
     case '--http':
       {
-        var argHost = process.argv[++argi];
-        var argPort = parseInt(process.argv[++argi]);
+        let argHost = process.argv[++argi];
+        let argPort = parseInt(process.argv[++argi]);
         curServer = {
           proto: 'http',
           host: argHost,
@@ -55,8 +55,8 @@ function main() {
 
     case '--https':
       {
-        var argHost = process.argv[++argi];
-        var argPort = parseInt(process.argv[++argi]);
+        let argHost = process.argv[++argi];
+        let argPort = parseInt(process.argv[++argi]);
         curServer = {
           proto: 'https',
           host: argHost,
@@ -70,8 +70,8 @@ function main() {
 
     case '--cert':
       {
-        var argCert = process.argv[++argi];
-        var argKey = process.argv[++argi];
+        let argCert = process.argv[++argi];
+        let argKey = process.argv[++argi];
         if (!curServer || curServer.proto !== 'https') {
           throw new Error('--cert: no curServer');
         }
@@ -82,16 +82,16 @@ function main() {
 
     case '--hostPrefix':
       {
-        var argPrefix = process.argv[++argi];
-        var argHostname = process.argv[++argi];
+        let argPrefix = process.argv[++argi];
+        let argHostname = process.argv[++argi];
         webServer0.setPrefixHosts(argPrefix, [argHostname]);
       }
       break;
 
     default:
       if (arg === '-') {
-        console.log('Invalid argument', arg)
-        return
+        console.log('Invalid argument', arg);
+        return;
       }
 
       sites.push(arg);

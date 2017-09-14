@@ -27,10 +27,10 @@ exports.setVerbose = function(v) { verbose = v; };
 
 // ======================================================================
 
-var verbose = 1;
+let verbose = 1;
 
 function WebServer() {
-  var webServer = this;
+  let webServer = this;
   webServer.urlProviders = {};
   webServer.dirProviders = {};
   webServer.hostPrefixes = {};
@@ -42,9 +42,9 @@ function WebServer() {
 }
 
 WebServer.prototype.setUrl = function(url, p) {
-  var webServer = this;
+  let webServer = this;
   if (_.isString(p)) {
-    var st = fs.statSync(p);
+    let st = fs.statSync(p);
     if (st.isDirectory()) {
       url = path.join(url, '/'); // ensure trailing slash, but doesn't yield more than one
       p = new Provider.RawDirProvider(p);
@@ -68,14 +68,14 @@ WebServer.prototype.setUrl = function(url, p) {
 };
 
 WebServer.prototype.setPrefixHosts = function(prefix, hosts) {
-  var webServer = this;
+  let webServer = this;
   prefix = path.join('/', prefix, '/');
 
   _.each(hosts, function(host) {
     webServer.hostPrefixes[host] = prefix;
     console.log('Set hostPrefix['+host+']='+prefix);
 
-    var alphaHost = host.replace(/^(\w+)\./, '$1-alpha.');
+    let alphaHost = host.replace(/^(\w+)\./, '$1-alpha.');
     if (alphaHost !== host) {
       webServer.hostPrefixes[alphaHost] = prefix;
     }
@@ -83,17 +83,17 @@ WebServer.prototype.setPrefixHosts = function(prefix, hosts) {
 };
 
 WebServer.prototype.setSocketProtocol = function(url, f) {
-  var webServer = this;
+  let webServer = this;
 
   webServer.wsHandlers[url] = f;
 };
 
 
 WebServer.prototype.setupBaseProvider = function() {
-  var webServer = this;
+  let webServer = this;
 
   if (webServer.baseProvider) return;
-  var p = new Provider.ProviderSet();
+  let p = new Provider.ProviderSet();
   if (1) p.addCss(require.resolve('./common.css'));
   if (1) p.addCss(require.resolve('./spinner-lib/spinner.css'));
   // Add more CSS files here
@@ -101,22 +101,22 @@ WebServer.prototype.setupBaseProvider = function() {
   if (1) p.addScript(require.resolve('./VjsPreamble.js'));
   if (1) p.addScript(require.resolve('underscore'), 'underscore');
   if (1) p.addScript(require.resolve('../common/MoreUnderscore.js'));
-  if (1) p.addScript(require.resolve('eventemitter'));
-  if (1) p.addScript(require.resolve('jquery/dist/jquery.js'), null, true);
+  if (1) p.addScript(require.resolve('eventemitter'), 'events');
+  if (1) p.addScript(require.resolve('jquery/dist/jquery.js'));
   if (1) p.addScript(require.resolve('./ajaxupload-lib/ajaxUpload.js'));       // http://valums.com/ajax-upload/
-  if (0) p.addScript(require.resolve('./swf-lib/swfobject.js'));               // http://blog.deconcept.com/swfobject/
   if (1) p.addScript(require.resolve('./mixpanel-lib/mixpanel.js'));
-  if (1) p.addScript(require.resolve('./WebSocketHelper.js'), 'WebSocketHelper');
-  if (1) p.addScript(require.resolve('./WebSocketBrowser.js'), 'WebSocketBrowser');
+  if (1) p.addScript(require.resolve('./web_socket_helper.js'), 'web_socket_helper');
+  if (1) p.addScript(require.resolve('./web_socket_browser.js'), 'web_socket_browser');
+  if (1) p.addScript(require.resolve('./box_layout.js'), 'box_layout');
   if (1) p.addScript(require.resolve('./VjsBrowser.js'));
-  if (1) p.addScript(require.resolve('./HitDetector.js'));
-  if (1) p.addScript(require.resolve('./canvasutils.js'));
+  if (1) p.addScript(require.resolve('./hit_detector.js'), 'hit_detector');
+  if (1) p.addScript(require.resolve('./canvasutils.js'), 'canvasutils');
 
   webServer.baseProvider = p;
 };
 
 WebServer.prototype.setupStdContent = function(prefix) {
-  var webServer = this;
+  let webServer = this;
 
   // WRITEME: ditch this, figure out how to upload over a websocket
   /*
@@ -125,7 +125,7 @@ WebServer.prototype.setupStdContent = function(prefix) {
       mirrorTo: function(dst) {},
       handleRequest: function(req, res, suffix) {
         RpcEngines.UploadHandler(req, res, function(docFn, doneCb) {
-          var userName = RpcEngines.cookieUserName(req);
+          let userName = RpcEngines.cookieUserName(req);
           Image.mkImageVersions(docFn, {fullName: userName}, function(ii) {
             doneCb(ii);
           });
@@ -176,14 +176,14 @@ WebServer.prototype.setupStdContent = function(prefix) {
 };
 
 WebServer.prototype.setupContent = function(dirs) {
-  var webServer = this;
+  let webServer = this;
 
   webServer.setupBaseProvider();
   webServer.setupStdContent('/');
 
   _.each(dirs, function(dir) {
     // Start with process.cwd, since these directory names are specified on the command line
-    var fn = fs.realpathSync(path.join(dir, 'load.js'));
+    let fn = fs.realpathSync(path.join(dir, 'load.js'));
     console.log('Load ' + fn);
     require(fn).load(webServer);
   });
@@ -195,20 +195,20 @@ WebServer.prototype.setupContent = function(dirs) {
 
 
 WebServer.prototype.startAllContent = function() {
-  var webServer = this;
+  let webServer = this;
   _.each(webServer.urlProviders, function(p, name) {
     if (p.start) p.start();
   });
 };
 
 WebServer.prototype.mirrorAll = function() {
-  var webServer = this;
+  let webServer = this;
 
   if (webServer.wwwRoot) {
     _.each(webServer.urlProviders, function(p, name) {
-      var m = /^GET (.*)$/.exec(name);
+      let m = /^GET (.*)$/.exec(name);
       if (m) {
-        var dst = path.join(webServer.wwwRoot, m[1]);
+        let dst = path.join(webServer.wwwRoot, m[1]);
         p.mirrorTo(dst);
       }
     });
@@ -217,14 +217,14 @@ WebServer.prototype.mirrorAll = function() {
 
 function delPort(hn) {
   if (!hn) return hn;
-  var parts = hn.split(':');
+  let parts = hn.split(':');
   return parts[0];
 }
 
 WebServer.prototype.startHttpServer = function(serverInfo) {
-  var webServer = this;
+  let webServer = this;
 
-  var httpServer = null;
+  let httpServer = null;
   if (serverInfo.proto === 'https') {
     httpServer = https.createServer({
       key: serverInfo.key,
@@ -244,7 +244,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
 
   webServer.servers.push(httpServer);
 
-  var ws = new websocket.server({
+  let ws = new websocket.server({
     httpServer: httpServer,
     maxReceivedFrameSize: 1024*1024,
   });
@@ -264,7 +264,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
     if (verbose >= 3) logio.I(req.remoteLabel, req.url, req.urlParsed, req.headers);
 
     // Host includes port number, hostname doesn't
-    var hostPrefix = webServer.hostPrefixes[req.urlParsed.host];
+    let hostPrefix = webServer.hostPrefixes[req.urlParsed.host];
     if (!hostPrefix) {
       hostPrefix = webServer.hostPrefixes[req.urlParsed.hostname];
     }
@@ -272,23 +272,23 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
       hostPrefix = '/';
     }
 
-    var fullPath = hostPrefix + decodeURIComponent(req.urlParsed.pathname.substr(1));
-    var callid = req.method + ' ' + fullPath;
-    var desc = callid;
+    let fullPath = hostPrefix + decodeURIComponent(req.urlParsed.pathname.substr(1));
+    let callid = req.method + ' ' + fullPath;
+    let desc = callid;
     webServer.serverAccessCounts[callid] = (webServer.serverAccessCounts[callid] || 0) + 1;
-    var p = webServer.urlProviders[callid];
+    let p = webServer.urlProviders[callid];
     if (p) {
       if (!p.silent) logio.I(req.remoteLabel, desc, p.toString());
       p.handleRequest(req, res, '');
       return;
     }
 
-    var pathc = fullPath.substr(1).split('/');
-    for (var pathcPrefix = pathc.length-1; pathcPrefix >= 1; pathcPrefix--) {
-      var prefix = req.method + ' /' + pathc.slice(0, pathcPrefix).join('/') + '/';
+    let pathc = fullPath.substr(1).split('/');
+    for (let pathcPrefix = pathc.length-1; pathcPrefix >= 1; pathcPrefix--) {
+      let prefix = req.method + ' /' + pathc.slice(0, pathcPrefix).join('/') + '/';
       p = webServer.dirProviders[prefix];
       if (p) {
-        var suffix = pathc.slice(pathcPrefix, pathc.length).join('/');
+        let suffix = pathc.slice(pathcPrefix, pathc.length).join('/');
         if (!p.silent) logio.I(req.remoteLabel, desc, p.toString());
         p.handleRequest(req, res, suffix);
         return;
@@ -301,7 +301,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
   }
 
   function wsRequestHandler(wsr) {
-    var callid = wsr.resource;
+    let callid = wsr.resource;
 
     wsr.remoteLabel = wsr.httpRequest.connection.remoteAddress + '!ws' + wsr.resource;
     try {
@@ -312,7 +312,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
       return;
     }
 
-    var handlersFunc = webServer.wsHandlers[callid];
+    let handlersFunc = webServer.wsHandlers[callid];
     if (!handlersFunc) {
       logio.E(wsr.remoteLabel, 'Unknown api', callid, webServer.wsHandlers);
       wsr.reject();
@@ -325,7 +325,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
       return;
     }
 
-    var handlers = handlersFunc();
+    let handlers = handlersFunc();
     if (handlers.capacityCheck) {
       if (!handlers.capacityCheck()) {
         logio.O(wsr.remoteLabel, 'Reject due to capacityCheck');
@@ -333,7 +333,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
         return;
       }
     }
-    var wsc = wsr.accept(null, wsr.origin);
+    let wsc = wsr.accept(null, wsr.origin);
     if (!wsc) {
       logio.E('ws', 'wsr.accept failed');
       return;
@@ -343,7 +343,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
   }
 
   function annotateReq(req) {
-    var up;
+    let up;
     try {
       up = url.parse(decodeURIComponent(req.url), true);
     } catch (ex) {
@@ -368,21 +368,21 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
 };
 
 WebServer.prototype.getSiteHits = function(cb) {
-  var webServer = this;
+  let webServer = this;
   cb(null, _.map(_.sortBy(_.keys(webServer.serverAccessCounts), _.identity), function(k) {
     return {desc: 'http.' + k, hits: webServer.serverAccessCounts[k]};
   }));
 };
 
 WebServer.prototype.getContentStats = function(cb) {
-  var webServer = this;
+  let webServer = this;
   cb(null, _.map(_.sortBy(_.keys(webServer.urlProviders), _.identity), function(k) {
     return _.extend({}, webServer.urlProviders[k].getStats(), {desc: k});
   }));
 };
 
 WebServer.prototype.reloadAllBrowsers = function(reloadKey) {
-  var webServer = this;
+  let webServer = this;
   _.each(webServer.allConsoleHandlers, function(ch) {
     if (ch.reloadKey === reloadKey) {
       if (ch.reloadCb) {
@@ -393,8 +393,8 @@ WebServer.prototype.reloadAllBrowsers = function(reloadKey) {
 };
 
 WebServer.prototype.findByContentMac = function(contentMac) {
-  var webServer = this;
-  var ret = [];
+  let webServer = this;
+  let ret = [];
   _.each(webServer.urlProviders, function(provider, url) {
     if (provider && provider.contentMac == contentMac) {
       ret.push(provider);
@@ -405,21 +405,21 @@ WebServer.prototype.findByContentMac = function(contentMac) {
 
 
 WebServer.prototype.mkConsoleHandler = function() {
-  var webServer = this;
+  let webServer = this;
   return {
     start: function() {
-      var self = this;
+      let self = this;
       logio.I(self.label, 'Console started');
       webServer.allConsoleHandlers.push(self);
     },
     close: function() {
-      var self = this;
+      let self = this;
       webServer.allConsoleHandlers = _.filter(webServer.allConsoleHandlers, function(other) { return other !== self; });
     },
     rpc_errlog: function(msg, cb) {
-      var self = this;
+      let self = this;
       logio.E(self.label, 'Errors in ' + msg.ua);
-      var err = msg.err;
+      let err = msg.err;
       if (err) {
         if (_.isObject(err)) {
           err = util.inspect(err);
@@ -429,11 +429,11 @@ WebServer.prototype.mkConsoleHandler = function() {
       cb(null);
     },
     rpc_reloadOn: function(msg, cb) {
-      var self = this;
+      let self = this;
       self.reloadKey = msg.reloadKey;
       self.contentMac = msg.contentMac;
       if (self.contentMac) {
-        var sameContent = webServer.findByContentMac(self.contentMac);
+        let sameContent = webServer.findByContentMac(self.contentMac);
         if (!sameContent.length) {
           logio.I(self.label, 'Obsolete contentMac (suggesting reload)', self.contentMac);
           cb('reload');

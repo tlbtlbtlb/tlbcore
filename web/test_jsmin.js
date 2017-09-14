@@ -2,7 +2,7 @@ const jsmin = require('jsmin2');
 
 
 function jsmincomp(a, b) {
-  var b2 = jsmin(a).code;
+  let b2 = jsmin(a).code;
   console.log('');
   console.log(a);
   console.log(b);

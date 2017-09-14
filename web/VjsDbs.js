@@ -18,16 +18,16 @@ const Safety = require('./Safety');
 module.exports = getNamedDb;
 module.exports.defDb = defDb;
 
-var dbDefs = {};
-var dbs = {};
+let dbDefs = {};
+let dbs = {};
 
 function getNamedDb(name) {
   if (!dbs[name]) {
-    var defn = dbDefs[name];
+    let defn = dbDefs[name];
     if (!defn) throw new Error('Database not defined');
 
     if (defn.type === 'redis') {
-      var redis0 = redis.createClient(defn.port, defn.host, defn.options);
+      let redis0 = redis.createClient(defn.port, defn.host, defn.options);
       redis0.on('error', function(e) {
         logio.E('redis', e);
       });
@@ -45,7 +45,7 @@ function getNamedDb(name) {
 function defDb(name, type, host, port, options) {
   options = _.extend({retry_max_delay: 5000}, options || {});
   if (dbDefs[name]) {
-    var defn = dbDefs[name];
+    let defn = dbDefs[name];
     if (defn.name !== name || defn.type !== type || defn.host !== host || defn.port !== port || defn.options !== options) {
       throw new Error('Database ' + name + ' already defined with different info');
     }
@@ -58,9 +58,9 @@ function defDb(name, type, host, port, options) {
 function enhanceRedis(redis0) {
 
   redis0.getObj = function(key, cb) {
-    var db = this;
+    let db = this;
     db.get(key, function(err, objStr) {
-      var obj;
+      let obj;
       if (err) {
         if (cb) cb(err, undefined);
         cb = null;
@@ -84,8 +84,8 @@ function enhanceRedis(redis0) {
   };
 
   redis0.setObj = function(key, obj, cb) {
-    var db = this;
-    var objStr = JSON.stringify(obj);
+    let db = this;
+    let objStr = JSON.stringify(obj);
     db.set(key, objStr, function(err) {
       if (err) logio.E('redis.setObj ' + key, 'Error ' + err);
       if (cb) cb(err);
@@ -94,8 +94,8 @@ function enhanceRedis(redis0) {
   };
 
   redis0.createObj = function(key, obj, cb) {
-    var db = this;
-    var objStr = JSON.stringify(obj);
+    let db = this;
+    let objStr = JSON.stringify(obj);
     db.setnx(key, objStr, function(err, created) {
       if (err) logio.E('redis.createObj ' + key, 'Error ' + err);
       if (cb) cb(err);
@@ -104,7 +104,7 @@ function enhanceRedis(redis0) {
   };
 
   redis0.updateObj = function(key, values, creator, cb) {
-    var db = this;
+    let db = this;
     db.getObj(key, function(err, obj) {
       if (err) {
         if (cb) cb(err);
@@ -145,7 +145,7 @@ function enhanceRedis(redis0) {
   };
 
   redis0.deleteObj = function(key, cb) {
-    var db = this;
+    let db = this;
     db.del(key, function(err) {
       if (cb) cb(err);
       cb = null;

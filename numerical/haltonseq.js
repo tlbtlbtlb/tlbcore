@@ -1,5 +1,11 @@
 
-var haltonAxes  = [
+exports.unipolarHaltonRow = unipolarHaltonRow;
+exports.bipolarHaltonAxis = bipolarHaltonAxis;
+exports.bipolarHaltonRow = bipolarHaltonRow;
+exports.boxMullerTransform = boxMullerTransform;
+exports.gaussianHaltonRow = gaussianHaltonRow;
+
+const haltonAxes  = [
   3,5,7,11,13,17,19,23,27,29,31,37,41,43,47,
   53,59,61,67,71,73,79,83,89,97,
   101,103,107,109,113,127,131,137,139,149,
@@ -13,10 +19,10 @@ var haltonAxes  = [
 function unipolarHaltonAxis(i, radix)
 {
   if (i === 0) return 0.0;
-  var digit = i % radix;
+  let digit = i % radix;
 
-  var digitValue = digit;
-  var placeValue = 1.0/radix;
+  let digitValue = digit;
+  let placeValue = 1.0/radix;
 
   return (digitValue + unipolarHaltonAxis(Math.floor(i/radix), radix)) * placeValue;
 }
@@ -27,8 +33,8 @@ function unipolarHaltonAxis(i, radix)
 function unipolarHaltonRow(i, nCols)
 {
   if (!(nCols <= haltonAxes.length)) throw "nCols too large";
-  var ret = [];
-  for (var ci = 0; ci < nCols; ci++) {
+  let ret = [];
+  for (let ci = 0; ci < nCols; ci++) {
     ret.push(unipolarHaltonAxis(i, haltonAxes[i]));
   }
   return ret;
@@ -41,10 +47,10 @@ function unipolarHaltonRow(i, nCols)
 function bipolarHaltonAxis(i, radix)
 {
   if (i === 0) return 0.0;
-  var digit = i % radix;
+  let digit = i % radix;
 
-  var digitValue = (1 - (digit%2) * 2) * ((digit + 1) / 2) * 2.0;
-  var placeValue = 1.0/radix;
+  let digitValue = (1 - (digit%2) * 2) * ((digit + 1) / 2) * 2.0;
+  let placeValue = 1.0/radix;
 
   return (digitValue + bipolarHaltonAxis(Math.floor(i/radix), radix)) * placeValue;
 }
@@ -52,8 +58,8 @@ function bipolarHaltonAxis(i, radix)
 function bipolarHaltonRow(i, nCols)
 {
   if (!(nCols <= haltonAxes.length)) throw "nCols too large";
-  var ret = [];
-  for (var ci = 0; ci < nCols; ci++) {
+  let ret = [];
+  for (let ci = 0; ci < nCols; ci++) {
     ret.push(bipolarHaltonAxis(i, haltonAxes[i]));
   }
   return ret;
@@ -65,19 +71,19 @@ function bipolarHaltonRow(i, nCols)
   See http://en.wikipedia.org/wiki/Box-Muller_transform
 */
 function boxMullerTransform(u1, u2) {
-  var factor = Math.sqrt(-2.0 * Math.log(u1));
-  var theta = 2.0 * Math.PI * u2;
+  let factor = Math.sqrt(-2.0 * Math.log(u1));
+  let theta = 2.0 * Math.PI * u2;
   return [Math.cos(theta) * factor, Math.sin(theta) * factor];
 }
 
 function gaussianHaltonRow(i, nCols)
 {
   if (!(nCols <= haltonAxes.length)) throw "nCols too large";
-  var ret = [];
-  for (var ci = 0; ci < nCols; ci+=2) {
-    var u1 = unipolarHaltonAxis(i+1, haltonAxes[ci+0]);
-    var u2 = unipolarHaltonAxis(i+1, haltonAxes[ci+1]);
-    var z = boxMullerTransform(u1, u2);
+  let ret = [];
+  for (let ci = 0; ci < nCols; ci+=2) {
+    let u1 = unipolarHaltonAxis(i+1, haltonAxes[ci+0]);
+    let u2 = unipolarHaltonAxis(i+1, haltonAxes[ci+1]);
+    let z = boxMullerTransform(u1, u2);
     ret[ci] = z[0];
     if (ci+1 < nCols) ret[ci+1] = z[1];
   }

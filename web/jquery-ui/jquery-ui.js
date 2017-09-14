@@ -11791,7 +11791,7 @@ $.ui.plugin.add( "resizable", "alsoResize", {
 			};
 
 			$( o.alsoResize ).each( function() {
-				var el = $( this ), start = $( this ).data( "ui-resizable-alsoresize" ), style = {},
+				let el = $( this ), start = $( this ).data( "ui-resizable-alsoresize" ), style = {},
 					css = el.parents( ui.originalElement[ 0 ] ).length ?
 							[ "width", "height" ] :
 							[ "width", "height", "top", "left" ];

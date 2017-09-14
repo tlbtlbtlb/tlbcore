@@ -16,7 +16,7 @@ const ObjectCType = require('./object_ctype').ObjectCType;
 exports.TypeRegistry = TypeRegistry;
 
 function TypeRegistry(groupname) {
-  var typereg = this;
+  let typereg = this;
   typereg.groupname = groupname;
   typereg.moduleToTypes = {};
   typereg.typeToModule = {};
@@ -35,13 +35,13 @@ function TypeRegistry(groupname) {
 }
 
 TypeRegistry.prototype.scanJsDefn = function(fn) {
-  var typereg = this;
+  let typereg = this;
   const scanModule = require(fs.realpathSync(fn));
   scanModule(typereg);
 };
 
 TypeRegistry.prototype.setupBuiltins = function() {
-  var typereg = this;
+  let typereg = this;
   /*
     When scanning headers files to find functions, we generate regexps to match types. So these types have to match exactly.
     So make sure to use, eg, 'char cost *' to mean a string.
@@ -75,22 +75,22 @@ function enforceCanonicalTypename(typename) {
 }
 
 TypeRegistry.prototype.primitive = function(typename) {
-  var typereg = this;
+  let typereg = this;
   enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
-  var t = new PrimitiveCType(typereg, typename);
+  let t = new PrimitiveCType(typereg, typename);
   typereg.types[typename] = t;
   return t;
 };
 
 TypeRegistry.prototype.object = function(typename) {
-  var typereg = this;
+  let typereg = this;
   enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
-  var t = new ObjectCType(typereg, typename);
+  let t = new ObjectCType(typereg, typename);
   typereg.types[typename] = t;
 
-  var ptrType = new PtrCType(typereg, t);
+  let ptrType = new PtrCType(typereg, t);
   typereg.types[ptrType.typename] = ptrType;
   ptrType._nonPtrType = t;
   t._ptrType = ptrType;
@@ -99,14 +99,14 @@ TypeRegistry.prototype.object = function(typename) {
 
 
 TypeRegistry.prototype.struct = function(typename /* varargs */) {
-  var typereg = this;
+  let typereg = this;
   enforceCanonicalTypename(typename);
   if (typename in typereg.types) throw new Error(`${ typename } already defined`);
-  var t = new StructCType(typereg, typename);
+  let t = new StructCType(typereg, typename);
   typereg.types[typename] = t;
   t.addArgs(arguments, 1);
 
-  var ptrType = new PtrCType(typereg, t);
+  let ptrType = new PtrCType(typereg, t);
   typereg.types[ptrType.typename] = ptrType;
   t._ptrType = ptrType;
   ptrType._nonPtrType = t;
@@ -115,13 +115,13 @@ TypeRegistry.prototype.struct = function(typename /* varargs */) {
 };
 
 TypeRegistry.prototype.template = function(typename) {
-  var typereg = this;
+  let typereg = this;
   enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
-  var t = new CollectionCType(typereg, typename);
+  let t = new CollectionCType(typereg, typename);
   typereg.types[typename] = t;
 
-  var ptrType = new PtrCType(typereg, t);
+  let ptrType = new PtrCType(typereg, t);
   typereg.types[ptrType.typename] = ptrType;
   t._ptrType = ptrType;
   ptrType._nonPtrType = t;
@@ -131,24 +131,24 @@ TypeRegistry.prototype.template = function(typename) {
 };
 
 TypeRegistry.prototype.dsp = function(lbits, rbits) {
-  var typereg = this;
-  var typename = `dsp${ lbits.toString() }${ rbits.toString() }`;
+  let typereg = this;
+  let typename = `dsp${ lbits.toString() }${ rbits.toString() }`;
   enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
-  var t = new DspCType(typereg, lbits, rbits);
+  let t = new DspCType(typereg, lbits, rbits);
   typereg.types[typename] = t;
   return t;
 };
 
 
 TypeRegistry.prototype.getType = function(typename, create) {
-  var typereg = this;
+  let typereg = this;
   if (typename === null || typename === undefined) return null;
   if (typename.typename) return typename; // already a type object
   enforceCanonicalTypename(typename);
-  var type = typereg.types[typename];
+  let type = typereg.types[typename];
   if (!type && create) {
-    var match = /^shared_ptr< (.*) >$/.exec(typename);
+    let match = /^shared_ptr< (.*) >$/.exec(typename);
     if (match) {
       type = typereg.getType(match[1], true).ptrType();
     }
@@ -161,16 +161,16 @@ TypeRegistry.prototype.getType = function(typename, create) {
 };
 
 TypeRegistry.prototype.aliasType = function(existingName, newName) {
-  var typereg = this;
+  let typereg = this;
   enforceCanonicalTypename(newName);
-  var type = typereg.getType(existingName);
+  let type = typereg.getType(existingName);
   if (!type) throw 'No such type ' + existingName;
   typereg.types[newName] = type;
 };
 
 
 TypeRegistry.prototype.emitAll = function(files) {
-  var typereg = this;
+  let typereg = this;
 
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
@@ -187,8 +187,8 @@ TypeRegistry.prototype.emitAll = function(files) {
 };
 
 TypeRegistry.prototype.emitJsBoot = function(files) {
-  var typereg = this;
-  var f = files.getFile(`jsboot_${ typereg.groupname }.cc`);
+  let typereg = this;
+  let f = files.getFile(`jsboot_${ typereg.groupname }.cc`);
   f(`
     #include "common/std_headers.h"
     #include "nodebase/jswrapbase.h"
@@ -205,7 +205,7 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
     void jsInit_functions(Handle<Object> exports);
     Isolate *isolate = Isolate::GetCurrent();
   `);
-  var schemas = typereg.getSchemas();
+  let schemas = typereg.getSchemas();
   f(`
     static Handle<Value> getSchemas() {
       return Script::Compile(String::NewFromUtf8(isolate, "(" ${ cgen.escapeCJson(schemas) } ")"), String::NewFromUtf8(isolate, "binding:script"))->Run();
@@ -232,8 +232,8 @@ TypeRegistry.prototype.emitJsBoot = function(files) {
 };
 
 TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
-  var typereg = this;
-  var f = files.getFile(`functions_${ typereg.groupname }_jsWrap.cc`);
+  let typereg = this;
+  let f = files.getFile(`functions_${ typereg.groupname }_jsWrap.cc`);
   f(`
     #include "common/std_headers.h"
     #include "nodebase/jswrapbase.h"
@@ -247,7 +247,7 @@ TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
   `);
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
-    var fns = type.getFns();
+    let fns = type.getFns();
     if (fns.jsWrapHeader) {
       f(`
         #include "${ fns.jsWrapHeader }"
@@ -263,8 +263,8 @@ TypeRegistry.prototype.emitJsWrapFuncs = function(files) {
 };
 
 TypeRegistry.prototype.emitGypFile = function(files) {
-  var typereg = this;
-  var f = files.getFile('sources_' + typereg.groupname + '.gypi');
+  let typereg = this;
+  let f = files.getFile('sources_' + typereg.groupname + '.gypi');
   f(`
     {
       "sources": [
@@ -273,7 +273,7 @@ TypeRegistry.prototype.emitGypFile = function(files) {
   `);
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
-    var fns = type.getFns();
+    let fns = type.getFns();
     if (fns.hostCode) {
       f(`"${ fns.hostCode }",`);
     }
@@ -292,8 +292,8 @@ TypeRegistry.prototype.emitGypFile = function(files) {
 
 
 TypeRegistry.prototype.emitMochaFile = function(files) {
-  var typereg = this;
-  var f = files.getFile(`test_${ typereg.groupname }.js`);
+  let typereg = this;
+  let f = files.getFile(`test_${ typereg.groupname }.js`);
   f(`
     const _ = require("underscore");
     const ur = require("ur");
@@ -309,13 +309,13 @@ TypeRegistry.prototype.emitMochaFile = function(files) {
 };
 
 TypeRegistry.prototype.emitFunctionWrappers = function(f) {
-  var typereg = this;
+  let typereg = this;
 
-  var initFuncs = [];
+  let initFuncs = [];
 
   _.each(typereg.wrapFunctions, function(funcInfos, jsFuncname) {
 
-    var funcInfosByTemplate = {};
+    let funcInfosByTemplate = {};
     _.each(funcInfos, function(funcInfo) {
       if (!funcInfosByTemplate[funcInfo.funcTemplate]) funcInfosByTemplate[funcInfo.funcTemplate] = [];
       funcInfosByTemplate[funcInfo.funcTemplate].push(funcInfo);
@@ -327,8 +327,8 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
     `);
 
     _.each(funcInfosByTemplate, function(funcInfosThisTemplate, funcTemplate) {
-      var funcTemplateType = (funcTemplate !== '') ? typereg.getType(funcTemplate) : null;
-      var jsScopedFuncname = jsFuncname + (funcTemplateType ? '_' + funcTemplateType.jsTypename : '');
+      let funcTemplateType = (funcTemplate !== '') ? typereg.getType(funcTemplate) : null;
+      let jsScopedFuncname = jsFuncname + (funcTemplateType ? '_' + funcTemplateType.jsTypename : '');
 
       f(`
         void jsWrap_${ jsScopedFuncname }(FunctionCallbackInfo<Value> const &args) {
@@ -343,16 +343,16 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         f(`
           if (args.Length() == ${ funcInfo.args.length } ${
             _.map(funcInfo.args, function(argInfo, argi) {
-              var argType = typereg.types[argInfo.typename];
+              let argType = typereg.types[argInfo.typename];
               return ' && ' + argType.getJsToCppTest(`args[${ argi }]`, {});
             }).join('')
           }) {
         `);
 
-        var callargs = [];
+        let callargs = [];
 
         _.each(funcInfo.args, function(argInfo, argi) {
-          var argType = typereg.types[argInfo.typename];
+          let argType = typereg.types[argInfo.typename];
           f(`
             ${ argType.getArgTempDecl('a' + argi) } = ${ argType.getJsToCppExpr('args[' + argi + ']', {}) };
           `);
@@ -381,7 +381,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
           `);
         }
         else {
-          var returnType = typereg.getType(funcInfo.returnType);
+          let returnType = typereg.getType(funcInfo.returnType);
           if (!returnType) {
             throw new Error('No such type ' + funcInfo.returnType + ' for ' + jsFuncname);
           }
@@ -428,8 +428,8 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
 };
 
 TypeRegistry.prototype.getSchemas = function() {
-  var typereg = this;
-  var schemas = {};
+  let typereg = this;
+  let schemas = {};
   _.each(typereg.types, function(type, typename) {
     if (type.typename !== typename) return;
     if (type.isPtr()) return;
@@ -439,9 +439,9 @@ TypeRegistry.prototype.getSchemas = function() {
 };
 
 TypeRegistry.prototype.emitSchema = function(files) {
-  var typereg = this;
-  var f = files.getFile(`schema_${ typereg.groupname }.json`);
-  var schemas = typereg.getSchemas();
+  let typereg = this;
+  let f = files.getFile(`schema_${ typereg.groupname }.json`);
+  let schemas = typereg.getSchemas();
   f(JSON.stringify(schemas));
 };
 
@@ -453,28 +453,28 @@ function escapeRegexp(s) {
 }
 
 TypeRegistry.prototype.scanCFunctions = function(text) {
-  var typereg = this;
-  var typenames = _.keys(typereg.types);
+  let typereg = this;
+  let typenames = _.keys(typereg.types);
   if (0 && !typereg.loggedCTypes) {
     if (0) typereg.loggedCTypes = true;
     _.each(typenames, function(tn) {
       console.log(tn);
     });
   }
-  var typenameExpr = _.map(typenames, escapeRegexp).join('|');
-  var typeExpr = `(${ typenameExpr })(\\s*|\\s+const\\s*&\\s*|\\s*&\\s*)`;
-  var argExpr = typeExpr + '(\\w+)';
-  var funcnameExpr = '\\w+|operator\\s*[^\\s\\w]+';
+  let typenameExpr = _.map(typenames, escapeRegexp).join('|');
+  let typeExpr = `(${ typenameExpr })(\\s*|\\s+const\\s*&\\s*|\\s*&\\s*)`;
+  let argExpr = typeExpr + '(\\w+)';
+  let funcnameExpr = '\\w+|operator\\s*[^\\s\\w]+';
 
   // try to eliminate class-scoped functions.
   // text = text.replace(/struct.*{[.\n]*\n}/, '');
   if (0) console.log(text);
 
-  for (var arity=0; arity < 7; arity++) {
+  for (let arity=0; arity < 7; arity++) {
 
-    var argsExpr = _.range(0, arity).map(function() { return argExpr; }).join('\\s*,\\s*');
+    let argsExpr = _.range(0, arity).map(function() { return argExpr; }).join('\\s*,\\s*');
 
-    var funcExpr = ('(' + typenameExpr + ')\\s+' +
+    let funcExpr = ('(' + typenameExpr + ')\\s+' +
                     '(' + typenameExpr + '::)?' +
                     '(' + funcnameExpr + ')\\s*' +
                     '(<\\s*(' + typenameExpr + ')\\s*>)?' +
@@ -482,16 +482,16 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
 
     if (0 && arity === 1) console.log(argExpr);
 
-    var re = new RegExp(funcExpr, 'g');
+    let re = new RegExp(funcExpr, 'g');
 
-    var m;
+    let m;
     while ((m = re.exec(text))) {
-      var desc = m[0];
-      var returnType = m[1];
-      var funcScope = m[2] || '';
-      var funcname = m[3].replace(/\s+/g, '');
-      var funcTemplate = m[5] || '';
-      var args = _.range(0, arity).map(function(i) {
+      let desc = m[0];
+      let returnType = m[1];
+      let funcScope = m[2] || '';
+      let funcname = m[3].replace(/\s+/g, '');
+      let funcTemplate = m[5] || '';
+      let args = _.range(0, arity).map(function(i) {
         return {typename: m[6+i*3],
                 passing: m[7+i*3].replace(/\s+/g, ''),
                 argname: m[8+i*3]};
@@ -506,21 +506,21 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
 };
 
 TypeRegistry.prototype.scanCHeader = function(fn) {
-  var typereg = this;
-  var rawFile = fs.readFileSync(fn, 'utf8');
+  let typereg = this;
+  let rawFile = fs.readFileSync(fn, 'utf8');
   typereg.scanCFunctions(rawFile);
   typereg.extraJsWrapFuncsHeaders.push(`#include "${ fn }"`);
 };
 
 TypeRegistry.prototype.emitSymbolics = function(files) {
-  var typereg = this;
+  let typereg = this;
 
   // For now put them all in one file. It might make sense to split out at some point
-  var hl = files.getFile(`symbolics_${ typereg.groupname }.h`);
+  let hl = files.getFile(`symbolics_${ typereg.groupname }.h`);
 
   // Make a list of all includes: collect all types for all functions, then collect the customerIncludes for each type, and remove dups
-  var allIncludes = _.uniq(_.flatten(_.map(_.flatten(_.map(typereg.symbolics.c, function(func) { return func.getAllTypes(); })), function(typename) {
-    var type = typereg.types[typename];
+  let allIncludes = _.uniq(_.flatten(_.map(_.flatten(_.map(typereg.symbolics.c, function(func) { return func.getAllTypes(); })), function(typename) {
+    let type = typereg.types[typename];
     if (!type) throw new Error('No such type ' + typename);
     return type.getCustomerIncludes();
   })));
@@ -528,7 +528,7 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
     hl(incl);
   });
 
-  var cl = files.getFile(`symbolics_${ typereg.groupname }.cc`);
+  let cl = files.getFile(`symbolics_${ typereg.groupname }.cc`);
   cl(`
     #include "common/std_headers.h"
     #include "./symbolics_${ typereg.groupname }.h"
@@ -539,8 +539,11 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
     func.emitDefn(cl);
   });
 
-  var jsl = files.getFile(`symbolics_${ typereg.groupname }.js`);
-
+  let jsl = files.getFile(`symbolics_${ typereg.groupname }.js`);
+  jsl(`
+    const canvasutils = require('canvasutils');
+    const Geom3D = canvasutils.Geom3D;
+  `);
   _.each(typereg.symbolics.js, function(func, funcname) {
     func.emitDefn(jsl);
   });
@@ -549,8 +552,8 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
 
 
 TypeRegistry.prototype.addWrapFunction = function(desc, funcScope, funcname, funcTemplate, returnType, args) {
-  var typereg = this;
-  var jsFuncname = gen_utils.funcnameCToJs(funcname);
+  let typereg = this;
+  let jsFuncname = gen_utils.funcnameCToJs(funcname);
   if (!(jsFuncname in typereg.wrapFunctions)) {
     typereg.wrapFunctions[jsFuncname] = [];
   }
@@ -564,7 +567,7 @@ TypeRegistry.prototype.addWrapFunction = function(desc, funcScope, funcname, fun
 };
 
 TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs, lang) {
-  var typereg = this;
+  let typereg = this;
   if (!lang) lang='c';
   return typereg.symbolics[lang][name] = new symbolic_math.SymbolicContext(typereg, name, inargs, outargs, lang);
 };
@@ -573,12 +576,12 @@ TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs, lang) {
 
 
 TypeRegistry.prototype.emitConversions = function(files) {
-  var typereg = this;
-  var h = files.getFile(`conversions_${typereg.groupname}.h`);
-  var cc = files.getFile(`conversions_${typereg.groupname}.cc`);
+  let typereg = this;
+  let h = files.getFile(`conversions_${typereg.groupname}.h`);
+  let cc = files.getFile(`conversions_${typereg.groupname}.cc`);
 
-  var bySuperTypename = {};
-  var allDerivedTypes = {};
+  let bySuperTypename = {};
+  let allDerivedTypes = {};
 
   _.each(typereg.types, function(type, typename) {
     scanSupers(type.superTypes);

@@ -5,7 +5,7 @@ const parent_pipe = require('./parent_pipe');
 const logio = require('../web/logio');
 
 function main() {
-  var pp = new parent_pipe.ParentJsonPipe({}, {
+  let pp = new parent_pipe.ParentJsonPipe({}, {
     rpc_test1: function(v, cb) {
       cb(null, v+1);
     },

@@ -11,13 +11,13 @@ const crypto = require('crypto');
 exports.defop = defop;
 exports.SymbolicContext = SymbolicContext;
 
-var optimize = true;
+let optimize = true;
 
-var defops = {};
+let defops = {};
 
 function defop(retType, op /*, argTypes..., impl */) {
-  var argTypes = [];
-  for (var argi=2; argi + 1 < arguments.length; argi++) argTypes.push(arguments[argi]);
+  let argTypes = [];
+  for (let argi=2; argi + 1 < arguments.length; argi++) argTypes.push(arguments[argi]);
 
   if (!defops[op]) defops[op] = [];
   defops[op].push({
@@ -30,14 +30,14 @@ function defop(retType, op /*, argTypes..., impl */) {
 
 
 function simpleHash(s) {
-  var h = crypto.createHmac('sha1', 'key');
+  let h = crypto.createHmac('sha1', 'key');
   h.update(s);
   return h.digest('hex').substr(0, 16);
 }
 
 
 function SymbolicContext(typereg, name, inargs, outargs, lang) {
-  var c = this;
+  let c = this;
   c.typereg = typereg;
   c.name = name;
   c.inargs = inargs;
@@ -54,7 +54,7 @@ function SymbolicContext(typereg, name, inargs, outargs, lang) {
 }
 
 SymbolicContext.prototype.checkArgs = function() {
-  var c = this;
+  let c = this;
   _.each(c.inargs, function(arginfo) {
     assert.ok(arginfo[1] in c.typereg.types);
   });
@@ -64,7 +64,7 @@ SymbolicContext.prototype.checkArgs = function() {
 };
 
 SymbolicContext.prototype.registerWrapper = function() {
-  var c = this;
+  let c = this;
 
   if (c.lang === 'c') {
     c.typereg.addWrapFunction(c.getSignature(), '', c.name, '', 'void', c.collectArgs(function(argname, argTypename, isOut) {
@@ -74,7 +74,7 @@ SymbolicContext.prototype.registerWrapper = function() {
 };
 
 SymbolicContext.prototype.collectArgs = function(argFunc) {
-  var c = this;
+  let c = this;
   return _.map(c.inargs, function(arginfo) {
     return argFunc(arginfo[0], arginfo[1], false);
   }).concat(_.map(c.outargs, function(arginfo) {
@@ -83,13 +83,13 @@ SymbolicContext.prototype.collectArgs = function(argFunc) {
 };
 
 SymbolicContext.prototype.getAllTypes = function() {
-  var c = this;
+  let c = this;
   return _.uniq(_.map(c.inargs, function(arginfo) { return arginfo[1]; }).concat(
     _.map(c.outargs, function(arginfo) { return arginfo[1]; })));
 };
 
 SymbolicContext.prototype.getSignature = function() {
-  var c = this;
+  let c = this;
   if (c.lang === 'c') {
     return ('void ' + c.name + '(' + c.collectArgs(function(argname, argTypename, isOut) {
       return argTypename + (isOut ? ' &' : ' const &') + argname;
@@ -103,7 +103,7 @@ SymbolicContext.prototype.getSignature = function() {
 };
 
 SymbolicContext.prototype.emitDecl = function(f) {
-  var c = this;
+  let c = this;
   if (c.lang === 'c') {
     f(c.getSignature() + ';');
   }
@@ -111,7 +111,7 @@ SymbolicContext.prototype.emitDecl = function(f) {
 
 
 SymbolicContext.prototype.emitDefn = function(f) {
-  var c = this;
+  let c = this;
   f(c.getSignature() + ' {');
   _.each(c.preCode, function(code) { f(code); });
   c.emitCode(f);
@@ -123,15 +123,15 @@ SymbolicContext.prototype.emitDefn = function(f) {
 
 
 SymbolicContext.prototype.dedup = function(e) {
-  var c = this;
+  let c = this;
   assert.strictEqual(e.c, c);
   while (e.opInfo && e.opInfo.impl.replace) {
-    var newe = e.opInfo.impl.replace.call(e);
+    let newe = e.opInfo.impl.replace.call(e);
     if (!newe) break;
     e = newe;
   }
   assert.strictEqual(e.c, c);
-  var cse = c.cses[e.cseKey];
+  let cse = c.cses[e.cseKey];
   if (cse) return cse;
   c.cses[e.cseKey] = e;
   return e;
@@ -139,7 +139,7 @@ SymbolicContext.prototype.dedup = function(e) {
 
 
 SymbolicContext.prototype.V = function(type, name) {
-  var c = this;
+  let c = this;
   return c.dedup(new SymbolicVar(c, type, name));
 };
 
@@ -152,9 +152,9 @@ SymbolicContext.prototype.Vv3 = function(name) { return this.V('arma::vec3', nam
 SymbolicContext.prototype.Vv4 = function(name) { return this.V('arma::vec4', name); };
 
 SymbolicContext.prototype.A = function(name, value) {
-  var c = this;
+  let c = this;
   if (0) value.printName = name;
-  var e = c.dedup(new SymbolicAssign(c,
+  let e = c.dedup(new SymbolicAssign(c,
                                      value.type,
                                      name,
                                      value));
@@ -163,11 +163,11 @@ SymbolicContext.prototype.A = function(name, value) {
 };
 
 SymbolicContext.prototype.Aa = function(name, value) {
-  var c = this;
+  let c = this;
   if (0) value.printName = name;
-  var index = c.arrayBuilder[name] || 0;
+  let index = c.arrayBuilder[name] || 0;
   c.arrayBuilder[name] = index + 1;
-  var e = c.dedup(new SymbolicAssign(c,
+  let e = c.dedup(new SymbolicAssign(c,
                                      value.type,
                                      name + '[' + index.toString() + ']',
                                      value));
@@ -176,7 +176,7 @@ SymbolicContext.prototype.Aa = function(name, value) {
 };
 
 SymbolicContext.prototype.C = function(type, value) {
-  var c = this;
+  let c = this;
   return c.dedup(new SymbolicConst(c, type, value));
 };
 
@@ -189,9 +189,9 @@ SymbolicContext.prototype.Cv4 = function(value) { return this.C('arma::vec4', va
 
 
 SymbolicContext.prototype.E = function(op /*, args... */) {
-  var c = this;
-  var args = [];
-  for (var argi=1; argi < arguments.length; argi++) args.push(arguments[argi]);
+  let c = this;
+  let args = [];
+  for (let argi=1; argi < arguments.length; argi++) args.push(arguments[argi]);
   args = _.map(args, function(arg, argi) {
     if (_.isObject(arg)) {
       assert.strictEqual(arg.c, c);
@@ -208,7 +208,7 @@ SymbolicContext.prototype.E = function(op /*, args... */) {
 };
 
 SymbolicContext.prototype.D = function(wrt, e) {
-  var c = this;
+  let c = this;
   assert.strictEqual(wrt.c, c);
   assert.strictEqual(e.c, c);
   if (e instanceof SymbolicVar) {
@@ -233,7 +233,7 @@ SymbolicContext.prototype.D = function(wrt, e) {
 };
 
 SymbolicContext.prototype.matrixElem = function(matrix, rowi, coli) {
-  var c = this;
+  let c = this;
   assert.strictEqual(matrix.c, c);
   if (matrix instanceof SymbolicExpr && matrix.op === 'arma::mat44') {
     return matrix.args[rowi + coli*4];
@@ -245,7 +245,7 @@ SymbolicContext.prototype.matrixElem = function(matrix, rowi, coli) {
 
 
 SymbolicContext.prototype.getExpr = function(e, availCses) {
-  var c = this;
+  let c = this;
   assert.strictEqual(e.c, c);
   if (e instanceof SymbolicVar) {
     return e.name;
@@ -303,10 +303,10 @@ SymbolicContext.prototype.getExpr = function(e, availCses) {
     if (availCses && availCses[e.cseKey]) {
       return e.cseKey;
     }
-    var argExprs = _.map(e.args, function(arg) {
+    let argExprs = _.map(e.args, function(arg) {
       return c.getExpr(arg, availCses);
     });
-    var impl = e.opInfo.impl[c.lang];
+    let impl = e.opInfo.impl[c.lang];
     if (!impl) {
       throw new Error(`No ${c.lang} impl for ${e.opInfo.op}`);
     }
@@ -318,7 +318,7 @@ SymbolicContext.prototype.getExpr = function(e, availCses) {
 };
 
 SymbolicContext.prototype.getImm = function(e, vars) {
-  var c = this;
+  let c = this;
   assert.strictEqual(e.c, c);
   if (e instanceof SymbolicVar) {
     return vars[e.name];
@@ -328,7 +328,7 @@ SymbolicContext.prototype.getImm = function(e, vars) {
     return e.value;
   }
   else if (e instanceof SymbolicExpr) {
-    var argExprs = _.map(e.args, function(arg) {
+    let argExprs = _.map(e.args, function(arg) {
       return c.getImm(arg, vars);
     });
     return e.opInfo.impl.imm.apply(e, argExprs);
@@ -339,7 +339,7 @@ SymbolicContext.prototype.getImm = function(e, vars) {
 };
 
 SymbolicContext.prototype.getCosts = function(e, costs) {
-  var c = this;
+  let c = this;
   assert.strictEqual(e.c, c);
   if (costs[e.cseKey]) {
     costs[e.cseKey] += e.cseCost;
@@ -357,7 +357,7 @@ SymbolicContext.prototype.getCosts = function(e, costs) {
 };
 
 SymbolicContext.prototype.emitCses = function(e, f, availCses, costs) {
-  var c = this;
+  let c = this;
   assert.strictEqual(e.c, c);
   if (e instanceof SymbolicExpr) {
     if (!availCses[e.cseKey]) {
@@ -370,7 +370,7 @@ SymbolicContext.prototype.emitCses = function(e, f, availCses, costs) {
           f(e.type + ' ' + e.cseKey + ' = ' + c.getExpr(e, availCses) + ';');
         }
         else if (c.lang === 'js') {
-          f('var ' + e.cseKey + ' = ' + c.getExpr(e, availCses) + ';');
+          f('let ' + e.cseKey + ' = ' + c.getExpr(e, availCses) + ';');
         }
         if (e.printName) {
           f(`eprintf("${e.printName} ${e.cseKey} = %s\\n", asJson(${e.cseKey}).it.c_str());`);
@@ -385,9 +385,9 @@ SymbolicContext.prototype.emitCses = function(e, f, availCses, costs) {
 };
 
 SymbolicContext.prototype.emitCode = function(f, filter) {
-  var c = this;
-  var costs = {};
-  var availCses = {};
+  let c = this;
+  let costs = {};
+  let availCses = {};
   _.each(c.assigns, function(a) {
     c.getCosts(a, costs);
     c.emitCses(a, f, availCses, costs);
@@ -403,7 +403,7 @@ SymbolicContext.prototype.emitCode = function(f, filter) {
 // ----------------------------------------------------------------------
 
 function SymbolicAssign(c, type, name, value) {
-  var e = this;
+  let e = this;
   e.c = c;
   e.type = type;
   e.name = name;
@@ -415,7 +415,7 @@ SymbolicAssign.prototype.isZero = function() { return false; };
 SymbolicAssign.prototype.isOne = function() { return false; };
 
 function SymbolicVar(c, type, name) {
-  var e = this;
+  let e = this;
   e.c = c;
   e.type = type;
   e.name = name;
@@ -426,7 +426,7 @@ SymbolicVar.prototype.isZero = function() { return false; };
 SymbolicVar.prototype.isOne = function() { return false; };
 
 function SymbolicConst(c, type, value) {
-  var e = this;
+  let e = this;
   e.c = c;
   e.type = type;
   e.value = value;
@@ -434,20 +434,20 @@ function SymbolicConst(c, type, value) {
   e.cseCost = 0.25;
 }
 SymbolicConst.prototype.isZero = function() {
-  var e = this;
+  let e = this;
   if (e.type === 'double' && e.value === 0) return true;
   if (e.type === 'arma::mat44' && e.value === 0) return true;
   return false;
 };
 SymbolicConst.prototype.isOne = function() {
-  var e = this;
+  let e = this;
   if (e.type === 'double' && e.value === 1) return true;
   if (e.type === 'arma::mat44' && e.value === 1) return true;
   return false;
 };
 
 function SymbolicExpr(c, op, args) {
-  var e = this;
+  let e = this;
   e.c = c;
   e.op = op;
   e.args = args;
@@ -471,14 +471,14 @@ function SymbolicExpr(c, op, args) {
   e.cseCost = 1.0;
 }
 SymbolicExpr.prototype.isZero = function() {
-  var e = this;
+  let e = this;
   if (e.opInfo.impl.isZero) {
     return e.opInfo.impl.isZero.call(e);
   }
   return false;
 };
 SymbolicExpr.prototype.isOne = function() {
-  var e = this;
+  let e = this;
   if (e.opInfo.impl.isOne) {
     return e.opInfo.impl.isOne.call(e);
   }
@@ -497,7 +497,7 @@ defop('double',  'sin',             'double', {
   c: function(a) { return `sin(${a})`; },
   js: function(a) { return `Math.sin(${a})`; },
   deriv: function(wrt, a) {
-    var c = this.c;
+    let c = this.c;
     return c.E('*',
                c.D(wrt, a),
                c.E('cos', a));
@@ -508,7 +508,7 @@ defop('double',  '-sin',             'double', {
   c: function(a) { return `-sin(${a})`; },
   js: function(a) { return `-Math.sin(${a})`; },
   deriv: function(wrt, a) {
-    var c = this.c;
+    let c = this.c;
     return c.E('*',
                c.D(wrt, a),
                c.E('-cos', a));
@@ -519,7 +519,7 @@ defop('double',  'cos',             'double', {
   c: function(a) { return `cos(${a})`; },
   js: function(a) { return `Math.cos(${a})`; },
   deriv: function(wrt, a) {
-    var c = this.c;
+    let c = this.c;
     return c.E('*',
                c.D(wrt, a),
                c.E('-sin', a));
@@ -530,7 +530,7 @@ defop('double',  '-cos',             'double', {
   c: function(a) { return `-cos(${a})`; },
   js: function(a) { return `-Math.cos(${a})`; },
   deriv: function(wrt, a) {
-    var c = this.c;
+    let c = this.c;
     return c.E('*',
                c.D(wrt, a),
                c.E('sin', a));
@@ -544,7 +544,7 @@ defop('double',  'exp',             'double', {
   imm: function(a) { return Math.exp(a); },
   c: function(a) { return `exp(${a})`; },
   deriv: function(wrt, a) {
-    var c = this.c;
+    let c = this.c;
     return c.E('*',
                c.D(wrt, a),
                this);
@@ -560,15 +560,15 @@ defop('double',  '*',               'double', 'double', {
   c: function(a, b) { return `(${a} * ${b})`; },
   js: function(a, b) { return `(${a} * ${b})`; },
   replace: function() {
-    var a = this.args[0];
-    var b = this.args[1];
+    let a = this.args[0];
+    let b = this.args[1];
     if (a.isZero()) return a;
     if (b.isZero()) return b;
     if (a.isOne()) return b;
     if (b.isOne()) return a;
   },
   deriv: function(wrt, a, b) {
-    var c = this.c;
+    let c = this.c;
     return c.E('+',
                c.E('*', a, c.D(wrt, b)),
                c.E('*', b, c.D(wrt, a)));
@@ -579,12 +579,12 @@ defop('double',  '+',               'double', 'double', {
   c: function(a, b) { return `(${a} + ${b})`; },
   js: function(a, b) { return `(${a} + ${b})`; },
   deriv: function(wrt, a, b) {
-    var c = this.c;
+    let c = this.c;
     return c.E('+', c.D(wrt, a), c.D(wrt, b));
   },
   replace: function() {
-    var a = this.args[0];
-    var b = this.args[1];
+    let a = this.args[0];
+    let b = this.args[1];
     if (a.isZero()) return b;
     if (b.isZero()) return a;
   },
@@ -594,7 +594,7 @@ defop('double',  '-',               'double', 'double', {
   c: function(a, b) { return `(${a} - ${b})`; },
   js: function(a, b) { return `(${a} - ${b})`; },
   deriv: function(wrt, a, b) {
-    var c = this.c;
+    let c = this.c;
     return c.E('-', c.D(wrt, a), c.D(wrt, b));
   },
 });
@@ -630,7 +630,7 @@ defop('int',           '-',                 'int', 'int', {
   js: function(a, b) { return `(${a} - ${b})`; },
 });
 defop('int',           '/',                 'int', 'int', {
-  imm: function(a, b) { var r = a / b; return (r < 0) ? Math.ceil(r) : Math.floor(r); }, // Math.trunc not widely supported
+  imm: function(a, b) { let r = a / b; return (r < 0) ? Math.ceil(r) : Math.floor(r); }, // Math.trunc not widely supported
   c: function(a, b) { return `(${a} / ${b})`; },
   js: function(a, b) { return `Math.trunc(${a} / ${b})`; },
 });
@@ -653,7 +653,7 @@ defop('double',  '(double)',    'int', {
 defop('int',     '(int)',       'double', {
   imm: function(a) { return Math.round(a); },
   c: function(a) { return `(int)${a}`; },
-  c: function(a) { return `Math.round(${a})`; },
+  js: function(a) { return `Math.round(${a})`; },
 });
 
 if (0) {
@@ -670,8 +670,8 @@ defop('double',  'sqrt',        'double', {
 
 defop('arma::mat33',    'mat33RotationZ',   'double', {
   imm: function(a) {
-    var ca = Math.cos(a);
-    var sa = Math.sin(a);
+    let ca = Math.cos(a);
+    let sa = Math.sin(a);
     return [+ca, +sa, 0,
             -sa, ca, 0,
             0, 0, 1];
@@ -700,7 +700,7 @@ defop('arma::mat44',        'arma::mat44',
           return (`Float64Array.of(${a00}, ${a10}, ${a20}, ${a30},  ${a01}, ${a11}, ${a21}, ${a31},  ${a02}, ${a12}, ${a22}, ${a32},  ${a03}, ${a13}, ${a23}, ${a33})`);
         },
         deriv: function(wrt) {
-          var c = this.c;
+          let c = this.c;
           return c.E('arma::mat44',
                      c.D(wrt, this.args[0]),
                      c.D(wrt, this.args[1]),
@@ -725,8 +725,8 @@ defop('arma::mat44',        'arma::mat44',
 
 defop('arma::mat44',        'mat44RotationX',   'double', {
   replace: function() {
-    var c = this.c;
-    var a = this.args[0];
+    let c = this.c;
+    let a = this.args[0];
     return c.E('arma::mat44',
                c.C('double', 1),
                c.C('double', 0),
@@ -752,8 +752,8 @@ defop('arma::mat44',        'mat44RotationX',   'double', {
 });
 defop('arma::mat44',        'mat44RotationY',   'double', {
   replace: function(wrt) {
-    var c = this.c;
-    var a = this.args[0];
+    let c = this.c;
+    let a = this.args[0];
     return c.E('arma::mat44',
                c.E('cos', a),
                c.C('double', 0),
@@ -778,8 +778,8 @@ defop('arma::mat44',        'mat44RotationY',   'double', {
 });
 defop('arma::mat44',        'mat44RotationZ',   'double', {
   replace: function(wrt) {
-    var c = this.c;
-    var a = this.args[0];
+    let c = this.c;
+    let a = this.args[0];
     return c.E('arma::mat44',
                c.E('cos', a),
                c.E('sin', a),
@@ -805,7 +805,7 @@ defop('arma::mat44',        'mat44RotationZ',   'double', {
 
 defop('arma::mat44',        'mat44Translation',   'double', 'double', 'double', {
   replace: function(wrt) {
-    var c = this.c;
+    let c = this.c;
     return c.E('arma::mat44',
                c.C('double', 1),
                c.C('double', 0),
@@ -836,7 +836,7 @@ _.each([0,1,2,3], function(rowi) {
         return `(${a}[${rowi} + 4*${coli}))`;
       },
       deriv: function(wrt, a) {
-        var c = this.c;
+        let c = this.c;
         return c.Cd(0);
       }
     });
@@ -853,24 +853,24 @@ defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
     return `Geom3D.mul_mat44_mat44(${a}, ${b})`;
   },
   deriv: function(wrt, a, b) {
-    var c = this.c;
+    let c = this.c;
     return c.E('+',
                c.E('*', a, c.D(wrt, b)),
                c.E('*', c.D(wrt, a), b));
   },
   replace: function() {
-    var a = this.args[0];
-    var b = this.args[1];
+    let a = this.args[0];
+    let b = this.args[1];
     if (a.isZero()) return a;
     if (b.isZero()) return b;
     if (a.isOne()) return b;
     if (b.isOne()) return a;
   },
   replace_tooExpensive: function(wrt) {
-    var c = this.c;
-    var a = this.args[0];
-    var b = this.args[1];
-    var args = ['arma::mat44'];
+    let c = this.c;
+    let a = this.args[0];
+    let b = this.args[1];
+    let args = ['arma::mat44'];
 
     _.each([0,1,2,3], function(coli) {
       _.each([0,1,2,3], function(rowi) {
@@ -897,14 +897,14 @@ defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4', {
     return `Geom3D.mul_mat44_vec4(${a}, ${b})`;
   },
   deriv: function(wrt, a, b) {
-    var c = this.c;
+    let c = this.c;
     return c.E('+',
                c.E('*', a, c.D(wrt, b)),
                c.E('*', c.D(wrt, a), b));
   },
   replace: function() {
-    var a = this.args[0];
-    var b = this.args[1];
+    let a = this.args[0];
+    let b = this.args[1];
     if (b.isZero()) return b;
     if (a.isOne()) return b;
   },
@@ -920,16 +920,16 @@ defop('arma::mat44',    '+',           'arma::mat44', 'arma::mat44', {
   },
 
   replace: function() {
-    var a = this.args[0];
-    var b = this.args[1];
+    let a = this.args[0];
+    let b = this.args[1];
     if (a.isZero()) return b;
     if (b.isZero()) return a;
   },
   replace_tooExpensive: function(wrt) {
-    var c = this.c;
-    var a = this.args[0];
-    var b = this.args[1];
-    var args = ['arma::mat44'];
+    let c = this.c;
+    let a = this.args[0];
+    let b = this.args[1];
+    let args = ['arma::mat44'];
 
     _.each([0,1,2,3], function(coli) {
       _.each([0,1,2,3], function(rowi) {

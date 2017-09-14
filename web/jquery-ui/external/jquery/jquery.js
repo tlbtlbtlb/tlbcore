@@ -7953,7 +7953,7 @@ jQuery.fn.extend( {
 		}
 
 		return this.each( function() {
-			var dequeue = true,
+			let dequeue = true,
 				index = type != null && type + "queueHooks",
 				timers = jQuery.timers,
 				data = jQuery._data( this );

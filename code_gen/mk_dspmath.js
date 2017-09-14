@@ -5,7 +5,7 @@ const cgen = require('./cgen');
 const gen_marshall = require('./gen_marshall');
 
 function nextPow2(n) {
-  var ret = 1;
+  let ret = 1;
   while (ret < n) {
     ret *= 2;
   }
@@ -31,7 +31,7 @@ DspFormat.prototype.primType = function() {
 };
 
 DspFormat.prototype.primConst = function(value) {
-  var suffix;
+  let suffix;
   if (this.qt === 64) {
     suffix = 'LL';
   }
@@ -63,7 +63,7 @@ DspFormat.prototype.constantExpr = function(value) {
 };
 
 
-var stdTypes = [new DspFormat(8, 8),
+let stdTypes = [new DspFormat(8, 8),
                 new DspFormat(4, 12),
                 new DspFormat(2, 30),
                 new DspFormat(8, 24),
@@ -77,13 +77,13 @@ var stdTypes = [new DspFormat(8, 8),
                 new DspFormat(32, 32),
                 new DspFormat(40, 24)];
 
-var stdTypesByName = _.object(_.map(stdTypes, function(t) {
+let stdTypesByName = _.object(_.map(stdTypes, function(t) {
   return [t.dspType(), t];
 }));
 
 function genConv(f, xt, rt, sat, rnd) {
 
-  var mods='';
+  let mods='';
   if (sat) mods+='sat';
   if (rnd) mods+='rnd';
 
@@ -104,8 +104,8 @@ function genConv(f, xt, rt, sat, rnd) {
 
   // Round, if needed
   if (rnd && rt.qb < xt.qb) {
-    var rndbits = xt.qb - rt.qb;
-    var rndval = xt.primConst((1<<rndbits)-1);
+    let rndbits = xt.qb - rt.qb;
+    let rndval = xt.primConst((1<<rndbits)-1);
     // Not quite correct: convrnd is only 32 bits, so if I'm converting way down (like dsp460 -> dsp824) it loses
     f(`
       x_prim += (convrnd_generator_u${ nextWidth(Math.max(32, rndbits)) }() & ${ rndval });
@@ -121,7 +121,7 @@ function genConv(f, xt, rt, sat, rnd) {
 
   // Saturate
   if (sat && xt.qa > rt.qa) {
-    var maxval = xt.primConst(Math.pow(2, (rt.qt - Math.max(0, rt.qb - xt.qb) - 1)) - 1);
+    let maxval = xt.primConst(Math.pow(2, (rt.qt - Math.max(0, rt.qb - xt.qb) - 1)) - 1);
     f(`
       if (x_prim > ${ maxval.toString(10) }) return ${ maxval.toString(10) };
       if (x_prim < -${ maxval.toString(10) }) return -${  maxval.toString(10) };
@@ -153,17 +153,17 @@ function genConvAll(f, xt, rt) {
 }
 
 function mulResultType(xt, yt) {
-  var pt_qt = nextWidth(xt.qt + yt.qt);
-  var pt = new DspFormat(pt_qt - (xt.qb + yt.qb), xt.qb + yt.qb);
+  let pt_qt = nextWidth(xt.qt + yt.qt);
+  let pt = new DspFormat(pt_qt - (xt.qb + yt.qb), xt.qb + yt.qb);
   return pt;
 }
 
 function genMul(f, xt, yt, rt, sat, rnd) {
-  var mods='';
+  let mods='';
   if (sat) mods+='sat';
   if (rnd) mods+='rnd';
 
-  var pt = mulResultType(xt, yt);
+  let pt = mulResultType(xt, yt);
 
   f(`
     static inline ${ rt.dspType() } mul${ mods }_${ xt.dspType() }_${ yt.dspType() }_${ rt.dspType() }(${ xt.dspType() } x, ${ yt.dspType() } y) {
@@ -261,8 +261,8 @@ function genAll(f) {
 }
 
 function main() {
-  var dir = new cgen.FileGen('build.src/');
-  var f = dir.getFile('dsp_math_ops.h');
+  let dir = new cgen.FileGen('build.src/');
+  let f = dir.getFile('dsp_math_ops.h');
   genAll(f);
   dir.end();
 }

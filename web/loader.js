@@ -12,7 +12,7 @@ function loadAndParse(modname, cb) {
   console.log(filename);
   fs.readFile(filename, 'utf8', function(err, contents) {
     if (err) return cb(err);
-    var parsed;
+    let parsed;
     try {
       parsed = parsejs.parse(contents, false, false);
     } catch(ex) {

@@ -8,12 +8,12 @@ const symbolic_math = require('./symbolic_math');
 
 function main() {
 
-  var watchFlag = false;
-  var prefix = 'build.src/';
-  var files = [];
+  let watchFlag = false;
+  let prefix = 'build.src/';
+  let files = [];
 
-  for (var argi=2; argi < process.argv.length; argi++) {
-    var arg = process.argv[argi];
+  for (let argi=2; argi < process.argv.length; argi++) {
+    let arg = process.argv[argi];
 
     switch (arg) {
     case '--watch':
@@ -36,11 +36,11 @@ function main() {
 
 
   function processFiles() {
-    var typereg = new gen_marshall.TypeRegistry('root');
-    var filegen = new cgen.FileGen(prefix);
+    let typereg = new gen_marshall.TypeRegistry('root');
+    let filegen = new cgen.FileGen(prefix);
 
     if (1) {
-      var ts = typereg.struct('TestStruct',
+      let ts = typereg.struct('TestStruct',
                               ['foo', 'double'],
                               ['bar', 'int'],
                               ['buz', 'double']);

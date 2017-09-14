@@ -3,7 +3,7 @@ const assert = require('assert');
 const util = require('util');
 const parse = require('./parse');
 
-var exampleText = [
+const exampleText = [
   '#include <stdio.h>',
   'int main(int argc)',
   '{',

@@ -10,7 +10,7 @@ exports.getLocalServer = getLocalServer;
 exports.getBestAddr = getBestAddr;
 
 
-var verbose = 0;
+let verbose = 0;
 
 /*
 
@@ -26,15 +26,15 @@ var verbose = 0;
 */
 
 
-var hostname = null;
-var servers = {};
+let hostname = null;
+let servers = {};
 
 function setup() {
   hostname = os.hostname().replace(/\..*$/, '');
   console.log('hostname=' + hostname);
 
   try {
-    var code = fs.readFileSync('servers.js', 'utf8');
+    let code = fs.readFileSync('servers.js', 'utf8');
     servers = eval('(' + code + ')');
   } catch(ex) {
     console.log('No servers.js');
@@ -52,7 +52,7 @@ function setup() {
     Rackspace doesn't charge us for data sent between servers using the internal (10.X.X.X) address.
     So if we have a .rsAddr, use the .rsAddr of the other servers for normal communication
    */
-  for (var k in servers) {
+  for (let k in servers) {
     if (servers.hasOwnProperty(k)) {
       servers[k].bestAddr = getBestAddr(servers[hostname], servers[k]);
     }
@@ -82,12 +82,12 @@ function getServerInfo(serverName) {
 }
 
 function getRoleServers(filter) {
-  var ret = {};
-  for (var serverName in servers) {
-    var serverRoles = servers[serverName].roles;
-    var foundTrue = false;
-    var foundFalse = false;
-    for (var i=0; i < serverRoles.length; i++) {
+  let ret = {};
+  for (let serverName in servers) {
+    let serverRoles = servers[serverName].roles;
+    let foundTrue = false;
+    let foundFalse = false;
+    for (let i=0; i < serverRoles.length; i++) {
       if (filter.hasOwnProperty(serverRoles[i])) {
         if (filter[serverRoles[i]] === false) {
           foundFalse = true;

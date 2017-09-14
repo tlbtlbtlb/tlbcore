@@ -38,10 +38,10 @@ describe('jsonio of ur.TestStruct', function() {
 
 describe('ur.TestStructString', function() {
   function checkString(s) {
-    var a = new ur.TestStructString(s);
-    var as = a.toString();
+    let a = new ur.TestStructString(s);
+    let as = a.toString();
     if (0) console.log(as);
-    var b = ur.TestStructString.fromString(as);
+    let b = ur.TestStructString.fromString(as);
     assert.strictEqual(a.foo, b.foo);
   }
 

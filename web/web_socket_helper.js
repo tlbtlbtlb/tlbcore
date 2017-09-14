@@ -20,7 +20,7 @@ exports.isRpcProgressError = isRpcProgressError;
 
 function stringify(msg, binaries) {
 
-  var json = JSON.stringify(msg, function(k, v) {
+  let json = JSON.stringify(msg, function(k, v) {
 
     /*
       I'd like to use this optimization for objects that implement toJsonString, but it doesn't work because the .toJSON method is called first which
@@ -76,7 +76,7 @@ function stringify(msg, binaries) {
 }
 
 function parse(json, binaries) {
-  var msg = JSON.parse(json, function(k, v) {
+  let msg = JSON.parse(json, function(k, v) {
     if (_.isObject(v) && v.__wsType) {
       if (v.__wsType === 'ArrayBuffer') {
         return binaries[v.binaryIndex];
@@ -132,9 +132,9 @@ RpcPendingQueue.prototype.getNewId = function() {
 };
 
 RpcPendingQueue.prototype.get = function(rspId) {
-  for (var i=0; i<this.pending.length; i++) {
+  for (let i=0; i<this.pending.length; i++) {
     if (this.pending[i] && this.pending[i].rspId === rspId) {
-      var ret = this.pending[i].rspFunc;
+      let ret = this.pending[i].rspFunc;
       this.pending[i] = null;
       this.pendingCount --;
       return ret;
@@ -144,9 +144,9 @@ RpcPendingQueue.prototype.get = function(rspId) {
 };
 
 RpcPendingQueue.prototype.getPreserve = function(rspId) {
-  for (var i=0; i<this.pending.length; i++) {
+  for (let i=0; i<this.pending.length; i++) {
     if (this.pending[i] && this.pending[i].rspId === rspId) {
-      var ret = this.pending[i].rspFunc;
+      let ret = this.pending[i].rspFunc;
       return ret;
     }
   }

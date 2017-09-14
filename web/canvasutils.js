@@ -2,16 +2,24 @@
 
   https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
 */
+/* globals _ */
+
+exports.drawTooltip = drawTooltip;
+exports.goodGraphColor = goodGraphColor;
+exports.mkShinyPattern = mkShinyPattern;
+exports.drawRountangle = drawRountangle;
+exports.drawSpinner = drawSpinner;
+exports.blendColors = blendColors;
 
 function drawTooltip(ctx, lo, x, y, str) {
   ctx.tooltipLayer(function() {
-    var lines = str.split('\n');
+    let lines = str.split('\n');
     ctx.font = lo.tooltipFont;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
-    var lineH = lo.tooltipSize * 1.6;
-    var textW = _.reduce(lines, function(prevMax, line) { return Math.max(prevMax, ctx.measureText(line).width); }, 20);
-    var textH = lineH * lines.length;
+    let lineH = lo.tooltipSize * 1.6;
+    let textW = _.reduce(lines, function(prevMax, line) { return Math.max(prevMax, ctx.measureText(line).width); }, 20);
+    let textH = lineH * lines.length;
 
     if (y < lo.boxT + textH + 10) { // close to top, show below
       y += textH/2 + 10;
@@ -24,10 +32,10 @@ function drawTooltip(ctx, lo, x, y, str) {
     x = Math.min(x, lo.boxR - 10 - textW);
     x = Math.max(x, lo.boxL + 10);
 
-    var ttL = x - 6 - lo.tooltipPadding;
-    var ttR = x + 6 + textW + lo.tooltipPadding;
-    var ttT = y - textH/2 + lo.tooltipPadding;
-    var ttB = y + textH/2 + 2 + lo.tooltipPadding;
+    let ttL = x - 6 - lo.tooltipPadding;
+    let ttR = x + 6 + textW + lo.tooltipPadding;
+    let ttT = y - textH/2 + lo.tooltipPadding;
+    let ttB = y + textH/2 + 2 + lo.tooltipPadding;
     ctx.beginPath();
     ctx.moveTo(ttL, ttT);
     ctx.lineTo(ttR, ttT);
@@ -44,9 +52,9 @@ function drawTooltip(ctx, lo, x, y, str) {
 }
 
 function mkShinyPattern(ctx, butT, butR, butB, butL, loCol, hiCol) {
-  var cX = (butL + butR)/2;
-  var skew = 0;
-  var pat = ctx.createLinearGradient(cX-skew, butT, cX+skew, butB); // vertical
+  let cX = (butL + butR)/2;
+  let skew = 0;
+  let pat = ctx.createLinearGradient(cX-skew, butT, cX+skew, butB); // vertical
   pat.addColorStop(0.125, '#e5e5e5');
   pat.addColorStop(0.250, loCol);
   pat.addColorStop(0.375, hiCol);
@@ -69,14 +77,14 @@ function drawRountangle(ctx, t, r, b, l, rad) {
 
 function drawSpinner(ctx, spinnerX, spinnerY, spinnerSize, phase) {
 
-  var dotSize = 0.15 * spinnerSize;
+  let dotSize = 0.15 * spinnerSize;
 
-  for (var i=0; i<12; i++) {
-    var theta = i * (Math.PI / 6.0);
-    var dirX = Math.cos(theta) * spinnerSize/30;
-    var dirY = Math.sin(theta) * spinnerSize/30;
+  for (let i=0; i<12; i++) {
+    let theta = i * (Math.PI / 6.0);
+    let dirX = Math.cos(theta) * spinnerSize/30;
+    let dirY = Math.sin(theta) * spinnerSize/30;
 
-    var dimness = ((phase - theta + 4*Math.PI) % (2*Math.PI)) / (2*Math.PI);
+    let dimness = ((phase - theta + 4*Math.PI) % (2*Math.PI)) / (2*Math.PI);
 
     ctx.beginPath();
     ctx.arc(spinnerX + 30.5*dirX,  spinnerY + 30.5*dirY, dotSize, 0, 2*Math.PI);
@@ -88,10 +96,10 @@ function drawSpinner(ctx, spinnerX, spinnerY, spinnerSize, phase) {
 
 /*
   For maximum convenience, import these with
-  var I = Geom2D.I, T = Geom2D.T, R = Geom2D.R, R0 = Geom2D.R0, S = Geom2D.S, S1 = Geom2D.S1, D = Geom2D.D, A = Geom2D.A;
+  let I = Geom2D.I, T = Geom2D.T, R = Geom2D.R, R0 = Geom2D.R0, S = Geom2D.S, S1 = Geom2D.S1, D = Geom2D.D, A = Geom2D.A;
 */
 
-var Geom2D = {
+let Geom2D = {
   I: function() { // identity matrix
     return [[1, 0, 0],
             [0, 1, 0]];
@@ -101,12 +109,12 @@ var Geom2D = {
             [t[1][0], t[1][1], t[1][0]*x + t[1][1]*y + t[1][2]]];
   },
   R: function R(t, a) { // Rotate
-    var ca = Math.cos(a), sa = Math.sin(a);
+    let ca = Math.cos(a), sa = Math.sin(a);
     return [[t[0][0]*ca - t[1][0]*sa, t[0][1]*ca + t[1][1]*sa, t[0][2]],
             [t[1][0]*ca + t[0][0]*sa, t[1][1]*ca + t[1][0]*sa, t[1][2]]];
   },
   R0: function R0(t) { // Rotate to zero
-    var s = Math.sqrt(t[0][0]*t[0][0] + t[0][1]*t[0][1]);
+    let s = Math.sqrt(t[0][0]*t[0][0] + t[0][1]*t[0][1]);
     return [[s, 0, t[0][2]],
             [0, s, t[1][2]]];
   },
@@ -115,8 +123,8 @@ var Geom2D = {
             [t[1][0]*s,   t[1][1]*s, t[1][2]]];
   },
   S1: function S1(t) { // Scales to 1
-    var a = Math.atan2(t[1][0], t[0][0]);
-    var ca = Math.cos(a), sa = Math.sin(a);
+    let a = Math.atan2(t[1][0], t[0][0]);
+    let ca = Math.cos(a), sa = Math.sin(a);
     return [[ca, -sa, t[0][2]],
             [sa, ca, t[1][2]]];
   },
@@ -127,6 +135,7 @@ var Geom2D = {
     return Math.atan2(b[1][2] - a[1][2], b[0][2] - a[0][2]);
   }
 };
+exports.Geom2D = Geom2D;
 
 /*
   These use a 3x4 matrix stored in column-major order, so the elements are
@@ -134,10 +143,10 @@ var Geom2D = {
     1  4  7  10
     2  5  8  11
   For maximum convenience, import these with
-  var I = Geom3D.I, T = Geom3D.T, S = Geom3D.S
+  let I = Geom3D.I, T = Geom3D.T, S = Geom3D.S
 */
 
-var Geom3D = {
+let Geom3D = {
   I: function() { // identity matrix
     return Float64Array.of(
       1, 0, 0,
@@ -177,7 +186,7 @@ var Geom3D = {
       m[12], m[13], m[14]);
   },
   toScreen: function(t, xc, yc, zc) {
-    var persp = zc/(zc + t[10]);
+    let persp = zc/(zc + t[10]);
     // X is right, Y is away from viewer, Z is up
     return Float64Array.of(
       xc + t[9]*persp,
@@ -187,11 +196,11 @@ var Geom3D = {
   depthSort: function(faces) {
     return _.sortBy(faces, function(face) {
       // Sort by the average z coordinate of all the coords of the face
-      var coords = face.coords;
-      var cl = coords.length;
+      let coords = face.coords;
+      let cl = coords.length;
       if (cl === 0) return 0.0;
-      var accum = 0.0;
-      for (var i=0; i<cl; i++) {
+      let accum = 0.0;
+      for (let i=0; i<cl; i++) {
         accum += coords[i][2];
       }
       return -accum / cl;
@@ -272,20 +281,21 @@ var Geom3D = {
   }
 
 };
+exports.Geom3D = Geom3D;
 
 /*
   Return c0 + (c1-c0)*p, with c0,c1 in RGB color space
   Requires '#RRGGBB' format
 */
 function blendColors(c0, c1, p) {
-    var c0h = parseInt(c0.slice(1), 16);
-    var c1h = parseInt(c1.slice(1), 16);
-    var r0 = (c0h>>16) & 0xff;
-    var g0 = (c0h>>8) & 0xff;
-    var b0 = (c0h>>0) & 0xff;
-    var r1 = (c1h>>16) & 0xff;
-    var g1 = (c1h>>8) & 0xff;
-    var b1 = (c1h>>0) & 0xff;
+    let c0h = parseInt(c0.slice(1), 16);
+    let c1h = parseInt(c1.slice(1), 16);
+    let r0 = (c0h>>16) & 0xff;
+    let g0 = (c0h>>8) & 0xff;
+    let b0 = (c0h>>0) & 0xff;
+    let r1 = (c1h>>16) & 0xff;
+    let g1 = (c1h>>8) & 0xff;
+    let b1 = (c1h>>0) & 0xff;
     return "#" + (0x1000000+
       (Math.round((r1 - r0)*p) + r0) * 0x10000 +
       (Math.round((g1 - g0)*p) + g0) * 0x100 +
@@ -293,7 +303,7 @@ function blendColors(c0, c1, p) {
 }
 
 
-var _goodGraphColors = [
+let _goodGraphColors = [
   '#F15854', // red
   '#5DA5DA', // blue
   '#FAA43A', // orange
@@ -335,7 +345,7 @@ var _goodGraphColors = [
   '#999900'
 ];
 
-var _darkGraphColors = _.map(_goodGraphColors, function(c) { blendColors(c, '#000000', 0.33); });
+let _darkGraphColors = _.map(_goodGraphColors, function(c) { blendColors(c, '#000000', 0.33); });
 
 function goodGraphColor(i) {
   return _goodGraphColors[i % _goodGraphColors.length];

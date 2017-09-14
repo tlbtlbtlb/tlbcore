@@ -57,7 +57,7 @@ function getFunctionCallExpr(funcexpr, args) {
     It works fine to say foo = operator+(bar, buz) when bar and buz are structures and the operator + function is overloaded.
     But for native types, c++ only accepts infix notation.
   */
-  var m = /^operator (\s+)/.exec(funcexpr);
+  let m = /^operator (\s+)/.exec(funcexpr);
   if (m && args.length === 2) {
     return args[0] + ' ' + m[1] + ' ' + args[1];
   }
@@ -65,19 +65,19 @@ function getFunctionCallExpr(funcexpr, args) {
 }
 
 function withJsWrapUtils(f, type) {
-  var typereg = type.reg;
+  let typereg = type.reg;
 
   f.jsBindings = [];
   f.jsConstructorBindings = [];
 
   f.emitArgSwitch = function(argSets) {
 
-    var ifSep = '';
+    let ifSep = '';
     _.each(argSets, function(argSet) {
       if (argSet === undefined) return;
 
-      var tests = _.map(argSet.args, function(argTypename, argi) {
-        var m;
+      let tests = _.map(argSet.args, function(argTypename, argi) {
+        let m;
         if (argTypename === 'Value' || argTypename === 'CopyablePersistent<Value>') {
           return '';
         }
@@ -91,14 +91,14 @@ function withJsWrapUtils(f, type) {
           return ' && args[' + argi + ']->IsFunction()';
         }
         else if (m = /^conv:(.*)$/.exec(argTypename)) {
-          var argType = typereg.getType(m[1]);
+          let argType = typereg.getType(m[1]);
           if (!argType) {
             throw new Error(`No type found for ${util.inspect(argTypename)} in ${util.inspect(argSet)}`);
           }
           return ' && ' + argType.getJsToCppTest('args[' + argi + ']', {conv: true});
         }
         else {
-          var argType = typereg.getType(argTypename);
+          let argType = typereg.getType(argTypename);
           if (!argType) {
             throw new Error(`No type found for ${util.inspect(argTypename)} in ${util.inspect(argSet)}`);
           }
@@ -111,7 +111,7 @@ function withJsWrapUtils(f, type) {
         ') {');
 
       _.each(argSet.args, function(argTypename, argi) {
-        var m;
+        let m;
         if (argTypename === 'Value') {
           f(`
             Local<Value> a${ argi } = args[${ argi }];
@@ -153,14 +153,14 @@ function withJsWrapUtils(f, type) {
           `);
         }
         else if (m = /^conv:(.*)$/.exec(argTypename)) {
-          var argType = typereg.getType(m[1]);
+          let argType = typereg.getType(m[1]);
           if (!argType) {
             throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');
           }
           f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']', {conv: true}) + ';');
         }
         else {
-          var argType = typereg.getType(argTypename);
+          let argType = typereg.getType(argTypename);
           f(argType.getArgTempDecl('a' + argi) + ' = ' + argType.getJsToCppExpr('args[' + argi + ']', {}) + ';');
         }
       });
@@ -176,9 +176,9 @@ function withJsWrapUtils(f, type) {
             return;
           `);
         } else {
-          var returnType = typereg.getType(argSet.returnType);
+          let returnType = typereg.getType(argSet.returnType);
           if (returnType.isPtr()) {
-            var returnBaseType = returnType.nonPtrType();
+            let returnBaseType = returnType.nonPtrType();
             f(`
               shared_ptr< ${ returnBaseType.typename } > ret_ptr = make_shared< ${ returnBaseType.typename } >();
               ${ returnBaseType.typename } &ret = *ret_ptr;
@@ -208,10 +208,10 @@ function withJsWrapUtils(f, type) {
 
     f(ifSep + ' {');
 
-    var acceptable = _.map(_.filter(argSets, function(argSet) { return !!argSet; }), function(argSet) {
+    let acceptable = _.map(_.filter(argSets, function(argSet) { return !!argSet; }), function(argSet) {
       return '(' + _.map(argSet.args, function(argInfo, argi) {
         if (_.isString(argInfo)) return argInfo;
-        var argType = typereg.getType(argInfo);
+        let argType = typereg.getType(argInfo);
         return argType ? argType.typename : '?';
       }).join(',') + (argSet.ignoreExtra ? '...' : '') + ')';
     }).join(' or ');

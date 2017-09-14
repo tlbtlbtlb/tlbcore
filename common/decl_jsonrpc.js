@@ -3,7 +3,7 @@ const assert = require('assert');
 
 module.exports = function(typereg) {
 
-  var jsonrpcmsg = typereg.struct('jsonrpcmsg',
+  let jsonrpcmsg = typereg.struct('jsonrpcmsg',
     ['method', 'string'],
     ['error', 'jsonstr'],
     ['id', 'int'],
