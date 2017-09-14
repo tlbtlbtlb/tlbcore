@@ -1,16 +1,16 @@
 'use strict';
-var _                   = require('underscore');
-var async               = require('async');
-var util                = require('util');
-var path                = require('path');
-var url                 = require('url');
-var querystring         = require('querystring');
-var https               = require('https');
-var http                = require('http');
-var assert              = require('assert');
-var logio               = require('./logio');
-var Safety              = require('./Safety');
-var bogocache           = require('./bogocache');
+const _ = require('underscore');
+const async = require('async');
+const util = require('util');
+const path = require('path');
+const url = require('url');
+const querystring = require('querystring');
+const https = require('https');
+const http = require('http');
+const assert = require('assert');
+const logio = require('./logio');
+const Safety = require('./Safety');
+const bogocache = require('./bogocache');
 
 exports.GithubApi = GithubApi;
 

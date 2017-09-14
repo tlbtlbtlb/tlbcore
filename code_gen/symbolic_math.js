@@ -2,11 +2,11 @@
   A way of building up arithmetic formulas in JS that can be emitted as C++ code,
   or directly evaluated.
 */
-var _                   = require('underscore');
-var util                = require('util');
-var cgen                = require('./cgen');
-var assert              = require('assert');
-var crypto              = require('crypto');
+const _ = require('underscore');
+const util = require('util');
+const cgen = require('./cgen');
+const assert = require('assert');
+const crypto = require('crypto');
 
 exports.defop = defop;
 exports.SymbolicContext = SymbolicContext;

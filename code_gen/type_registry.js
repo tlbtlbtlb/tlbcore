@@ -1,17 +1,17 @@
-var _                   = require('underscore');
-var assert              = require('assert');
-var util                = require('util');
-var cgen                = require('./cgen');
-var fs                  = require('fs');
-var gen_utils           = require('./gen_utils');
-var symbolic_math       = require('./symbolic_math');
-var CType               = require('./ctype').CType;
-var StructCType         = require('./struct_ctype').StructCType;
-var CollectionCType     = require('./collection_ctype').CollectionCType;
-var PrimitiveCType      = require('./primitive_ctype').PrimitiveCType;
-var DspCType            = require('./dsp_ctype').DspCType;
-var PtrCType            = require('./ptr_ctype').PtrCType;
-var ObjectCType         = require('./object_ctype').ObjectCType;
+const _ = require('underscore');
+const assert = require('assert');
+const util = require('util');
+const cgen = require('./cgen');
+const fs = require('fs');
+const gen_utils = require('./gen_utils');
+const symbolic_math = require('./symbolic_math');
+const CType = require('./ctype').CType;
+const StructCType = require('./struct_ctype').StructCType;
+const CollectionCType = require('./collection_ctype').CollectionCType;
+const PrimitiveCType = require('./primitive_ctype').PrimitiveCType;
+const DspCType = require('./dsp_ctype').DspCType;
+const PtrCType = require('./ptr_ctype').PtrCType;
+const ObjectCType = require('./object_ctype').ObjectCType;
 
 exports.TypeRegistry = TypeRegistry;
 
@@ -36,7 +36,7 @@ function TypeRegistry(groupname) {
 
 TypeRegistry.prototype.scanJsDefn = function(fn) {
   var typereg = this;
-  var scanModule = require(fs.realpathSync(fn));
+  const scanModule = require(fs.realpathSync(fn));
   scanModule(typereg);
 };
 
@@ -295,10 +295,10 @@ TypeRegistry.prototype.emitMochaFile = function(files) {
   var typereg = this;
   var f = files.getFile(`test_${ typereg.groupname }.js`);
   f(`
-    var _ = require("underscore");
-    var ur = require("ur");
-    var util = require("util");
-    var assert = require("assert");
+    const _ = require("underscore");
+    const ur = require("ur");
+    const util = require("util");
+    const assert = require("assert");
   `);
 
   _.each(typereg.types, function(type, typename) {

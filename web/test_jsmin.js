@@ -1,4 +1,4 @@
-var jsmin               = require('jsmin2');
+const jsmin = require('jsmin2');
 
 
 function jsmincomp(a, b) {

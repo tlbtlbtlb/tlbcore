@@ -1,6 +1,6 @@
 'use strict';
-var _                   = require('underscore');
-var child_process       = require('child_process');
+const _ = require('underscore');
+const child_process = require('child_process');
 require('../common/MoreUnderscore');
 
 exports.vsystem = vsystem;

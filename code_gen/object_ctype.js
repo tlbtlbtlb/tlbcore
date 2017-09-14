@@ -1,8 +1,8 @@
-var _                   = require('underscore');
-var assert              = require('assert');
-var util                = require('util');
-var cgen                = require('./cgen');
-var CType               = require('./ctype').CType;
+const _ = require('underscore');
+const assert = require('assert');
+const util = require('util');
+const cgen = require('./cgen');
+const CType = require('./ctype').CType;
 
 exports.ObjectCType = ObjectCType;
 

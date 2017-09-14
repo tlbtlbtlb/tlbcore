@@ -1,7 +1,7 @@
 'use strict';
-var _                   = require('underscore');
-var os                  = require('os');
-var fs                  = require('fs');
+const _ = require('underscore');
+const os = require('os');
+const fs = require('fs');
 
 exports.getHostname = getHostname;
 exports.getServerInfo = getServerInfo;

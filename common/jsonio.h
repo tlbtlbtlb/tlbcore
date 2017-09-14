@@ -69,11 +69,12 @@ jsonstr interpolate(jsonstr const &a, jsonstr const &b, double cb);
 
 template <typename T>
 void toJson(jsonstr &ret, const T &value) {
-  size_t retSize = 0;
-  wrJsonSize(retSize, ret.blobs, value);
-  char *p = ret.startWrite(retSize);
-  wrJson(p, ret.blobs, value);
-  ret.endWrite(p);
+  WrJsonContext ctx;
+  ctx.blobs = ret.blobs;
+  wrJsonSize(ctx, value);
+  ctx.s = ret.startWrite(ctx.size);
+  wrJson(ctx, value);
+  ret.endWrite(ctx.s);
 }
 
 template <typename T>
@@ -85,27 +86,42 @@ jsonstr asJson(const T &value) {
 
 
 template <typename T>
-bool fromJson(jsonstr const &sj, shared_ptr< ChunkFile > const &blobs, T &value) {
-  const char *s = sj.it.c_str();
-  return rdJson(s, blobs, value);
+bool fromJson(jsonstr const &sj, T &value) {
+  RdJsonContext ctx;
+  ctx.s = sj.it.c_str();
+  ctx.blobs = sj.blobs;
+  return rdJson(ctx, value);
+}
+
+template <typename T>
+bool fromJson(jsonstr const &sj, bool noTypeCheck, T &value) {
+  RdJsonContext ctx;
+  ctx.s = sj.it.c_str();
+  ctx.blobs = sj.blobs;
+  ctx.noTypeCheck = noTypeCheck;
+  return rdJson(ctx, value);
 }
 
 template <typename T>
 bool fromJson(string const &ss, shared_ptr< ChunkFile > const &blobs, T &value) {
-  const char *s = ss.c_str();
-  return rdJson(s, blobs, value);
-}
-
-template <typename T>
-bool fromJson(jsonstr const &sj, T &value) {
-  const char *s = sj.it.c_str();
-  shared_ptr< ChunkFile > blobs = sj.blobs;
-  return rdJson(s, blobs, value);
+  RdJsonContext ctx;
+  ctx.s = ss.c_str();
+  ctx.blobs = blobs;
+  return rdJson(ctx, value);
 }
 
 template <typename T>
 bool fromJson(string const &ss, T &value) {
-  const char *s = ss.c_str();
-  shared_ptr< ChunkFile > blobs;
-  return rdJson(s, blobs, value);
+  RdJsonContext ctx;
+  ctx.s = ss.c_str();
+  return rdJson(ctx, value);
+}
+
+
+template <typename T>
+bool fromJson(string const &ss, bool noTypeCheck, T &value) {
+  RdJsonContext ctx;
+  ctx.s = ss.c_str();
+  ctx.noTypeCheck = noTypeCheck;
+  return rdJson(ctx, value);
 }

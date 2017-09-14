@@ -1,10 +1,10 @@
 /*
   Run with node --trace_gc arma/leaktest_arma.js
 */
-var _                   = require('underscore');
-var assert              = require('assert');
-var fs                  = require('fs');
-var ur                  = require('ur');
+const _                   = require('underscore');
+const assert              = require('assert');
+const fs                  = require('fs');
+const ur                  = require('ur');
 
 function main() {
   var t1 = new ur.mat([1,4,7,2,5,8,3,6,9]);

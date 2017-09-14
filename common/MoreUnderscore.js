@@ -1,5 +1,5 @@
 'use strict';
-var _                   = require('underscore');
+const _ = require('underscore');
 
 _.mixin({
   isHash: function(it) {

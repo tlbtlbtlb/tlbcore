@@ -1,5 +1,5 @@
-var _ = require('underscore');
-var fs = require('fs');
+const _ = require('underscore');
+const fs = require('fs');
 
 exports.scanFile = scanFile;
 exports.scanText = scanText;

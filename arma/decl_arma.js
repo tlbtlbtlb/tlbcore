@@ -1,5 +1,5 @@
-var _                   = require('underscore');
-var assert              = require('assert');
+const _                   = require('underscore');
+const assert              = require('assert');
 
 module.exports = function(typereg) {
   /*
@@ -10,8 +10,8 @@ module.exports = function(typereg) {
   */
   // u_int must come first so that C declarations are found properly, since it's the return type of other comparisons
   _.each(['U64', 'double', 'S64', 'arma::cx_double'], function(et) {
-    var rTypename, cTypename, mTypename, srTypename, scTypename;
-    var rType, cType, mType, srType, scType;
+    let rTypename, cTypename, mTypename, srTypename, scTypename;
+    let rType, cType, mType, srType, scType;
     _.each([0,2,3,4], function(rowFixed) {
       _.each([0,2,3,4], function(colFixed) {
         if (rowFixed && colFixed && rowFixed !== colFixed) return;
@@ -88,8 +88,8 @@ module.exports = function(typereg) {
         cType.addDeclDependency(srType);
         cType.addDeclDependency(scType);
 
-        var isInteger = (et === 'S64' || et === 'U64');
-        var isComplex = (et === 'arma::cx_double');
+        let isInteger = (et === 'S64' || et === 'U64');
+        let isComplex = (et === 'arma::cx_double');
         if (!isInteger) {
           typereg.scanCFunctions(`${ mTypename } inv(${ mTypename } a);`);
         }

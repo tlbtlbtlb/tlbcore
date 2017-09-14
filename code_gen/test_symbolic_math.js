@@ -1,7 +1,7 @@
-var _                   = require('underscore');
-var util                = require('util');
-var assert              = require('assert');
-var symbolic_math       = require('./symbolic_math');
+const _ = require('underscore');
+const util = require('util');
+const assert = require('assert');
+const symbolic_math = require('./symbolic_math');
 
 
 describe('symbolic_math', function() {

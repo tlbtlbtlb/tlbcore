@@ -3,8 +3,8 @@
   We stick a lot of stuff in jquery's $.XXX namespace
 */
 /* globals HitDetector */
-var _                   = require('underscore');
-var WebSocketBrowser    = require('WebSocketBrowser');
+const _ = require('underscore');
+const WebSocketBrowser = require('WebSocketBrowser');
 
 
 $.action = {};
@@ -91,6 +91,30 @@ $.setPageTitle = function(title) {
   document.title = title;
 };
 
+/*
+  Event & callback utilities
+*/
+
+function interactiveLimitOutstanding(maxOutstanding, f) {
+  var outstanding = 0;
+  var queued = 0;
+  return doit;
+
+  function doit() {
+    if (outstanding >= maxOutstanding) {
+      queued = 1;
+      return;
+    }
+    outstanding++;
+    f(function(err) {
+      outstanding--;
+      if (queued) {
+        queued = 0;
+        doit();
+      }
+    });
+  }
+}
 
 /*
   Poll history to notice when the fragment changes and switch pages. Before window.onpopstate worked, this was the only way to make the back button work.

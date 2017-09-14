@@ -1,5 +1,5 @@
-var url                 = require('url');
-var fs                  = require('fs');
+const url = require('url');
+const fs = require('fs');
 
 describe('fs.writeStreamString binary', function() {
   it('Should write 2 bytes string as binary', function(done) {

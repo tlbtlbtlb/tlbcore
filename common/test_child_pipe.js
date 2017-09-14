@@ -1,9 +1,9 @@
-var _ = require('underscore');
-var assert = require('assert');
-var path = require('path');
-var async = require('async');
-var child_pipe = require('./child_pipe');
-var logio = require('../web/logio');
+const _ = require('underscore');
+const assert = require('assert');
+const path = require('path');
+const async = require('async');
+const child_pipe = require('./child_pipe');
+const logio = require('../web/logio');
 
 // Depends on paths relative to home dir
 if (0) describe('ChildPipe.sshify', function() {

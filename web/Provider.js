@@ -5,20 +5,20 @@
     - automatic reloading when files change
     - handles css, svg, markdown, and it's easy to add others
 */
-var _                   = require('underscore');
-var assert              = require('assert');
-var events              = require('events');
-var net                 = require('net');
-var fs                  = require('fs');
-var path                = require('path');
-var assert              = require('assert');
-var jsmin               = require('jsmin2');
-var xml                 = require('xmldom');
-var marked              = require('marked');
-var zlib                = require('zlib');
-var crypto              = require('crypto');
-var logio               = require('./logio');
-var Safety              = require('./Safety');
+const _ = require('underscore');
+const assert = require('assert');
+const events = require('events');
+const net = require('net');
+const fs = require('fs');
+const path = require('path');
+const assert = require('assert');
+const jsmin = require('jsmin2');
+const xml = require('xmldom');
+const marked = require('marked');
+const zlib = require('zlib');
+const crypto = require('crypto');
+const logio = require('./logio');
+const Safety = require('./Safety');
 
 exports.AnyProvider = AnyProvider;
 exports.RawFileProvider = RawFileProvider;
@@ -491,11 +491,12 @@ XmlContentDirProvider.prototype.getType = function() {
    Otherwise, it just collapses whitespace
 */
 
-function ScriptProvider(fn, commonjsModule) {
+function ScriptProvider(fn, commonjsModule, nonStrict) {
   AnyProvider.call(this);
   this.fn = fn;
   this.basename = getBasename(fn);
   this.commonjsModule = commonjsModule;
+  this.nonStrict = !!nonStrict;
 }
 ScriptProvider.prototype = Object.create(AnyProvider.prototype);
 
@@ -537,7 +538,11 @@ ScriptProvider.prototype.start = function() {
     }
 
     if (self.commonjsModule) {
-      data = 'defmodule("' + self.commonjsModule + '", function(exports, require, module, __filename) {\n' + data + '\n});\n';
+      if (self.nonStrict) {
+        data = 'defmodule("' + self.commonjsModule + '", function(exports, require, module, __filename) {\n' + data + '\n});\n';
+      } else {
+        data = 'defmodule("' + self.commonjsModule + '", function(exports, require, module, __filename) {\n\'use strict\';\n' + data + '\n});\n';
+      }
     } else {
       data = data + '\n';
     }
@@ -744,12 +749,12 @@ SvgProvider.prototype.start = function() {
     data = data.replace(/\r?\n\s*/g, ' ');
 
     var doc = new xml.XMLDoc(data, function(err) {
-      console.log('XML parse error in ' + self.fn + ': ' + err);
+      console.log(`XML parse error in ${self.fn}: ${err}`);
       errs.push(err);
       return false;
     });
     if (errs.length) {
-      console.log("Failed to parse " + self.fn, errs);
+      console.log(`Failed to parse ${self.fn}`, errs);
       return;
     }
 
@@ -757,8 +762,10 @@ SvgProvider.prototype.start = function() {
     var name = self.basename;
     self.asSvg = doc.docNode.getUnderlyingXMLText();
 
-    if (verbose>=2) console.log('SvgProvider.loadData: ' + self.fn + ' ' + oldlen + ' to ' + self.asSvg.length);
-    self.asScriptBody = '$.defContent(\'' + name + '\',\'' + self.asSvg.replace(/([\'\\])/g, '\\$1').replace(/<\/script>/ig, '\\x3c\\x2fscript\\x3e') + '\');\n';
+    if (verbose>=2) console.log(`SvgProvider.loadData: ${self.fn} ${oldlen} to ${self.asSvg.length}`);
+    self.asScriptBody = `$.defContent("${name}", "${(
+      self.asSvg.replace(/([\'\\])/g, '\\$1').replace(/<\/script>/ig,'\\x3c\\x2fscript\\x3e')
+    )}");\n`;
     self.pending = false;
     self.emit('changed');
   });
@@ -809,7 +816,9 @@ MarkdownProvider.prototype.start = function() {
         logio.E(self.fn, err);
         self.asScriptBody = '\n';
       } else {
-        self.asScriptBody = '$.defContent("' + self.contentName + '",' + JSON.stringify(asHtml) + ');\n';
+        self.asScriptBody = `$.defContent("${self.contentName}", ${(
+          JSON.stringify(asHtml)
+        )});\n`;
       }
       self.pending = false;
       self.emit('changed');
@@ -856,8 +865,8 @@ ProviderSet.prototype.setTitle = function(t) {
 ProviderSet.prototype.addCss = function(name) {
   return this.addProvider(new CssProvider(name));
 };
-ProviderSet.prototype.addScript = function(name, moduleName) {
-  return this.addProvider(new ScriptProvider(name, moduleName));
+ProviderSet.prototype.addScript = function(name, moduleName, nonStrict) {
+  return this.addProvider(new ScriptProvider(name, moduleName, nonStrict));
 };
 ProviderSet.prototype.addJson = function(name, globalVarname) {
   return this.addProvider(new JsonProvider(name, globalVarname));
@@ -920,7 +929,7 @@ ProviderSet.prototype.handleRequest = function(req, res, suffix) {
       'Content-Type': contentType,
     });
     res.write('temporarily unavailable', 'utf8');
-    logio.O(remote, self.toString() + ' (503 temporarily unavailable)');
+    logio.O(remote, `${self.toString()} (503 temporarily unavailable)`);
   }
   res.end();
 };
@@ -962,37 +971,48 @@ ProviderSet.prototype.start = function() {
         }
       }
 
-      cat.push('<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n');
+      cat.push(`<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n`);
       // Maybe these could be providers?
       if (self.title) {
-        cat.push('<title>' + self.title + '</title>\n');
+        cat.push(`<title>${self.title}</title>\n`);
       }
       if (self.faviconUrl) {
-        cat.push('<link rel="shortcut icon" type="image/x-icon" href="' + self.faviconUrl + '" />\n');
+        cat.push(`<link rel="shortcut icon" type="image/x-icon" href="${self.faviconUrl}" />\n`);
       }
       if (self.ogLogoUrl) {
-        cat.push('<meta property="og:logo" content="' + self.ogLogoUrl + '">');
+        cat.push(`<meta property="og:logo" content="${self.ogLogoUrl}">`);
       }
-      emitAll('asCssHead', '<style type="text/css">\n/* <![CDATA[ */\n', '\n/* ]]> */\n</style>\n');
+      emitAll('asCssHead', `<style type="text/css">\n/* <![CDATA[ */\n`, `\n/* ]]> */\n</style>\n`);
       emitAll('asHtmlHead', '', '');
-      cat.push('</head><body>');
+      cat.push(`\n</head><body>\n`);
       cat.push(self.body);
 
       emitAll('asHtmlBody', '', '');
       emitAll('asScriptBody', function(p) {
-        return '<script type="' + p.scriptType + '">\n//<![CDATA[\n';
-      }, '\n//]]>\n</script>\n');
+        return `
+<script type="${p.scriptType}">
+//<![CDATA[
+`;
+      }, function(p) {
+        return `
+//]]>
+</script>
+`;
+      }, true);
 
       var hmac = crypto.createHash('sha256');
       hmac.update(cat.join(''), 'utf8');
       var contentMac = hmac.digest('base64');
 
-      cat.push('<script type="text/javascript">\n' +
-               'setTimeout(function() {' +
-               'pageSetupFromHash(' + JSON.stringify(self.reloadKey) + ', ' + JSON.stringify(contentMac) + ');' +
-               '});\n' +
-               '</script>\n');
-      cat.push('</body>\n</html>\n');
+      cat.push(`
+<script type="text/javascript">
+setTimeout(function() {
+  pageSetupFromHash(${JSON.stringify(self.reloadKey)}, ${JSON.stringify(contentMac)});
+});
+</script>
+</body>
+</html>
+`);
 
       var asHtmlBuf = new Buffer(cat.join(''), 'utf8');
       var zlibT0 = Date.now();
@@ -1006,7 +1026,7 @@ ProviderSet.prototype.start = function() {
         }
         self.asHtmlGzBuf = asHtmlGzBuf;
         var zlibT1 = Date.now();
-        logio.O(self.toString(), 'mac=' + self.contentMac + ' compressed ' + asHtmlBuf.length.toString() + ' => ' + asHtmlGzBuf.length.toString() + ' (' + (zlibT1-zlibT0) + ' mS)');
+        logio.O(self.toString(), `mac=${self.contentMac} compressed ${asHtmlBuf.length.toString()} => ${asHtmlGzBuf.length.toString()}(${(zlibT1-zlibT0)} mS)`);
         self.pending = false;
         self.emit('changed');
       });

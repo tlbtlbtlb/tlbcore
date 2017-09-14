@@ -1,8 +1,8 @@
 'use strict';
-var os                  = require('os');
-var fs                  = require('fs');
-var assert              = require('assert');
-var _                   = require('underscore');
+const os = require('os');
+const fs = require('fs');
+const assert = require('assert');
+const _ = require('underscore');
 require('../common/MoreUnderscore');
 
 exports.FileGen = FileGen;

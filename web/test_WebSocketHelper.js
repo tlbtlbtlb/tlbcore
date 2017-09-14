@@ -1,7 +1,7 @@
-var _                   = require('underscore');
-var assert              = require('assert');
-var WebSocketHelper     = require('./WebSocketHelper');
-//var ur                  = require('ur');
+const _ = require('underscore');
+const assert = require('assert');
+const WebSocketHelper = require('./WebSocketHelper');
+//const ur = require('ur');
 
 function wshPipe(msg) {
   var binaries = [];

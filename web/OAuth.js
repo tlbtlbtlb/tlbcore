@@ -1,16 +1,16 @@
 'use strict';
-var _                   = require('underscore');
-var async               = require('async');
-var path                = require('path');
-var fs                  = require('fs');
-var url                 = require('url');
-var querystring         = require('querystring');
-var https               = require('https');
-var cookie              = require('cookie');
-var logio               = require('./logio');
-var Safety              = require('./Safety');
-var Auth                = require('./Auth');
-var Provider            = require('./Provider');
+const _ = require('underscore');
+const async = require('async');
+const path = require('path');
+const fs = require('fs');
+const url = require('url');
+const querystring = require('querystring');
+const https = require('https');
+const cookie = require('cookie');
+const logio = require('./logio');
+const Safety = require('./Safety');
+const Auth = require('./Auth');
+const Provider = require('./Provider');
 
 exports.OAuthProvider = OAuthProvider;
 exports.getHttpRequestAccessToken = getHttpRequestAccessToken;

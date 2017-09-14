@@ -6,51 +6,51 @@
    Spec at http://www.json.org/
 */
 
-bool jsonSkipValue(char const *&s, shared_ptr< ChunkFile > const &blobs) {
-  jsonSkipSpace(s);
-  if (*s == '\"') {
+bool jsonSkipValue(RdJsonContext &ctx) {
+  jsonSkipSpace(ctx);
+  if (*ctx.s == '\"') {
     string tmp;
     shared_ptr< ChunkFile > blobs;
-    rdJson(s, blobs, tmp);
+    rdJson(ctx, tmp);
   }
-  else if (*s == '[') {
-    s++;
-    jsonSkipSpace(s);
+  else if (*ctx.s == '[') {
+    ctx.s++;
+    jsonSkipSpace(ctx);
     while (1) {
-      if (*s == ',') {
-        s++;
+      if (*ctx.s == ',') {
+        ctx.s++;
       }
-      else if (*s == ']') {
-        s++;
+      else if (*ctx.s == ']') {
+        ctx.s++;
         break;
       }
       else {
-        if (!jsonSkipValue(s, blobs)) return false;
+        if (!jsonSkipValue(ctx)) return false;
       }
     }
   }
-  else if (*s == '{') {
-    s++;
-    jsonSkipSpace(s);
+  else if (*ctx.s == '{') {
+    ctx.s++;
+    jsonSkipSpace(ctx);
     while (1) {
-      if (*s == ',') {
-        s++;
+      if (*ctx.s == ',') {
+        ctx.s++;
       }
-      else if (*s == ':') {
-        s++;
+      else if (*ctx.s == ':') {
+        ctx.s++;
       }
-      else if (*s == '}') {
-        s++;
+      else if (*ctx.s == '}') {
+        ctx.s++;
         break;
       }
       else {
-        if (!jsonSkipValue(s, blobs)) return false;
+        if (!jsonSkipValue(ctx)) return false;
       }
     }
   }
-  else if (isalnum(*s) || *s=='.' || *s == '-') {
-    s++;
-    while (isalnum(*s) || *s=='.' || *s == '-') s++;
+  else if (isalnum(*ctx.s) || *ctx.s=='.' || *ctx.s == '-') {
+    ctx.s++;
+    while (isalnum(*ctx.s) || *ctx.s=='.' || *ctx.s == '-') ctx.s++;
   }
   else {
     return false;
@@ -59,25 +59,26 @@ bool jsonSkipValue(char const *&s, shared_ptr< ChunkFile > const &blobs) {
   return true;
 }
 
-bool jsonSkipMember(char const *&s, shared_ptr< ChunkFile > const &blobs) {
-  jsonSkipSpace(s);
-  if (*s == '\"') {
+bool jsonSkipMember(RdJsonContext &ctx) {
+  jsonSkipSpace(ctx);
+  if (*ctx.s == '\"') {
     string tmp;
-    rdJson(s, blobs, tmp);
-    jsonSkipSpace(s);
-    if (*s == ':') {
-      s++;
-      jsonSkipSpace(s);
-      if (!jsonSkipValue(s, blobs)) return false;
+    rdJson(ctx, tmp);
+    jsonSkipSpace(ctx);
+    if (*ctx.s == ':') {
+      ctx.s++;
+      jsonSkipSpace(ctx);
+      if (!jsonSkipValue(ctx)) return false;
       return true;
     }
   }
   return false;
 }
 
-bool jsonMatch(char const *&s, char const *pattern)
+bool jsonMatch(RdJsonContext &ctx, char const *pattern)
 {
-  char const *p = s;
+  jsonSkipSpace(ctx);
+  char const *p = ctx.s;
   while (*pattern) {
     if (*p == *pattern) {
       p++;
@@ -86,14 +87,14 @@ bool jsonMatch(char const *&s, char const *pattern)
       return false;
     }
   }
-  s = p;
+  ctx.s = p;
   return true;
 }
 
-bool jsonMatchKey(char const *&s, char const *pattern)
+bool jsonMatchKey(RdJsonContext &ctx, char const *pattern)
 {
-  char const *p = s;
-  jsonSkipSpace(p);
+  jsonSkipSpace(ctx);
+  char const *p = ctx.s;
   if (*p != '"') {
     return false;
   }
@@ -116,6 +117,6 @@ bool jsonMatchKey(char const *&s, char const *pattern)
   }
   p++;
   jsonSkipSpace(p);
-  s = p;
+  ctx.s = p;
   return true;
 }

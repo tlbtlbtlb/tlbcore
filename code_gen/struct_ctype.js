@@ -1,9 +1,9 @@
-var _                   = require('underscore');
-var assert              = require('assert');
-var util                = require('util');
-var gen_utils           = require('./gen_utils');
-var cgen                = require('./cgen');
-var CType               = require('./ctype').CType;
+const _ = require('underscore');
+const assert = require('assert');
+const util = require('util');
+const gen_utils = require('./gen_utils');
+const cgen = require('./cgen');
+const CType = require('./ctype').CType;
 
 exports.StructCType = StructCType;
 
@@ -290,13 +290,13 @@ StructCType.prototype.emitTypeDecl = function(f) {
   `);
   if (!type.noSerialize) {
     f(`
-      void wrJson(char *&s, shared_ptr< ChunkFile > const &blobs, ${type.typename} const &obj);
-      bool rdJson(char const *&s, shared_ptr< ChunkFile > const &blobs, ${type.typename} &obj);
-      void wrJsonSize(size_t &size, shared_ptr< ChunkFile > const &blobs, ${type.typename} const &x);
+      void wrJson(WrJsonContext &ctx, ${type.typename} const &obj);
+      bool rdJson(RdJsonContext &ctx, ${type.typename} &obj);
+      void wrJsonSize(WrJsonContext &ctx, ${type.typename} const &x);
 
-      void wrJson(char *&s, shared_ptr< ChunkFile > const &blobs, vector< shared_ptr< ${type.typename} > > const &obj);
-      bool rdJson(const char *&s, shared_ptr< ChunkFile > const &blobs, vector< shared_ptr< ${type.typename} > > &obj);
-      void wrJsonSize(size_t &size, shared_ptr< ChunkFile > const &blobs, vector< shared_ptr< ${type.typename} > > const &x);
+      void wrJson(WrJsonContext &ctx, vector< shared_ptr< ${type.typename} > > const &obj);
+      bool rdJson(RdJsonContext &ctx, vector< shared_ptr< ${type.typename} > > &obj);
+      void wrJsonSize(WrJsonContext &ctx, vector< shared_ptr< ${type.typename} > > const &x);
     `);
   }
 
@@ -683,19 +683,19 @@ StructCType.prototype.emitWrJson = function(f) {
   function emitstr(s) {
     var b = new Buffer(s, 'utf8');
     f1(_.map(_.range(0, b.length), function(ni) {
-      return `*s++ = ${b[ni]};`;
+      return `*ctx.s++ = ${b[ni]};`;
     }).join(' ') + ' // ' + cgen.escapeCString(s));
-    f2(`size += ${(b.length + 2).toString()};`);
+    f2(`ctx.size += ${(b.length + 2).toString()};`);
   }
 
   if (1) {
     f(`
-      void wrJson(char *&s, shared_ptr< ChunkFile > const &blobs, ${type.typename} const &obj) {
+      void wrJson(WrJsonContext &ctx, ${type.typename} const &obj) {
     `);
     var f1 = f.child();
     f(`
       }
-      void wrJsonSize(size_t &size, shared_ptr< ChunkFile > const &blobs, ${type.typename} const &obj) {
+      void wrJsonSize(WrJsonContext &ctx, ${type.typename} const &obj) {
     `);
     var f2 = f.child();
     f(`
@@ -703,7 +703,15 @@ StructCType.prototype.emitWrJson = function(f) {
     `);
 
     if (type.typename === 'ndarray') {
-      f1(`if (obj.shape.size() == 1 && obj.shape[0] == 3) abort();`);   // XXX
+      // Avoid recursively writing ndarray parts as blobs
+      f1(`
+        shared_ptr<ChunkFile> tmpBlobs;
+        swap(ctx.blobs, tmpBlobs);
+      `);
+      f2(`
+        shared_ptr<ChunkFile> tmpBlobs;
+        swap(ctx.blobs, tmpBlobs);
+      `);
     }
 
     sep = '';
@@ -717,18 +725,27 @@ StructCType.prototype.emitWrJson = function(f) {
       emitstr(sep + '\"' + name + '\":');
       sep = ',';
       f1(`
-        wrJson(s, blobs, obj.${name});
+        wrJson(ctx, obj.${name});
       `);
       f2(`
-        wrJsonSize(size, blobs, obj.${name});
+        wrJsonSize(ctx, obj.${name});
       `);
     });
     f1(`
-      *s++ = '}';
+      *ctx.s++ = '}';
     `);
     f2(`
-      size += 1;
+      ctx.size += 1;
     `);
+
+    if (type.typename === 'ndarray') {
+      f1(`
+        swap(ctx.blobs, tmpBlobs);
+      `);
+      f2(`
+        swap(ctx.blobs, tmpBlobs);
+      `);
+    }
   }
 };
 
@@ -747,18 +764,18 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
   var deopt = (memberCount > 250) ? '__attribute__((optnone))' : '';
 
   f(`
-    void wrJson(char *&s, shared_ptr< ChunkFile > const &blobs, vector< shared_ptr< ${type.typename} > > const &arr) ${deopt} {
-      if (!blobs) {
-        wrJsonVec(s, blobs, arr);
+    void wrJson(WrJsonContext &ctx, vector< shared_ptr< ${type.typename} > > const &arr) ${deopt} {
+      if (${type.typename === 'ndarray'} || !ctx.blobs) {
+        wrJsonVec(ctx, arr);
         return;
       }
   `);
   f1 = f.child();
   f(`
     }
-    void wrJsonSize(size_t &size, shared_ptr< ChunkFile > const &blobs, vector< shared_ptr< ${type.typename} > > const &arr) {
-      if (!blobs) {
-        wrJsonSizeVec(size, blobs, arr);
+    void wrJsonSize(WrJsonContext &ctx, vector< shared_ptr< ${type.typename} > > const &arr) {
+      if (${type.typename === 'ndarray'} || !ctx.blobs) {
+        wrJsonSizeVec(ctx, arr);
         return;
       }
   `);
@@ -768,10 +785,10 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
   `);
 
   f1(`
-    s += snprintf(s, 100+${type.jsTypename.length}, "{\\"__type\\":\\"bulk_vector_${type.jsTypename}\\",\\"__bulk_size\\":%zu", arr.size());
+    ctx.s += snprintf(ctx.s, 100+${type.jsTypename.length}, "{\\"__type\\":\\"bulk_vector_${type.jsTypename}\\",\\"__bulk_size\\":%zu", arr.size());
   `);
   f2(`
-    size += 101+${type.jsTypename.length};
+    ctx.size += 101+${type.jsTypename.length};
   `);
 
   /*
@@ -798,12 +815,12 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
             for (size_t i=0; i<arr.size(); i++) {
               slice[i] = arr[i]->${mkMemberRef(names)};
             }
-            s += sprintf(s, ",\\"${mkMemberRef(names)}\\":");
-            wrJson(s, blobs, slice);
+            ctx.s += sprintf(ctx.s, ",\\"${mkMemberRef(names)}\\":");
+            wrJson(ctx, slice);
           }
         `);
         f2(`
-          size += 305 + ${mkMemberRef(names).length};
+          ctx.size += 305 + ${mkMemberRef(names).length};
         `);
       }
       else {
@@ -814,8 +831,8 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
             for (auto &it : arr) {
               slice.push_back(it->${mkMemberRef(names)});
             }
-            s += snprintf(s, 100, ",\\"${mkMemberRef(names)}\\":");
-            wrJson(s, blobs, slice);
+            ctx.s += snprintf(ctx.s, 100, ",\\"${mkMemberRef(names)}\\":");
+            wrJson(ctx, slice);
           }
         `);
 
@@ -825,14 +842,14 @@ StructCType.prototype.emitWrJsonBulk = function(f) {
             for (auto &it : arr) {
               slice.push_back(it->${mkMemberRef(names)});
             }
-            wrJsonSize(size, blobs, slice);
+            wrJsonSize(ctx, slice);
           }
         `);
       }
     });
   });
   f1(`
-    *s++ = '}';
+    *ctx.s++ = '}';
   `);
 };
 
@@ -840,17 +857,17 @@ StructCType.prototype.emitRdJson = function(f) {
   var type = this;
   var actions = {};
   actions['}'] = function() {
-    f('return typeOk;');
+    f('return typeOk || ctx.noTypeCheck;');
   };
   _.each(type.orderedNames, function(name) {
     if (!type.nameToType[name].isPtr()) {
       actions[`"${name}" :`] = function() {
         f(`
-          if (rdJson(s, blobs, obj.${name})) {
-            jsonSkipSpace(s);
-            c = *s++;
+          if (rdJson(ctx, obj.${name})) {
+            jsonSkipSpace(ctx);
+            c = *ctx.s++;
             if (c == \',\') continue;
-            if (c == \'}\') return typeOk;
+            if (c == \'}\') return typeOk || ctx.noTypeCheck;
           }
         `);
       };
@@ -859,33 +876,33 @@ StructCType.prototype.emitRdJson = function(f) {
   actions[`"__type" : "${type.jsTypename}"`] = function() {
     f(`
       typeOk = true;
-      c = *s++;
+      c = *ctx.s++;
       if (c == \',\') continue;
-      if (c == \'}\') return typeOk;
+      if (c == \'}\') return typeOk || ctx.noTypeCheck;
     `);
   };
 
   f(`
-    bool rdJson(char const *&s, shared_ptr< ChunkFile > const &blobs, ${type.typename} &obj) {
+    bool rdJson(RdJsonContext &ctx, ${type.typename} &obj) {
       bool typeOk = ${type.omitTypeTag ? 'true' : 'false'};
       char c;
-      jsonSkipSpace(s);
-      c = *s++;
+      jsonSkipSpace(ctx);
+      c = *ctx.s++;
       if (c == \'{\') {
         while(1) {
-          jsonSkipSpace(s);
-          char const *memberStart = s;
+          jsonSkipSpace(ctx);
+          char const *memberStart = ctx.s;
   `);
   emitPrefix('');
   f(`
-          s = memberStart;
-          if (!jsonSkipMember(s, blobs)) return false;
-          c = *s++;
+          ctx.s = memberStart;
+          if (!jsonSkipMember(ctx)) return false;
+          c = *ctx.s++;
           if (c == \',\') continue;
-          if (c == \'}\') return typeOk;
+          if (c == \'}\') return typeOk || ctx.noTypeCheck;
         }
       }
-      s--;
+      ctx.s--;
       return rdJsonFail("Expected {");
     }
   `);
@@ -905,7 +922,7 @@ StructCType.prototype.emitRdJson = function(f) {
     nextChars = _.uniq(nextChars);
     if (nextChars.length == 1 && nextChars[0] == ' ') {
       f(`
-        jsonSkipSpace(s);
+        jsonSkipSpace(ctx);
       `);
       var augPrefix = prefix + ' ';
       if (augPrefix in actions) {
@@ -916,7 +933,7 @@ StructCType.prototype.emitRdJson = function(f) {
     }
     else {
       f(`
-        c = *s++;
+        c = *ctx.s++;
       `);
       var ifCount = 0;
       _.each(nextChars, function(nextChar) {
@@ -941,7 +958,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
   var rm = type.getRecursiveMembers();
 
   actions['}'] = function() {
-    f('return typeOk;');
+    f('return typeOk || ctx.noTypeCheck;');
   };
 
   _.each(rm, function(members, et) {
@@ -955,7 +972,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
         f(`
           {
             vector< ${sliceTypename} > slice;
-            if (!rdJson(s, blobs, slice)) return rdJsonFail("rdJson(slice)");
+            if (!rdJson(ctx, slice)) return rdJsonFail("rdJson(slice)");
             if (slice.size() != arr.size()) {
               return rdJsonFail(stringprintf(
                 "Size mismatch: %zu %zu",
@@ -965,10 +982,10 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
             for (size_t i=0; i<arr.size(); i++) {
               arr[i]->${mkMemberRef(names)} = slice[i];
             }
-            jsonSkipSpace(s);
-            c = *s++;
+            jsonSkipSpace(ctx);
+            c = *ctx.s++;
             if (c == \',\') continue;
-            if (c == \'}\') return typeOk;
+            if (c == \'}\') return typeOk || ctx.noTypeCheck;
           }
         `);
       };
@@ -977,22 +994,22 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
   actions[`"__type" : "bulk_vector_${type.jsTypename}"`] = function() {
     f(`
       typeOk = true;
-      c = *s++;
+      c = *ctx.s++;
       if (c == \',\') continue;
-      if (c == \'}\') return typeOk;
+      if (c == \'}\') return typeOk || ctx.noTypeCheck;
     `);
   };
   actions['"__bulk_size" : '] = function() {
     f(`
       U64 bulk_size {0};
-      if (!rdJson(s, blobs, bulk_size)) return rdJsonFail("rdJson(bulk_size)");
+      if (!rdJson(ctx, bulk_size)) return rdJsonFail("rdJson(bulk_size)");
       arr.resize((size_t)bulk_size);
       for (auto &it : arr) {
         it = make_shared< ${type.typename} >();
       }
-      c = *s++;
+      c = *ctx.s++;
       if (c == \',\') continue;
-      if (c == \'}\') return typeOk;
+      if (c == \'}\') return typeOk || ctx.noTypeCheck;
     `);
   };
 
@@ -1001,26 +1018,26 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
   */
   var deopt = (_.keys(actions).length > 250) ? '__attribute__((optnone))' : '';
   f(`
-    bool rdJson(char const *&s, shared_ptr< ChunkFile > const &blobs, vector< shared_ptr< ${type.typename} > > &arr) ${deopt} {
+    bool rdJson(RdJsonContext &ctx, vector< shared_ptr< ${type.typename} > > &arr) ${deopt} {
       bool typeOk = ${type.omitTypeTag ? 'true' : 'false'};
       char c;
-      jsonSkipSpace(s);
-      c = *s++;
+      jsonSkipSpace(ctx);
+      c = *ctx.s++;
       if (c == \'{\') {
         while(1) {
-          jsonSkipSpace(s);
-          char const *memberStart = s;
+          jsonSkipSpace(ctx);
+          char const *memberStart = ctx.s;
   `);
   emitPrefix('');
   f(`
-          s = memberStart;
-          if (!jsonSkipMember(s, blobs)) return false;
-          c = *s++;
+          ctx.s = memberStart;
+          if (!jsonSkipMember(ctx)) return false;
+          c = *ctx.s++;
           if (c == \',\') continue;
-          if (c == \'}\') return typeOk;
+          if (c == \'}\') return typeOk || ctx.noTypeCheck;
         }
       }
-      s--;
+      ctx.s--;
       return rdJsonFail("Expected {");
     }
   `);
@@ -1039,7 +1056,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
     nextChars = _.uniq(nextChars);
     if (nextChars.length == 1 && nextChars[0] == ' ') {
       f(`
-        jsonSkipSpace(s);
+        jsonSkipSpace(ctx);
       `);
       var augPrefix = prefix + ' ';
       if (augPrefix in actions) {
@@ -1050,7 +1067,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
     }
     else {
       f(`
-        c = *s++;
+        c = *ctx.s++;
       `);
       var ifCount = 0;
       _.each(nextChars, function(nextChar) {
@@ -1202,6 +1219,18 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     });
     f.emitJsMethodAlias('toString', 'toJsonString');
 
+    f.emitJsMethod('fromJson', function() {
+      f.emitArgSwitch([
+        {args: ['string'], code: function(f) {
+          f(`
+            jsonstr json(a0);
+            bool ret = fromJson(json, *thisObj->it);
+            args.GetReturnValue().Set(Boolean::New(isolate, ret));
+          `);
+        }}
+      ]);
+    });
+
     f.emitJsMethod('inspect', function() {
       f.emitArgSwitch([
         // It's given an argument, recurseTimes, which we should decrement when recursing but we don't.
@@ -1227,8 +1256,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: ['string'], returnType: type, code: function(f) {
           f(`
-            const char *a0s = a0.c_str();
-            bool ok = rdJson(a0s, nullptr, ret);
+            bool ok = fromJson(a0, ret);
             if (!ok) return ThrowInvalidArgs(isolate);
           `);
         }}

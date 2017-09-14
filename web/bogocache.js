@@ -1,7 +1,7 @@
 /* globals require, exports */
 'use strict';
-var _                   = require('underscore');
-var async               = require('async');
+const _ = require('underscore');
+const async = require('async');
 
 exports.BogoCache = BogoCache;
 

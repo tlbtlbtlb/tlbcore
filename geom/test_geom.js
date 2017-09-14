@@ -1,6 +1,6 @@
-var ur                  = require('ur'); // argh
-var util                = require('util');
-var assert              = require('assert');
+const ur = require('ur'); // argh
+const util = require('util');
+const assert = require('assert');
 
 describe('geom_math', function() {
   it('vecFromHomo should work', function() {

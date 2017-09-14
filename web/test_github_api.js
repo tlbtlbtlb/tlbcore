@@ -1,6 +1,6 @@
-var github_api          = require('./github_api');
-var assert              = require('assert');
-var util                = require('util');
+const github_api = require('./github_api');
+const assert = require('assert');
+const util = require('util');
 
 // This token just gives access to my email address
 var tlbtlbtlbApiKey = '6f6c07bf7f3b50317f04f5cdd5f876573dfd8fa2';

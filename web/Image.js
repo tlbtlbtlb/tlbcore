@@ -1,11 +1,11 @@
 'use strict';
-var _                   = require('underscore');
-var child_process       = require('child_process');
+const _ = require('underscore');
+const child_process = require('child_process');
 
-var logio               = require('./logio');
-var Topology            = require('./Topology');
-var Storage             = require('./Storage');
-var Safety              = require('./Safety');
+const logio = require('./logio');
+const Topology = require('./Topology');
+const Storage = require('./Storage');
+const Safety = require('./Safety');
 
 exports.mkImageVersions = mkImageVersions;
 

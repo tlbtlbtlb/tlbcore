@@ -2,10 +2,10 @@
   I wish I could use cluster for this, but it uses fd 3 as a bidirectional socket
   which can't be easily forwarded with ssh.
 */
-var _ = require('underscore');
-var async = require('async');
-var child_process = require('child_process');
-var logio = require('../web/logio');
+const _ = require('underscore');
+const async = require('async');
+const child_process = require('child_process');
+const logio = require('../web/logio');
 
 exports.ParentJsonPipe = ParentJsonPipe;
 

@@ -1,8 +1,8 @@
 
-var cgen = require('./cgen');
-var fs = require('fs');
-var assert = require('assert');
-var util = require('util');
+const cgen = require('./cgen');
+const fs = require('fs');
+const assert = require('assert');
+const util = require('util');
 
 describe('CodeGen', function() {
   it('should work', function() {

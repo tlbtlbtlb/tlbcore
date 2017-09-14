@@ -1,7 +1,7 @@
-var _                   = require('underscore');
-var assert              = require('assert');
-var util                = require('util');
-var parse               = require('./parse');
+const _ = require('underscore');
+const assert = require('assert');
+const util = require('util');
+const parse = require('./parse');
 
 var exampleText = [
   '#include <stdio.h>',

@@ -1,6 +1,6 @@
-var _                   = require('underscore');
-var assert              = require('assert');
-var ur                  = require('ur');
+const _ = require('underscore');
+const assert = require('assert');
+const ur = require('ur');
 
 function check(pf, xs, ys, tol) {
   for (var i=0; i<xs.length; i++) {

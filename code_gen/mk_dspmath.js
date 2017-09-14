@@ -1,8 +1,8 @@
 'use strict';
-var fs                  = require('fs');
-var _                   = require('underscore');
-var cgen                = require('./cgen');
-var gen_marshall        = require('./gen_marshall');
+const fs = require('fs');
+const _ = require('underscore');
+const cgen = require('./cgen');
+const gen_marshall = require('./gen_marshall');
 
 function nextPow2(n) {
   var ret = 1;

@@ -21,6 +21,6 @@ function defmodule(name, f) {
     window[name] = exports;
   }
   var module = modules[name];
-  var ret = f(module.exports, require, module, name);
+  var ret = f.call(window, module.exports, require, module, name);
   window[name] = module.exports;  // In case f assigns module.exports = ...
 }

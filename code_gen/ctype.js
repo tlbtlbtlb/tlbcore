@@ -1,9 +1,9 @@
-var _                   = require('underscore');
-var assert              = require('assert');
-var util                = require('util');
-var crypto              = require('crypto');
-var cgen                = require('./cgen');
-var gen_utils           = require('./gen_utils');
+const _ = require('underscore');
+const assert = require('assert');
+const util = require('util');
+const crypto = require('crypto');
+const cgen = require('./cgen');
+const gen_utils = require('./gen_utils');
 
 exports.CType = CType;
 

@@ -1,9 +1,9 @@
 /* globals console, process, exports, require */
 'use strict';
-var _                   = require('underscore');
-var net                 = require('net');
-var util                = require('util');
-var repl                = require('repl');
+const _ = require('underscore');
+const net = require('net');
+const util = require('util');
+const repl = require('repl');
 
 exports.setupReplServer = setupReplServer;
 exports.addToContext = addToContext;

@@ -1,5 +1,5 @@
-var _                   = require('underscore');
-var assert              = require('assert');
+const _ = require('underscore');
+const assert = require('assert');
 
 module.exports = function(typereg) {
 

@@ -1,8 +1,8 @@
-var _                   = require('underscore');
-var fs                  = require('fs');
-var ur                  = require('ur');
-var util                = require('util');
-var assert              = require('assert');
+const _ = require('underscore');
+const fs = require('fs');
+const ur = require('ur');
+const util = require('util');
+const assert = require('assert');
 
 describe('solid_geometry', function() {
   it ('should read files', function() {

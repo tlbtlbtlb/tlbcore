@@ -2,8 +2,8 @@
   This and WebSocketServer.js provide nearly identical functionality, but because the browser and
   node environments are slightly different there are two versions. See there for doc
 */
-var _                   = require('underscore');
-var WebSocketHelper     = require('WebSocketHelper');
+const _ = require('underscore');
+const WebSocketHelper = require('WebSocketHelper');
 
 var verbose = 1;
 

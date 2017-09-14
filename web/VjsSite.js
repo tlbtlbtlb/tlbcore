@@ -3,24 +3,24 @@
 /*
   It's reasonable to use this behind nginx. See http://nginx.org/en/docs/
 */
-var _                   = require('underscore');
-var util                = require('util');
-var http                = require('http');
-var https               = require('https');
-var fs                  = require('fs');
-var os                  = require('os');
-var url                 = require('url');
-var path                = require('path');
-var websocket           = require('websocket');
+const _ = require('underscore');
+const util = require('util');
+const http = require('http');
+const https = require('https');
+const fs = require('fs');
+const os = require('os');
+const url = require('url');
+const path = require('path');
+const websocket = require('websocket');
 
-var logio               = require('./logio');
-var VjsDbs              = require('./VjsDbs');
-var Auth                = require('./Auth');
-var Provider            = require('./Provider');
-var Topology            = require('./Topology');
-var Safety              = require('./Safety');
-var Image               = require('./Image');
-var WebSocketServer     = require('./WebSocketServer');
+const logio = require('./logio');
+const VjsDbs = require('./VjsDbs');
+const Auth = require('./Auth');
+const Provider = require('./Provider');
+const Topology = require('./Topology');
+const Safety = require('./Safety');
+const Image = require('./Image');
+const WebSocketServer = require('./WebSocketServer');
 
 exports.WebServer = WebServer;
 exports.setVerbose = function(v) { verbose = v; };
@@ -102,7 +102,7 @@ WebServer.prototype.setupBaseProvider = function() {
   if (1) p.addScript(require.resolve('underscore'), 'underscore');
   if (1) p.addScript(require.resolve('../common/MoreUnderscore.js'));
   if (1) p.addScript(require.resolve('eventemitter'));
-  if (1) p.addScript(require.resolve('jquery/dist/jquery.js'));
+  if (1) p.addScript(require.resolve('jquery/dist/jquery.js'), null, true);
   if (1) p.addScript(require.resolve('./ajaxupload-lib/ajaxUpload.js'));       // http://valums.com/ajax-upload/
   if (0) p.addScript(require.resolve('./swf-lib/swfobject.js'));               // http://blog.deconcept.com/swfobject/
   if (1) p.addScript(require.resolve('./mixpanel-lib/mixpanel.js'));

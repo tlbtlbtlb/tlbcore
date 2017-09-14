@@ -1,9 +1,9 @@
-var _                   = require('underscore');
-var assert              = require('assert');
-var util                = require('util');
-var cgen                = require('./cgen');
-var gen_utils           = require('./gen_utils');
-var CType               = require('./ctype').CType;
+const _ = require('underscore');
+const assert = require('assert');
+const util = require('util');
+const cgen = require('./cgen');
+const gen_utils = require('./gen_utils');
+const CType = require('./ctype').CType;
 
 exports.CollectionCType = CollectionCType;
 
@@ -929,9 +929,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         f.emitArgSwitch([
           {args: ['string'], returnType: type.ptrType(), code: function(f) {
             f(`
-              const char *a0s = a0.c_str();
-              shared_ptr<ChunkFile> blobs;
-              bool ok = rdJson(a0s, blobs, ret);
+              bool ok = fromJson(a0, ret);
               if (!ok) return ThrowInvalidArgs(isolate);
             `);
           }}

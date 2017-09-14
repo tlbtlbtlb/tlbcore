@@ -1,9 +1,9 @@
-var _ = require('underscore');
-var async = require('async');
-var path = require('path');
-var child_process = require('child_process');
-var events = require('events');
-var logio = require('../web/logio');
+const _ = require('underscore');
+const async = require('async');
+const path = require('path');
+const child_process = require('child_process');
+const events = require('events');
+const logio = require('../web/logio');
 
 exports.ChildJsonPipe = ChildJsonPipe;
 exports.sshify = sshify;

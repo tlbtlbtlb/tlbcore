@@ -1,4 +1,4 @@
-var Auth                = require('./Auth');
+const Auth = require('./Auth');
 
 describe('generateCookie', function() {
   it('should have reasonable characters', function() {

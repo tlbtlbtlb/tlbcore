@@ -27,9 +27,9 @@
     https://tools.ietf.org/html/rfc6455
     https://github.com/Worlize/WebSocket-Node/wiki/Documentation
 */
-var _                   = require('underscore');
-var logio               = require('./logio');
-var WebSocketHelper     = require('./WebSocketHelper');
+const _ = require('underscore');
+const logio = require('./logio');
+const WebSocketHelper = require('./WebSocketHelper');
 
 var verbose = 1;
 

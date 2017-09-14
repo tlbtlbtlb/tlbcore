@@ -1,11 +1,11 @@
 'use strict';
-var _                   = require('underscore');
-var redis               = require('redis');
-var logio               = require('./logio');
-var Auth                = require('./Auth');
-var Storage             = require('./Storage');
-var Topology            = require('./Topology');
-var Safety              = require('./Safety');
+const _ = require('underscore');
+const redis = require('redis');
+const logio = require('./logio');
+const Auth = require('./Auth');
+const Storage = require('./Storage');
+const Topology = require('./Topology');
+const Safety = require('./Safety');
 
 /*
   High-level interface to the database.

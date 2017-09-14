@@ -1,14 +1,14 @@
 'use strict';
 // process.env.UV_THREADPOOL_SIZE = 10;
-var _                   = require('underscore');
-var net                 = require('net');
-var fs                  = require('fs');
+const _ = require('underscore');
+const net = require('net');
+const fs = require('fs');
 
 require('./VjsDbs').defDb('redis0', 'redis', '127.0.0.1', 6379);
 
-var VjsSite             = require('./VjsSite');
-var Provider            = require('./Provider');
-var VjsRepl             = require('./VjsRepl');
+const VjsSite = require('./VjsSite');
+const Provider = require('./Provider');
+const VjsRepl = require('./VjsRepl');
 
 
 function setupErrorHandling() {
