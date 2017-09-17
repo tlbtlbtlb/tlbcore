@@ -112,12 +112,15 @@ SymbolicContext.prototype.emitDecl = function(f) {
 
 SymbolicContext.prototype.emitDefn = function(f) {
   let c = this;
-  f(c.getSignature() + ' {');
+  if (c.lang === 'js') {
+    f(`exports.${c.name} = ${c.name};`);
+  }
+  f(`${c.getSignature()} {`);
   _.each(c.preCode, function(code) { f(code); });
   c.emitCode(f);
   _.each(c.postCode, function(code) { f(code); });
-  f('}');
-  f('');
+  f(`}
+  `);
 };
 
 
