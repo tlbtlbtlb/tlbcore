@@ -80,6 +80,11 @@ bool jsonMatch(RdJsonContext &ctx, char const *pattern)
   jsonSkipSpace(ctx);
   char const *p = ctx.s;
   while (*pattern) {
+    if (*pattern == ' ') {
+      pattern++;
+      jsonSkipSpace(ctx);
+      continue;
+    }
     if (*p == *pattern) {
       p++;
       pattern++;

@@ -1157,7 +1157,7 @@ void wrJsonBin(WrJsonContext &ctx, vector< typename arma::Col< T > > const &arr)
     }
   }
   nd.partBytes = mul_overflow< size_t >(slice.size(), sizeof(T));
-  nd.partOfs = ctx.blobs->writeChunk(reinterpret_cast<char *>(slice.data()), nd.partBytes);
+  nd.partOfs = ctx.blobs->writeChunk(reinterpret_cast<char const *>(slice.data()), nd.partBytes);
   nd.dtype = ndarray_dtype(T());
   nd.shape.push_back(arr.size());
   nd.shape.push_back(n);
@@ -1223,7 +1223,7 @@ void wrJsonBin(WrJsonContext &ctx, vector< typename arma::Row< T > > const &arr)
     }
   }
   nd.partBytes = mul_overflow< size_t >(slice.size(), sizeof(T));
-  nd.partOfs = ctx.blobs->writeChunk(reinterpret_cast<char *>(slice.data()), nd.partBytes);
+  nd.partOfs = ctx.blobs->writeChunk(reinterpret_cast<char const *>(slice.data()), nd.partBytes);
   nd.dtype = ndarray_dtype(T());
   nd.shape.push_back(arr.size());
   nd.shape.push_back(n);
@@ -1291,7 +1291,7 @@ void wrJsonBin(WrJsonContext &ctx, vector< typename arma::Mat< T > > const &arr)
     }
   }
   nd.partBytes = mul_overflow< size_t >(slice.size(), sizeof(T));
-  nd.partOfs = ctx.blobs->writeChunk(reinterpret_cast<char *>(slice.data()), nd.partBytes);
+  nd.partOfs = ctx.blobs->writeChunk(reinterpret_cast<char const *>(slice.data()), nd.partBytes);
   nd.dtype = ndarray_dtype(T());
   nd.shape.push_back(arr.size());
   nd.shape.push_back(nc);
