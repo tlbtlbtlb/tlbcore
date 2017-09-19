@@ -2,6 +2,8 @@
 let modules = {};
 
 function require(name) {
+  let slashI = name.lastIndexOf('/');
+  if (slashI !== -1) name = name.substr(slashI+1);
   if (!(name in modules)) {
     let exports = {};
     modules[name] = {name: name, exports: exports};
