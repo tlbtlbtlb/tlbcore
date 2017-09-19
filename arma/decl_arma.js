@@ -66,6 +66,17 @@ module.exports = function(typereg) {
             typereg.aliasType(mType, 'arma::cx_mat');
           }
         }
+        else if (et === 'float') {
+          if (!rowFixed) {
+            typereg.aliasType(rType, 'arma::frowvec');
+          }
+          if (!colFixed) {
+            typereg.aliasType(cType, 'arma::fvec');
+          }
+          if (!colFixed && !rowFixed) {
+            typereg.aliasType(mType, 'arma::fmat');
+          }
+        }
 
         srType.noSerialize = true;
         srType.isRef = true;
