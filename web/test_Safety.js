@@ -1,3 +1,4 @@
+'use strict';
 const _ = require('underscore');
 const url = require('url');
 const Safety = require('./Safety');
@@ -67,4 +68,3 @@ describe('Safety.isValidPassword', function() {
     cbad('hobart\u1234;');
   });
 });
-

@@ -1,3 +1,4 @@
+'use strict';
 const Auth = require('./Auth');
 
 describe('generateCookie', function() {

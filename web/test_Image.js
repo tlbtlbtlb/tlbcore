@@ -1,3 +1,4 @@
+'use strict';
 const logio = require('./logio');
 const Image = require('./Image');
 const util = require('util');
@@ -10,4 +11,3 @@ function t_mkImageVersions(errs, cb) {
     });
   });
 }
-

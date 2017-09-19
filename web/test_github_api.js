@@ -1,3 +1,4 @@
+'use strict';
 const github_api = require('./github_api');
 const assert = require('assert');
 const util = require('util');

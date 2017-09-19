@@ -1,3 +1,4 @@
+'use strict';
 const url = require('url');
 const fs = require('fs');
 
@@ -46,5 +47,3 @@ describe('url.parse', function() {
     }
   });
 });
-
-

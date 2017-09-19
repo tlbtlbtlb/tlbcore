@@ -1,3 +1,4 @@
+'use strict';
 const _ = require('underscore');
 const fs = require('fs');
 const ur = require('ur');

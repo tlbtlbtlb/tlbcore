@@ -1,3 +1,4 @@
+'use strict';
 
 exports.unipolarHaltonRow = unipolarHaltonRow;
 exports.bipolarHaltonAxis = bipolarHaltonAxis;

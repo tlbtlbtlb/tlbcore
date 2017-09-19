@@ -541,6 +541,7 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
 
   let jsl = files.getFile(`symbolics_${ typereg.groupname }.js`);
   jsl(`
+    'use strict';
     const canvasutils = require('tlbcore/web/canvasutils');
     const Geom3D = canvasutils.Geom3D;
   `);

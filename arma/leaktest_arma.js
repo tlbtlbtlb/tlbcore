@@ -1,6 +1,7 @@
 /*
   Run with node --trace_gc arma/leaktest_arma.js
 */
+'use strict';
 const _                   = require('underscore');
 const assert              = require('assert');
 const fs                  = require('fs');

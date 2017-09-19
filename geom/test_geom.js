@@ -1,4 +1,5 @@
-const ur = require('ur'); // argh
+'use strict';
+const ur = require('ur');
 const util = require('util');
 const assert = require('assert');
 

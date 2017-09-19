@@ -1,3 +1,4 @@
+'use strict';
 const jsmin = require('jsmin2');
 
 

@@ -1,3 +1,4 @@
+'use strict';
 const util = require('util');
 const assert = require('assert');
 const ur = require('ur');

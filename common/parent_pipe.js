@@ -2,6 +2,7 @@
   I wish I could use cluster for this, but it uses fd 3 as a bidirectional socket
   which can't be easily forwarded with ssh.
 */
+'use strict';
 const _ = require('underscore');
 const async = require('async');
 const child_process = require('child_process');
