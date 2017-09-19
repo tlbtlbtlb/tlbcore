@@ -240,7 +240,7 @@ function withJsWrapUtils(f, type) {
         Isolate *isolate = args.GetIsolate();
         HandleScope scope(isolate);
         if (!(args.Holder()->InternalFieldCount() > 0)) return ThrowInvalidThis(isolate);
-        auto thisObj = new JsWrap_${ type.jsTypename }(args.GetIsolate());
+        auto thisObj = new JsWrap_${ type.jsTypename }(isolate);
         jsConstructor_${ type.jsTypename }(thisObj, args);
       }
     `);
@@ -263,7 +263,8 @@ function withJsWrapUtils(f, type) {
   f.emitJsMethod = function(name, contents) {
     f.emitJsWrap(`${ type.jsTypename }_${ name }`, function(f) {
       f(`
-        auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+        auto thisp = JsWrapGeneric< ${ type.typename } >::Extract(isolate, args.This());
+        if (!thisp) return ThrowTypeError(isolate, "null this");
       `);
       f(contents);
     });
@@ -298,7 +299,8 @@ function withJsWrapUtils(f, type) {
         static void jsGet_${ type.jsTypename }_${ name }(Local<String> name, PropertyCallbackInfo<Value> const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisp = JsWrapGeneric< ${ type.typename } >::Extract(isolate, args.This());
+          if (!thisp) return ThrowTypeError(isolate, "null this");
       `);
       f(o.get);
       f(`
@@ -310,7 +312,8 @@ function withJsWrapUtils(f, type) {
         static void jsSet_${ type.jsTypename }_${ name }(Local<String> name, Local<Value> value, PropertyCallbackInfo<void> const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisp = JsWrapGeneric< ${ type.typename } >::Extract(isolate, args.This());
+          if (!thisp) return ThrowTypeError(isolate, "null this");
       `);
       f(o.set);
       f(`
@@ -342,11 +345,14 @@ function withJsWrapUtils(f, type) {
         static void jsGetNamed_${ type.jsTypename }(Local< Name > name, PropertyCallbackInfo< Value > const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
-          string key = convJsToString(isolate, name);
+          auto thisp = JsWrapGeneric< ${ type.typename } >::Extract(isolate, args.This());
+          if (!thisp) return ThrowTypeError(isolate, "null this");
+          if (canConvJsToString(isolate, name)) {
+            string key = convJsToString(isolate, name);
       `);
       f(o.get);
       f(`
+          }
         }
       `);
     }
@@ -355,11 +361,17 @@ function withJsWrapUtils(f, type) {
         static void jsSetNamed_${ type.jsTypename }(Local< Name > name, Local< Value > value, PropertyCallbackInfo< Value > const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
-          string key = convJsToString(isolate, name);
+          auto thisp = JsWrapGeneric< ${ type.typename } >::Extract(isolate, args.This());
+          if (!thisp) return ThrowTypeError(isolate, "null this");
+          if (canConvJsToString(isolate, name)) {
+            string key = convJsToString(isolate, name);
       `);
       f(o.set);
       f(`
+          }
+          else {
+            return ThrowTypeError(isolate, "Keys must be strings");
+          }
         }
       `);
     }
@@ -368,7 +380,8 @@ function withJsWrapUtils(f, type) {
         static void jsQueryNamed_${ type.jsTypename }(Local< Name > name, PropertyCallbackInfo< Integer > const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisp = JsWrapGeneric< ${ type.typename } >::Extract(isolate, args.This());
+          if (!thisp) return ThrowTypeError(isolate, "null this");
           string key = convJsToString(isolate, name);
       `);
       f(o.query);
@@ -381,7 +394,8 @@ function withJsWrapUtils(f, type) {
         static void jsDeleterNamed_${ type.jsTypename }(Local< Name > name, PropertyCallbackInfo< Boolean > const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisp = JsWrapGeneric< ${ type.typename } >::Extract(isolate, args.This());
+          if (!thisp) return ThrowTypeError(isolate, "null this");
           string key = convJsToString(isolate, name);
       `);
       f(o.deleter);
@@ -394,7 +408,8 @@ function withJsWrapUtils(f, type) {
         static void jsEnumeratorNamed_${ type.jsTypename }(const PropertyCallbackInfo< Array > &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisp = JsWrapGeneric< ${ type.typename } >::Extract(isolate, args.This());
+          if (!thisp) return ThrowTypeError(isolate, "null this");
       `);
       f(o.enumerator);
       f(`
@@ -421,7 +436,8 @@ function withJsWrapUtils(f, type) {
         static void jsGetIndexed_${ type.jsTypename }(uint32_t index, PropertyCallbackInfo<Value> const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisp = JsWrapGeneric< ${ type.typename } >::Extract(isolate, args.This());
+          if (!thisp) return ThrowTypeError(isolate, "null this");
       `);
       f(o.get);
       f(`
@@ -433,7 +449,8 @@ function withJsWrapUtils(f, type) {
         static void jsSetIndexed_${ type.jsTypename }(uint32_t index, Local<Value> value, PropertyCallbackInfo<Value> const &args) {
           Isolate *isolate = args.GetIsolate();
           HandleScope scope(isolate);
-          auto thisObj = node::ObjectWrap::Unwrap<JsWrap_${ type.jsTypename }>(args.This());
+          auto thisp = JsWrapGeneric< ${ type.typename } >::Extract(isolate, args.This());
+          if (!thisp) return ThrowTypeError(isolate, "null this");
       `);
       f(o.set);
       f(`

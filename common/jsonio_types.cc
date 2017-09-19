@@ -867,6 +867,7 @@ bool rdJson(RdJsonContext &ctx, arma::Mat< T > &arr) {
   size_t n_data = tmparr.size();
   if (n_rows == 0 && n_cols == 0) {
     switch (n_data) {
+    case 0: n_rows = 0; n_cols = 0; break;
     case 4: n_rows = 2; n_cols = 2; break;
     case 9: n_rows = 3; n_cols = 3; break;
     case 16: n_rows = 4; n_cols = 4; break;

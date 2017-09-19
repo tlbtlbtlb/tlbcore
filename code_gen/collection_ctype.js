@@ -353,18 +353,21 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         {args: [], code: function(f) {
           f(`
             thisObj->assignDefault();
+            auto thisp = thisObj->it;
           `);
         }},
         {args: ['double'], code: function(f) {
           f(`
             thisObj->assignConstruct((size_t)a0);
+            auto thisp = thisObj->it;
           `);
         }}].concat(type.templateArgs[0] === 'string' ? [
         {args: ['Array'], code: function(f) {
           f(`
             thisObj->assignDefault();
+            auto thisp = thisObj->it;
             for (uint32_t i = 0; i < a0->Length(); i++) {
-              thisObj->it->push_back(convJsToString(isolate, a0->Get(i)));
+              thisp->push_back(convJsToString(isolate, a0->Get(i)));
             }
           `);
         }}]
@@ -378,6 +381,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         {args: [], code: function(f) {
           f(`
             thisObj->assignDefault();
+            auto thisp = thisObj->it;
           `);
         }},
         {args: ['double'], code: function(f) {
@@ -440,22 +444,26 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         {args: [], code: function(f) {
           f(`
             thisObj->assignConstruct(arma::fill::zeros);
+            auto thisp = thisObj->it;
           `);
         }},
         {args: [type.typename], code: function(f) {
           f(`
             thisObj->assignConstruct(a0);
+            auto thisp = thisObj->it;
           `);
         }},
         {args: ['Object'], code: function(f) {
           if (type.templateName === 'arma::Row::fixed') {
             f(`
               thisObj->assignConstruct(convJsToArmaRow< ${type.templateArgs[0]} >(isolate, a0));
+              auto thisp = thisObj->it;
             `);
           }
           else if (type.templateName === 'arma::Col::fixed') {
             f(`
               thisObj->assignConstruct(convJsToArmaCol< ${type.templateArgs[0]} >(isolate, a0));
+              auto thisp = thisObj->it;
             `);
           }
         }}
@@ -469,16 +477,19 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         {args: [], code: function(f) {
           f(`
             thisObj->assignDefault();
+            auto thisp = thisObj->it;
           `);
         }},
         {args: ['double', 'double'], code: function(f) {
           f(`
             thisObj->assignConstruct(a0, a1, arma::fill::zeros);
+            auto thisp = thisObj->it;
           `);
         }},
         {args: [type.typename], code: function(f) {
           f(`
             thisObj->assignConstruct(a0);
+            auto thisp = thisObj->it;
           `);
         }},
         {args: [`arma::subview_row< ${type.templateArgs.join(', ')} >` ], code: function(f) {
@@ -620,7 +631,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: [], ignoreExtra: true, code: function(f) {
           f(`
-            args.GetReturnValue().Set(Local<Value>(jsToJSON_${type.jsTypename}(isolate, *thisObj->it)));
+            args.GetReturnValue().Set(Local<Value>(jsToJSON_${type.jsTypename}(isolate, *thisp)));
           `);
         }}
       ]);
@@ -635,16 +646,16 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         // Also, hasOwnProperty works by checking for empty
         // It doesn't work if you return Undefined
         f(`
-          auto iter = thisObj->it->find(key);
-          if (iter == thisObj->it->end()) return;
-          args.GetReturnValue().Set(Local<Value>(${type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisObj->it')}));
+          auto iter = thisp->find(key);
+          if (iter == thisp->end()) return;
+          args.GetReturnValue().Set(Local<Value>(${type.reg.types[type.templateArgs[1]].getCppToJsExpr('iter->second', 'thisp')}));
         `);
       },
       set: function(f) {
         f(`
           if (${valueType.getJsToCppTest('value', {conv: true})}) {
              ${type.templateArgs[1]} cvalue(${valueType.getJsToCppExpr('value', {conv: true})});
-             (*thisObj->it)[key] = cvalue;
+             (*thisp)[key] = cvalue;
              args.GetReturnValue().Set(value);
           }
           else {
@@ -654,9 +665,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       },
       deleter: function(f) {
         f(`
-          auto iter = thisObj->it->find(key);
-          if (iter != thisObj->it->end()) {
-            thisObj->it->erase(iter);
+          auto iter = thisp->find(key);
+          if (iter != thisp->end()) {
+            thisp->erase(iter);
             args.GetReturnValue().Set(Local<Boolean>(Boolean::New(isolate, true)));
           } else {
             args.GetReturnValue().Set(Local<Boolean>(Boolean::New(isolate, false)));
@@ -665,9 +676,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       },
       enumerator: function(f) {
         f(`
-          Local<Array> ret(Array::New(isolate, thisObj->it->size()));
+          Local<Array> ret(Array::New(isolate, thisp->size()));
           uint32_t reti = 0;
-          for (auto &it : *thisObj->it) {
+          for (auto &it : *thisp) {
             ret->Set(reti, Local<Value>::Cast(convStringToJs(isolate, it.first)));
             reti++;
           }
@@ -684,10 +695,10 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsMethod('set_size', function() {
       f.emitArgSwitch([
         {args: ['U64'], code: function(f) {
-          f('thisObj->it->set_size(a0);');
+          f('thisp->set_size(a0);');
         }},
         {args: ['U64', 'U64'], code: function(f) {
-          f('thisObj->it->set_size(a0, a1);');
+          f('thisp->set_size(a0, a1);');
         }}
       ]);
     });
@@ -701,34 +712,34 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       type.templateName === 'arma::subview_col') {
     let elType = type.reg.types[type.templateArgs[0]];
     f.emitJsAccessors('n_rows', {
-      get: `args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_rows));`
+      get: `args.GetReturnValue().Set(Number::New(isolate, thisp->n_rows));`
     });
 
     f.emitJsAccessors('n_elem', {
-      get: `args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_elem));`
+      get: `args.GetReturnValue().Set(Number::New(isolate, thisp->n_elem));`
     });
 
     f.emitJsAccessors('length', {
-      get: `args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_elem));`
+      get: `args.GetReturnValue().Set(Number::New(isolate, thisp->n_elem));`
     });
 
     f.emitJsIndexedAccessors({
       get: function(f) {
         f(`
-          if (index >= thisObj->it->n_elem) {
+          if (index >= thisp->n_elem) {
             return args.GetReturnValue().Set(Undefined(isolate));
           }
-          args.GetReturnValue().Set(${elType.getCppToJsExpr('&(*thisObj->it)(index)', 'thisObj->it')});
+          args.GetReturnValue().Set(${elType.getCppToJsExpr('&(*thisp)(index)', 'thisp')});
         `);
       },
       set: function(f) {
         f(`
-          if (index >= thisObj->it->n_elem) {
-            return ThrowRuntimeError(isolate, stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());
+          if (index >= thisp->n_elem) {
+            return ThrowRuntimeError(isolate, stringprintf("Index %d >= size %d", (int)index, (int)thisp->n_elem).c_str());
           }
           if (${elType.getJsToCppTest('value', {conv: true})}) {
             ${type.templateArgs[0]} cvalue(${elType.getJsToCppExpr('value', {conv: true})});
-            (*thisObj->it)(index) = cvalue;
+            (*thisp)(index) = cvalue;
             args.GetReturnValue().Set(value);
           }
           else {
@@ -743,23 +754,23 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       type.templateName === 'arma::Mat::fixed') {
     let elType = type.reg.types[type.templateArgs[0]];
     f.emitJsAccessors('n_rows', {
-      get: `args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_rows));`
+      get: `args.GetReturnValue().Set(Number::New(isolate, thisp->n_rows));`
     });
     f.emitJsAccessors('n_cols', {
-      get: `args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_cols));`
+      get: `args.GetReturnValue().Set(Number::New(isolate, thisp->n_cols));`
     });
     f.emitJsAccessors('n_elem', {
-      get: `args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_elem));`
+      get: `args.GetReturnValue().Set(Number::New(isolate, thisp->n_elem));`
     });
     f.emitJsAccessors('length', {
-      get: `args.GetReturnValue().Set(Number::New(isolate, thisObj->it->n_elem));`
+      get: `args.GetReturnValue().Set(Number::New(isolate, thisp->n_elem));`
     });
 
     f.emitJsMethod('row', function() {
       f.emitArgSwitch([
         {args: ['U32'], code: function(f) {
           f(`
-            args.GetReturnValue().Set(${ type.reg.getType(`arma::subview_row< ${type.templateArgs[0]} >`).getCppToJsExpr(`thisObj->it->row(a0)`, `thisObj->it`) });
+            args.GetReturnValue().Set(${ type.reg.getType(`arma::subview_row< ${type.templateArgs[0]} >`).getCppToJsExpr(`thisp->row(a0)`, `thisp`) });
           `);
         }}
       ]);
@@ -769,7 +780,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: ['U32'], code: function(f) {
           f(`
-            args.GetReturnValue().Set(${ type.reg.getType(`arma::subview_col< ${type.templateArgs[0]} >`).getCppToJsExpr(`thisObj->it->col(a0)`, `thisObj->it`) });
+            args.GetReturnValue().Set(${ type.reg.getType(`arma::subview_col< ${type.templateArgs[0]} >`).getCppToJsExpr(`thisp->col(a0)`, `thisp`) });
           `);
         }}
       ]);
@@ -778,20 +789,20 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsIndexedAccessors({
       get: function(f) {
         f(`
-          if (index >= thisObj->it->n_elem) {
+          if (index >= thisp->n_elem) {
             args.GetReturnValue().Set(Undefined(isolate));
           }
-          args.GetReturnValue().Set(${elType.getCppToJsExpr('&(*thisObj->it)(index)', 'thisObj->it')});
+          args.GetReturnValue().Set(${elType.getCppToJsExpr('&(*thisp)(index)', 'thisp')});
         `);
       },
       set: function(f) {
         f(`
-          if (index >= thisObj->it->n_elem) {
-            return ThrowRuntimeError(isolate, stringprintf("Index %d >= size %d", (int)index, (int)thisObj->it->n_elem).c_str());
+          if (index >= thisp->n_elem) {
+            return ThrowRuntimeError(isolate, stringprintf("Index %d >= size %d", (int)index, (int)thisp->n_elem).c_str());
           }
           if (${ elType.getJsToCppTest('value', {conv: true}) }) {
             ${type.templateArgs[0]} cvalue(${ elType.getJsToCppExpr('value', {conv: true}) });
-            (*thisObj->it)(index) = cvalue;
+            (*thisp)(index) = cvalue;
             args.GetReturnValue().Set(value);
           }
           else {
@@ -806,16 +817,16 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 
   if (type.templateName === 'vector') {
     f.emitJsAccessors('length', {
-      get: `args.GetReturnValue().Set(Number::New(isolate, thisObj->it->size()));`
+      get: `args.GetReturnValue().Set(Number::New(isolate, thisp->size()));`
     });
 
     f.emitJsIndexedAccessors({
       get: function(f) {
         f(`
-          if (index > thisObj->it->size()) {
+          if (index > thisp->size()) {
             args.GetReturnValue().Set(Undefined(isolate));
           }
-          args.GetReturnValue().Set(${type.reg.types[type.templateArgs[0]].getCppToJsExpr('&(*thisObj->it)[index]', 'thisObj->it')});
+          args.GetReturnValue().Set(${type.reg.types[type.templateArgs[0]].getCppToJsExpr('&(*thisp)[index]', 'thisp')});
         `);
       },
       set: function(f) {
@@ -823,7 +834,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
         f(`
           if (${ elType.getJsToCppTest('value', {conv: true}) }) {
             ${type.templateArgs[0]} cvalue(${ elType.getJsToCppExpr('value', {conv: true}) });
-            (*thisObj->it)[index] = cvalue;
+            (*thisp)[index] = cvalue;
             args.GetReturnValue().Set(value);
           }
           else {
@@ -839,7 +850,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: [type.templateArgTypes[0]], code: function(f) {
           f(`
-            thisObj->it->push_back(a0);
+            thisp->push_back(a0);
           `);
         }}
       ]);
@@ -849,7 +860,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: [], code: function(f) {
           f(`
-            thisObj->it->clear();
+            thisp->clear();
           `);
         }}
       ]);
@@ -860,7 +871,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: [type.templateArgTypes[0]], code: function(f) {
           f(`
-            thisObj->it->push_front(a0);
+            thisp->push_front(a0);
           `);
         }}
       ]);
@@ -869,9 +880,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: [], code: function(f) {
           f(`
-            if (!thisObj->it->empty()) {
-              args.GetReturnValue().Set(thisObj->it->front());
-              thisObj->it->pop_front();
+            if (!thisp->empty()) {
+              args.GetReturnValue().Set(thisp->front());
+              thisp->pop_front();
             }
           `);
         }}
@@ -881,9 +892,9 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: [], code: function(f) {
           f(`
-            if (!thisObj->it->empty()) {
-              args.GetReturnValue().Set(thisObj->it->back());
-              thisObj->it->pop_back();
+            if (!thisp->empty()) {
+              args.GetReturnValue().Set(thisp->back());
+              thisp->pop_back();
             }
           `);
         }}
@@ -903,7 +914,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: [], returnType: 'string', code: function(f) {
           f(`
-            ret = asJson(*thisObj->it).it;
+            ret = asJson(*thisp).it;
           `);
         }}
       ]);
@@ -915,7 +926,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
       f.emitArgSwitch([
         {args: ['double'], ignoreExtra: true, returnType: 'string', code: function(f) {
           f(`
-            if (a0 >= 0) ret = asJson(*thisObj->it).it;
+            if (a0 >= 0) ret = asJson(*thisp).it;
           `);
         }}
       ]);
@@ -943,7 +954,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
           {args: [], code: function(f) {
             f(`
               packet wr;
-              wr.add_checked(*thisObj->it);
+              wr.add_checked(*thisp);
               Local<Value> retbuf = node::Buffer::New(isolate, wr.size()).ToLocalChecked();
               memcpy(node::Buffer::Data(retbuf), wr.rd_ptr(), wr.size());
               args.GetReturnValue().Set(retbuf);
