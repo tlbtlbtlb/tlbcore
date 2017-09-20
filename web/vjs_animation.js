@@ -1,4 +1,5 @@
 'use strict';
+/* global mkDeferQ */
 const _ = require('underscore');
 const web_socket_browser = require('web_socket_browser');
 const hit_detector = require('hit_detector');
