@@ -22,6 +22,7 @@ arma::mat33 orthonormalise(arma::mat33 const &u);
 arma::mat22 mat22Rotation(double theta);
 arma::mat22 mat22RotationXYPlane(double theta);
 arma::mat33 mat33Rotation(arma::vec3 const &axis, double theta);
+arma::mat44 mat44Rotation(arma::vec3 const &axis, double theta);
 arma::mat22 mat22RotationVector(arma::vec2 const &src);
 arma::mat33 mat33RotationVectorToVector(arma::vec3 const &src, arma::vec3 const &dst);
 arma::mat33 mat33RotationXAxis(double theta);

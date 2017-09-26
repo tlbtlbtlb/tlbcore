@@ -135,6 +135,12 @@ mat33 mat33Rotation(vec3 const &axis, double theta)
   return quatToMat(q);
 }
 
+mat44 mat44Rotation(vec3 const &axis, double theta)
+{
+  return matToHomo(mat33Rotation(axis, theta));
+}
+
+
 mat22 mat22RotationVector(vec2 const &src)
 {
   mat22 ret;
