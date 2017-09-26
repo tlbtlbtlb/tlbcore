@@ -47,10 +47,12 @@ function SymbolicContext(typereg, name, inargs, outargs, lang) {
   c.assigns = [];
   c.preCode = [];
   c.postCode = [];
+  c.preDefn = [];
   c.arrayBuilder = {};
   if (c.typereg) {
     c.registerWrapper();
   }
+  c.defop = defop;
 }
 
 SymbolicContext.prototype.checkArgs = function() {
@@ -115,6 +117,7 @@ SymbolicContext.prototype.emitDefn = function(f) {
   if (c.lang === 'js') {
     f(`exports.${c.name} = ${c.name};`);
   }
+  _.each(c.preDefn, function(code) { f(code); });
   f(`${c.getSignature()} {`);
   _.each(c.preCode, function(code) { f(code); });
   c.emitCode(f);
@@ -196,7 +199,7 @@ SymbolicContext.prototype.E = function(op /*, args... */) {
   let args = [];
   for (let argi=1; argi < arguments.length; argi++) args.push(arguments[argi]);
   args = _.map(args, function(arg, argi) {
-    if (_.isObject(arg)) {
+    if (arg instanceof SymbolicExpr || arg instanceof SymbolicVar || arg instanceof SymbolicConst) {
       assert.strictEqual(arg.c, c);
       return arg;
     }
@@ -257,7 +260,15 @@ SymbolicContext.prototype.getExpr = function(e, availCses) {
     if (e.type === 'double' || e.type === 'int') {
       return e.value.toString();
     }
-    else if (e.type === 'arma::mat44' && e.value === 0) {
+    else if (e.type === 'string') {
+      if (c.lang === 'c') {
+        return `string(${JSON.stringify(e.value)})`;
+      }
+      else if (c.lang === 'js') {
+        return JSON.stringify(e.value);
+      }
+    }
+    else if (e.type === 'arma::mat44' && (e.value === 'zeros' || e.value === 0)) {
       if (c.lang === 'c') {
         return e.type + '(arma::fill::zeros)';
       }
@@ -265,15 +276,7 @@ SymbolicContext.prototype.getExpr = function(e, availCses) {
         return 'Float64Array.of(0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0)';
       }
     }
-    else if (e.type === 'arma::mat44' && e.value === 'zeros') {
-      if (c.lang === 'c') {
-        return e.type + '(arma::fill::zeros)';
-      }
-      else if (c.lang === 'js') {
-        return 'Float64Array.of(0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0)';
-      }
-    }
-    else if (e.type === 'arma::mat44' && e.value === 'eye') {
+    else if (e.type === 'arma::mat44' && (e.value === 'eye' || e.value === 1)) {
       if (c.lang === 'c') {
         return e.type + '(arma::fill::eye)';
       }
@@ -289,12 +292,30 @@ SymbolicContext.prototype.getExpr = function(e, availCses) {
         return `Float64Array.of(${_.map(e.value, function(v) { return v.toString(); }).join(', ')})`;
       }
     }
-    else if (e.type === 'arma::vec4' && e.value.length === 4) {
+    else if ((e.type === 'arma::vec4' && e.value.length === 4) ||
+      (e.type=== 'arma::vec3' && e.value.length === 3) ||
+      (e.type=== 'arma::vec2' && e.value.length === 2)) {
       if (c.lang === 'c') {
         return e.type + `{${_.map(e.value, function(v) { return v.toString(); }).join(', ')}}`;
       }
       else if (c.lang === 'js') {
         return `Float64Array.of(${_.map(e.value, function(v) { return v.toString(); }).join(', ')})`;
+      }
+    }
+    else if (e.type === 'vector< double >') {
+      if (c.lang === 'c') {
+        return e.type + `{${_.map(e.value, function(v) { return v.toString(); }).join(', ')}}`;
+      }
+      else if (c.lang === 'js') {
+        return `Float64Array.of(${_.map(e.value, function(v) { return v.toString(); }).join(', ')})`;
+      }
+    }
+    else if (e.type === 'jsonstr' && _.isObject(e.value)) {
+      if (c.lang === 'js') {
+        return JSON.stringify(e.value);
+      }
+      else if (c.lang === 'c') {
+        return `jsonstr("${JSON.stringify(e.value)}")`;
       }
     }
     else {
@@ -433,7 +454,7 @@ function SymbolicConst(c, type, value) {
   e.c = c;
   e.type = type;
   e.value = value;
-  e.cseKey = '_c' + simpleHash(e.type + ',' + e.value.toString());
+  e.cseKey = '_c' + simpleHash(e.type + ',' + JSON.stringify(e.value));
   e.cseCost = 0.25;
 }
 SymbolicConst.prototype.isZero = function() {
@@ -687,6 +708,9 @@ defop('arma::mat33',    'mat33RotationZ',   'double', {
   },
 });
 
+defop('jsonstr', 'jsonstr', 'jsonstr', {
+});
+
 // mat44
 
 defop('arma::mat44',        'arma::mat44',
@@ -730,6 +754,9 @@ defop('arma::mat44',        'mat44RotationX',   'double', {
   replace: function() {
     let c = this.c;
     let a = this.args[0];
+    if (a.isZero()) {
+      return c.Cm44(1);
+    }
     return c.E('arma::mat44',
                c.C('double', 1),
                c.C('double', 0),
@@ -757,6 +784,9 @@ defop('arma::mat44',        'mat44RotationY',   'double', {
   replace: function(wrt) {
     let c = this.c;
     let a = this.args[0];
+    if (a.isZero()) {
+      return c.Cm44(1);
+    }
     return c.E('arma::mat44',
                c.E('cos', a),
                c.C('double', 0),
@@ -783,6 +813,9 @@ defop('arma::mat44',        'mat44RotationZ',   'double', {
   replace: function(wrt) {
     let c = this.c;
     let a = this.args[0];
+    if (a.isZero()) {
+      return c.Cm44(1);
+    }
     return c.E('arma::mat44',
                c.E('cos', a),
                c.E('sin', a),
@@ -809,6 +842,9 @@ defop('arma::mat44',        'mat44RotationZ',   'double', {
 defop('arma::mat44',        'mat44Translation',   'double', 'double', 'double', {
   replace: function(wrt) {
     let c = this.c;
+    if (this.args[0].isZero() && this.args[1].isZero() && this.args[2].isZero()) {
+      return c.Cm44(1);
+    }
     return c.E('arma::mat44',
                c.C('double', 1),
                c.C('double', 0),
@@ -828,6 +864,45 @@ defop('arma::mat44',        'mat44Translation',   'double', 'double', 'double', 
                c.C('double', 1));
   }
 });
+
+defop('arma::mat44',        'mat44Scale',   'double', 'double', 'double', {
+  replace: function(wrt) {
+    let c = this.c;
+    if (this.args[0].isZero() && this.args[1].isZero() && this.args[2].isZero()) {
+      return c.Cm44(0);
+    }
+    return c.E('arma::mat44',
+               this.args[0],
+               c.C('double', 0),
+               c.C('double', 0),
+               c.C('double', 0),
+               c.C('double', 0),
+               this.args[1],
+               c.C('double', 0),
+               c.C('double', 0),
+               c.C('double', 0),
+               c.C('double', 0),
+               this.args[2],
+               c.C('double', 0),
+               c.C('double', 0),
+               c.C('double', 0),
+               c.C('double', 0),
+               c.C('double', 1));
+  }
+});
+
+defop('arma::mat44',        'mat44Rotation',   'arma::vec3', 'double', {
+  replace: function() {
+    let c = this.c;
+    if (this.args[1].isZero()) {
+      return c.Cm44(1);
+    }
+  },
+  js: function(a, b) {
+    return `Geom3D.mat44Rotation(${a}, ${b})`;
+  },
+});
+
 
 _.each([0,1,2,3], function(rowi) {
   _.each([0,1,2,3], function(coli) {
