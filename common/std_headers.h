@@ -79,6 +79,7 @@
 #    include <map>
 #    include <unordered_map>
 #    include <set>
+#    include <array>
 #    include <iostream>
 #    include <iomanip>
 #    include <fstream>
