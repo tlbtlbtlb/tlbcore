@@ -1,6 +1,7 @@
 'use strict';
+const async = require('async');
 
-module.exports = function(typereg) {
+module.exports = function(typereg, cb) {
 
   typereg.struct('Polyfit1',
                  ['c0', 'double'],
@@ -20,6 +21,10 @@ module.exports = function(typereg) {
                  ['c4', 'double'],
                  ['c5', 'double']);
 
-  typereg.scanCHeader(require.resolve('./polyfit.h'));
-  typereg.scanCHeader(require.resolve('./haltonseq.h'));
+  async.eachSeries([
+    require.resolve('./polyfit.h'),
+    require.resolve('./haltonseq.h'),
+  ], (fn, scanCb) => {
+    typereg.scanCHeader(fn, scanCb);
+  }, cb);
 };

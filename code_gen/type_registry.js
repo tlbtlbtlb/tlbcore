@@ -34,10 +34,16 @@ function TypeRegistry(groupname) {
   typereg.setupBuiltins();
 }
 
-TypeRegistry.prototype.scanJsDefn = function(fn) {
+TypeRegistry.prototype.scanJsDefn = function(fn, cb) {
   let typereg = this;
   const scanModule = require(fs.realpathSync(fn));
-  scanModule(typereg);
+  if (scanModule.length === 2) {
+    scanModule(typereg, cb);
+  }
+  else {
+    scanModule(typereg);
+    cb(null);
+  }
 };
 
 TypeRegistry.prototype.setupBuiltins = function() {
@@ -505,11 +511,12 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
   if (0) console.log(typereg.wrapFunctions);
 };
 
-TypeRegistry.prototype.scanCHeader = function(fn) {
+TypeRegistry.prototype.scanCHeader = function(fn, cb) {
   let typereg = this;
   let rawFile = fs.readFileSync(fn, 'utf8');
   typereg.scanCFunctions(rawFile);
   typereg.extraJsWrapFuncsHeaders.push(`#include "${ fn }"`);
+  cb(null);
 };
 
 TypeRegistry.prototype.emitSymbolics = function(files) {

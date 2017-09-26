@@ -1,6 +1,7 @@
 'use strict';
 const fs = require('fs');
 const _ = require('underscore');
+const async = require('async');
 const cgen = require('./cgen');
 const gen_marshall = require('./gen_marshall');
 const symbolic_math = require('./symbolic_math');
@@ -57,18 +58,18 @@ function main() {
                      ['foo', 'string']);
     }
 
-    _.each(files, function(fn) {
-      console.log('Load ' + fn);
+    async.eachSeries(files, (fn, cb) => {
+      console.log(`Load ${fn}`);
       if (/\.h$/.test(fn)) {
-        typereg.scanCHeader(fn);
+        typereg.scanCHeader(fn, cb);
       }
       else {
-        typereg.scanJsDefn(fn);
+        typereg.scanJsDefn(fn, cb);
       }
+    }, (err) => {
+      typereg.emitAll(filegen);
+      filegen.end();
     });
-    typereg.emitAll(filegen);
-
-    filegen.end();
   }
 
 }
