@@ -279,7 +279,35 @@ const Geom3D = {
       a[14] + b[14],
       a[15] + b[15]
     );
+  },
+  quatToMat44: function(q) {
+    return Float64Array.of(
+      1 - 2.0 * (q[2]*q[2] + q[3]*q[3]),
+      2.0 * (q[1]*q[2] + q[0]*q[3]),
+      2.0 * (q[1]*q[3] - q[0]*q[2]),
+      0,
+
+      2.0 * (q[1]*q[2] - q[0]*q[3]),
+      1 - 2.0 * (q[1]*q[1] + q[3]*q[3]),
+      2.0 * (q[0]*q[1] + q[2]*q[3]),
+      0,
+
+      2.0 * (q[0]*q[2] + q[1]*q[3]),
+      2.0 * (q[2]*q[3] - q[0]*q[1]),
+      1 - 2.0 * (q[1]*q[1] + q[2]*q[2]),
+      0,
+
+      0, 0, 0, 1);
+  },
+
+  mat44Rotation: function(axis, theta) {
+    let s = Math.sin(theta / 2.0);
+    let c = Math.cos(theta / 2.0);
+    let n = Math.sqrt(axis[0]*axis[0] + axis[1]*axis[1] + axis[2]*axis[2]);
+    let q = Float64Array.of(c, axis[0] * s / n, axis[1] * s / n, axis[2] * s / n);
+    return Geom3D.quatToMat44(q);
   }
+
 
 };
 exports.Geom3D = Geom3D;
