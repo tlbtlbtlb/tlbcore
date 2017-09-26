@@ -362,9 +362,8 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     drawFunc = null;
   });
 
-  m.on('animate', redrawCanvas);
-
-  m.on('makeMovie', makeMovie);
+  top.onEventsFrom(m, 'animate', redrawCanvas);
+  top.onEventsFrom(m, 'makeMovie', makeMovie);
 
   function redrawCanvas() {
     if (!m || !drawFunc) {
