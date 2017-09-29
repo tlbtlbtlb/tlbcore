@@ -7,10 +7,10 @@ const url = require('url');
 const querystring = require('querystring');
 const https = require('https');
 const cookie = require('cookie');
-const logio = require('./logio');
-const Safety = require('./Safety');
-const Auth = require('./Auth');
-const Provider = require('./Provider');
+const logio = require('../common/logio');
+const vjs_safety = require('./vjs_safety');
+const vjs_auth = require('./vjs_auth');
+const vjs_provider = require('./vjs_provider');
 
 exports.OAuthProvider = OAuthProvider;
 exports.getHttpRequestAccessToken = getHttpRequestAccessToken;
@@ -23,7 +23,7 @@ function getHttpRequestAccessToken(req) {
       let accessToken = cookies['access_token'];
       if (accessToken) {
         let accessTokenParts = accessToken.split(' ');
-        if (!_.every(accessTokenParts, Safety.isValidToken)) {
+        if (!_.every(accessTokenParts, vjs_safety.isValidToken)) {
           logio.E(req.connection.remoteAddress, 'Invalid access_token cookie:', accessToken);
           return null;
         }
@@ -51,9 +51,9 @@ function OAuthProvider(oauthUrl, clientId, clientSecret, scopes) {
 
   // This needs to be shared among multiple webservers eventually
   this.codesCache = {};
-  Provider.AnyProvider.call(this);
+  vjs_provider.AnyProvider.call(this);
 }
-OAuthProvider.prototype = Object.create(Provider.AnyProvider.prototype);
+OAuthProvider.prototype = Object.create(vjs_provider.AnyProvider.prototype);
 
 OAuthProvider.prototype.isDir = function() { return true; };
 
@@ -78,7 +78,7 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
 
     let callbackUrl = up.protocol + '//' + up.host + path.dirname(up.pathname) + '/callback';
 
-    let stateCookie = Auth.generateCookie();
+    let stateCookie = vjs_auth.generateCookie();
     self.codesCache[stateCookie] = {
       redirectUrl: appRedirectUrl
     };
@@ -118,7 +118,7 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
     }
     else {
       logio.E(remote, 'No auth code in args', up.query);
-      Provider.emit404(res, 'No auth code found');
+      vjs_provider.emit404(res, 'No auth code found');
     }
   }
   else if (suffix === 'logout') {

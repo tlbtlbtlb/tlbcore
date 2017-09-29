@@ -1146,13 +1146,16 @@ bool rdJson(RdJsonContext &ctx, vector< U64 > &arr) {
 template<typename T>
 void wrJsonBin(WrJsonContext &ctx, vector< typename arma::Col< T > > const &arr)
 {
-  size_t n = arr.empty() ? 0 : arr[0].n_elem;
-  vector< T > slice(arr.size() * n);
+  size_t n = 0;
+  for (auto &it: arr) {
+    n = max(n, (size_t)it.n_elem);
+  }
+  vector< T > slice(arr.size() * n, numeric_limits<T>::quiet_NaN());
   ndarray nd;
   bool first = true;
   for (size_t i = 0; i < arr.size(); i++) {
-    assert(arr[i].n_elem == n);
-    for (size_t k = 0; k < n; k++) {
+    assert(arr[i].n_elem <= n);
+    for (size_t k = 0; k < arr[i].n_elem; k++) {
       slice[i * n + k] = arr[i][k];
       accum_range(nd.range, slice[i * n + k], first);
     }
@@ -1212,13 +1215,16 @@ bool rdJsonBin(RdJsonContext &ctx, vector< typename arma::Col< T > > &arr)
 template<typename T>
 void wrJsonBin(WrJsonContext &ctx, vector< typename arma::Row< T > > const &arr)
 {
-  size_t n = arr.empty() ? 0 : arr[0].n_elem;
-  vector< T > slice(arr.size() * n);
+  size_t n = 0;
+  for (auto &it: arr) {
+    n = max(n, (size_t)it.n_elem);
+  }
+  vector< T > slice(arr.size() * n, numeric_limits<T>::quiet_NaN());
   ndarray nd;
   bool first = true;
   for (size_t i = 0; i < arr.size(); i++) {
-    assert(arr[i].n_elem == n);
-    for (size_t k = 0; k < n; k++) {
+    assert(arr[i].n_elem <= n);
+    for (size_t k = 0; k < arr[i].n_elem; k++) {
       slice[i * n + k] = arr[i][k];
       accum_range(nd.range, slice[i * n + k], first);
     }
@@ -1278,15 +1284,18 @@ bool rdJsonBin(RdJsonContext &ctx, vector< typename arma::Row< T > > &arr)
 template<typename T>
 void wrJsonBin(WrJsonContext &ctx, vector< typename arma::Mat< T > > const &arr)
 {
-  size_t ne = arr.empty() ? 0 : arr[0].n_elem;
-  size_t nc = arr.empty() ? 0 : arr[0].n_cols;
-  size_t nr = arr.empty() ? 0 : arr[0].n_rows;
-  vector< T > slice(arr.size() * ne);
+  size_t ne = 0, nc = 0, nr = 0;
+  for (auto &it: arr) {
+    ne = max(ne, (size_t)it.n_elem);
+    nc = max(nc, (size_t)it.n_cols);
+    nr = max(nr, (size_t)it.n_rows);
+  }
+  vector< T > slice(arr.size() * ne, numeric_limits<T>::quiet_NaN());
   ndarray nd;
   bool first = true;
   for (size_t i = 0; i < arr.size(); i++) {
-    assert(arr[i].n_elem == ne);
-    for (size_t k = 0; k < ne; k++) {
+    assert(arr[i].n_elem <= ne);
+    for (size_t k = 0; k < arr[i].n_elem; k++) {
       slice[i * ne + k] = arr[i][k];
       accum_range(nd.range, slice[i * ne + k], first);
     }

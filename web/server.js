@@ -4,11 +4,11 @@ const _ = require('underscore');
 const net = require('net');
 const fs = require('fs');
 
-require('./VjsDbs').defDb('redis0', 'redis', '127.0.0.1', 6379);
+require('./vjs_dbs').defDb('redis0', 'redis', '127.0.0.1', 6379);
 
-const VjsSite = require('./VjsSite');
-const Provider = require('./Provider');
-const VjsRepl = require('./VjsRepl');
+const vjs_site = require('./vjs_site');
+const vjs_provider = require('./vjs_provider');
+const vjs_repl = require('./vjs_repl');
 
 
 function setupErrorHandling() {
@@ -22,7 +22,7 @@ let webServer0 = null;
 
 function main() {
 
-  webServer0 = new VjsSite.WebServer();
+  webServer0 = new vjs_site.WebServer();
   let sites = [];
   let servers = [];
   let curServer = null;
@@ -32,8 +32,8 @@ function main() {
     switch (arg) {
 
     case '--noMin':
-      Provider.ScriptProvider.prototype.minifyLevel = 0;
-      Provider.CssProvider.prototype.minifyLevel = 0;
+      vjs_provider.ScriptProvider.prototype.minifyLevel = 0;
+      vjs_provider.CssProvider.prototype.minifyLevel = 0;
       break;
 
     case '--mirror':
@@ -107,10 +107,10 @@ function main() {
     });
   }
 
-  VjsRepl.setupReplServer();
-  VjsRepl.addToContext('webServer0', webServer0);
-  if (0) VjsRepl.addToContext('redis0', require('./VjsDbs')('redis0'));
-  VjsRepl.addToContext('VjsSite', VjsSite);
+  vjs_repl.setupReplServer();
+  vjs_repl.addToContext('webServer0', webServer0);
+  if (0) vjs_repl.addToContext('redis0', require('./vjs_dbs')('redis0'));
+  vjs_repl.addToContext('vjs_site', vjs_site);
 
   webServer0.setupContent(sites);
 

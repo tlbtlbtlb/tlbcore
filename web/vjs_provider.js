@@ -16,8 +16,8 @@ const xml = require('xmldom');
 const marked = require('marked');
 const zlib = require('zlib');
 const crypto = require('crypto');
-const logio = require('./logio');
-const Safety = require('./Safety');
+const logio = require('../common/logio');
+const vjs_safety = require('./vjs_safety');
 
 exports.AnyProvider = AnyProvider;
 exports.RawFileProvider = RawFileProvider;
@@ -1166,7 +1166,7 @@ RawDirProvider.prototype.isDir = function() { return true; };
 RawDirProvider.prototype.handleRequest = function(req, res, suffix) {
   let self = this;
 
-  if (!Safety.isSafeDirName(suffix)) {
+  if (!vjs_safety.isSafeDirName(suffix)) {
     logio.E(req.remoteLabel, 'Unsafe filename ', suffix);
     emit404(res, 'Invalid filename');
     return;
@@ -1250,7 +1250,7 @@ JsonLogDirProvider.prototype.isDir = function() { return true; };
 JsonLogDirProvider.prototype.handleRequest = function(req, res, suffix) {
   let self = this;
 
-  if (!Safety.isSafeDirName(suffix)) {
+  if (!vjs_safety.isSafeDirName(suffix)) {
     logio.E(req.remoteLabel, 'Unsafe filename ', suffix);
     emit404(res, 'Invalid filename');
     return;

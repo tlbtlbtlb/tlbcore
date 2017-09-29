@@ -3,7 +3,7 @@ const assert = require('assert');
 const path = require('path');
 const async = require('async');
 const child_pipe = require('./child_pipe');
-const logio = require('../web/logio');
+const logio = require('../common/logio');
 
 // Depends on paths relative to home dir
 if (0) describe('ChildPipe.sshify', function() {

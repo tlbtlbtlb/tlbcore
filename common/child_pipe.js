@@ -4,7 +4,7 @@ const async = require('async');
 const path = require('path');
 const child_process = require('child_process');
 const events = require('events');
-const logio = require('../web/logio');
+const logio = require('../common/logio');
 
 exports.ChildJsonPipe = ChildJsonPipe;
 exports.sshify = sshify;

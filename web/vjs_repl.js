@@ -24,11 +24,11 @@ function setupReplCommon(r) {
   });
 
   r.context.underscore = r.context_ = _;
-  r.context.Auth = require('./Auth');
-  r.context.Image = require('./Image');
-  r.context.Topology = require('./Topology');
-  r.context.Safety = require('./Safety');
-  r.context.VjsSite = require('./VjsSite');
+  r.context.vjs_auth = require('./vjs_auth');
+  r.context.vjs_image = require('./vjs_image');
+  r.context.vjs_topology = require('./vjs_topology');
+  r.context.vjs_safety = require('./vjs_safety');
+  r.context.vjs_site = require('./vjs_site');
 
   r.context.p = function() {
     for (let i=0; i<arguments.length; i++) {

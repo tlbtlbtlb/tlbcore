@@ -8,8 +8,8 @@ const querystring = require('querystring');
 const https = require('https');
 const http = require('http');
 const assert = require('assert');
-const logio = require('./logio');
-const Safety = require('./Safety');
+const logio = require('../common/logio');
+const vjs_safety = require('./vjs_safety');
 const bogocache = require('./bogocache');
 
 exports.GithubApi = GithubApi;

@@ -6,7 +6,7 @@
 const _ = require('underscore');
 const async = require('async');
 const child_process = require('child_process');
-const logio = require('../web/logio');
+const logio = require('../common/logio');
 
 exports.ParentJsonPipe = ParentJsonPipe;
 

@@ -3,7 +3,7 @@ const _ = require('underscore');
 const async = require('async');
 const assert = require('assert');
 const parent_pipe = require('./parent_pipe');
-const logio = require('../web/logio');
+const logio = require('../common/logio');
 
 function main() {
   let pp = new parent_pipe.ParentJsonPipe({}, {

@@ -12,13 +12,13 @@ const url = require('url');
 const path = require('path');
 const websocket = require('websocket');
 
-const logio = require('./logio');
-const VjsDbs = require('./VjsDbs');
-const Auth = require('./Auth');
-const Provider = require('./Provider');
-const Topology = require('./Topology');
-const Safety = require('./Safety');
-const Image = require('./Image');
+const logio = require('../common/logio');
+const vjs_dbs = require('./vjs_dbs');
+const vjs_auth = require('./vjs_auth');
+const vjs_provider = require('./vjs_provider');
+const vjs_topology = require('./vjs_topology');
+const vjs_safety = require('./vjs_safety');
+const vjs_image = require('./vjs_image');
 const web_socket_server = require('./web_socket_server');
 
 exports.WebServer = WebServer;
@@ -46,9 +46,9 @@ WebServer.prototype.setUrl = function(url, p) {
     let st = fs.statSync(p);
     if (st.isDirectory()) {
       url = path.join(url, '/'); // ensure trailing slash, but doesn't yield more than one
-      p = new Provider.RawDirProvider(p);
+      p = new vjs_provider.RawDirProvider(p);
     } else {
-      p = new Provider.RawFileProvider(p);
+      p = new vjs_provider.RawFileProvider(p);
     }
   }
 
@@ -92,12 +92,12 @@ WebServer.prototype.setupBaseProvider = function() {
   let webServer = this;
 
   if (webServer.baseProvider) return;
-  let p = new Provider.ProviderSet();
+  let p = new vjs_provider.ProviderSet();
   if (1) p.addCss(require.resolve('./common.css'));
   if (1) p.addCss(require.resolve('./spinner-lib/spinner.css'));
   // Add more CSS files here
 
-  if (1) p.addScript(require.resolve('./VjsPreamble.js'));
+  if (1) p.addScript(require.resolve('./vjs_preamble.js'));
   if (1) p.addScript(require.resolve('underscore'), 'underscore');
   if (1) p.addScript(require.resolve('../common/MoreUnderscore.js'));
   if (1) p.addScript(require.resolve('eventemitter'), 'events');
@@ -107,10 +107,10 @@ WebServer.prototype.setupBaseProvider = function() {
   if (1) p.addScript(require.resolve('./web_socket_helper.js'), 'web_socket_helper');
   if (1) p.addScript(require.resolve('./web_socket_browser.js'), 'web_socket_browser');
   if (1) p.addScript(require.resolve('./box_layout.js'), 'box_layout');
-  if (1) p.addScript(require.resolve('./VjsBrowser.js'));
+  if (1) p.addScript(require.resolve('./vjs_browser.js'));
   if (1) p.addScript(require.resolve('./vjs_animation.js'), 'vjs_animation');
   if (1) p.addScript(require.resolve('./vjs_error.js'), 'vjs_error');
-  if (1) p.addScript(require.resolve('./hit_detector.js'), 'hit_detector');
+  if (1) p.addScript(require.resolve('./vjs_hit_detector.js'), 'vjs_hit_detector');
   if (1) p.addScript(require.resolve('./canvasutils.js'), 'canvasutils');
 
   webServer.baseProvider = p;
@@ -260,7 +260,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
       annotateReq(req);
     } catch(ex) {
       logio.E(req.remoteLabel, ex);
-      Provider.emit500(res);
+      vjs_provider.emit500(res);
     }
     if (verbose >= 3) logio.I(req.remoteLabel, req.url, req.urlParsed, req.headers);
 
@@ -297,7 +297,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
     }
 
     logio.E(req.remoteLabel, desc, '404', 'referer:', req.headers.referer);
-    Provider.emit404(res, callid);
+    vjs_provider.emit404(res, callid);
     return;
   }
 

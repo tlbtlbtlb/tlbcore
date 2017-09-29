@@ -28,7 +28,7 @@
 
 'use strict';
 const _ = require('underscore');
-const logio = require('./logio');
+const logio = require('../common/logio');
 const web_socket_helper = require('./web_socket_helper');
 
 let verbose = 1;

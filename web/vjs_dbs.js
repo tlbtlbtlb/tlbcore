@@ -1,18 +1,18 @@
 'use strict';
 const _ = require('underscore');
 const redis = require('redis');
-const logio = require('./logio');
-const Auth = require('./Auth');
-const Storage = require('./Storage');
-const Topology = require('./Topology');
-const Safety = require('./Safety');
+const logio = require('../common/logio');
+const vjs_auth = require('./vjs_auth');
+const vjs_storage = require('./vjs_storage');
+const vjs_topology = require('./vjs_topology');
+const vjs_safety = require('./vjs_safety');
 
 /*
   High-level interface to the database.
   Usage:
-    require('VjsDbs').defDb('local', 'redis', '127.0.0.1', 6379, {});
+    require('vjs_dbs').defDb('local', 'redis', '127.0.0.1', 6379, {});
     ...
-    db = require('VjsDbs')('local');
+    db = require('vjs_dbs')('local');
 */
 
 module.exports = getNamedDb;

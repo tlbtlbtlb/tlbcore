@@ -2,7 +2,7 @@
 /* global mkDeferQ */
 const _ = require('underscore');
 const web_socket_browser = require('web_socket_browser');
-const hit_detector = require('hit_detector');
+const vjs_hit_detector = require('vjs_hit_detector');
 const box_layout = require('box_layout');
 
 
@@ -222,7 +222,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
 
   let avgTime = null;
   let drawCount = 0;
-  let hd = new hit_detector.HitDetector(); // Persistent
+  let hd = new vjs_hit_detector.HitDetector(); // Persistent
 
   // Isn't this what jQuery is supposed to do for me?
   // http://stackoverflow.com/questions/12704686/html5-with-jquery-e-offsetx-is-undefined-in-firefox

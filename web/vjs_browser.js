@@ -5,7 +5,7 @@
 /* globals _ */
 'use strict';
 const web_socket_browser = require('web_socket_browser');
-const hit_detector = require('hit_detector');
+const vjs_hit_detector = require('vjs_hit_detector');
 const box_layout = require('box_layout');
 
 
@@ -17,7 +17,7 @@ $.allContent = {};
 /*
   Cheap version of safety checks, vaguely compatible with Server.js which is server-side
 */
-const Safety = {
+const vjs_safety = {
   isValidServerName: function(serverName) {
     if (!(/^[\w_\.]+$/.test(serverName))) return false;
     if (serverName === 'all') return false;
@@ -235,7 +235,7 @@ $.fn.bogartWindowEvents = function(evMap) {
   _.each(evMap, function(fn, name) {
 
     let handler = function(ev) {
-      // But don't work when there's a popupEditUrl dialog going. See VjsEditUrl.js
+      // But don't work when there's a popupEditUrl dialog going. See vjs_edit_url.js
       if ($('#popupEditUrl').length) return;
       return fn.call(this, ev);
     };
@@ -256,7 +256,7 @@ $.fn.bogartBodyEvents = function(evMap) {
   _.each(evMap, function(fn, name) {
 
     let handler = function(ev) {
-      // But don't work when there's a popupEditUrl dialog going. See VjsEditUrl.js
+      // But don't work when there's a popupEditUrl dialog going. See vjs_edit_url.js
       if ($('#popupEditUrl').length) return;
       fn.call(this, ev);
     };
@@ -708,7 +708,7 @@ function setupConsole(reloadKey, contentMac) {
     window.rconsole = mkWebSocket('console', {
       start: function() {
         if (reloadKey) {
-          // Ask the server to tell us to reload. Look for reloadKey in VjsSite.js for the control flow.
+          // Ask the server to tell us to reload. Look for reloadKey in vjs_site.js for the control flow.
           this.rpc('reloadOn', {
             reloadKey: reloadKey,
             contentMac: contentMac
@@ -848,7 +848,7 @@ function mkWebSocket(path, handlers) {
 }
 
 /* ----------------------------------------------------------------------
-   Called from web page setup code (search for pageSetupFromHash in Provider.js)
+   Called from web page setup code (search for pageSetupFromHash in vjs_provider.js)
 */
 
 function pageSetupFromHash(reloadKey, contentMac) {

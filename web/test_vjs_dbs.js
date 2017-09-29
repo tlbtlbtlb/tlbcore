@@ -1,14 +1,14 @@
 'use strict';
 const _ = require('underscore');
 const assert = require('assert');
-const VjsDbs = require('./VjsDbs');
+const vjs_dbs = require('./vjs_dbs');
 
-VjsDbs.defDb('local', 'redis', '127.0.0.1', 6379);
+vjs_dbs.defDb('local', 'redis', '127.0.0.1', 6379);
 
-describe('VjsDbs/Redis', function() {
+describe('vjs_dbs/Redis', function() {
   it('Should work', function(done) {
 
-    let db = VjsDbs('local');
+    let db = vjs_dbs('local');
     let foo1 = {foo: 1, bar: 2};
     db.setObj('foo', foo1, function(setErr) {
       assert.equal(setErr, null);

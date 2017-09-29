@@ -2,10 +2,10 @@
 const _ = require('underscore');
 const child_process = require('child_process');
 const async = require('async');
-const logio = require('./logio');
-const Topology = require('./Topology');
-const Storage = require('./Storage');
-const Safety = require('./Safety');
+const logio = require('../common/logio');
+const vjs_topology = require('./vjs_topology');
+const vjs_storage = require('./vjs_storage');
+const vjs_safety = require('./vjs_safety');
 
 exports.mkImageVersions = mkImageVersions;
 
@@ -124,13 +124,13 @@ function syncPendingFiles() {
   let todo = _.uniq(_.sortBy(filesToSync, _.identity), true);
   filesToSync = [];
 
-  let dests = Topology.getRoleServers({web: true});
+  let dests = vjs_topology.getRoleServers({web: true});
 
   syncActiveCount ++;
   async.each(_.keys(dests), function(destName, parCb) {
-    if (destName === Topology.getHostname()) return parCb();
+    if (destName === vjs_topology.getHostname()) return parCb();
 
-    let cmd = 'rsync -Rr --ignore-existing ' + _.map(todo, Safety.shellQuote).join(' ') + ' ' + destName + ':/home/otto/robot/. </dev/null';
+    let cmd = 'rsync -Rr --ignore-existing ' + _.map(todo, vjs_safety.shellQuote).join(' ') + ' ' + destName + ':/home/otto/robot/. </dev/null';
     logio.O('os', cmd);
 
     child_process.exec(cmd, function(err, stdout, stderr) {
@@ -145,7 +145,7 @@ function syncPendingFiles() {
 }
 
 function syncOneDir() {
-  let updir = Storage.chooseUploadDir();
+  let updir = vjs_storage.chooseUploadDir();
   filesToSync.push(updir);
   syncPendingFiles();
 }

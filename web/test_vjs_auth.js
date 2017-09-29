@@ -1,12 +1,12 @@
 'use strict';
-const Auth = require('./Auth');
+const vjs_auth = require('./vjs_auth');
 
 describe('generateCookie', function() {
   it('should have reasonable characters', function() {
     let i;
     let tokens = [];
     for (i=0; i<10000; i++) {
-      let c = Auth.generateCookie();
+      let c = vjs_auth.generateCookie();
       if (!(/^[a-zA-Z0-9]+$/.exec(c))) {
         throw new Error('Bad characters in ' + c);
       }
