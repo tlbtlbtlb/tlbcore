@@ -3,7 +3,6 @@ const _ = require('underscore');
 require('../common/MoreUnderscore');
 const child_process = require('child_process');
 
-exports.vsystem = vsystem;
 exports.logDataSep = logDataSep;
 exports.I = I;
 exports.O = O;
