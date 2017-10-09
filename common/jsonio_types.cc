@@ -303,6 +303,14 @@ void wrJson(WrJsonContext &ctx, double const &value) {
   else if (value == 1.0) {
     *ctx.s++ = '1';
   }
+  else if (isinf(value) || isnan(value)) {
+    // Javascript JSON can't handle literal inf or nan.
+    // Following js:
+    //   JSON.stringify(+inf) === 'null'
+    //   JSON.stringify(-inf) === 'null'
+    //   JSON.stringify(nan) === 'null'
+    ctx.s += snprintf(ctx.s, 25, "null");
+  }
   else {
     // We spend most of our time while writing big structures right here.
     // For a flavor of what goes on, see http://sourceware.org/git/?p=glibc.git;a=blob;f=stdio-common/printf_fp.c;h=f9ea379b042c871992d2f076a4185ab84b2ce7d9;hb=refs/heads/master
@@ -317,6 +325,10 @@ bool rdJson(RdJsonContext &ctx, double &value) {
   if (ctx.s[0] == '0' && (ctx.s[1] == ',' || ctx.s[1] == '}' || ctx.s[1] == ']')) {
     value = 0.0;
     ctx.s ++;
+    return true;
+  }
+  if (ctx.s[0] == 'n' && ctx.s[1] == 'u' && ctx.s[2] == 'l' && ctx.s[3] == 'l' && (ctx.s[4] == ',' || ctx.s[4] == '}' || ctx.s[4] == ']')) {
+    value = numeric_limits<double>::quiet_NaN();
     return true;
   }
   value = strtod(ctx.s, &end);
