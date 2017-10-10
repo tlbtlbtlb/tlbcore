@@ -305,10 +305,13 @@ void wrJson(WrJsonContext &ctx, double const &value) {
   }
   else if (isinf(value) || isnan(value)) {
     // Javascript JSON can't handle literal inf or nan.
-    // Following js:
+    // This is the way JS does it:
     //   JSON.stringify(+inf) === 'null'
     //   JSON.stringify(-inf) === 'null'
     //   JSON.stringify(nan) === 'null'
+    // But this loses information. (In rdJson(...double &) below, it reads in 'null' as NaN).
+    // If it's important not to lose inf, we could possibly write out the correct value here
+    // and run a regexp over it before loading into JS.
     ctx.s += snprintf(ctx.s, 25, "null");
   }
   else {
