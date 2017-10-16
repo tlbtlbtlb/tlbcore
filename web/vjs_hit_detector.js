@@ -55,7 +55,7 @@ HitDetector.prototype.add = function(t, r, b, l, actions) {
   }
   let inside = hd.mouseIn(t, r, b, l);
   if (actions.onClick || actions.onDown || actions.onUp) {
-    hd.hits.push({t: t, r: r, b :b, l: l, actions: actions});
+    hd.hits.push({t: t, r: r, b: b, l: l, actions: actions});
   }
   if (actions.draw || actions.drawDown) {
     hd.ctx.save();

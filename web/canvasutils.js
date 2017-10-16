@@ -101,6 +101,7 @@ function drawSpinner(ctx, spinnerX, spinnerY, spinnerSize, phase) {
 */
 
 const Geom2D = {
+  /* eslint-disable func-names */
   I: function() { // identity matrix
     return [[1, 0, 0],
             [0, 1, 0]];

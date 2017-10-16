@@ -59,7 +59,7 @@ ParentJsonPipe.prototype.handleRx = function(rx) {
 
   if (rx.method) {
     let cb = function(err, result) {
-      m.tx({ id:rx.id, error: err, result: result });
+      m.tx({ id: rx.id, error: err, result: result });
     };
     let methodFunc = m.handlers['rpc_' + rx.method];
     if (!methodFunc) {

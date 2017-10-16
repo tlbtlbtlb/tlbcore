@@ -35,6 +35,7 @@ function setup() {
 
   try {
     let code = fs.readFileSync('servers.js', 'utf8');
+    // eslint-disable-next-line no-eval
     servers = eval('(' + code + ')');
   } catch(ex) {
     console.log('No servers.js');
@@ -45,25 +46,24 @@ function setup() {
       pubAddr: '127.0.0.1'};
   }
   if (!servers[hostname]) {
-    throw ('No entry for myself (' + hostname + ') in servers.js');
+    throw new Error(`No entry for myself (${hostname}) in servers.js`);
   }
 
   /*
     Rackspace doesn't charge us for data sent between servers using the internal (10.X.X.X) address.
     So if we have a .rsAddr, use the .rsAddr of the other servers for normal communication
    */
-  for (let k in servers) {
-    if (servers.hasOwnProperty(k)) {
-      servers[k].bestAddr = getBestAddr(servers[hostname], servers[k]);
-    }
-  }
+   _.each(servers, (serverInfo) => {
+    serverInfo.bestAddr = getBestAddr(servers[hostname], serverInfo);
+  });
 
   servers[hostname].isLocal = true;
   servers[hostname].bestAddr = '127.0.0.1';
 
   if (servers[hostname].nodeRestartTime) {
-    console.log('Scheduling restart in ' + servers[hostname].nodeRestartTime + ' seconds');
+    console.log(`Scheduling restart in ${servers[hostname].nodeRestartTime} seconds`);
     setTimeout(function() {
+      // eslint-disable-next-line no-process-exit
       process.exit();
     }, servers[hostname].nodeRestartTime * 1000);
   }
@@ -83,7 +83,7 @@ function getServerInfo(serverName) {
 
 function getRoleServers(filter) {
   let ret = {};
-  for (let serverName in servers) {
+  _.each(servers, (serverName) => {
     let serverRoles = servers[serverName].roles;
     let foundTrue = false;
     let foundFalse = false;
@@ -96,14 +96,14 @@ function getRoleServers(filter) {
           foundTrue = true;
         }
         else {
-          throw "Unknown filter value";
+          throw new Error(`Unknown filter value ${filter[serverRoles[i]]}`);
         }
       }
     }
     if (foundTrue && !foundFalse) {
       ret[serverName] = servers[serverName];
     }
-  }
+  });
   return ret;
 }
 

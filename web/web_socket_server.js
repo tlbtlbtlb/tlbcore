@@ -140,7 +140,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
     _.each(binaries, function(data) {
       // See http://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer
       // and http://nodejs.org/api/buffer.html
-      let buf = Buffer.isBuffer(data) ? data : new Buffer(new Uint8Array(data));
+      let buf = Buffer.isBuffer(data) ? data : Buffer.from(new Uint8Array(data));
       if (verbose >= 3) logio.O(handlers.label, 'buffer length ' + buf.length);
       wsc.sendBytes(buf);
     });

@@ -19,7 +19,7 @@ $.startEditUrl = function() {
 
       cm = CodeMirror(eu[1], {
         value: optionsStr,
-        mode:  {name: 'javascript', json: true},
+        mode: {name: 'javascript', json: true},
         keyMap: 'emacs',
         smartIndent: true,
         lineNumbers: false,

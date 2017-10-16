@@ -3,7 +3,6 @@ const util = require('util');
 const assert = require('assert');
 const symbolic_math = require('./symbolic_math');
 
-
 describe('symbolic_math', function() {
   it('should work', function() {
     let c = new symbolic_math.SymbolicContext(null);
@@ -63,6 +62,6 @@ describe('symbolic_math', function() {
                                  c.E('+',
                                      c.E('*', az, y),
                                      c.E('*', az, x))));
-    c.emitCode(console.log, function(name) { return true ;});
+    c.emitCode(console.log, function(name) { return true; });
   });
 });

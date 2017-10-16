@@ -20,7 +20,7 @@ const box_layout = require('box_layout');
       window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
   }
 
-  if (!window.requestAnimationFrame)
+  if (!window.requestAnimationFrame) {
     window.requestAnimationFrame = function(callback, element) {
       let currTime = new Date().getTime();
       let timeToCall = Math.max(0, 16 - (currTime - lastTime));
@@ -29,11 +29,12 @@ const box_layout = require('box_layout');
       lastTime = currTime + timeToCall;
       return id;
     };
-
-  if (!window.cancelAnimationFrame)
+  }
+  if (!window.cancelAnimationFrame) {
     window.cancelAnimationFrame = function(id) {
       clearTimeout(id);
     };
+  }
 }());
 
 /*
@@ -249,7 +250,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     if (ev.originalEvent && ev.originalEvent.deltaX !== undefined) {
       return {x: ev.originalEvent.deltaX, y: ev.originalEvent.deltaY};
     }
-    return {x:0, y: 0};
+    return {x: 0, y: 0};
   }
 
   top.on('wheel', function(ev) {
@@ -362,7 +363,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     drawFunc = null;
   });
 
-  top.onEventsFrom(m, 'animate', redrawCanvas);
+  top.onEventsFrom(m, o.animateEventName || 'animate', redrawCanvas);
   top.onEventsFrom(m, 'makeMovie', makeMovie);
 
   function redrawCanvas() {
@@ -451,7 +452,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     if (movieOptions.cmd === 'start') {
       let cropInfo = movieOptions.crop ? movieOptions.crop(canvas.width, canvas.height) : null;
       if (!cropInfo) {
-        cropInfo = {width: Math.floor(canvas.width/2)*2, height: Math.floor(canvas.height/2)*2, left:0, top: 0};
+        cropInfo = {width: Math.floor(canvas.width/2)*2, height: Math.floor(canvas.height/2)*2, left: 0, top: 0};
       }
       let createMovieReq = new FormData();
       let createMovieRsp = null;

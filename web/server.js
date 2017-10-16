@@ -109,6 +109,7 @@ function main() {
 
   vjs_repl.setupReplServer();
   vjs_repl.addToContext('webServer0', webServer0);
+  // eslint-disable-next-line global-require
   if (0) vjs_repl.addToContext('redis0', require('./vjs_dbs')('redis0'));
   vjs_repl.addToContext('vjs_site', vjs_site);
 

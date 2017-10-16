@@ -21,7 +21,7 @@ describe('fs.writeStreamString binary', function() {
   it('Should write 2 bytes buffer as binary', function(done) {
     let fn = '/tmp/wsbtest2';
     let ws = fs.createWriteStream(fn, {flags: 'w', encoding: 'binary', mode: 438}); // mode is octal 0666
-    let binstr = new Buffer('\u0089\u0050', 'binary');
+    let binstr = Buffer.from('\u0089\u0050', 'binary');
     if (0) console.log('binstr: ', typeof binstr + ' ' + binstr.length + ' ' + binstr[0].toString(16) + ' ' + binstr[1].toString(16));
     ws.on('close', function() {
       fs.stat(fn, function(err, stats) {

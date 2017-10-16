@@ -6,7 +6,7 @@ const util = require('util');
 const assert = require('assert');
 
 describe('solid_geometry', function() {
-  it ('should read files', function() {
+  it('should read files', function() {
     let s = new ur.StlSolid();
     s.readBinaryFile(require.resolve('./test_object.stl'), 1.0);
     console.log('bbox=', s.bboxLo.toString(), s.bboxHi.toString());
@@ -54,7 +54,7 @@ describe('solid_geometry', function() {
 
 
 describe('solid_geometry', function() {
-  it ('analyzeHole should work', function() {
+  it('analyzeHole should work', function() {
     let s = new ur.StlSolid();
     s.readBinaryFile(require.resolve('./test_pelvis.stl'), 0.001);
     console.log('bbox=', s.bboxLo.toString(), s.bboxHi.toString());

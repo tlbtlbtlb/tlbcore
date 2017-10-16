@@ -1,3 +1,4 @@
+'use strict';
 const _ = require('underscore');
 const assert = require('assert');
 const util = require('util');
@@ -100,7 +101,11 @@ StructCType.prototype.getVarDecl = function(varname) {
 
 StructCType.prototype.getJsToCppTest = function(valueExpr, o) {
   let type = this;
-  return `(JsWrap_${type.jsTypename}::Extract(isolate, ${valueExpr}) != nullptr)`;
+  let cond = `(JsWrap_${type.jsTypename}::Extract(isolate, ${valueExpr}) != nullptr)`;
+  if (0 && o.conv) {
+    cond = `(${cond} || (${valueExpr}->IsObject()))`;
+  }
+  return cond;
 };
 
 StructCType.prototype.getJsToCppExpr = function(valueExpr, o) {
@@ -204,7 +209,7 @@ StructCType.prototype.getMemberInitializer = function(memberName) {
 StructCType.prototype.emitTypeDecl = function(f) {
   let type = this;
   f(`
-    struct ${type.typename} ${(type.superTypes.length ? ' : ' : '') + _.map(type.superTypes, function(st) {return st.typename;}).join(', ') }{
+    struct ${type.typename} ${(type.superTypes.length ? ' : ' : '') + _.map(type.superTypes, (st) => st.typename).join(', ') }{
       ${type.typename}();
   `);
   let constructorArgs = type.getConstructorArgs();
@@ -690,7 +695,7 @@ StructCType.prototype.emitWrJson = function(f) {
   let sep;
   let f1, f2;
   function emitstr(s) {
-    let b = new Buffer(s, 'utf8');
+    let b = Buffer.from(s, 'utf8');
     f1(_.map(_.range(0, b.length), function(ni) {
       return `*ctx.s++ = ${b[ni]};`;
     }).join(' ') + ' // ' + cgen.escapeCString(s));
@@ -875,8 +880,8 @@ StructCType.prototype.emitRdJson = function(f) {
           if (rdJson(ctx, obj.${name})) {
             jsonSkipSpace(ctx);
             c = *ctx.s++;
-            if (c == \',\') continue;
-            if (c == \'}\') return typeOk || ctx.noTypeCheck;
+            if (c == ',') continue;
+            if (c == '}') return typeOk || ctx.noTypeCheck;
           }
         `);
       };
@@ -886,8 +891,8 @@ StructCType.prototype.emitRdJson = function(f) {
     f(`
       typeOk = true;
       c = *ctx.s++;
-      if (c == \',\') continue;
-      if (c == \'}\') return typeOk || ctx.noTypeCheck;
+      if (c == ',') continue;
+      if (c == '}') return typeOk || ctx.noTypeCheck;
     `);
   };
 
@@ -897,7 +902,7 @@ StructCType.prototype.emitRdJson = function(f) {
       char c;
       jsonSkipSpace(ctx);
       c = *ctx.s++;
-      if (c == \'{\') {
+      if (c == '{') {
         while(1) {
           jsonSkipSpace(ctx);
           char const *memberStart = ctx.s;
@@ -907,8 +912,8 @@ StructCType.prototype.emitRdJson = function(f) {
           ctx.s = memberStart;
           if (!jsonSkipMember(ctx)) return false;
           c = *ctx.s++;
-          if (c == \',\') continue;
-          if (c == \'}\') return typeOk || ctx.noTypeCheck;
+          if (c == ',') continue;
+          if (c == '}') return typeOk || ctx.noTypeCheck;
         }
       }
       ctx.s--;
@@ -993,8 +998,8 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
             }
             jsonSkipSpace(ctx);
             c = *ctx.s++;
-            if (c == \',\') continue;
-            if (c == \'}\') return typeOk || ctx.noTypeCheck;
+            if (c == ',') continue;
+            if (c == '}') return typeOk || ctx.noTypeCheck;
           }
         `);
       };
@@ -1004,8 +1009,8 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
     f(`
       typeOk = true;
       c = *ctx.s++;
-      if (c == \',\') continue;
-      if (c == \'}\') return typeOk || ctx.noTypeCheck;
+      if (c == ',') continue;
+      if (c == '}') return typeOk || ctx.noTypeCheck;
     `);
   };
   actions['"__bulk_size" : '] = function() {
@@ -1017,8 +1022,8 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
         it = make_shared< ${type.typename} >();
       }
       c = *ctx.s++;
-      if (c == \',\') continue;
-      if (c == \'}\') return typeOk || ctx.noTypeCheck;
+      if (c == ',') continue;
+      if (c == '}') return typeOk || ctx.noTypeCheck;
     `);
   };
 
@@ -1032,7 +1037,7 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
       char c;
       jsonSkipSpace(ctx);
       c = *ctx.s++;
-      if (c == \'{\') {
+      if (c == '{') {
         while(1) {
           jsonSkipSpace(ctx);
           char const *memberStart = ctx.s;
@@ -1042,8 +1047,8 @@ StructCType.prototype.emitRdJsonBulk = function(f) {
           ctx.s = memberStart;
           if (!jsonSkipMember(ctx)) return false;
           c = *ctx.s++;
-          if (c == \',\') continue;
-          if (c == \'}\') return typeOk || ctx.noTypeCheck;
+          if (c == ',') continue;
+          if (c == '}') return typeOk || ctx.noTypeCheck;
         }
       }
       ctx.s--;
@@ -1104,6 +1109,7 @@ StructCType.prototype.emitJsWrapDecl = function(f) {
   f(`
     using JsWrap_${type.jsTypename} = JsWrapGeneric< ${type.typename} >;
     void jsConstructor_${type.jsTypename}(JsWrap_${type.jsTypename} *thisObj, FunctionCallbackInfo< Value > const &args);
+    void jsFromObject_${type.jsTypename}(${type.typename} *thisp, Isolate *isolate, Local< Object > a0);
     Handle< Value > jsToJSON_${type.jsTypename}(Isolate *isolate, ${type.typename} const &it);
   `);
 };
@@ -1115,13 +1121,15 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   f.emitJsConstructor(function(f) {
     let constructorArgs = type.getConstructorArgs();
     f.emitArgSwitch([
-      {args: [], code: function(f) {
+      {args: [],
+        code: function(f) {
         f(`
           thisObj->assignDefault();
           auto thisp = thisObj->it;
         `);
       }},
-      {args: _.map(constructorArgs, function(argInfo) { return argInfo.type; }), code: function(f) {
+      {args: _.map(constructorArgs, function(argInfo) { return argInfo.type; }),
+      code: function(f) {
         f(`
           thisObj->assignConstruct(${ _.map(constructorArgs, function(argInfo, argi) {
             return 'a'+argi;
@@ -1130,31 +1138,40 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         `);
       }},
       (constructorArgs.length > 0) ?
-        {args: ['Object'], code: function(f) {
+        {args: ['Object'],
+        code: function(f) {
           f(`
             thisObj->assignDefault();
             auto thisp = thisObj->it;
+            jsFromObject_${type.jsTypename}(thisp.get(), isolate, a0);
           `);
-          _.each(constructorArgs, function(argInfo, argi) {
-            let memberName = argInfo.name;
-            let memberType = type.reg.getType(argInfo.type);
-
-            f(`
-              Local< Value > a0_${memberName}_js = a0->Get(String::NewFromUtf8(isolate, "${memberName}"));
-              if (a0_${memberName}_js->IsUndefined()) {
-              }
-              else if (${ memberType.getJsToCppTest('a0_' + memberName + '_js', {conv: true}) }) {
-                thisp->${memberName} = ${ memberType.getJsToCppExpr('a0_' + memberName + '_js', {conv: true}) };
-              }
-              else {
-                return ThrowTypeError(isolate, "Expected ${memberType.typename} for ${memberName}");
-              }
-            `);
-          });
         }}
       : undefined
     ]);
   });
+
+  f(`
+    void jsFromObject_${type.jsTypename}(${type.typename} *thisp, Isolate *isolate, Local< Object > a0) {
+    ${(
+      _.map(type.getConstructorArgs(), function(argInfo, argi) {
+        let memberName = argInfo.name;
+        let memberType = type.reg.getType(argInfo.type);
+
+        return `
+          Local< Value > a0_${memberName}_js = a0->Get(String::NewFromUtf8(isolate, "${memberName}"));
+          if (a0_${memberName}_js->IsUndefined()) {
+          }
+          else if (${ memberType.getJsToCppTest('a0_' + memberName + '_js', {conv: true}) }) {
+            thisp->${memberName} = ${ memberType.getJsToCppExpr('a0_' + memberName + '_js', {conv: true}) };
+          }
+          else {
+            return ThrowTypeError(isolate, "Expected ${memberType.typename} for ${memberName}");
+          }
+        `;
+      }).join('')
+    )}
+    }
+  `);
 
   if (!type.noSerialize) {
 
@@ -1175,7 +1192,7 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
         case 'S64':
         case 'U64':
         case 'float':
-         case 'double':
+        case 'double':
           f(`
             ret->Set(String::NewFromUtf8(isolate, "${name}"), Number::New(isolate, it.${name}));
           `);
@@ -1208,8 +1225,10 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     `);
 
     f.emitJsMethod('toJSON', function() {
-      f.emitArgSwitch([
-        {args: [], ignoreExtra: true, code: function(f) {
+      f.emitArgSwitch([{
+        args: [],
+        ignoreExtra: true,
+        code: function(f) {
           f(`
             args.GetReturnValue().Set(Local< Value >(jsToJSON_${type.jsTypename}(isolate, *thisp)));
           `);
@@ -1221,8 +1240,10 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
   if (!type.noSerialize) {
     f.emitJsMethod('toJsonString', function() {
-      f.emitArgSwitch([
-        {args: [], returnType: 'string', code: function(f) {
+      f.emitArgSwitch([{
+        args: [],
+        returnType: 'string',
+        code: function(f) {
           f(`
             ret = asJson(*thisp).it;
           `);
@@ -1232,8 +1253,9 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsMethodAlias('toString', 'toJsonString');
 
     f.emitJsMethod('fromJson', function() {
-      f.emitArgSwitch([
-        {args: ['string'], code: function(f) {
+      f.emitArgSwitch([{
+        args: ['string'],
+        code: function(f) {
           f(`
             jsonstr json(a0);
             bool ret = fromJson(json, *thisp);
@@ -1246,31 +1268,41 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
     f.emitJsMethod('inspect', function() {
       f.emitArgSwitch([
         // It's given an argument, recurseTimes, which we should decrement when recursing but we don't.
-        {args: ['double'], ignoreExtra: true, returnType: 'string', code: function(f) {
-          f(`
-            if (a0 >= 0) ret = asJson(*thisp).it;
-          `);
-        }}
+        {
+          args: ['double'],
+          ignoreExtra: true,
+          returnType: 'string',
+          code: function(f) {
+            f(`
+              if (a0 >= 0) ret = asJson(*thisp).it;
+            `);
+          }}
       ]);
     });
 
     f.emitJsMethod('toJsonBuffer', function() {
       f.emitArgSwitch([
-        {args: [], returnType: 'buffer', code: function(f) {
-          f(`
-            ret = asJson(*thisp).it;
-          `);
+        {
+          args: [],
+          returnType: 'buffer',
+          code: function(f) {
+            f(`
+              ret = asJson(*thisp).it;
+            `);
         }}
       ]);
     });
 
     f.emitJsFactory('fromString', function() {
       f.emitArgSwitch([
-        {args: ['string'], returnType: type, code: function(f) {
-          f(`
-            bool ok = fromJson(a0, ret);
-            if (!ok) return ThrowInvalidArgs(isolate);
-          `);
+        {
+          args: ['string'],
+          returnType: type,
+          code: function(f) {
+            f(`
+              bool ok = fromJson(a0, ret);
+              if (!ok) return ThrowInvalidArgs(isolate);
+            `);
         }}
       ]);
     });
@@ -1278,10 +1310,12 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
 
   f.emitJsFactory('addSchemas', function() {
     f.emitArgSwitch([
-      {args: ['map< string, jsonstr >'], code: function(f) {
-        f(`
-          ${type.typename}::addSchemas(a0);
-        `);
+      {
+        args: ['map< string, jsonstr >'],
+        code: function(f) {
+          f(`
+            ${type.typename}::addSchemas(a0);
+          `);
       }}
     ]);
   });
@@ -1289,21 +1323,25 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   if (!type.noPacket) {
     f.emitJsMethod('toPacket', function() {
       f.emitArgSwitch([
-        {args: [], code: function(f) {
-          f(`
-            packet wr;
-            wr.add_checked(*thisp);
-            Local< Value > retbuf = node::Buffer::New(isolate, wr.size()).ToLocalChecked();
-            memcpy(node::Buffer::Data(retbuf), wr.rd_ptr(), wr.size());
-            args.GetReturnValue().Set(retbuf);
-          `);
+        {
+          args: [],
+          code: function(f) {
+            f(`
+              packet wr;
+              wr.add_checked(*thisp);
+              Local< Value > retbuf = node::Buffer::New(isolate, wr.size()).ToLocalChecked();
+              memcpy(node::Buffer::Data(retbuf), wr.rd_ptr(), wr.size());
+              args.GetReturnValue().Set(retbuf);
+            `);
         }}
       ]);
     });
 
     f.emitJsFactory('fromPacket', function() {
-      f.emitArgSwitch([
-        {args: ['string'], returnType: type, code: function(f) {
+      f.emitArgSwitch([{
+        args: ['string'],
+        returnType: type,
+        code: function(f) {
           f(`
             packet rd(a0);
             try {

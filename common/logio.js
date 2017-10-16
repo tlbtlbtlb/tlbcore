@@ -15,18 +15,6 @@ let baseTimestamp = +Date.now();
 
 // ----------------------------------------------------------------------
 
-function vsystem(cmd, cb) {
-  O('shell', cmd);
-  child_process.exec(cmd, function (err, stdout, stderr) {
-    if (err) return cb(err);
-    if (stdout.length) I(cmd, stdout);
-    if (stderr.length) I(cmd, stderr);
-    if (cb) cb(null, stdout, stderr);
-  });
-}
-
-// ----------------------------------------------------------------------
-
 function logDataSep(remote, sep, args) {
   if (typeof(remote) === 'undefined') remote = '?';
   let infos = [];

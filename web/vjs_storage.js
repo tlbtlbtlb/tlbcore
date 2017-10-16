@@ -7,7 +7,7 @@ exports.chooseUploadDir = chooseUploadDir;
 // ======================================================================
 
 function fmtUploadDir(diri) {
-  if (!(diri >= 0 && diri < 256)) throw 'bad diri';
+  if (!(diri >= 0 && diri < 256)) throw new Error('bad diri');
   return 'uploads' + ('00' + diri.toString(16)).substr(-2);
 }
 

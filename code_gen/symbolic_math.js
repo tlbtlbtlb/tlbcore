@@ -2,6 +2,7 @@
   A way of building up arithmetic formulas in JS that can be emitted as C++ code,
   or directly evaluated.
 */
+'use strict';
 const _ = require('underscore');
 const util = require('util');
 const cgen = require('./cgen');

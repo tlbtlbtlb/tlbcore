@@ -56,7 +56,7 @@ function ChildJsonPipe(execName, execArgs, execOptions, o) {
             console.log('Error parsing', datas.join(''));
             datas = [];
             buf = buf.slice(eol+1);
-            continue;
+            continue; // eslint-disable-line no-continue
           }
           datas = [];
           m.handleRx(childi, rep);

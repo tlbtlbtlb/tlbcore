@@ -184,6 +184,7 @@ WebServer.prototype.setupContent = function(dirs) {
 
   _.each(dirs, function(dir) {
     // Start with process.cwd, since these directory names are specified on the command line
+    /* eslint-disable global-require */
     let fn = fs.realpathSync(path.join(dir, 'load.js'));
     console.log('Load ' + fn);
     require(fn).load(webServer);

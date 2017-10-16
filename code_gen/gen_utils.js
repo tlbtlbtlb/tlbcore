@@ -1,3 +1,4 @@
+'use strict';
 const _ = require('underscore');
 const assert = require('assert');
 const util = require('util');
@@ -90,7 +91,7 @@ function withJsWrapUtils(f, type) {
         else if (argTypename === 'Function' || argTypename === 'CopyablePersistent<Function>') {
           return ' && args[' + argi + ']->IsFunction()';
         }
-        else if (m = /^conv:(.*)$/.exec(argTypename)) {
+        else if ((m = /^conv:(.*)$/.exec(argTypename))) {
           let argType = typereg.getType(m[1]);
           if (!argType) {
             throw new Error(`No type found for ${util.inspect(argTypename)} in ${util.inspect(argSet)}`);
@@ -152,7 +153,7 @@ function withJsWrapUtils(f, type) {
             auto a${argi} = CopyablePersistent<Array>(isolate, Local<Array>::Cast(args[${ argi }]));
           `);
         }
-        else if (m = /^conv:(.*)$/.exec(argTypename)) {
+        else if ((m = /^conv:(.*)$/.exec(argTypename))) {
           let argType = typereg.getType(m[1]);
           if (!argType) {
             throw new Error('No type found for ' + util.inspect(argTypename) + ' in [' + util.inspect(argSet) + ']');

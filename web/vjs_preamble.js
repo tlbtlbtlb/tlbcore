@@ -1,4 +1,4 @@
-/* jshint strict: false */
+/* eslint-disable strict */
 let modules = {};
 
 function require(name) {

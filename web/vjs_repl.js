@@ -23,6 +23,7 @@ function setupReplCommon(r) {
     _.extend(ctx, pendingContext);
   });
 
+  /* eslint-disable global-require */
   r.context.underscore = r.context_ = _;
   r.context.vjs_auth = require('./vjs_auth');
   r.context.vjs_image = require('./vjs_image');
@@ -51,6 +52,7 @@ function setupReplCommon(r) {
   };
 
   r.context.exit = function() {
+    // eslint-disable-next-line no-process-exit
     process.exit();
   };
 

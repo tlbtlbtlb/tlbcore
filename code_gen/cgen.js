@@ -115,7 +115,7 @@ function mkCodeGen(filename, subs) {
           let c = l.charCodeAt(i);
           if (c === 92) {
             escaped = true;
-            continue;
+            continue; // eslint-disable-line no-continue
           }
           if (c === 34 && !escaped) inDoubleQuote = !inDoubleQuote;
           if (c === 39 && !escaped) inSingleQuote = !inSingleQuote;

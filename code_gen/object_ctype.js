@@ -1,3 +1,4 @@
+'use strict';
 const _ = require('underscore');
 const assert = require('assert');
 const util = require('util');

@@ -131,7 +131,7 @@ function emit302(res, location) {
 
 function emit200Json(res, obj) {
   let objStr = JSON.stringify(obj);
-  let objBuf = new Buffer(objStr, 'utf8');
+  let objBuf = Buffer.from(objStr, 'utf8');
   res.writeHead(200, {'Content-Type': 'text/json', 'Content-Length': objBuf.length.toString()});
   res.write(objBuf);
   res.end();
@@ -204,7 +204,7 @@ function linkContent(dst, srcRel) {
 
   fs.stat(src, function(srcStatErr, st) {
     if (srcStatErr) {
-      logio.E(src, 'stat: ' + srcStatErr);
+      logio.E(src, `stat: ${srcStatErr}`);
     } else {
       if (st.isDirectory()) {
         let m = /^(.*)\/+$/.exec(dst);
@@ -216,23 +216,23 @@ function linkContent(dst, srcRel) {
         if (symlinkErr && symlinkErr.code === 'EEXIST') {
           fs.unlink(dst, function(dstUnlinkErr) {
             if (dstUnlinkErr) {
-              logio.E(dst, 'unlink' + ': ' + dstUnlinkErr);
+              logio.E(dst, `unlink: ${dstUnlinkErr}`);
             } else {
               fs.symlink(src, dst, function(symlink2Err) {
                 if (symlink2Err) {
-                  logio.E(dst, 'symlink ' + src + ': ' + symlink2Err);
+                  logio.E(dst, `symlink ${src}: ${symlink2Err}`);
                 } else {
-                  logio.O(dst, 'unlink/symlink ' + src);
+                  logio.O(dst, `unlink/symlink ${src}`);
                 }
               });
             }
           });
         }
         else if (symlinkErr) {
-          logio.E(dst, 'symlink ' + src + ': ' + symlinkErr);
+          logio.E(dst, `symlink ${src}: ${symlinkErr}`);
         }
         else {
-          logio.O(dst, 'symlink ' + src);
+          logio.O(dst, `symlink ${src}`);
         }
       });
     }
@@ -267,7 +267,7 @@ function persistentReadFile(fn, encoding, cb) {
 
         let delta = newStats.mtime - prevStats.mtime;
         if (0 !== delta) {
-          logio.I(fn, 'changed ' + Math.floor(delta/1000) + ' seconds newer');
+          logio.I(fn, `changed ${Math.floor(delta/1000)} seconds newer`);
           prevStats = newStats;
           /* It works fine to call readit immediately when everything's Unix,
              but when writing files from Emacs over Samba, you sometimes get
@@ -442,7 +442,7 @@ XmlContentDirProvider.prototype.start = function() {
 
   // Note, does not notice new files
   fs.readdir(self.fn, function(err, files) {
-    if (err) throw('Failed to readdir ' + self.fn + ': ' + err);
+    if (err) throw new Error(`Failed to readdir ${self.fn}: ${err}`);
     _.each(files, function(basename) {
       if (basename in self.subs) return;
 
@@ -1013,7 +1013,7 @@ setTimeout(function() {
 </html>
 `);
 
-      let asHtmlBuf = new Buffer(cat.join(''), 'utf8');
+      let asHtmlBuf = Buffer.from(cat.join(''), 'utf8');
       let zlibT0 = Date.now();
       zlib.gzip(asHtmlBuf, function(err, asHtmlGzBuf) {
         self.asHtmlBuf = asHtmlBuf;

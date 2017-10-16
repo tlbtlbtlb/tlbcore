@@ -1,3 +1,4 @@
+'use strict';
 const _ = require('underscore');
 const assert = require('assert');
 const util = require('util');
@@ -36,6 +37,7 @@ function TypeRegistry(groupname) {
 
 TypeRegistry.prototype.scanJsDefn = function(fn, cb) {
   let typereg = this;
+  // eslint-disable-next-line global-require
   const scanModule = require(fs.realpathSync(fn));
   if (scanModule.length === 2) {
     scanModule(typereg, cb);
@@ -170,7 +172,7 @@ TypeRegistry.prototype.aliasType = function(existingName, newName) {
   let typereg = this;
   enforceCanonicalTypename(newName);
   let type = typereg.getType(existingName);
-  if (!type) throw 'No such type ' + existingName;
+  if (!type) throw new Error(`No such type ${existingName}`);
   typereg.types[newName] = type;
 };
 
@@ -577,7 +579,8 @@ TypeRegistry.prototype.addWrapFunction = function(desc, funcScope, funcname, fun
 TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs, lang) {
   let typereg = this;
   if (!lang) lang='c';
-  return typereg.symbolics[lang][name] = new symbolic_math.SymbolicContext(typereg, name, inargs, outargs, lang);
+  let ret = typereg.symbolics[lang][name] = new symbolic_math.SymbolicContext(typereg, name, inargs, outargs, lang);
+  return ret;
 };
 
 
