@@ -40,26 +40,23 @@ function setup() {
   } catch(ex) {
     console.log(`No ${serversModulePath}`);
     servers = {};
-    servers[hostname] = {
-      roles: ['web', 'db', 'test', 'compute'],
-      db: 'local',
-      pubAddr: '127.0.0.1'};
   }
   if (!servers[hostname]) {
-    throw new Error(`No entry for myself (${hostname}) in ${serversModulePath}`);
+    logio.E(serversModulePath, `No entry for myself (${hostname}), using defaults`);
+    servers[hostname] = {
+      roles: {web: true, test: true, compute: true},
+    };
   }
+  servers[hostname].localAddr = '127.0.0.1';
+  servers[hostname].local = true;
 
    _.each(servers, (serverInfo, serverName) => {
-     serverInfo.rolesSet = new Set(serverInfo.roles);
      serverInfo.name = serverName;
      let {bestAddr, distance} =  getBestAddr(servers[hostname], serverInfo);
      serverInfo.bestAddr = bestAddr;
      serverInfo.distance = distance;
+     serverInfo.reachable = !!serverInfo.bestAddr;
   });
-
-  servers[hostname].rolesSet.add('local');
-  servers[hostname].isLocal = true;
-  servers[hostname].bestAddr = '127.0.0.1';
 
   if (servers[hostname].nodeRestartTime) {
     console.log(`Scheduling restart in ${servers[hostname].nodeRestartTime} seconds`);
@@ -81,17 +78,14 @@ function getServerInfo(serverName) {
   return servers[serverName];
 }
 
-function getRoleServers(filter) {
+function getRoleServers(filter, names) {
   let ret = [];
-  _.each(servers, (serverInfo, serverName) => {
-    let roles = serverInfo.rolesSet;
+  if (!names) names = _.keys(servers);
+  _.each(names, (serverName) => {
+    let serverInfo = servers[serverName];
+    if (!serverInfo) return;
 
-    let good = true;
-    _.each(filter, (filterVal, filterName) => {
-      if (filterVal && !roles.has(filterName)) good = false;
-      if (!filterVal && roles.has(filterName)) good = false;
-    });
-    if (good) {
+    if (filter(serverInfo, serverInfo.roles)) {
       ret.push(serverInfo);
     }
   });
@@ -104,6 +98,7 @@ function getLocalServer() {
 }
 
 const addressPreference = [
+  'localAddr',
   'charterAddr',
   'awsAddr',
   'pubAddr'

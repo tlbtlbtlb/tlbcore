@@ -124,7 +124,7 @@ function syncPendingFiles() {
   let todo = _.uniq(_.sortBy(filesToSync, _.identity), true);
   filesToSync = [];
 
-  let dests = vjs_topology.getRoleServers({web: true, local: false});
+  let dests = vjs_topology.getRoleServers((i) => i.roles.web && i.roles.ssh && i.reachable && !i.local);
 
   syncActiveCount ++;
   async.each(dests, function(destInfo, parCb) {
