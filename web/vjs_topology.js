@@ -2,6 +2,7 @@
 const _ = require('underscore');
 const os = require('os');
 const fs = require('fs');
+const path = require('path');
 
 exports.getHostname = getHostname;
 exports.getServerInfo = getServerInfo;
@@ -15,11 +16,10 @@ let verbose = 0;
 /*
 
   ServerInfo:
-    .roles: subset of ['web', 'db', 'test', 'bounce']
-    .db: 'local' | 'production
+    .roles: subset of ['web', 'db', 'test', 'compute']
+    .db: 'local' | 'production'
     .pubAddr: '1.2.3.4',
     .rsAddr: local rackspace addr
-    .ciscoAddr: local cisco addr
     .bestAddr: best address from here
     .isLocal: true if running on this server
 
@@ -31,32 +31,33 @@ let servers = {};
 
 function setup() {
   hostname = os.hostname().replace(/\..*$/, '');
-  console.log('hostname=' + hostname);
+  if (0) console.log('hostname=' + hostname);
 
+  let serversModulePath = path.join(process.cwd(), 'deploy/servers');
   try {
-    let code = fs.readFileSync('servers.js', 'utf8');
-    // eslint-disable-next-line no-eval
-    servers = eval('(' + code + ')');
+    // eslint-disable-next-line global-require
+    servers = require(serversModulePath);
   } catch(ex) {
-    console.log('No servers.js');
+    console.log(`No ${serversModulePath}`);
     servers = {};
     servers[hostname] = {
-      roles: ['web', 'db', 'test', 'bounce'],
+      roles: ['web', 'db', 'test', 'compute'],
       db: 'local',
       pubAddr: '127.0.0.1'};
   }
   if (!servers[hostname]) {
-    throw new Error(`No entry for myself (${hostname}) in servers.js`);
+    throw new Error(`No entry for myself (${hostname}) in ${serversModulePath}`);
   }
 
-  /*
-    Rackspace doesn't charge us for data sent between servers using the internal (10.X.X.X) address.
-    So if we have a .rsAddr, use the .rsAddr of the other servers for normal communication
-   */
-   _.each(servers, (serverInfo) => {
-    serverInfo.bestAddr = getBestAddr(servers[hostname], serverInfo);
+   _.each(servers, (serverInfo, serverName) => {
+     serverInfo.rolesSet = new Set(serverInfo.roles);
+     serverInfo.name = serverName;
+     let {bestAddr, distance} =  getBestAddr(servers[hostname], serverInfo);
+     serverInfo.bestAddr = bestAddr;
+     serverInfo.distance = distance;
   });
 
+  servers[hostname].rolesSet.add('local');
   servers[hostname].isLocal = true;
   servers[hostname].bestAddr = '127.0.0.1';
 
@@ -71,7 +72,6 @@ function setup() {
   if (verbose >= 1) console.log(servers);
 }
 
-setup();
 
 function getHostname() {
   return hostname;
@@ -82,39 +82,43 @@ function getServerInfo(serverName) {
 }
 
 function getRoleServers(filter) {
-  let ret = {};
-  _.each(servers, (serverName) => {
-    let serverRoles = servers[serverName].roles;
-    let foundTrue = false;
-    let foundFalse = false;
-    for (let i=0; i < serverRoles.length; i++) {
-      if (filter.hasOwnProperty(serverRoles[i])) {
-        if (filter[serverRoles[i]] === false) {
-          foundFalse = true;
-        }
-        else if (filter[serverRoles[i]] === true) {
-          foundTrue = true;
-        }
-        else {
-          throw new Error(`Unknown filter value ${filter[serverRoles[i]]}`);
-        }
-      }
-    }
-    if (foundTrue && !foundFalse) {
-      ret[serverName] = servers[serverName];
+  let ret = [];
+  _.each(servers, (serverInfo, serverName) => {
+    let roles = serverInfo.rolesSet;
+
+    let good = true;
+    _.each(filter, (filterVal, filterName) => {
+      if (filterVal && !roles.has(filterName)) good = false;
+      if (!filterVal && roles.has(filterName)) good = false;
+    });
+    if (good) {
+      ret.push(serverInfo);
     }
   });
-  return ret;
+
+  return _.sortBy(ret, (a) => a.distance);
 }
 
 function getLocalServer() {
   return getServerInfo(getHostname());
 }
 
+const addressPreference = [
+  'charterAddr',
+  'awsAddr',
+  'pubAddr'
+];
+exports.addressPreference = addressPreference;
+
 function getBestAddr(srcInfo, dstInfo) {
-  return ((srcInfo.rsAddr ? dstInfo.rsAddr : null) ||
-          (srcInfo.ciscoAddr ? dstInfo.ciscoAddr : null) ||
-          (srcInfo.pioneerAddr ? dstInfo.pioneerAddr : null) ||
-          (srcInfo.coronadoAddr ? dstInfo.coronadoAddr : null) ||
-          (srcInfo.pubAddr ? dstInfo.pubAddr : null));
+  for (let i=0; i<addressPreference.length; i++) {
+    let addrName = addressPreference[i];
+    if (srcInfo[addrName] && dstInfo[addrName]) {
+      return {bestAddr: dstInfo[addrName], distance: i};
+    }
+  }
+  return {bestAddr: null, distance: 999};
 }
+
+
+setup();

@@ -124,13 +124,13 @@ function syncPendingFiles() {
   let todo = _.uniq(_.sortBy(filesToSync, _.identity), true);
   filesToSync = [];
 
-  let dests = vjs_topology.getRoleServers({web: true});
+  let dests = vjs_topology.getRoleServers({web: true, local: false});
 
   syncActiveCount ++;
-  async.each(_.keys(dests), function(destName, parCb) {
-    if (destName === vjs_topology.getHostname()) return parCb();
+  async.each(dests, function(destInfo, parCb) {
 
-    let cmd = 'rsync -Rr --ignore-existing ' + _.map(todo, vjs_safety.shellQuote).join(' ') + ' ' + destName + ':/home/otto/robot/. </dev/null';
+    // WRITEME: make files relative to home dir
+    let cmd = 'rsync -Rr --ignore-existing ' + _.map(todo, vjs_safety.shellQuote).join(' ') + ' ' + destInfo.name + ':. </dev/null';
     logio.O('os', cmd);
 
     child_process.exec(cmd, function(err, stdout, stderr) {
