@@ -2,6 +2,8 @@ const _ = require('underscore');
 const util = require('util');
 const assert = require('assert');
 const symbolic_math = require('./symbolic_math');
+require('./symbolic_ops_core');
+require('./symbolic_ops_arma');
 
 describe('symbolic_math', function() {
   it('should work', function() {
@@ -11,16 +13,16 @@ describe('symbolic_math', function() {
     let a2 = c.V('double', 'a2');
     let r = c.E('*', a1, a2);
     if (0) console.log(util.inspect(r));
-    let rExpr = c.getExpr(r);
+    let rExpr = r.getExpr();
     assert.strictEqual(rExpr, '(a1 * a2)');
 
     let rWrtA1Expr = c.D(a1, r);
-    assert.strictEqual(c.getExpr(rWrtA1Expr), 'a2');
+    assert.strictEqual(rWrtA1Expr.getExpr({}, {}), 'a2');
 
     let rWrtA2Expr = c.D(c.V('double', 'a2'), r);
-    assert.strictEqual(c.getExpr(rWrtA2Expr), 'a1');
+    assert.strictEqual(rWrtA2Expr.getExpr({}, {}), 'a1');
 
-    let rImm = c.getImm(r, {a1: 2, a2: 3});
+    let rImm = r.getImm({a1: 2, a2: 3});
     assert.strictEqual(rImm, 6);
   });
 });
@@ -32,13 +34,13 @@ describe('symbolic_math', function() {
 
     let a = c.V('double', 'a');
     let az = c.E('mat44RotationZ', a);
-    console.log(c.getExpr(az));
+    console.log(az.getExpr({}, {}));
     let b = c.V('arma::mat44', [1, 0, 0, 0,
                                 0, 1, 0, 0,
                                 0, 0, 1, 0,
                                 0, 0, 0, 1]);
     let r = c.E('*', az, b);
-    console.log(c.getExpr(r));
+    console.log(r.getExpr({}, {}));
   });
 });
 

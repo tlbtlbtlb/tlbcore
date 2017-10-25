@@ -14,8 +14,29 @@ exports.SymbolicContext = SymbolicContext;
 
 let optimize = true;
 
-let defops = {};
 
+/*
+  defop(retType, op,  argTypes..., {
+    c: (x, y) => {
+      return `C++ code to generate results, given that x, y are C++ expressions for the arguments`;
+    },
+    js: ... like above, for javascript code
+    deriv: (wrt, x, y) => {
+      return SymbolicNodes for the derivative of the value of this op WRT wrt.
+      Contents of this.args are included for your convenience after wrt.
+    },
+    gradient: (deps, g, x, y) => {
+      Given g as the gradient of the value of this node, backpropagate to the arguments.
+      For +, this would be:
+        x.addGradient(deps, g);
+        y.addGradient(deps, g);
+      For *, this would be:
+        a.addGradient(deps, c.E('*', g, b));
+        b.addGradient(deps, c.E('*', g, a));
+    },
+  });
+*/
+let defops = {};
 function defop(retType, op /*, argTypes..., impl */) {
   let argTypes = [];
   for (let argi=2; argi + 1 < arguments.length; argi++) argTypes.push(arguments[argi]);
@@ -45,7 +66,8 @@ function SymbolicContext(typereg, name, inargs, outargs, lang) {
   c.outargs = outargs;
   c.lang = lang || 'c';
   c.cses = {};
-  c.assigns = [];
+  c.writes = {};
+  c.reads = {};
   c.preCode = [];
   c.postCode = [];
   c.preDefn = [];
@@ -58,10 +80,10 @@ function SymbolicContext(typereg, name, inargs, outargs, lang) {
 
 SymbolicContext.prototype.checkArgs = function() {
   let c = this;
-  _.each(c.inargs, function(arginfo) {
+  _.each(c.inargs, (arginfo) => {
     assert.ok(arginfo[1] in c.typereg.types);
   });
-  _.each(c.outargs, function(arginfo) {
+  _.each(c.outargs, (arginfo) => {
     assert.ok(arginfo[1] in c.typereg.types);
   });
 };
@@ -70,7 +92,7 @@ SymbolicContext.prototype.registerWrapper = function() {
   let c = this;
 
   if (c.lang === 'c') {
-    c.typereg.addWrapFunction(c.getSignature(), '', c.name, '', 'void', c.collectArgs(function(argname, argTypename, isOut) {
+    c.typereg.addWrapFunction(c.getSignature(), '', c.name, '', 'void', c.collectArgs((argname, argTypename, isOut) => {
       return {typename: argTypename, passing: isOut ? '&' : 'const &'};
     }));
   }
@@ -78,28 +100,28 @@ SymbolicContext.prototype.registerWrapper = function() {
 
 SymbolicContext.prototype.collectArgs = function(argFunc) {
   let c = this;
-  return _.map(c.inargs, function(arginfo) {
+  return _.map(c.inargs, (arginfo) => {
     return argFunc(arginfo[0], arginfo[1], false);
-  }).concat(_.map(c.outargs, function(arginfo) {
+  }).concat(_.map(c.outargs, (arginfo) => {
     return argFunc(arginfo[0], arginfo[1], true);
   }));
 };
 
 SymbolicContext.prototype.getAllTypes = function() {
   let c = this;
-  return _.uniq(_.map(c.inargs, function(arginfo) { return arginfo[1]; }).concat(
-    _.map(c.outargs, function(arginfo) { return arginfo[1]; })));
+  return _.uniq(_.map(c.inargs, (arginfo) => { return arginfo[1]; }).concat(
+    _.map(c.outargs, (arginfo) => { return arginfo[1]; })));
 };
 
 SymbolicContext.prototype.getSignature = function() {
   let c = this;
   if (c.lang === 'c') {
-    return ('void ' + c.name + '(' + c.collectArgs(function(argname, argTypename, isOut) {
+    return ('void ' + c.name + '(' + c.collectArgs((argname, argTypename, isOut) => {
       return argTypename + (isOut ? ' &' : ' const &') + argname;
     }).join(', ') + ')');
   }
   else if (c.lang === 'js') {
-    return ('function ' + c.name + '(' + c.collectArgs(function(argname, argTypename, isOut) {
+    return ('function ' + c.name + '(' + c.collectArgs((argname, argTypename, isOut) => {
       return argname;
     }).join(', ') + ')');
   }
@@ -118,11 +140,11 @@ SymbolicContext.prototype.emitDefn = function(f) {
   if (c.lang === 'js') {
     f(`exports.${c.name} = ${c.name};`);
   }
-  _.each(c.preDefn, function(code) { f(code); });
+  _.each(c.preDefn, (code) => { f(code); });
   f(`${c.getSignature()} {`);
-  _.each(c.preCode, function(code) { f(code); });
+  _.each(c.preCode, (code) => { f(code); });
   c.emitCode(f);
-  _.each(c.postCode, function(code) { f(code); });
+  _.each(c.postCode, (code) => { f(code); });
   f(`}
   `);
 };
@@ -133,7 +155,7 @@ SymbolicContext.prototype.dedup = function(e) {
   let c = this;
   assert.strictEqual(e.c, c);
   while (e.opInfo && e.opInfo.impl.replace) {
-    let newe = e.opInfo.impl.replace.call(e);
+    let newe = e.opInfo.impl.replace.apply(e, [c].concat(e.args));
     if (!newe) break;
     e = newe;
   }
@@ -147,7 +169,9 @@ SymbolicContext.prototype.dedup = function(e) {
 
 SymbolicContext.prototype.V = function(type, name) {
   let c = this;
-  return c.dedup(new SymbolicVar(c, type, name));
+  let e = c.dedup(new SymbolicRead(c, type, name));
+  c.reads[e.cseKey] = e;
+  return e;
 };
 
 // Conveniences for most common types
@@ -158,14 +182,16 @@ SymbolicContext.prototype.Vm44 = function(name) { return this.V('arma::mat44', n
 SymbolicContext.prototype.Vv3 = function(name) { return this.V('arma::vec3', name); };
 SymbolicContext.prototype.Vv4 = function(name) { return this.V('arma::vec4', name); };
 
+
 SymbolicContext.prototype.A = function(name, value) {
   let c = this;
   if (0) value.printName = name;
-  let e = c.dedup(new SymbolicAssign(c,
-                                     value.type,
-                                     name,
-                                     value));
-  c.assigns.push(e);
+  let e = c.dedup(new SymbolicWrite(
+    c,
+    value.type,
+    name,
+    value));
+  c.writes[e.cseKey] = e;
   return value;
 };
 
@@ -174,11 +200,12 @@ SymbolicContext.prototype.Aa = function(name, value) {
   if (0) value.printName = name;
   let index = c.arrayBuilder[name] || 0;
   c.arrayBuilder[name] = index + 1;
-  let e = c.dedup(new SymbolicAssign(c,
-                                     value.type,
-                                     name + '[' + index.toString() + ']',
-                                     value));
-  c.assigns.push(e);
+  let e = c.dedup(new SymbolicWrite(
+    c,
+    value.type,
+    name + '[' + index.toString() + ']',
+    value));
+  c.writes[e.cseKey] = e;
   return value;
 };
 
@@ -199,8 +226,8 @@ SymbolicContext.prototype.E = function(op /*, args... */) {
   let c = this;
   let args = [];
   for (let argi=1; argi < arguments.length; argi++) args.push(arguments[argi]);
-  args = _.map(args, function(arg, argi) {
-    if (arg instanceof SymbolicExpr || arg instanceof SymbolicVar || arg instanceof SymbolicConst) {
+  args = _.map(args, (arg, argi) => {
+    if (arg instanceof SymbolicExpr || arg instanceof SymbolicRead || arg instanceof SymbolicConst) {
       assert.strictEqual(arg.c, c);
       return arg;
     }
@@ -214,31 +241,6 @@ SymbolicContext.prototype.E = function(op /*, args... */) {
   return c.dedup(new SymbolicExpr(c, op, args));
 };
 
-SymbolicContext.prototype.D = function(wrt, e) {
-  let c = this;
-  assert.strictEqual(wrt.c, c);
-  assert.strictEqual(e.c, c);
-  if (e instanceof SymbolicVar) {
-    if (e === wrt) {
-      // Handle types here. For arma::mat44, should be an eye matrix
-      return c.C(e.type, 1);
-    } else {
-      // Handle types here. For arma::mat44, should be an all-zero matrix
-      return c.C(e.type, 0);
-    }
-  }
-  else if (e instanceof SymbolicConst) {
-    return c.C(e.type, 0);
-  }
-  else if (e instanceof SymbolicExpr) {
-    if (!e.opInfo.impl.deriv) throw new Error(`No deriv impl for ${e.op}`);
-    return e.opInfo.impl.deriv.apply(e, [wrt].concat(e.args));
-  }
-  else {
-    throw new Error(`Unknown expression type ${e.toString()}`);
-  }
-};
-
 SymbolicContext.prototype.matrixElem = function(matrix, rowi, coli) {
   let c = this;
   assert.strictEqual(matrix.c, c);
@@ -250,205 +252,41 @@ SymbolicContext.prototype.matrixElem = function(matrix, rowi, coli) {
   }
 };
 
-
-SymbolicContext.prototype.getExpr = function(e, availCses) {
+SymbolicContext.prototype.emitCode = function(f) {
   let c = this;
-  assert.strictEqual(e.c, c);
-  if (e instanceof SymbolicVar) {
-    return e.name;
-  }
-  else if (e instanceof SymbolicConst) {
-    if (e.type === 'double' || e.type === 'int') {
-      return e.value.toString();
-    }
-    else if (e.type === 'string') {
-      if (c.lang === 'c') {
-        return `string(${JSON.stringify(e.value)})`;
-      }
-      else if (c.lang === 'js') {
-        return JSON.stringify(e.value);
-      }
-    }
-    else if (e.type === 'arma::mat44' && (e.value === 'zeros' || e.value === 0)) {
-      if (c.lang === 'c') {
-        return e.type + '(arma::fill::zeros)';
-      }
-      else if (c.lang === 'js') {
-        return 'Float64Array.of(0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0)';
-      }
-    }
-    else if (e.type === 'arma::mat44' && (e.value === 'eye' || e.value === 1)) {
-      if (c.lang === 'c') {
-        return e.type + '(arma::fill::eye)';
-      }
-      else if (c.lang === 'js') {
-        return 'Float64Array.of(1.0, 0.0, 0.0, 0.0,   0.0, 1.0, 0.0, 0.0,   0.0, 0.0, 1.0, 0.0,   0.0, 0.0, 0.0, 1.0)';
-      }
-    }
-    else if (e.type === 'arma::mat44' && e.value.length === 16) {
-      if (c.lang === 'c') {
-        return e.type + `{${_.map(e.value, function(v) { return v.toString(); }).join(', ')}}`;
-      }
-      else if (c.lang === 'js') {
-        return `Float64Array.of(${_.map(e.value, function(v) { return v.toString(); }).join(', ')})`;
-      }
-    }
-    else if ((e.type === 'arma::vec4' && e.value.length === 4) ||
-      (e.type=== 'arma::vec3' && e.value.length === 3) ||
-      (e.type=== 'arma::vec2' && e.value.length === 2)) {
-      if (c.lang === 'c') {
-        return e.type + `{${_.map(e.value, function(v) { return v.toString(); }).join(', ')}}`;
-      }
-      else if (c.lang === 'js') {
-        return `Float64Array.of(${_.map(e.value, function(v) { return v.toString(); }).join(', ')})`;
-      }
-    }
-    else if (e.type === 'vector< double >') {
-      if (c.lang === 'c') {
-        return e.type + `{${_.map(e.value, function(v) { return v.toString(); }).join(', ')}}`;
-      }
-      else if (c.lang === 'js') {
-        return `Float64Array.of(${_.map(e.value, function(v) { return v.toString(); }).join(', ')})`;
-      }
-    }
-    else if (e.type === 'jsonstr' && _.isObject(e.value)) {
-      if (c.lang === 'js') {
-        return JSON.stringify(e.value);
-      }
-      else if (c.lang === 'c') {
-        return `jsonstr("${JSON.stringify(e.value)}")`;
-      }
-    }
-    else {
-      throw new Error(`Cannot generate constant of type ${e.type} and value ${e.value}. You can add this case in SymbolicContext.getExpr.`);
-    }
-    return `(${e.type} { ${e.value.toString()} })`;
-  }
-  else if (e instanceof SymbolicExpr) {
-    if (availCses && availCses[e.cseKey]) {
-      return e.cseKey;
-    }
-    let argExprs = _.map(e.args, function(arg) {
-      return c.getExpr(arg, availCses);
-    });
-    let impl = e.opInfo.impl[c.lang];
-    if (!impl) {
-      throw new Error(`No ${c.lang} impl for ${e.opInfo.op}`);
-    }
-    return e.opInfo.impl[c.lang].apply(e, argExprs);
-  }
-  else {
-    throw new Error(`Unknown expression type ${e.toString()}`);
-  }
-};
-
-SymbolicContext.prototype.getImm = function(e, vars) {
-  let c = this;
-  assert.strictEqual(e.c, c);
-  if (e instanceof SymbolicVar) {
-    return vars[e.name];
-  }
-  else if (e instanceof SymbolicConst) {
-    // WRITEME: needs work for arma::mat & other non-immediate types
-    return e.value;
-  }
-  else if (e instanceof SymbolicExpr) {
-    let argExprs = _.map(e.args, function(arg) {
-      return c.getImm(arg, vars);
-    });
-    return e.opInfo.impl.imm.apply(e, argExprs);
-  }
-  else {
-    throw new Error(`Unknown expression type ${e.toString()}`);
-  }
-};
-
-SymbolicContext.prototype.getCosts = function(e, costs) {
-  let c = this;
-  assert.strictEqual(e.c, c);
-  if (costs[e.cseKey]) {
-    costs[e.cseKey] += e.cseCost;
-  } else {
-    costs[e.cseKey] = e.cseCost;
-    if (e instanceof SymbolicExpr) {
-      _.each(e.args, function(arg) {
-        c.getCosts(arg, costs);
-      });
-    }
-    else if (e instanceof SymbolicAssign) {
-      c.getCosts(e.value, costs);
-    }
-  }
-};
-
-SymbolicContext.prototype.emitCses = function(e, f, availCses, costs) {
-  let c = this;
-  assert.strictEqual(e.c, c);
-  if (e instanceof SymbolicExpr) {
-    if (!availCses[e.cseKey]) {
-      _.each(e.args, function(arg) {
-        c.emitCses(arg, f, availCses, costs);
-      });
-      if ((costs[e.cseKey] || 0) >= 1) {
-        // Wrong for composite types, use TypeRegistry
-        if (c.lang === 'c') {
-          f(e.type + ' ' + e.cseKey + ' = ' + c.getExpr(e, availCses) + ';');
-        }
-        else if (c.lang === 'js') {
-          f('let ' + e.cseKey + ' = ' + c.getExpr(e, availCses) + ';');
-        }
-        if (e.printName) {
-          f(`eprintf("${e.printName} ${e.cseKey} = %s\\n", asJson(${e.cseKey}).it.c_str());`);
-        }
-        availCses[e.cseKey] = true;
-      }
-    }
-  }
-  else if (e instanceof SymbolicAssign) {
-    c.emitCses(e.value, f, availCses, costs);
-  }
-};
-
-SymbolicContext.prototype.emitCode = function(f, filter) {
-  let c = this;
-  let costs = {};
+  let deps = c.getDeps();
   let availCses = {};
-  _.each(c.assigns, function(a) {
-    c.getCosts(a, costs);
-    c.emitCses(a, f, availCses, costs);
+  _.each(deps.writes, (a) => {
+    a.emitCode(deps, f, availCses);
   });
-  _.each(c.assigns, function(a) {
-    f(`${a.name} = ${c.getExpr(a.value, availCses)};`);
-  });
-
 };
-
 
 
 // ----------------------------------------------------------------------
 
-function SymbolicAssign(c, type, name, value) {
+function SymbolicNode() {
+  let e = this;
+}
+
+function SymbolicWrite(c, type, name, value) {
   let e = this;
   e.c = c;
   e.type = type;
   e.name = name;
   e.value = value;
-  e.cseKey = '_a' + simpleHash(e.type + ',' + e.name + ',' + value.cseKey);
-  e.cseCost = 1.0;
+  e.cseKey = '_w' + simpleHash(e.type + ',' + e.name + ',' + value.cseKey);
 }
-SymbolicAssign.prototype.isZero = function() { return false; };
-SymbolicAssign.prototype.isOne = function() { return false; };
+SymbolicWrite.prototype = Object.create(SymbolicNode.prototype);
 
-function SymbolicVar(c, type, name) {
+function SymbolicRead(c, type, name, spec) {
   let e = this;
   e.c = c;
   e.type = type;
   e.name = name;
-  e.cseKey = '_v' + simpleHash(e.type + ',' + e.name);
-  e.cseCost = 0.25;
+  e.spec = spec;
+  e.cseKey = '_r' + simpleHash(e.type + ',' + e.name);
 }
-SymbolicVar.prototype.isZero = function() { return false; };
-SymbolicVar.prototype.isOne = function() { return false; };
+SymbolicRead.prototype = Object.create(SymbolicNode.prototype);
 
 function SymbolicConst(c, type, value) {
   let e = this;
@@ -456,8 +294,43 @@ function SymbolicConst(c, type, value) {
   e.type = type;
   e.value = value;
   e.cseKey = '_c' + simpleHash(e.type + ',' + JSON.stringify(e.value));
-  e.cseCost = 0.25;
 }
+SymbolicConst.prototype = Object.create(SymbolicNode.prototype);
+
+function SymbolicExpr(c, op, args) {
+  let e = this;
+  e.c = c;
+  e.op = op;
+  e.args = args;
+  let ops = defops[op];
+  if (!ops) {
+    throw new Error(`No op named ${op}`);
+  }
+  e.opInfo = _.find(ops, (opInfo) => {
+    return opInfo.argTypes.length === args.length && _.every(_.range(opInfo.argTypes.length), (argi) => {
+      return args[argi].type === opInfo.argTypes[argi];
+    });
+  });
+  if (!e.opInfo) {
+    throw new Error(`Could not deduce arg types for ${op} ${
+      _.map(args, (arg) => arg.type).join(' ')
+    }`);
+  }
+  e.type = e.opInfo.retType;
+  e.cseKey = '_e' + simpleHash(e.type + ',' + e.op + ',' + _.map(e.args, (arg) => { return arg.cseKey; }).join(','));
+}
+SymbolicExpr.prototype = Object.create(SymbolicNode.prototype);
+
+
+// ----------------------------------------------------------------------
+
+SymbolicNode.prototype.isZero = function() {
+  return false;
+};
+SymbolicNode.prototype.isOne = function() {
+  return false;
+};
+
 SymbolicConst.prototype.isZero = function() {
   let e = this;
   if (e.type === 'double' && e.value === 0) return true;
@@ -471,611 +344,440 @@ SymbolicConst.prototype.isOne = function() {
   return false;
 };
 
-function SymbolicExpr(c, op, args) {
-  let e = this;
-  e.c = c;
-  e.op = op;
-  e.args = args;
-  if (!defops[op]) {
-    throw new Error('No op ' + op);
-  }
-  e.opInfo = _.find(defops[op], function(opInfo) {
-    return opInfo.argTypes.length === args.length && _.every(_.range(opInfo.argTypes.length), function(argi) {
-      return args[argi].type === opInfo.argTypes[argi];
-    });
-  });
-  if (!e.opInfo) {
-    throw new Error(`Could not deduce arg types for ${op} ${
-      _.map(args, function (arg) {
-        return arg.type;
-      }).join(' ')
-    }`);
-  }
-  e.type = e.opInfo.retType;
-  e.cseKey = '_e' + simpleHash(e.type + ',' + e.op + ',' + _.map(e.args, function(arg) { return arg.cseKey; }).join(','));
-  e.cseCost = 1.0;
-}
 SymbolicExpr.prototype.isZero = function() {
   let e = this;
   if (e.opInfo.impl.isZero) {
-    return e.opInfo.impl.isZero.call(e);
+    return e.opInfo.impl.isZero.apply(e, [c].concat(e.args));
   }
   return false;
 };
 SymbolicExpr.prototype.isOne = function() {
   let e = this;
   if (e.opInfo.impl.isOne) {
-    return e.opInfo.impl.isOne.call(e);
+    return e.opInfo.impl.isOne.apply(e, [c].concat(e.args));
   }
   return false;
 };
 
+// ----------------------------------------------------------------------
+
+SymbolicContext.prototype.getOrderedNodes = function() {
+  let c = this;
+  let ret = [];
+  _.each(c.writes, (a) => {
+    a.traverse(ret);
+  });
+  return ret;
+};
+
+SymbolicNode.prototype.traverse = function(inOrder) {
+  let e = this;
+  inOrder.push({node: e, deps: []});
+};
+
+SymbolicWrite.prototype.traverse = function(inOrder) {
+  let e = this;
+  e.value.traverse(inOrder);
+  inOrder.push({node: e, deps: [e.value]});
+};
+
+SymbolicExpr.prototype.traverse = function(inOrder) {
+  let e = this;
+  _.each(e.args, (arg) => {
+    arg.traverse(inOrder);
+  });
+  inOrder.push({node: e, deps: e.args});
+};
 
 // ----------------------------------------------------------------------
 
-defop('double',  'pow',             'double', 'double', {
-  imm: function(a, b) { return Math.pow(a,b); },
-  c: function(a, b) { return `pow(${a}, ${b})`; },
-});
-defop('double',  'sin',             'double', {
-  imm: function(a) { return Math.sin(a); },
-  c: function(a) { return `sin(${a})`; },
-  js: function(a) { return `Math.sin(${a})`; },
-  deriv: function(wrt, a) {
-    let c = this.c;
-    return c.E('*',
-               c.D(wrt, a),
-               c.E('cos', a));
-  },
-});
-defop('double',  '-sin',             'double', {
-  imm: function(a) { return -Math.sin(a); },
-  c: function(a) { return `-sin(${a})`; },
-  js: function(a) { return `-Math.sin(${a})`; },
-  deriv: function(wrt, a) {
-    let c = this.c;
-    return c.E('*',
-               c.D(wrt, a),
-               c.E('-cos', a));
-  },
-});
-defop('double',  'cos',             'double', {
-  imm: function(a) { return Math.cos(a); },
-  c: function(a) { return `cos(${a})`; },
-  js: function(a) { return `Math.cos(${a})`; },
-  deriv: function(wrt, a) {
-    let c = this.c;
-    return c.E('*',
-               c.D(wrt, a),
-               c.E('-sin', a));
-  },
-});
-defop('double',  '-cos',             'double', {
-  imm: function(a) { return -Math.cos(a); },
-  c: function(a) { return `-cos(${a})`; },
-  js: function(a) { return `-Math.cos(${a})`; },
-  deriv: function(wrt, a) {
-    let c = this.c;
-    return c.E('*',
-               c.D(wrt, a),
-               c.E('sin', a));
-  },
-});
-defop('double',  'tan',             'double', {
-  imm: function(a) { return Math.tan(a); },
-  c: function(a) { return `tan(${a})`; },
-});
-defop('double',  'exp',             'double', {
-  imm: function(a) { return Math.exp(a); },
-  c: function(a) { return `exp(${a})`; },
-  deriv: function(wrt, a) {
-    let c = this.c;
-    return c.E('*',
-               c.D(wrt, a),
-               this);
-  },
-});
-defop('double',  'log',             'double', {
-  imm: function(a) { return Math.log(a); },
-  c: function(a) { return `log(${a})`; },
-});
-
-defop('double',  '*',               'double', 'double', {
-  imm: function(a, b) { return a * b; },
-  c: function(a, b) { return `(${a} * ${b})`; },
-  js: function(a, b) { return `(${a} * ${b})`; },
-  replace: function() {
-    let a = this.args[0];
-    let b = this.args[1];
-    if (a.isZero()) return a;
-    if (b.isZero()) return b;
-    if (a.isOne()) return b;
-    if (b.isOne()) return a;
-  },
-  deriv: function(wrt, a, b) {
-    let c = this.c;
-    return c.E('+',
-               c.E('*', a, c.D(wrt, b)),
-               c.E('*', b, c.D(wrt, a)));
-  },
-});
-defop('double',  '+',               'double', 'double', {
-  imm: function(a, b) { return a + b; },
-  c: function(a, b) { return `(${a} + ${b})`; },
-  js: function(a, b) { return `(${a} + ${b})`; },
-  deriv: function(wrt, a, b) {
-    let c = this.c;
-    return c.E('+', c.D(wrt, a), c.D(wrt, b));
-  },
-  replace: function() {
-    let a = this.args[0];
-    let b = this.args[1];
-    if (a.isZero()) return b;
-    if (b.isZero()) return a;
-  },
-});
-defop('double',  '-',               'double', 'double', {
-  imm: function(a, b) { return a - b; },
-  c: function(a, b) { return `(${a} - ${b})`; },
-  js: function(a, b) { return `(${a} - ${b})`; },
-  deriv: function(wrt, a, b) {
-    let c = this.c;
-    return c.E('-', c.D(wrt, a), c.D(wrt, b));
-  },
-});
-defop('double',  '/',               'double', 'double', {
-  imm: function(a, b) { return a / b; },
-  c: function(a, b) { return `(${a} / ${b})`; },
-  js: function(a, b) { return `(${a} / ${b})`; },
-});
-defop('double',  'min',             'double', 'double', {
-  imm: function(a, b) { return Math.min(a, b); },
-  c: function(a, b) { return `min(${a}, ${b})`; },
-  js: function(a, b) { return `Math.min(${a}, ${b})`; },
-});
-defop('double',  'max',             'double', 'double', {
-  imm: function(a, b) { return Math.max(a, b); },
-  c: function(a, b) { return `max(${a}, ${b})`; },
-  js: function(a, b) { return `Math.max(${a}, ${b})`; },
-});
-
-defop('int',     '*',           'int', 'int', {
-  imm: function(a, b) { return a * b; },
-  c: function(a, b) { return `(${a} * ${b})`; },
-  js: function(a, b) { return `(${a} * ${b}`; }
-});
-defop('int',           '+',                 'int', 'int', {
-  imm: function(a, b) { return a + b; },
-  c: function(a, b) { return `(${a} + ${b})`; },
-  js: function(a, b) { return `(${a} + ${b})`; },
-});
-defop('int',           '-',                 'int', 'int', {
-  imm: function(a, b) { return a - b; },
-  c: function(a, b) { return `(${a} - ${b})`; },
-  js: function(a, b) { return `(${a} - ${b})`; },
-});
-defop('int',           '/',                 'int', 'int', {
-  imm: function(a, b) { let r = a / b; return (r < 0) ? Math.ceil(r) : Math.floor(r); }, // Math.trunc not widely supported
-  c: function(a, b) { return `(${a} / ${b})`; },
-  js: function(a, b) { return `Math.trunc(${a} / ${b})`; },
-});
-defop('int',           'min',         'int', 'int', {
-  imm: function(a, b) { return Math.min(a, b); },
-  c: function(a, b) { return `min(${a}, ${b})`; },
-  js: function(a, b) { return `Math.min(${a}, ${b})`; },
-});
-defop('int',           'max',         'int', 'int', {
-  imm: function(a, b) { return Math.max(a, b); },
-  c: function(a, b) { return `max(${a}, ${b})`; },
-  js: function(a, b) { return `Math.max(${a}, ${b})`; },
-});
-
-defop('double',  '(double)',    'int', {
-  imm: function(a) { return a; },
-  c: function(a) { return `(double)${a}`; },
-  js: function(a) { return a; },
-});
-defop('int',     '(int)',       'double', {
-  imm: function(a) { return Math.round(a); },
-  c: function(a) { return `(int)${a}`; },
-  js: function(a) { return `Math.round(${a})`; },
-});
-
-if (0) {
-  defop('double',  'sigmoid_01',  'double');
-  defop('double',  'sigmoid_11',  'double');
-  defop('double',  'sigmoid_22',  'double');
-}
-
-defop('double',  'sqrt',        'double', {
-  imm: function(a) { return Math.sqrt(a); },
-  c: function(a) { return `sqrt(${a})`; },
-  js: function(a) { return `Math.sqrt(${a})`; },
-});
-
-defop('arma::mat33',    'mat33RotationZ',   'double', {
-  imm: function(a) {
-    let ca = Math.cos(a);
-    let sa = Math.sin(a);
-    return [+ca, +sa, 0,
-            -sa, ca, 0,
-            0, 0, 1];
-  },
-  c: function(a) {
-    return `arma::mat33 { cos(${a}), sin(${a}), 0, -sin(${a}), cos(${a}), 0, 0, 0, 1 }`;
-  },
-  js: function(a) {
-    return `Float64Array.of( cos(${a}), sin(${a}), 0, -sin(${a}), cos(${a}), 0, 0, 0, 1 )`;
-  },
-});
-
-defop('jsonstr', 'jsonstr', 'jsonstr', {
-});
-
-// mat44
-
-defop('arma::mat44',        'arma::mat44',
-      'double', 'double', 'double', 'double',
-      'double', 'double', 'double', 'double',
-      'double', 'double', 'double', 'double',
-      'double', 'double', 'double', 'double', {
-        c: function(a00, a10, a20, a30, a01, a11, a21, a31, a02, a12, a22, a32, a03, a13, a23, a33) {
-          assert.ok(a33);
-          return (`arma::mat44 { ${a00}, ${a10}, ${a20}, ${a30},  ${a01}, ${a11}, ${a21}, ${a31},  ${a02}, ${a12}, ${a22}, ${a32},  ${a03}, ${a13}, ${a23}, ${a33}}`);
-        },
-        js: function(a00, a10, a20, a30, a01, a11, a21, a31, a02, a12, a22, a32, a03, a13, a23, a33) {
-          assert.ok(a33);
-          return (`Float64Array.of(${a00}, ${a10}, ${a20}, ${a30},  ${a01}, ${a11}, ${a21}, ${a31},  ${a02}, ${a12}, ${a22}, ${a32},  ${a03}, ${a13}, ${a23}, ${a33})`);
-        },
-        deriv: function(wrt) {
-          let c = this.c;
-          return c.E('arma::mat44',
-                     c.D(wrt, this.args[0]),
-                     c.D(wrt, this.args[1]),
-                     c.D(wrt, this.args[2]),
-                     c.D(wrt, this.args[3]),
-                     c.D(wrt, this.args[4]),
-                     c.D(wrt, this.args[5]),
-                     c.D(wrt, this.args[6]),
-                     c.D(wrt, this.args[7]),
-                     c.D(wrt, this.args[8]),
-                     c.D(wrt, this.args[9]),
-                     c.D(wrt, this.args[10]),
-                     c.D(wrt, this.args[11]),
-                     c.D(wrt, this.args[12]),
-                     c.D(wrt, this.args[13]),
-                     c.D(wrt, this.args[14]),
-                     c.D(wrt, this.args[15])
-                    );
-        },
-      });
-
-
-defop('arma::mat44',        'mat44RotationX',   'double', {
-  replace: function() {
-    let c = this.c;
-    let a = this.args[0];
-    if (a.isZero()) {
-      return c.Cm44(1);
-    }
-    return c.E('arma::mat44',
-               c.C('double', 1),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-
-               c.C('double', 0),
-               c.E('cos', a),
-               c.E('sin', a),
-               c.C('double', 0),
-
-               c.C('double', 0),
-               c.E('-sin', a),
-               c.E('cos', a),
-               c.C('double', 0),
-
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 1));
-
-  }
-});
-defop('arma::mat44',        'mat44RotationY',   'double', {
-  replace: function(wrt) {
-    let c = this.c;
-    let a = this.args[0];
-    if (a.isZero()) {
-      return c.Cm44(1);
-    }
-    return c.E('arma::mat44',
-               c.E('cos', a),
-               c.C('double', 0),
-               c.E('-sin', a),
-               c.C('double', 0),
-
-               c.C('double', 0),
-               c.C('double', 1),
-               c.C('double', 0),
-               c.C('double', 0),
-
-               c.E('sin', a),
-               c.C('double', 0),
-               c.E('cos', a),
-               c.C('double', 0),
-
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 1));
-  }
-});
-defop('arma::mat44',        'mat44RotationZ',   'double', {
-  replace: function(wrt) {
-    let c = this.c;
-    let a = this.args[0];
-    if (a.isZero()) {
-      return c.Cm44(1);
-    }
-    return c.E('arma::mat44',
-               c.E('cos', a),
-               c.E('sin', a),
-               c.C('double', 0),
-               c.C('double', 0),
-
-               c.E('-sin', a),
-               c.E('cos', a),
-               c.C('double', 0),
-               c.C('double', 0),
-
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 1),
-               c.C('double', 0),
-
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 1));
-  }
-});
-
-defop('arma::mat44',        'mat44Translation',   'double', 'double', 'double', {
-  replace: function(wrt) {
-    let c = this.c;
-    if (this.args[0].isZero() && this.args[1].isZero() && this.args[2].isZero()) {
-      return c.Cm44(1);
-    }
-    return c.E('arma::mat44',
-               c.C('double', 1),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 1),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 1),
-               c.C('double', 0),
-               this.args[0],
-               this.args[1],
-               this.args[2],
-               c.C('double', 1));
-  }
-});
-
-defop('arma::mat44',        'mat44Scale',   'double', 'double', 'double', {
-  replace: function(wrt) {
-    let c = this.c;
-    if (this.args[0].isZero() && this.args[1].isZero() && this.args[2].isZero()) {
-      return c.Cm44(0);
-    }
-    return c.E('arma::mat44',
-               this.args[0],
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               this.args[1],
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               this.args[2],
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 0),
-               c.C('double', 1));
-  }
-});
-
-defop('arma::mat44',        'mat44Rotation',   'arma::vec3', 'double', {
-  replace: function() {
-    let c = this.c;
-    if (this.args[1].isZero()) {
-      return c.Cm44(1);
-    }
-  },
-  js: function(a, b) {
-    return `Geom3D.mat44Rotation(${a}, ${b})`;
-  },
-});
-
-
-_.each([0,1,2,3], function(rowi) {
-  _.each([0,1,2,3], function(coli) {
-    defop('double',    `(${rowi},${coli})`,           'arma::mat44', {
-      c: function(a) {
-        return `(${a}(${rowi},${coli}))`;
-      },
-      js: function(a) {
-        return `(${a}[${rowi} + 4*${coli}))`;
-      },
-      deriv: function(wrt, a) {
-        let c = this.c;
-        return c.Cd(0);
-      }
-    });
+SymbolicContext.prototype.getDeps = function() {
+  let c = this;
+  let deps = {
+    fwd: {},
+    rev: {},
+    uses: {},
+    writes: {},
+    reads: {},
+    gradients: {},
+    totGradients: {},
+    inOrder: [],
+  };
+  _.each(c.writes, (a) => {
+    a.addDeps(deps);
   });
-});
+  return deps;
+};
 
+SymbolicNode.prototype.addDeps = function(deps) {
+  let e = this;
+  deps.uses[e.cseKey]++;
+  if (!deps.fwd[e.cseKey]) {
+    deps.fwd[e.cseKey] = [];
+    deps.gradients[e.cseKey] = [];
+    deps.inOrder.push(e);
+  }
+};
 
+SymbolicWrite.prototype.addDeps = function(deps) {
+  let e = this;
+  deps.writes[e.cseKey] = e;
+  deps.uses[e.cseKey]++;
+  if (!deps.fwd[e.cseKey]) {
+    deps.fwd[e.cseKey] = [e.value];
+    deps.gradients[e.cseKey] = [];
+    if (!deps.rev[e.value.cseKey]) deps.rev[e.value.cseKey] = [];
+    deps.rev[e.value.cseKey].push(e);
+    e.value.addDeps(deps);
+    deps.inOrder.push(e);
+  }
+};
 
-defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
-  c: function(a, b) {
-    return `(${a} * ${ b })`;
-  },
-  js: function(a, b) {
-    return `Geom3D.mul_mat44_mat44(${a}, ${b})`;
-  },
-  deriv: function(wrt, a, b) {
-    let c = this.c;
-    return c.E('+',
-               c.E('*', a, c.D(wrt, b)),
-               c.E('*', c.D(wrt, a), b));
-  },
-  replace: function() {
-    let a = this.args[0];
-    let b = this.args[1];
-    if (a.isZero()) return a;
-    if (b.isZero()) return b;
-    if (a.isOne()) return b;
-    if (b.isOne()) return a;
-  },
-  replace_tooExpensive: function(wrt) {
-    let c = this.c;
-    let a = this.args[0];
-    let b = this.args[1];
-    let args = ['arma::mat44'];
+SymbolicRead.prototype.addDeps = function(deps) {
+  let e = this;
+  deps.uses[e.cseKey]++;
+  if (!deps.fwd[e.cseKey]) {
+    deps.fwd[e.cseKey] = [];
+    deps.reads[e.cseKey] = e;
+    deps.gradients[e.cseKey] = [];
+    deps.inOrder.push(e);
+  }
+};
 
-    _.each([0,1,2,3], function(coli) {
-      _.each([0,1,2,3], function(rowi) {
-        args.push(c.E('+',
-                      c.E('+',
-                          c.E('*', c.matrixElem(a,rowi,0), c.matrixElem(b,0,coli)),
-                          c.E('*', c.matrixElem(a,rowi,1), c.matrixElem(b,1,coli))),
-                      c.E('+',
-                          c.E('*', c.matrixElem(a,rowi,2), c.matrixElem(b,2,coli)),
-                          c.E('*', c.matrixElem(a,rowi,3), c.matrixElem(b,3,coli)))));
-      });
+SymbolicExpr.prototype.addDeps = function(deps) {
+  let e = this;
+  deps.uses[e.cseKey]++;
+  if (!deps.fwd[e.cseKey]) {
+    deps.fwd[e.cseKey] = _.clone(e.args);
+    _.each(e.args, (arg) => {
+      if (!deps.rev[arg.cseKey]) deps.rev[arg.cseKey] = [];
+      deps.rev[arg.cseKey].push(e);
     });
-
-    return c.E.apply(c, args);
-  },
-  print: true,
-});
-
-defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4', {
-  c: function(a, b) {
-    return `(${a} * ${b})`;
-  },
-  js: function(a, b) {
-    return `Geom3D.mul_mat44_vec4(${a}, ${b})`;
-  },
-  deriv: function(wrt, a, b) {
-    let c = this.c;
-    return c.E('+',
-               c.E('*', a, c.D(wrt, b)),
-               c.E('*', c.D(wrt, a), b));
-  },
-  replace: function() {
-    let a = this.args[0];
-    let b = this.args[1];
-    if (b.isZero()) return b;
-    if (a.isOne()) return b;
-  },
-  print: true,
-});
-
-defop('arma::mat44',    '+',           'arma::mat44', 'arma::mat44', {
-  c: function(a, b) {
-    return `(${a} + ${b})`;
-  },
-  js: function(a, b) {
-    return `Geom3D.add_mat44_mat44(${a}, ${b})`;
-  },
-
-  replace: function() {
-    let a = this.args[0];
-    let b = this.args[1];
-    if (a.isZero()) return b;
-    if (b.isZero()) return a;
-  },
-  replace_tooExpensive: function(wrt) {
-    let c = this.c;
-    let a = this.args[0];
-    let b = this.args[1];
-    let args = ['arma::mat44'];
-
-    _.each([0,1,2,3], function(coli) {
-      _.each([0,1,2,3], function(rowi) {
-        args.push(c.E('+', c.matrixElem(a,rowi,coli), c.matrixElem(b,rowi,coli)));
-      });
+    _.each(e.args, (arg) => {
+      arg.addDeps(deps);
     });
+    deps.inOrder.push(e);
+    deps.gradients[e.cseKey] = [];
+  }
+};
 
-    return c.E.apply(c, args);
-  },
+// ----------------------------------------------------------------------
 
-});
+SymbolicNode.prototype[util.inspect.custom] = function(depth, opts) {
+  return `${this.cseKey}`;
+};
+
+SymbolicWrite.prototype[util.inspect.custom] = function(depth, opts) {
+  return `${this.cseKey}=write(${this.name}, ${this.value.cseKey})`;
+};
+
+SymbolicRead.prototype[util.inspect.custom] = function(depth, opts) {
+  return `${this.cseKey}=read(${this.name})`;
+};
+
+SymbolicExpr.prototype[util.inspect.custom] = function(depth, opts) {
+  return `${this.cseKey}=${this.op}(${_.map(this.args, (a) => a.cseKey).join(' ')})`;
+};
+
+// ----------------------------------------------------------------------
+
+SymbolicNode.prototype.getImm = function(vars) {
+  throw new Error(`Unknown expression type for getImm ${this.toString()}`);
+};
+
+SymbolicRead.prototype.getImm = function(vars) {
+  let e = this;
+  return vars[e.name];
+};
+
+SymbolicConst.prototype.getImm = function(vars) {
+  let e = this;
+  return e.value;
+};
+
+SymbolicExpr.prototype.getImm = function(vars) {
+  let e = this;
+
+  let argExprs = _.map(e.args, (arg) => {
+    return arg.getImm(vars);
+  });
+  return e.opInfo.impl.imm.apply(e, argExprs);
+};
+
+/* ----------------------------------------------------------------------
+  Taking derivatives
+*/
+
+SymbolicContext.prototype.D = function(wrt, e) {
+  let c = this;
+  assert.strictEqual(wrt.c, c);
+  assert.strictEqual(e.c, c);
+  return e.getDeriv(wrt);
+};
+
+SymbolicNode.prototype.getDeriv = function(wrt) {
+  throw new Error(`Unknown expression type for getDeriv ${e.toString()}`);
+};
+
+SymbolicRead.prototype.getDeriv = function(wrt) {
+  let e = this;
+  let c = e.c;
+  assert.strictEqual(wrt.c, c);
+  if (e === wrt) {
+    // Handle types here. For arma::mat44, should be an eye matrix
+    return c.C(e.type, 1);
+  } else {
+    // Handle types here. For arma::mat44, should be an all-zero matrix
+    return c.C(e.type, 0);
+  }
+};
+
+SymbolicConst.prototype.getDeriv = function(wrt) {
+  let e = this;
+  let c = e.c;
+
+  return c.C(e.type, 0);
+};
+
+SymbolicExpr.prototype.getDeriv = function(wrt) {
+  let e = this;
+  let c = e.c;
+
+  let derivFunc = e.opInfo.impl.deriv;
+  if (!derivFunc) throw new Error(`No deriv impl for ${e.op}`);
+  return derivFunc.apply(e, [c, wrt].concat(e.args));
+};
 
 
-if (0) {
-  defop('double',        'at',          'arma::mat22', 'int', 'int');
-  defop('double',        'at',          'arma::mat33', 'int', 'int');
-  defop('double',        'at',          'arma::mat44', 'int', 'int');
+/* ----------------------------------------------------------------------
+  Gradients
+*/
 
-  defop('double',        'at',          'arma::vec2', 'int');
-  defop('double',        'at',          'arma::vec3', 'int');
-  defop('double',        'at',          'arma::vec4', 'int');
+SymbolicContext.prototype.addGradient = function(wrMap, rdMap) {
+  let c = this;
+  let deps = c.getDeps();
 
-  defop('arma::mat22',    '*',           'arma::mat22', 'arma::mat22');
-  defop('arma::mat33',    '*',           'arma::mat33', 'arma::mat33');
+  _.each(deps.writes, function(wr) {
+    let gradName = wrMap(wr.name);
+    if (gradName && gradName !== wr.name) {
+      let g1 = c.V(wr.type, gradName);
+      wr.addGradient(deps, g1);
+    }
+  });
 
-  defop('arma::mat22',    '+',           'arma::mat22', 'arma::mat22');
-  defop('arma::mat33',    '+',           'arma::mat33', 'arma::mat33');
-  defop('arma::mat44',   '+',           'arma::mat44', 'arma::mat44');
+  let revOrder = _.clone(deps.inOrder).reverse();
 
-  defop('arma::mat22',    '-',           'arma::mat22', 'arma::mat22');
-  defop('arma::mat33',    '-',           'arma::mat33', 'arma::mat33');
-  defop('arma::mat44',   '-',           'arma::mat44', 'arma::mat44');
+  _.each(revOrder, function(node) {
+    node.backprop(deps);
+  });
 
-  defop('arma::vec2',    '*',           'arma::vec2', 'arma::vec2');
-  defop('arma::vec3',    '*',           'arma::vec3', 'arma::vec3');
-  defop('arma::vec4',    '*',           'arma::vec4', 'arma::vec4');
+  _.each(deps.reads, function(rd) {
+    let gradName = rdMap(rd.name);
+    if (gradName && gradName !== rd.name) {
+      c.A(gradName, rd.getGradient(deps));
+    }
+  });
+};
 
-  defop('arma::vec2',    '+',           'arma::vec2', 'arma::vec2');
-  defop('arma::vec3',    '+',           'arma::vec3', 'arma::vec3');
-  defop('arma::vec4',    '+',           'arma::vec4', 'arma::vec4');
+SymbolicNode.prototype.addGradient = function(deps, g) {
+  let e = this;
+  let c = e.c;
 
-  defop('arma::vec2',    '-',           'arma::vec2', 'arma::vec2');
-  defop('arma::vec3',    '-',           'arma::vec3', 'arma::vec3');
-  defop('arma::vec4',    '-',           'arma::vec4', 'arma::vec4');
+  deps.gradients[e.cseKey].push(g);
+};
 
-  defop('arma::mat33',    'inverse',     'arma::mat33');
-  defop('arma::mat44',   'inverse',     'arma::mat44');
-  defop('arma::mat33',    'transpose',   'arma::mat33');
+SymbolicNode.prototype.getGradient = function(deps) {
+  let e = this;
+  let c = e.c;
 
-  defop('arma::mat22',    '*',           'arma::mat22', 'double');
-  defop('arma::mat33',    '*',           'arma::mat33', 'double');
-  defop('arma::mat44',    '*',           'arma::mat44', 'double');
+  let totGradient = deps.totGradients[e.cseKey];
+  if (totGradient) return totGradient;
 
-  defop('arma::vec2',    '*',           'arma::mat22', 'arma::vec2');
-  defop('arma::vec3',    '*',           'arma::mat33', 'arma::vec3');
-  defop('arma::vec3',    '*',           'arma::mat44', 'arma::vec3');
-  defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4');
+  totGradient = null;
+  _.each(deps.gradients[e.cseKey], function(g1) {
+    if (totGradient === null) {
+      totGradient = g1;
+    } else {
+      totGradient = c.E('+', totGradient, g1);
+    }
+  });
+  if (totGradient === null) {
+    totGradient = c.C(e.type, 0);
+  }
+  if (0) console.log('getGradient', e, deps.gradients[e.cseKey], totGradient);
+  deps.totGradients[e.cseKey] = totGradient;
+  return totGradient;
+};
 
-  defop('arma::vec2',    '*',           'arma::vec2', 'double');
-  defop('arma::vec3',    '*',           'arma::vec3', 'double');
-  defop('arma::vec4',    '*',           'arma::vec4', 'double');
 
-  defop('arma::vec2',    '*',           'double', 'arma::vec2');
-  defop('arma::vec3',    '*',           'double', 'arma::vec3');
-  defop('arma::vec4',    '*',           'double', 'arma::vec4');
+SymbolicNode.prototype.backprop = function(deps) {
+  throw new Error(`Unknown backprop impl for ${util.inspect(e)}`);
+};
 
-  defop('arma::vec3',    'cross',       'arma::vec3', 'arma::vec3');
-  defop('float',         'dot',         'arma::vec3', 'arma::vec3');
+SymbolicRead.prototype.backprop = function(deps) {
+  let e = this;
+  let c = e.c;
+  let g = e.getGradient(deps);
+};
 
-}
+SymbolicWrite.prototype.backprop = function(deps) {
+  let e = this;
+  let c = e.c;
+  let g = e.getGradient(deps);
+  e.value.addGradient(deps, g);
+};
+
+SymbolicExpr.prototype.backprop = function(deps) {
+  let e = this;
+  let c = e.c;
+  let g = e.getGradient(deps);
+
+  let gradientFunc = e.opInfo.impl.gradient;
+  if (!gradientFunc) throw new Error(`No gradient impl for ${e.op}`);
+  return gradientFunc.apply(e, [c, deps, g].concat(e.args));
+};
+
+SymbolicConst.prototype.backprop = function(deps) {
+  let e = this;
+  let c = e.c;
+  // nothing
+};
+
+
+/*
+  Emitting code
+*/
+
+SymbolicNode.prototype.emitCses = function(deps, f, availCses) {
+  // nothing
+};
+
+SymbolicWrite.prototype.emitCses = function(deps, f, availCses) {
+  let e = this;
+
+  e.value.emitCses(deps, f, availCses);
+};
+
+SymbolicExpr.prototype.emitCses = function(deps, f, availCses) {
+  let e = this;
+  let c = e.c;
+
+  if (!availCses[e.cseKey]) {
+    _.each(e.args, (arg) => {
+      arg.emitCses(deps, f, availCses);
+    });
+    if (deps.rev[e.cseKey].length > 1) {
+      // Wrong for composite types, use TypeRegistry
+      if (c.lang === 'c') {
+        f(e.type + ' ' + e.cseKey + ' = ' + e.getExpr(availCses) + ';');
+      }
+      else if (c.lang === 'js') {
+        f('let ' + e.cseKey + ' = ' + e.getExpr(availCses) + ';');
+      }
+      if (e.printName) {
+        f(`eprintf("${e.printName} ${e.cseKey} = %s\\n", asJson(${e.cseKey}).it.c_str());`);
+      }
+      availCses[e.cseKey] = true;
+    }
+  }
+};
+
+
+SymbolicWrite.prototype.emitCode = function(deps, f, availCses) {
+  let e = this;
+
+  e.emitCses(deps, f, availCses);
+  f(`${e.name} = ${e.value.getExpr(availCses)};`);
+};
+
+
+SymbolicRead.prototype.getExpr = function(availCses) {
+  return this.name;
+};
+
+SymbolicConst.prototype.getExpr = function(availCses) {
+  let e = this;
+  let c = e.c;
+  if (e.type === 'double' || e.type === 'int') {
+    return e.value.toString();
+  }
+  else if (e.type === 'string') {
+    if (c.lang === 'c') {
+      return `string(${JSON.stringify(e.value)})`;
+    }
+    else if (c.lang === 'js') {
+      return JSON.stringify(e.value);
+    }
+  }
+  else if (e.type === 'arma::mat44' && (e.value === 'zeros' || e.value === 0)) {
+    if (c.lang === 'c') {
+      return e.type + '(arma::fill::zeros)';
+    }
+    else if (c.lang === 'js') {
+      return 'Float64Array.of(0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0)';
+    }
+  }
+  else if (e.type === 'arma::mat44' && (e.value === 'eye' || e.value === 1)) {
+    if (c.lang === 'c') {
+      return e.type + '(arma::fill::eye)';
+    }
+    else if (c.lang === 'js') {
+      return 'Float64Array.of(1.0, 0.0, 0.0, 0.0,   0.0, 1.0, 0.0, 0.0,   0.0, 0.0, 1.0, 0.0,   0.0, 0.0, 0.0, 1.0)';
+    }
+  }
+  else if (e.type === 'arma::mat44' && e.value.length === 16) {
+    if (c.lang === 'c') {
+      return e.type + `{${_.map(e.value, (v) => { return v.toString(); }).join(', ')}}`;
+    }
+    else if (c.lang === 'js') {
+      return `Float64Array.of(${_.map(e.value, (v) => { return v.toString(); }).join(', ')})`;
+    }
+  }
+  else if ((e.type === 'arma::vec4' && e.value.length === 4) ||
+    (e.type=== 'arma::vec3' && e.value.length === 3) ||
+    (e.type=== 'arma::vec2' && e.value.length === 2)) {
+    if (c.lang === 'c') {
+      return e.type + `{${_.map(e.value, (v) => { return v.toString(); }).join(', ')}}`;
+    }
+    else if (c.lang === 'js') {
+      return `Float64Array.of(${_.map(e.value, (v) => { return v.toString(); }).join(', ')})`;
+    }
+  }
+  else if (e.type === 'vector< double >') {
+    if (c.lang === 'c') {
+      return e.type + `{${_.map(e.value, (v) => { return v.toString(); }).join(', ')}}`;
+    }
+    else if (c.lang === 'js') {
+      return `Float64Array.of(${_.map(e.value, (v) => { return v.toString(); }).join(', ')})`;
+    }
+  }
+  else if (e.type === 'jsonstr' && _.isObject(e.value)) {
+    if (c.lang === 'js') {
+      return JSON.stringify(e.value);
+    }
+    else if (c.lang === 'c') {
+      return `jsonstr("${JSON.stringify(e.value)}")`;
+    }
+  }
+  else {
+    throw new Error(`Cannot generate constant of type ${e.type} and value ${e.value}. You can add this case in SymbolicContext.getExpr.`);
+  }
+  return `(${e.type} { ${e.value.toString()} })`;
+};
+
+SymbolicExpr.prototype.getExpr = function(availCses) {
+  let e = this;
+  let c = e.c;
+
+  if (availCses && availCses[e.cseKey]) {
+    return e.cseKey;
+  }
+  let argExprs = _.map(e.args, (arg) => {
+    return arg.getExpr(availCses);
+  });
+  let impl = e.opInfo.impl[c.lang];
+  if (!impl) {
+    throw new Error(`No ${c.lang} impl for ${e.opInfo.op}`);
+  }
+  return impl.apply(e, argExprs);
+};

@@ -5,6 +5,8 @@ const async = require('async');
 const cgen = require('./cgen');
 const gen_marshall = require('./gen_marshall');
 const symbolic_math = require('./symbolic_math');
+require('./symbolic_ops_core');
+require('./symbolic_ops_arma');
 
 
 function main() {
