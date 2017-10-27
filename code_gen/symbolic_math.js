@@ -72,19 +72,26 @@ function SymbolicContext(typereg, name, inargs, outargs, lang) {
   c.postCode = [];
   c.preDefn = [];
   c.arrayBuilder = {};
+  c.argTypes = {};
   if (c.typereg) {
     c.registerWrapper();
+    _.each(c.inargs, (argInfo) => {
+      c.argTypes[argInfo[0]] = typereg.getType(argInfo[1]);
+    });
+    _.each(c.outargs, (argInfo) => {
+      c.argTypes[argInfo[0]] = typereg.getType(argInfo[1]);
+    });
   }
   c.defop = defop;
 }
 
 SymbolicContext.prototype.checkArgs = function() {
   let c = this;
-  _.each(c.inargs, (arginfo) => {
-    assert.ok(arginfo[1] in c.typereg.types);
+  _.each(c.inargs, (argInfo) => {
+    assert.ok(argInfo[1] in c.typereg.types);
   });
-  _.each(c.outargs, (arginfo) => {
-    assert.ok(arginfo[1] in c.typereg.types);
+  _.each(c.outargs, (argInfo) => {
+    assert.ok(argInfo[1] in c.typereg.types);
   });
 };
 
@@ -166,9 +173,86 @@ SymbolicContext.prototype.dedup = function(e) {
   return e;
 };
 
-
-SymbolicContext.prototype.V = function(type, name) {
+SymbolicContext.prototype.lookupName = function(type, name, typeAttributes) {
   let c = this;
+  if (!c.typereg) return null;
+  let subName = '.'+name;
+  let level = 0;
+  let subType = null;
+  while (subName.length) {
+    let m;
+
+    if ((m = /^\.([\w_]+)(.*)$/.exec(subName))) {
+      if (level === 0) {
+        subType = c.argTypes[m[1]];
+        if (!subType) {
+          console.warn(`lookupName: Can't resolve ${m[1]} (within ${name}, level=${level}): no type. argTypes=${
+            util.inspect(_.mapObject(c.argTypes, (t) => (t && t.typename)))
+          }`);
+          return null;
+        }
+      } else {
+        if (subType.typename === 'jsonstr') {
+          return {typename: type};
+        }
+        else if (!subType.nameToType) {
+          console.warn(`lookupName: looking inside ${subType.typename}: not a struct`);
+          return null;
+        }
+        let subSubType = subType.nameToType[m[1]];
+
+        if (!subSubType && subType.autoCreate && m[2] === '') {
+          subType.add(m[1], type, typeAttributes);
+          subSubType = subType.nameToType[m[1]];
+        }
+        subType = subSubType;
+      }
+      if (!subType) {
+        console.warn(`lookupName: Can't resolve ${m[1]} (within ${name}, level=${level}): no type.`);
+        return null;
+      }
+      subName = m[2];
+    }
+    else if ((m = /^\[(\d+)\](.*)$/.exec(subName))) {
+      if (level === 0) {
+        console.warn(`lookupName: starting with array access in ${name}`);
+        return null;
+      }
+      else if (subType.templateName === 'arma::Col' ||
+        subType.templateName === 'arma::Row' ||
+        subType.templateName === 'arma::Mat' ||
+        subType.templateName === 'vector') {
+        let subSubType = subType.templateArgTypes[0];
+        if (!subSubType) {
+          console.warn(`lookupName: Can't resolve ${m[1]} (within ${name}): no template args for ${subType.typename}`);
+          return null;
+        }
+        subType = subSubType;
+        subName = m[2];
+      }
+    }
+    else {
+      throw new Error(`lookupName: Can't parse ${name} (at ${subName})`);
+    }
+    level ++;
+  }
+  return subType;
+};
+
+
+SymbolicContext.prototype.V = function(type, name, typeAttributes) {
+  let c = this;
+
+  if (c.typereg) {
+    let resolved = c.lookupName(type, name, typeAttributes);
+    if (!resolved) {
+      console.warn(`Read(${name}): couldn't resolve name, assuming type provided ${type}`);
+    }
+    else if (resolved.typename !== type && resolved.typename !== c.typereg.getType(type).typename) {
+      console.warn(`SymbolicRead(${name}): expected type ${type}, got type ${resolved.typename}`);
+    }
+  }
+
   let e = c.dedup(new SymbolicRead(c, type, name));
   c.reads[e.cseKey] = e;
   return e;
@@ -181,6 +265,7 @@ SymbolicContext.prototype.Vm33 = function(name) { return this.V('arma::mat33', n
 SymbolicContext.prototype.Vm44 = function(name) { return this.V('arma::mat44', name); };
 SymbolicContext.prototype.Vv3 = function(name) { return this.V('arma::vec3', name); };
 SymbolicContext.prototype.Vv4 = function(name) { return this.V('arma::vec4', name); };
+
 
 
 SymbolicContext.prototype.A = function(name, value) {

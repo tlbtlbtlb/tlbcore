@@ -192,3 +192,8 @@ jsonstr interpolate(jsonstr const &a, jsonstr const &b, double cb)
 {
   return (cb >= 0.5) ? b : a;
 }
+
+jsonstr addGradient(jsonstr const &a, jsonstr const &grad, double learningRate)
+{
+  return a; // WRITEME someday
+}

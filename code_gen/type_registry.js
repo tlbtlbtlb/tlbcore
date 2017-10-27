@@ -528,9 +528,12 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
   let hl = files.getFile(`symbolics_${ typereg.groupname }.h`);
 
   // Make a list of all includes: collect all types for all functions, then collect the customerIncludes for each type, and remove dups
-  let allIncludes = _.uniq(_.flatten(_.map(_.flatten(_.map(typereg.symbolics.c, function(func) { return func.getAllTypes(); })), function(typename) {
+  let allTypes = _.uniq(_.flatten(_.map(typereg.symbolics.c, (func) => {
+    return func.getAllTypes();
+  })));
+  let allIncludes = _.uniq(_.flatten(_.map(allTypes, (typename) => {
     let type = typereg.types[typename];
-    if (!type) throw new Error('No such type ' + typename);
+    if (!type) throw new Error(`No such type ${typename}`);
     return type.getCustomerIncludes();
   })));
   _.each(allIncludes, function(incl) {

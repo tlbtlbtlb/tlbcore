@@ -58,6 +58,7 @@ struct jsonstr {
 ostream & operator<<(ostream &s, jsonstr const &obj);
 
 jsonstr interpolate(jsonstr const &a, jsonstr const &b, double cb);
+jsonstr addGradient(jsonstr const &a, jsonstr const &grad, double learningRate);
 
 #include "./jsonio_parse.h"
 #include "./jsonio_types.h"

@@ -283,6 +283,7 @@ StructCType.prototype.emitTypeDecl = function(f) {
     };
 
     ${type.typename} interpolate(${type.typename} const &a, ${type.typename} const &b, double cb);
+    ${type.typename} addGradient(${type.typename} const &a, ${type.typename} const &b, double learningRate);
 
     char const * getTypeVersionString(${type.typename} const &);
     char const * getTypeName(${type.typename} const &);
@@ -548,14 +549,14 @@ StructCType.prototype.emitHostImpl = function(f) {
 
       f(`
         ${type.typename} interpolate(${type.typename} const &a, ${type.typename} const &b, double cb) {
-        if (cb == 0.0) {
-          return a;
-        }
-        else if (cb == 1.0) {
-          return b;
-        }
-        else {
-          ${type.typename} out(a);
+          if (cb == 0.0) {
+            return a;
+          }
+          else if (cb == 1.0) {
+            return b;
+          }
+          else {
+            ${type.typename} out(a);
       `);
       _.each(rm, function(members, et) {
         let ett = type.reg.types[et];
@@ -569,6 +570,25 @@ StructCType.prototype.emitHostImpl = function(f) {
       f(`
             return out;
           }
+        }
+      `);
+
+
+      f(`
+        ${type.typename} addGradient(${type.typename} const &a, ${type.typename} const &grad, double learningRate) {
+          ${type.typename} out(a);
+      `);
+      _.each(rm, function(members, et) {
+        let ett = type.reg.types[et];
+        if (ett.isPtr()) return;
+        _.each(members, function(names) {
+          f(`
+          out.${mkMemberRef(names)} = addGradient(a.${mkMemberRef(names)}, grad.${mkMemberRef(names)}, learningRate);
+          `);
+        });
+      });
+      f(`
+          return out;
         }
       `);
     }

@@ -115,3 +115,70 @@ arma::Row< T > interpolate(arma::Row< T > const &a, arma::Row< T > const &b, dou
 {
   return a + ((b-a) * cb);
 }
+
+
+static inline double addGradient(double const &a, double const &grad, double learningRate)
+{
+  return a + grad * learningRate;
+}
+static inline float addGradient(float const &a, float const &grad, double learningRate)
+{
+  return a + grad * learningRate;
+}
+
+static inline S64 addGradient(S64 const &a, S64 const &grad, double learningRate)
+{
+  return a + S64((double)(grad) * learningRate);
+}
+static inline S32 addGradient(S32 const &a, S32 const &grad, double learningRate)
+{
+  return a + S32((double)(grad) * learningRate);
+}
+
+static inline U64 addGradient(U64 const &a, U64 const &grad, double learningRate)
+{
+  return (U64)((S64)a + S64((double)(grad * learningRate)));
+}
+static inline U32 addGradient(U32 const &a, U32 const &grad, double learningRate)
+{
+  return (U32)((S32)a + S32((double)(grad * learningRate)));
+}
+
+static inline string addGradient(string const &a, string const &grad, double learningRate)
+{
+  return a; // WRITEME
+}
+
+template<typename T>
+map<string, T> addGradient(map<string, T> const &a, map<string, T> const &grad, double learningRate)
+{
+  return a; // WRITEME
+}
+
+template<typename T>
+vector< T > addGradient(vector< T > const &a, vector< T > const &grad, double learningRate)
+{
+  assert(a.size() == grad.size());
+  vector< T > ret(a.size());
+  for (size_t i = 0; i < a.size(); i++) {
+    ret[i] = addGradient(a[i], grad[i], learningRate);
+  }
+  return ret;
+}
+
+
+template<typename T>
+arma::Col< T > addGradient(arma::Col< T > const &a, arma::Col< T > const &grad, double learningRate)
+{
+  return a + (grad * learningRate);
+}
+template<typename T>
+arma::Mat< T > addGradient(arma::Mat< T > const &a, arma::Mat< T > const &grad, double learningRate)
+{
+  return a + (grad * learningRate);
+}
+template<typename T>
+arma::Row< T > addGradient(arma::Row< T > const &a, arma::Row< T > const &grad, double learningRate)
+{
+  return a + (grad * learningRate);
+}
