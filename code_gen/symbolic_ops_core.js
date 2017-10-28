@@ -1,6 +1,7 @@
 /*
   Declare standard ops. You can declare more by importing symbolic_math.defop
 */
+'use strict';
 const _ = require('underscore');
 const util = require('util');
 const cgen = require('./cgen');

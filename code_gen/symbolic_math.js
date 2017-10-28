@@ -431,6 +431,7 @@ SymbolicConst.prototype.isOne = function() {
 
 SymbolicExpr.prototype.isZero = function() {
   let e = this;
+  let c = e.c;
   if (e.opInfo.impl.isZero) {
     return e.opInfo.impl.isZero.apply(e, [c].concat(e.args));
   }
@@ -438,6 +439,7 @@ SymbolicExpr.prototype.isZero = function() {
 };
 SymbolicExpr.prototype.isOne = function() {
   let e = this;
+  let c = e.c;
   if (e.opInfo.impl.isOne) {
     return e.opInfo.impl.isOne.apply(e, [c].concat(e.args));
   }
@@ -601,6 +603,7 @@ SymbolicContext.prototype.D = function(wrt, e) {
 };
 
 SymbolicNode.prototype.getDeriv = function(wrt) {
+  let e = this;
   throw new Error(`Unknown expression type for getDeriv ${e.toString()}`);
 };
 
@@ -696,6 +699,7 @@ SymbolicNode.prototype.getGradient = function(deps) {
 
 
 SymbolicNode.prototype.backprop = function(deps) {
+  let e = this;
   throw new Error(`Unknown backprop impl for ${util.inspect(e)}`);
 };
 

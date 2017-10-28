@@ -3,6 +3,7 @@ const _ = require('underscore');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const logio = require('../common/logio');
 
 exports.getHostname = getHostname;
 exports.getServerInfo = getServerInfo;

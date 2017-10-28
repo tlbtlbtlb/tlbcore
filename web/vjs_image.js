@@ -134,8 +134,8 @@ function syncPendingFiles() {
     logio.O('os', cmd);
 
     child_process.exec(cmd, function(err, stdout, stderr) {
-      if (err) logio.E(destName, 'rsync exec error');
-      if (stderr && stderr.length) logio.E(destName, stderr);
+      if (err) logio.E(destInfo.name, 'rsync exec error');
+      if (stderr && stderr.length) logio.E(destInfo.name, stderr);
       parCb(null);
     });
 
