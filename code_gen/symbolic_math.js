@@ -346,6 +346,47 @@ SymbolicContext.prototype.emitCode = function(f) {
   });
 };
 
+// ----------------------------------------------------------------------
+
+SymbolicContext.prototype.withGradients = function(newName, wrMap, rdMap) {
+  let c = this;
+  let ctx = {
+    newName,
+    copied: new Map(),
+  };
+
+  let newOutargs = _.clone(c.outargs);
+  let newInargs = _.clone(c.inargs);
+  _.each(c.outargs, function(wr) {
+    let gradName = wrMap(wr[0]);
+    if (gradName && gradName !== wr[0]) {
+      newInargs.push([gradName, wr[1]]);
+    }
+  });
+  _.each(c.inargs, function(rd) {
+    let gradName = rdMap(rd[0]);
+    if (gradName && gradName !== rd[0]) {
+      newOutargs.push([gradName, rd[1]]);
+    }
+  });
+
+  let c2 = c.typereg.addSymbolic(newName, newInargs, newOutargs, c.lang);
+  ctx.c = c2;
+  c2.preCode = c.preCode;
+  c2.postCode = c.postCode;
+  c2.preDefn = c.preDefn;
+  c2.writes = _.object(_.map(c.writes, (wr) => {
+    let wr2 = wr.deepCopy(ctx);
+    return [wr2.cseKey, wr2];
+  }));
+  c2.reads = _.object(_.map(c.reads, (rd) => {
+    let rd2 = rd.deepCopy(ctx);
+    return [rd2.cesKey, rd2];
+  }));
+
+  c2.addGradients(wrMap, rdMap);
+  return c2;
+};
 
 // ----------------------------------------------------------------------
 
@@ -475,6 +516,36 @@ SymbolicExpr.prototype.traverse = function(inOrder) {
   });
   inOrder.push({node: e, deps: e.args});
 };
+
+// ----------------------------------------------------------------------
+
+SymbolicNode.prototype.deepCopy = function(ctx) {
+  let e = this;
+  let copy = ctx.copied.get(e.cseKey);
+  if (!copy) {
+    copy = e.deepCopy1(ctx);
+    ctx.copied.set(e.cseKey, copy);
+  }
+  return copy;
+};
+
+
+SymbolicRead.prototype.deepCopy1 = function(ctx) {
+  let e = this;
+  return new SymbolicRead(ctx.c, e.type, e.name, e.spec);
+};
+
+SymbolicWrite.prototype.deepCopy = function(ctx) {
+  let e = this;
+  return new SymbolicWrite(ctx.c, e.type, e.name, e.value.deepCopy(ctx));
+};
+
+SymbolicExpr.prototype.deepCopy = function(ctx) {
+  let e = this;
+  return new SymbolicExpr(ctx.c, e.op, _.map(e.args, (arg) => {
+    return arg.deepCopy(ctx);
+  }));
+}
 
 // ----------------------------------------------------------------------
 
@@ -641,15 +712,18 @@ SymbolicExpr.prototype.getDeriv = function(wrt) {
   Gradients
 */
 
-SymbolicContext.prototype.addGradient = function(wrMap, rdMap) {
+SymbolicContext.prototype.addGradients = function(wrMap, rdMap) {
   let c = this;
   let deps = c.getDeps();
 
   _.each(deps.writes, function(wr) {
     let gradName = wrMap(wr.name);
     if (gradName && gradName !== wr.name) {
+      console.log(`${c.name}: Add wr gradient for ${wr.name} => ${gradName}`);
       let g1 = c.V(wr.type, gradName);
       wr.addGradient(deps, g1);
+    } else {
+      console.log(`${c.name}: No wr gradient for ${wr.name}`);
     }
   });
 
@@ -662,7 +736,10 @@ SymbolicContext.prototype.addGradient = function(wrMap, rdMap) {
   _.each(deps.reads, function(rd) {
     let gradName = rdMap(rd.name);
     if (gradName && gradName !== rd.name) {
+      console.log(`${c.name}: Add rd gradient for ${rd.name} => ${gradName}`);
       c.A(gradName, rd.getGradient(deps));
+    } else {
+      console.log(`${c.name}: No rd gradient for ${rd.name}`);
     }
   });
 };

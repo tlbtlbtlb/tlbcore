@@ -570,13 +570,15 @@ TypeRegistry.prototype.addWrapFunction = function(desc, funcScope, funcname, fun
   if (!(jsFuncname in typereg.wrapFunctions)) {
     typereg.wrapFunctions[jsFuncname] = [];
   }
-  typereg.wrapFunctions[jsFuncname].push({desc: desc,
-                                          funcScope: funcScope,
-                                          funcname: funcname,
-                                          funcTemplate: funcTemplate,
-                                          funcInvocation: funcScope + funcname + (funcTemplate.length ? '< ' + funcTemplate + ' >' : ''),
-                                          returnType: returnType,
-                                          args: args});
+  typereg.wrapFunctions[jsFuncname].push({
+    desc,
+    funcScope,
+    funcname,
+    funcTemplate,
+    funcInvocation: funcScope + funcname + (funcTemplate.length ? '< ' + funcTemplate + ' >' : ''),
+    returnType,
+    args,
+  });
 };
 
 TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs, lang) {
