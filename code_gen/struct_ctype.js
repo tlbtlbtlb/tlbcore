@@ -902,6 +902,8 @@ StructCType.prototype.emitRdJson = function(f) {
             c = *ctx.s++;
             if (c == ',') continue;
             if (c == '}') return typeOk || ctx.noTypeCheck;
+          } else {
+            return false;
           }
         `);
       };
