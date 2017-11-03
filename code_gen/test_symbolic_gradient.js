@@ -31,7 +31,7 @@ describe('symbolic_math', function() {
 
     c.A('act.a1', a1);
 
-    c.addGradient(
+    c.addGradients(
       (name) => name.replace(/^act\./, 'actGrad.'),
       (name) => name.replace(/^conf\./, 'confGrad.'));
 
@@ -85,9 +85,10 @@ describe('symbolic_math', function() {
     assert.strictEqual(Config.nameToType.fb1, typereg.getType('double'));
     assert.strictEqual(Config.nameToType.fb2, typereg.getType('double'));
 
-    c.addGradient(
+    c.addGradients(
       (name) => name.replace(/^act\./, 'actGrad.'),
-      (name) => name.replace(/^conf\./, 'confGrad.'));
+      (name) => name.replace(/^conf\./, 'confGrad.')
+    );
 
     let gen = cgen.mkCodeGen(null, {});
     Config.emitTypeDecl(gen);
