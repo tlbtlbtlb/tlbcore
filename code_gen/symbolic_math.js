@@ -545,7 +545,7 @@ SymbolicExpr.prototype.deepCopy = function(ctx) {
   return new SymbolicExpr(ctx.c, e.op, _.map(e.args, (arg) => {
     return arg.deepCopy(ctx);
   }));
-}
+};
 
 // ----------------------------------------------------------------------
 
