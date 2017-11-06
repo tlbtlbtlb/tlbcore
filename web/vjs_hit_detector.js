@@ -51,11 +51,12 @@ HitDetector.prototype.mouseIn = function(t, r, b, l) {
 HitDetector.prototype.add = function(t, r, b, l, actions) {
   let hd = this;
   if (!(l <= r && t <= b)) {
-    throw new Error('HitDetector region (' + t.toString() + ',' + r.toString() + ',' + b.toString() + ',' + l.toString() + ') invalid');
+    throw new Error(`HitDetector region (${t.toString()},${r.toString()},${b.toString()},${l.toString()}) invalid`);
   }
   let inside = hd.mouseIn(t, r, b, l);
   if (actions.onClick || actions.onDown || actions.onUp) {
-    hd.hits.push({t: t, r: r, b: b, l: l, actions: actions});
+    let priority = (b - t) * (r - l) * (actions.priorityFactor || 1);
+    hd.hits.push({t, r, b, l, actions, priority});
   }
   if (actions.draw || actions.drawDown) {
     hd.ctx.save();
@@ -76,7 +77,8 @@ HitDetector.prototype.add = function(t, r, b, l, actions) {
 
 HitDetector.prototype.addScroll = function(t, r, b, l, actions) {
   let hd = this;
-  hd.scrolls.push({t: t, r: r, b: b, l: l, actions: actions});
+  let priority = (b - t) * (r - l) * (actions.priorityFactor || 1);
+  hd.scrolls.push({t, r, b, l, actions, priority});
 };
 
 HitDetector.prototype.addDefault = function(actions) {
@@ -91,14 +93,13 @@ HitDetector.prototype.find = function(x, y) {
   let hd = this;
   let hits = hd.hits;
   let hitsLen = hits.length;
-  let bestArea = 1e9;
+  let bestPriority = 1e9;
   let bestActions = null;
   for (let i=0; i<hitsLen; i++) {
     let hit = hits[i];
-    if (x >= hit.l && x <= hit.r &&
-        y >= hit.t && y <= hit.b) {
-      let area = (hit.r - hit.l) * (hit.b - hit.t);
-      if (area < bestArea) {
+    if (x >= hit.l && x <= hit.r && y >= hit.t && y <= hit.b) {
+      if (hit.priority < bestPriority) {
+        bestPriority = hit.priority;
         bestActions = hit.actions;
       }
     }
@@ -110,12 +111,16 @@ HitDetector.prototype.findScroll = function(x, y) {
   let hd = this;
   let scrolls = hd.scrolls;
   let scrollsLen = scrolls.length;
+  let bestPriority = 1e9;
+  let bestActions = null;
   for (let i=0; i<scrollsLen; i++) {
     let scroll = scrolls[i];
-    if (x >= scroll.l && x <= scroll.r &&
-        y >= scroll.t && y <= scroll.b) {
-      return scroll.actions;
+    if (x >= scroll.l && x <= scroll.r && y >= scroll.t && y <= scroll.b) {
+      if (scroll.priority < bestPriority) {
+        bestPriority = scroll.priority;
+        bestActions = scroll.actions;
+      }
     }
   }
-  return null;
+  return bestActions;
 };
