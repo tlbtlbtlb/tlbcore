@@ -1,6 +1,7 @@
 /*
   Window functions. See https://en.wikipedia.org/wiki/Window_function and https://en.wikipedia.org/wiki/Mollifier
 */
+'use strict';
 
 exports.getNamed = getNamed;
 
