@@ -26,12 +26,30 @@ ObjectCType.prototype.getSynopsis = function() {
 };
 
 
-ObjectCType.prototype.getAllZeroExpr = function() {
-  return `nullptr`;
-};
+ObjectCType.prototype.getValueExpr = function(lang, value) {
+  let type = this;
 
-ObjectCType.prototype.getAllNanExpr = function() {
-  return `nullptr`;
+  if (value === 0) {
+    switch(lang) {
+
+      case 'c':
+        return `nullptr`;
+
+      case 'js':
+      case 'jsn':
+        return 'null';
+
+      default:
+        barf();
+    }
+  }
+  else {
+    barf();
+  }
+
+  function barf() {
+    throw new Error(`Unhandled value ${value} for type ${type.typename} in language ${lang}`);
+  }
 };
 
 ObjectCType.prototype.getExampleValueJs = function() {

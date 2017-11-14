@@ -34,6 +34,7 @@ defop('int',     '(int)',       'double', {
 defop('double',  'pow',             'double', 'double', {
   imm: function(a, b) { return Math.pow(a,b); },
   c: function(a, b) { return `pow(${a}, ${b})`; },
+  js: function(a,b) { return `Math.pow(${a}, ${b})`; },
 });
 defop('double',  'sin',             'double', {
   imm: function(a) { return Math.sin(a); },
@@ -48,16 +49,6 @@ defop('double',  'sin',             'double', {
     a.addGradient(deps, c.E('*', g, c.E('cos', a)));
   },
 });
-defop('double',  '-sin',             'double', {
-  imm: function(a) { return -Math.sin(a); },
-  c: function(a) { return `-sin(${a})`; },
-  js: function(a) { return `-Math.sin(${a})`; },
-  deriv: function(c, wrt, a) {
-    return c.E('*',
-      c.D(wrt, a),
-      c.E('-cos', a));
-  },
-});
 defop('double',  'cos',             'double', {
   imm: function(a) { return Math.cos(a); },
   c: function(a) { return `cos(${a})`; },
@@ -65,17 +56,7 @@ defop('double',  'cos',             'double', {
   deriv: function(c, wrt, a) {
     return c.E('*',
       c.D(wrt, a),
-      c.E('-sin', a));
-  },
-});
-defop('double',  '-cos',             'double', {
-  imm: function(a) { return -Math.cos(a); },
-  c: function(a) { return `-cos(${a})`; },
-  js: function(a) { return `-Math.cos(${a})`; },
-  deriv: function(c, wrt, a) {
-    return c.E('*',
-      c.D(wrt, a),
-      c.E('sin', a));
+      c.E('-', c.E('sin', a)));
   },
 });
 defop('double',  'tan',             'double', {
@@ -89,6 +70,9 @@ defop('double',  'exp',             'double', {
     return c.E('*',
       c.D(wrt, a),
       this);
+  },
+  gradient: function(c, deps, g, a) {
+    a.addGradient(deps, c.E('*', g, this));
   },
 });
 defop('double',  'log',             'double', {
@@ -112,14 +96,32 @@ defop('double',  '*',               'double', 'double', {
   },
   deriv: function(c, wrt, a, b) {
     return c.E('+',
-               c.E('*', a, c.D(wrt, b)),
-               c.E('*', b, c.D(wrt, a)));
+      c.E('*', a, c.D(wrt, b)),
+      c.E('*', b, c.D(wrt, a)));
   },
   gradient: function(c, deps, g, a, b) {
     a.addGradient(deps, c.E('*', g, b));
     b.addGradient(deps, c.E('*', g, a));
   },
 });
+
+defop('double',  'sqr',               'double', {
+  imm: function(a) { return a * a; },
+  c: function(a) { return `sqr(${a})`; },
+  js: function(a, b) { return `(${a} * ${a})`; },
+  replace: function(c, a, b) {
+    if (a.isZero()) return a;
+    if (a.isOne()) return a;
+  },
+  deriv: function(c, wrt, a, b) {
+    return c.E('*', c.C('double', 2), c.D(wrt, a));
+  },
+  gradient: function(c, deps, g, a, b) {
+    a.addGradient(deps, c.E('*', c.C('double', 2), c.E('*', g, a)));
+  },
+});
+
+
 defop('double',  '+',               'double', 'double', {
   imm: function(a, b) { return a + b; },
   c: function(a, b) { return `(${a} + ${b})`; },
@@ -145,7 +147,7 @@ defop('double',  '-',               'double', 'double', {
   },
   gradient: function(c, deps, g, a, b) {
     a.addGradient(deps, g);
-    b.addGradient(deps, c.E('*', c.Cd(-1), g));
+    b.addGradient(deps, c.E('-', g));
   },
 });
 defop('double',  '-',               'double', {

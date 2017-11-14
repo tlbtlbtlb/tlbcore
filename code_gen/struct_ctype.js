@@ -155,13 +155,67 @@ StructCType.prototype.accumulateRecursiveMembers = function(context, acc) {
 };
 
 
-StructCType.prototype.getAllZeroExpr = function() {
+StructCType.prototype.getValueExpr = function(lang, value) {
   let type = this;
-  return `${type.typename}::allZero()`;
-};
-StructCType.prototype.getAllNanExpr = function() {
-  let type = this;
-  return `${type.typename}::allNan()`;
+  let constructorArgs = type.getConstructorArgs();
+
+  if (value === 0) {
+    switch(lang) {
+
+      case 'c':
+        return `${type.typename}()`;
+
+      case 'jsn':
+        return `new ur.${type.jsTypename}()`;
+
+      case 'js':
+        return `{__type:"${type.typename}", ${
+          _.map(type.orderedNames, (name) => {
+            let t = type.nameToType[name];
+            return `"${name}:${t.getValueExpr(lang, 0)}`;
+          }).join(', ')
+        }`;
+
+      default:
+        barf();
+    }
+  }
+  else if (_.isObject(value)) {
+    switch(lang) {
+
+      case 'c':
+        return `${type.typename}(${
+          _.map(constructorArgs, function(argInfo) {
+            return argInfo.type.getValueExpr(lang, value[argInfo.name]);
+          }).join(', ')
+        })`;
+
+      case 'jsn':
+        return `new ur.${type.jsTypename}(${
+          _.map(constructorArgs, function(argInfo) {
+            return argInfo.type.getValueExpr(lang, value[argInfo.name]);
+          }).join(', ')
+        })`;
+
+      case 'js':
+        return `{__type:"${type.typename}", ${
+          _.map(type.orderedNames, (name) => {
+            let t = type.nameToType[name];
+            return `"${name}:${t.getValueExpr(lang, 0)}`;
+          }).join(', ')
+        }}`;
+
+      default:
+        barf();
+    }
+  }
+  else {
+    barf();
+  }
+
+  function barf() {
+    throw new Error(`Unhandled value ${value} for type ${type.typename} in language ${lang}`);
+  }
 };
 
 StructCType.prototype.add = function(memberName, memberType, memberOptions) {
@@ -203,7 +257,7 @@ StructCType.prototype.getMemberInitializer = function(memberName) {
   if (memberInitializer) return memberInitializer;
 
   let memberType = type.nameToType[memberName];
-  return memberType.getInitializer();
+  return memberType.getValueExpr('c', 0);
 };
 
 StructCType.prototype.emitTypeDecl = function(f) {
@@ -231,13 +285,6 @@ StructCType.prototype.emitTypeDecl = function(f) {
     `);
   }
 
-  if (!type.noStdValues) {
-    f(`
-      // Factory functions
-      static ${type.typename} allZero();
-      static ${type.typename} allNan();
-    `);
-  }
   f(`
     ${type.typename} copy() const;
 
@@ -426,35 +473,6 @@ StructCType.prototype.emitHostImpl = function(f) {
     });
     f(`
       }
-    `);
-  }
-
-  if (!type.noStdValues && type.isCopyConstructable()) {
-    f(`
-      ${type.typename} ${type.typename}::allZero() {
-      ${type.typename} ret;
-    `);
-    _.each(type.orderedNames, function(name) {
-      let memberType = type.nameToType[name];
-      f(`
-        ret.${name} = ${memberType.getAllZeroExpr()};
-      `);
-    });
-    f(`
-        return ret;
-      }
-      ${type.typename} ${type.typename}::allNan() {
-        ${type.typename} ret;
-    `);
-    _.each(type.orderedNames, function(name) {
-      let memberType = type.nameToType[name];
-      f(`
-        ret.${name} = ${memberType.getAllNanExpr()};
-      `);
-    });
-    f(`
-      return ret;
-    }
     `);
   }
 
@@ -1382,16 +1400,6 @@ StructCType.prototype.emitJsWrapImpl = function(f) {
   _.each(type.extraJswrapAccessors, function(it) {
     it.call(type, f);
   });
-
-  if (!type.noStdValues && type.isCopyConstructable()) {
-    _.each(['allZero', 'allNan'], function(name) {
-      f.emitJsFactory(name, function(f) {
-        f(`
-          args.GetReturnValue().Set(JsWrap_${type.jsTypename}::ConstructInstance(isolate, ${type.typename}::${name}()));
-        `);
-      });
-    });
-  }
 
   _.each(type.orderedNames, function(name) {
     let memberType = type.nameToType[name];

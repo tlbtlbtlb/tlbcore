@@ -192,28 +192,123 @@ CollectionCType.prototype.getSynopsis = function() {
   return `(${type.typename})`;
 };
 
-CollectionCType.prototype.getInitializer = function() {
+CollectionCType.prototype.getValueExpr = function(lang, value) {
   let type = this;
-  if (/^arma::.*::fixed$/.test(type.templateName)) {
-    return 'arma::fill::zeros';
-  } else {
-    return '';
-  }
-};
 
-CollectionCType.prototype.getAllZeroExpr = function() {
-  let type = this;
-  if (/^arma::.*::fixed$/.test(type.templateName)) {
-    return `${type.typename}(arma::fill::zeros)`;
+  if (value === 0) {
+    switch(lang) {
+
+      case 'c':
+      if (type.templateName === 'arma::Col::fixed' ||
+          type.templateName === 'arma::Row::fixed' ||
+          type.templateName === 'arma::Mat::fixed') {
+        // If you want zero-filled, you have to ask for it
+        return `${type.typename}(arma::fill::zeros)`;
+      }
+      else {
+        return `${type.typename}()`;
+      }
+
+      case 'jsn':
+        return `new ur.${this.jsTypename}()`;
+
+      case 'js':
+        if (type.templateName === 'arma::Col' ||
+            type.templateName === 'arma::Row' ||
+            type.templateName === 'arma::Mat') {
+          return `Float64Array.of()`;
+        }
+        else if (type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
+          let nElem = parseInt(type.templateArgs[1]);
+          return `Float64Array.of(${_.map(_.range(nElem), (i) => '0').join(', ')})`;
+        }
+        else if (type.templateName === 'arma::Mat::fixed') {
+          let nElem = parseInt(type.templateArgs[1]) * parseInt(type.templateArgs[2]);
+          return `Float64Array.of(${_.map(_.range(nElem), (i) => '0').join(', ')})`;
+        }
+        else {
+          barf();
+        }
+        break;
+
+      default:
+        barf();
+    }
+  }
+  else if (value === 1) {
+    switch(lang) {
+
+      case 'js':
+        if (type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
+          let nElem = parseInt(type.templateArgs[1]);
+          return type.getValueExpr(lang, _.map(_.range(nElem), (elemi) => {
+            return elemi === nElem-1 ? 1 : 0;
+          }));
+        }
+        else if (type.templateName === 'arma::Mat::fixed') {
+          let nRows = parseInt(type.templateArgs[1]);
+          let nCols = parseInt(type.templateArgs[2]);
+
+          return type.getValueExpr(lang, _.flatten(_.map(_.range(nCols), (coli) => {
+            return _.map(_.range(nRows), (rowi) => {
+              return rowi === coli ? 1 : 0;
+            });
+          })));
+        }
+        else {
+          barf();
+        }
+        break;
+
+      default:
+        barf();
+    }
+  }
+  else if (_.isArray(value)) {
+    switch(lang) {
+
+      case 'c':
+        return `${type.typename}{${
+          _.map(value, function(v) {
+            return type.templateTypes[0].getValueExpr(lang, v);
+          }).join(', ')
+        }}`;
+
+      case 'jsn':
+        return `new ur.${type.jsTypename}([${
+          _.map(value, function(v) {
+            return type.templateTypes[0].getValueExpr(lang, v);
+          }).join(', ')
+        }])`;
+
+      case 'js':
+        if (type.templateName === 'arma::Col' ||
+            type.templateName === 'arma::Row' ||
+            type.templateName === 'arma::Mat' ||
+            type.templateName === 'arma::Col::fixed' ||
+            type.templateName === 'arma::Row::fixed' ||
+            type.templateName === 'arma::Mat::fixed' ||
+            type.templateName === 'vector') {
+          return `Float64Array.of(${_.map(value, (v) => type.templateArgTypes[0].getValueExpr(lang, v)).join(', ')})`;
+        }
+        else {
+          barf();
+        }
+        break;
+
+      default:
+        barf();
+    }
   }
   else {
-    return `${type.typename}()`;
+    barf();
+  }
+
+  function barf() {
+    throw new Error(`Unhandled value ${value} for type ${type.typename} in language ${lang}`);
   }
 };
 
-CollectionCType.prototype.getAllNanExpr = function() {
-  return `${this.typename}()`;
-};
 
 CollectionCType.prototype.getExampleValueJs = function() {
   return `new ur.${this.jsTypename}()`;

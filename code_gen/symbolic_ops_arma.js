@@ -62,7 +62,7 @@ defop('arma::mat44',        'mat44RotationX',   'double', {
     return c.E('arma::mat44',
       c.Cd(1), c.Cd(0), c.Cd(0), c.Cd(0),
       c.Cd(0), c.E('cos', a), c.E('sin', a), c.Cd(0),
-      c.Cd(0), c.E('-sin', a), c.E('cos', a), c.Cd(0),
+      c.Cd(0), c.E('-', c.E('sin', a)), c.E('cos', a), c.Cd(0),
       c.Cd(0), c.Cd(0), c.Cd(0), c.Cd(1));
   }
 });
@@ -72,7 +72,7 @@ defop('arma::mat44',        'mat44RotationY',   'double', {
       return c.Cm44(1);
     }
     return c.E('arma::mat44',
-      c.E('cos', a), c.Cd(0), c.E('-sin', a), c.Cd(0),
+      c.E('cos', a), c.Cd(0), c.E('-', c.E('sin', a)), c.Cd(0),
       c.Cd(0), c.Cd(1), c.Cd(0), c.Cd(0),
       c.E('sin', a), c.Cd(0), c.E('cos', a), c.Cd(0),
       c.Cd(0), c.Cd(0), c.Cd(0), c.Cd(1));
@@ -85,7 +85,7 @@ defop('arma::mat44',        'mat44RotationZ',   'double', {
     }
     return c.E('arma::mat44',
       c.E('cos', a), c.E('sin', a), c.Cd(0), c.Cd(0),
-      c.E('-sin', a), c.E('cos', a), c.Cd(0), c.Cd(0),
+      c.E('-', c.E('sin', a)), c.E('cos', a), c.Cd(0), c.Cd(0),
       c.Cd(0), c.Cd(0), c.Cd(1), c.Cd(0),
       c.Cd(0), c.Cd(0), c.Cd(0), c.Cd(1));
   }

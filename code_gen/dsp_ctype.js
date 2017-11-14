@@ -34,21 +34,69 @@ DspCType.prototype.getHeaderIncludes = function() {
   return ['#include "common/dspcore.h"'].concat(CType.prototype.getHeaderIncludes.call(type));
 };
 
-DspCType.prototype.getAllZeroExpr = function() {
-  let type = this;
-  return '0';
-};
 
-DspCType.prototype.getAllNanExpr = function() {
+
+DspCType.prototype.getValueExpr = function(lang, value) {
   let type = this;
-  switch (type.tbits) {
-  case 16:
-    return '0x800';
-  case 32:
-    return '0x80000000';
-  case 64:
-    return '0x8000000000000000LL';
-  default:
-    return '***ALL_NAN***';
+
+  if (value === 0) {
+    switch(lang) {
+
+      case 'c':
+        return `0`;
+
+      case 'js':
+      case 'jsn':
+        return '0';
+
+      default:
+        barf();
+    }
+  }
+  else if (isNaN(value)) {
+    switch(lang) {
+      case 'c':
+        switch (type.tbits) {
+          case 16:
+            return '0x800';
+          case 32:
+            return '0x80000000';
+          case 64:
+            return '0x8000000000000000LL';
+          default:
+            barf();
+        }
+        break;
+
+      case 'js':
+      case 'jsn':
+        return '(0/0)';
+
+      default:
+        barf();
+    }
+  }
+  else if (_.isNumber(value)) {
+    return fmtInt(value * (1 << type.rbits));
+  }
+  else {
+    barf();
+  }
+
+  function fmtInt(v) {
+    switch (type.tbits) {
+      case 16:
+        return `0x${(((v < 0 ? 0xffff : 0) + Math.round(v)) & 0xffff).toString(16)}`;
+      case 32:
+        return `0x${(((v < 0 ? 0xffffffff : 0) + Math.round(v)) & 0xffffffff).toString(16)}`;
+      case 64:
+        return `0x${(((v < 0 ? 0xffffffffffffffff : 0) + Math.round(v)) & 0xffffffffffffffff).toString(16)}LL`;
+      default:
+        barf();
+    }
+  }
+
+  function barf() {
+    throw new Error(`Unhandled value ${value} for type ${type.typename} in language ${lang}`);
   }
 };

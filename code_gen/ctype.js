@@ -400,7 +400,3 @@ CType.prototype.getFormalParameter = function(varname) {
   let type = this;
   return type.typename + ' ' + varname;
 };
-
-CType.prototype.getInitializer = function() {
-  return this.getAllZeroExpr();
-};

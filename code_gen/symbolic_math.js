@@ -37,16 +37,15 @@ let optimize = true;
   });
 */
 let defops = {};
-function defop(retType, op /*, argTypes..., impl */) {
-  let argTypes = [];
-  for (let argi=2; argi + 1 < arguments.length; argi++) argTypes.push(arguments[argi]);
+function defop(retType, op, ...argTypes) {
+  let impl = argTypes.pop();
 
   if (!defops[op]) defops[op] = [];
   defops[op].push({
-    retType: retType,
-    argTypes: argTypes,
-    impl: arguments[arguments.length - 1],
-    op: op
+    retType,
+    argTypes,
+    impl,
+    op,
   });
 }
 
@@ -305,11 +304,9 @@ SymbolicContext.prototype.Cv3 = function(value) { return this.C('arma::vec3', va
 SymbolicContext.prototype.Cv4 = function(value) { return this.C('arma::vec4', value); };
 
 
-SymbolicContext.prototype.E = function(op /*, args... */) {
+SymbolicContext.prototype.E = function(op, ...args) {
   let c = this;
-  let args = [];
-  for (let argi=1; argi < arguments.length; argi++) args.push(arguments[argi]);
-  args = _.map(args, (arg, argi) => {
+  let args2 = _.map(args, (arg, argi) => {
     if (arg instanceof SymbolicExpr || arg instanceof SymbolicRead || arg instanceof SymbolicRef || arg instanceof SymbolicConst) {
       assert.strictEqual(arg.c, c);
       return arg;
@@ -321,7 +318,7 @@ SymbolicContext.prototype.E = function(op /*, args... */) {
       throw new Error(`Unknown arg type for op ${op}, args[${argi}] in ${util.inspect(args)}`);
     }
   });
-  return c.dedup(new SymbolicExpr(c, op, args));
+  return c.dedup(new SymbolicExpr(c, op, args2));
 };
 
 
@@ -468,9 +465,21 @@ function SymbolicExpr(c, op, args) {
     if (!t.nameToType) throw new Error(`No ${memberName} in ${t.typename}`);
     let retType = t.nameToType[memberName];
     if (!retType) throw new Error(`No member "${memberName}" in ${t.typename}`);
-    e.args = args;
+
+    /*
+      This fixes the situation where we have foo(os.bar), where foo(x) has a .replace method that expands into x.buz.
+      In that case, we added the SymbolicRead node too early, and we want to bypass it and be back in address mode again.
+    */
+    let arg = args[0];
+    if (arg instanceof SymbolicRead) {
+      arg = arg.ref;
+    }
+    e.args = [arg];
+
+
     e.type = retType;
     e.isStructref = true;
+    e.memberName = memberName;
     e.opInfo = {
       impl: {
         imm: function(a) {
@@ -486,6 +495,7 @@ function SymbolicExpr(c, op, args) {
           return c.E(op, c.D(wrt, a));
         },
         gradient: function(c, deps, g, a) {
+
           // WRITEME?
         },
         replace: function(c, a) {
@@ -495,7 +505,7 @@ function SymbolicExpr(c, op, args) {
         },
       },
     };
-    e.isAddress = args[0].isAddress;
+    e.isAddress = arg.isAddress;
     e.cseKey = '_e' + simpleHash(e.type.typename + ',' + e.op + ',' + _.map(e.args, (arg) => { return arg.cseKey; }).join(','));
     return;
   }
@@ -505,11 +515,20 @@ function SymbolicExpr(c, op, args) {
     let t = args[0].type;
     if (!t) throw new Error(`Unknown type for ${args[0]}`);
     let retType = null;
-    if (t.templateName === 'vector' || t.templateName === 'arma::vec' || t.templateName === 'arma::Col' || t.templateName === 'arma::Row') {
+    if (t.templateName === 'vector' ||
+      t.templateName === 'arma::Col' || t.templateName === 'arma::Col::fixed' ||
+      t.templateName === 'arma::Row' || t.templateName === 'arma::Row::fixed' ||
+      t.templateName === 'arma::Mat' || t.templateName === 'arma::Mat::fixed') {
       retType = t.templateArgTypes[0];
     }
     if (!retType) throw new Error(`Can't index into ${t.type.typename}`);
-    e.args = args;
+
+    let arg = args[0];
+    if (arg instanceof SymbolicRead) {
+      arg = arg.ref;
+    }
+    e.args = [arg];
+
     e.type = retType;
     e.isStructref = true;
     e.opInfo = {
@@ -531,7 +550,7 @@ function SymbolicExpr(c, op, args) {
         },
       },
     };
-    e.isAddress = args[0].isAddress;
+    e.isAddress = arg.isAddress;
     e.cseKey = '_e' + simpleHash(e.type.typename + ',' + e.op + ',' + _.map(e.args, (arg) => { return arg.cseKey; }).join(','));
     return;
   }
@@ -580,11 +599,9 @@ function SymbolicExpr(c, op, args) {
           return `${this.op}{${_.map(args, (a) => `${a}`).join(', ')}}`;
         },
         js: function(...args) {
-          console.log(`JS constructor for ${this.type.typename}`);
-          if (this.type.typename === 'arma::Col< double >::fixed< 4 >') {
-            return `Float64Array.of(${_.map(args, (a) => `${a}`).join(', ')})`;
-          }
-          else if (this.type.typename === 'arma::Mat< double >::fixed< 4, 4 >') {
+          if (this.type.templateName === 'arma::Col' || this.type.templateName === 'arma::Col::fixed' ||
+              this.type.templateName === 'arma::Row' || this.type.templateName === 'arma::Row::fixed' ||
+              this.type.templateName === 'arma::Mat' || this.type.templateName === 'arma::Mat::fixed') {
             return `Float64Array.of(${_.map(args, (a) => `${a}`).join(', ')})`;
           }
           return `${this.op}{${_.map(args, (a) => `${a}`).join(', ')}}`;
@@ -927,6 +944,7 @@ SymbolicContext.prototype.addGradients = function(wrMap, rdMap) {
   _.each(deps.reads, function(rd) {
     assert.ok(rd.ref.isAddress);
     let gradRef = rd.ref.getGradient(deps);
+    //debugger;
     if (!gradRef.isConst()) {
       c.W(gradRef, rd.getGradient(deps));
     }
@@ -1101,71 +1119,8 @@ SymbolicRef.prototype.getExpr = function(availCses) {
 SymbolicConst.prototype.getExpr = function(availCses) {
   let e = this;
   let c = e.c;
-  if (e.type.typename === 'double' || e.type.typename === 'int') {
-    return e.value.toString();
-  }
-  else if (e.type.typename === 'string') {
-    if (c.lang === 'c') {
-      return `string(${JSON.stringify(e.value)})`;
-    }
-    else if (c.lang === 'js') {
-      return JSON.stringify(e.value);
-    }
-  }
-  else if (e.type.typename === 'arma::Mat< double >::fixed< 4, 4 >' && (e.value === 'zeros' || e.value === 0)) {
-    if (c.lang === 'c') {
-      return e.type + '(arma::fill::zeros)';
-    }
-    else if (c.lang === 'js') {
-      return 'Float64Array.of(0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0)';
-    }
-  }
-  else if (e.type.typename === 'arma::Mat< double >::fixed< 4, 4 >' && (e.value === 'eye' || e.value === 1)) {
-    if (c.lang === 'c') {
-      return e.type + '(arma::fill::eye)';
-    }
-    else if (c.lang === 'js') {
-      return 'Float64Array.of(1.0, 0.0, 0.0, 0.0,   0.0, 1.0, 0.0, 0.0,   0.0, 0.0, 1.0, 0.0,   0.0, 0.0, 0.0, 1.0)';
-    }
-  }
-  else if (e.type.typename === 'arma::Mat< double >::fixed< 4, 4 >' && e.value.length === 16) {
-    if (c.lang === 'c') {
-      return e.type + `{${_.map(e.value, (v) => { return v.toString(); }).join(', ')}}`;
-    }
-    else if (c.lang === 'js') {
-      return `Float64Array.of(${_.map(e.value, (v) => { return v.toString(); }).join(', ')})`;
-    }
-  }
-  else if ((e.type.typename === 'arma::Col< double >::fixed< 4 >' && e.value.length === 4) ||
-    (e.type.typename === 'arma::Col< double >::fixed< 3 >' && e.value.length === 3) ||
-    (e.type.typename === 'arma::Col< double >::fixed< 2 >' && e.value.length === 2)) {
-    if (c.lang === 'c') {
-      return e.type + `{${_.map(e.value, (v) => { return v.toString(); }).join(', ')}}`;
-    }
-    else if (c.lang === 'js') {
-      return `Float64Array.of(${_.map(e.value, (v) => { return v.toString(); }).join(', ')})`;
-    }
-  }
-  else if (e.type.typename === 'vector< double >') {
-    if (c.lang === 'c') {
-      return e.type + `{${_.map(e.value, (v) => { return v.toString(); }).join(', ')}}`;
-    }
-    else if (c.lang === 'js') {
-      return `Float64Array.of(${_.map(e.value, (v) => { return v.toString(); }).join(', ')})`;
-    }
-  }
-  else if (e.type.typename === 'jsonstr' && _.isObject(e.value)) {
-    if (c.lang === 'js') {
-      return JSON.stringify(e.value);
-    }
-    else if (c.lang === 'c') {
-      return `jsonstr(${JSON.stringify(JSON.stringify(e.value))})`;
-    }
-  }
-  else {
-    return `${e.type.typename}{${e.value}}`;
-    //throw new Error(`Cannot generate constant of type ${e.type.typename} and value ${e.value}. You can add this case in SymbolicContext.getExpr.`);
-  }
+
+  return e.type.getValueExpr(c.lang, e.value);
 };
 
 SymbolicExpr.prototype.getExpr = function(availCses) {

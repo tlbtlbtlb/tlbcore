@@ -39,37 +39,114 @@ PrimitiveCType.prototype.getSynopsis = function() {
   return `( ${ type.typename })`;
 };
 
-PrimitiveCType.prototype.getAllZeroExpr = function() {
+PrimitiveCType.prototype.getValueExpr = function(lang, value) {
   let type = this;
-  switch (type.typename) {
-  case 'float': return '0.0f';
-  case 'double': return '0.0';
-  case 'S32': return '0';
-  case 'S64': return '0';
-  case 'U32': return '0';
-  case 'U64': return '0';
-  case 'bool': return 'false';
-  case 'string': return 'string()';
-  case 'char const*': return 'NULL';
-  case 'jsonstr': return 'jsonstr()';
-  default: return '***ALL_ZERO***';
-  }
-};
+  let sv;
+  switch(lang) {
+    case 'c':
+      switch (type.typename) {
 
-PrimitiveCType.prototype.getAllNanExpr = function() {
-  let type = this;
-  switch (type.typename) {
-  case 'float': return 'numeric_limits<float>::quiet_NaN()';
-  case 'double': return 'numeric_limits<double>::quiet_NaN()';
-  case 'S32': return '0x80000000';
-  case 'S64': return '0x8000000000000000LL';
-  case 'U32': return '0x80000000U';
-  case 'U64': return '0x8000000000000000ULL';
-  case 'bool': return 'false';
-  case 'string': return 'string(\"nan\")';
-  case 'char const*': return 'NULL';
-  case 'jsonstr': return 'jsonstr(\"undefined\")';
-  default: return '***ALL_NAN***';
+        case 'float':
+          if (isNaN(value)) {
+            return `numeric_limits<float>::quiet_NaN()`;
+          }
+          else if (_.isNumber(value)) {
+            sv = value.toString();
+            if (/\./.test(sv)) {
+              return `${sv}f`;
+            } else {
+              return `${sv}.0f`;
+            }
+          }
+          else {
+            barf();
+          }
+          break;
+
+        case 'double':
+          if (isNaN(value)) {
+            return `numeric_limits<double>::quiet_NaN()`;
+          }
+          else if (_.isNumber(value)) {
+            sv = value.toString();
+            if (/\./.test(sv)) {
+              return `${sv}`;
+            } else {
+              return `${sv}.0`;
+            }
+          }
+          else {
+            barf();
+          }
+          break;
+
+        case 'S32':
+        case 'S64':
+        case 'U32':
+        case 'U64':
+          if (_.isNumber(value)) {
+            return Math.round(value).toString();
+          }
+          else {
+            barf();
+          }
+          break;
+
+        case 'bool':
+          return value ? 'true': 'false';
+
+        case 'string':
+          if (value === 0) {
+            return `string()`;
+          }
+          else if (_.isString(value)) {
+            return `string(${JSON.stringify(value)})`;
+          }
+          else {
+            barf();
+          }
+          break;
+
+        case 'char const*':
+          if (value === 0) {
+            return 'nullptr';
+          }
+          else if (_.isString(value)) {
+            return JSON.stringify(value);
+          }
+          else {
+            barf();
+          }
+          break;
+
+        case 'jsonstr':
+          if (value === 0) {
+            return 'jsonstr()';
+          }
+          else if (_.isString(value)) {
+            return `jsonstr(${JSON.stringify(value)})`;
+          }
+          else {
+            return `jsonstr(${JSON.stringify(JSON.stringify(value))})`;
+          }
+
+        default:
+          barf();
+      }
+      break;
+
+    case 'js':
+      return JSON.stringify(value);
+
+    case 'jsn':
+      return JSON.stringify(value);
+
+    default:
+      barf();
+  }
+
+  function barf() {
+    throw new Error(`Unhandled value ${value} for type ${type.typename} in language ${lang}`);
   }
 };
 

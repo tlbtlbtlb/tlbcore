@@ -37,12 +37,31 @@ PtrCType.prototype.getSynopsis = function() {
   return `(${ this.typename })`;
 };
 
-PtrCType.prototype.getAllZeroExpr = function() {
-  return `nullptr`;
-};
 
-PtrCType.prototype.getAllNanExpr = function() {
-  return `nullptr`;
+PtrCType.prototype.getValueExpr = function(lang, value) {
+  let type = this;
+
+  if (value === 0) {
+    switch(lang) {
+
+      case 'c':
+        return `nullptr`;
+
+      case 'js':
+      case 'jsn':
+        return 'null';
+
+      default:
+        barf();
+    }
+  }
+  else {
+    barf();
+  }
+
+  function barf() {
+    throw new Error(`Unhandled value ${value} for type ${type.typename} in language ${lang}`);
+  }
 };
 
 PtrCType.prototype.getExampleValueJs = function() {
