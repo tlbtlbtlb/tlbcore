@@ -3,33 +3,42 @@ const util = require('util');
 const assert = require('assert');
 const symbolic_math = require('./symbolic_math');
 const gen_marshall = require('./gen_marshall');
+const type_registry = require('./type_registry');
 const cgen = require('./cgen');
 require('./symbolic_ops_core');
 require('./symbolic_ops_arma');
 
 describe('symbolic_math', function() {
   it('should work', function() {
-    let c = new symbolic_math.SymbolicContext(null, 'sampleGrad', [
-      ['obs', 'TestStruct'],
-      ['conf', 'TestStruct'],
-      ['actGrad', 'TestStruct']
+
+    let typereg = new type_registry.TypeRegistry('test');
+    typereg.struct('TestObs',
+      ['o1', 'double'],
+      ['o2', 'double'],
+      ['o3', 'double']);
+    typereg.struct('TestAct',
+      ['a1', 'double'],
+      ['a2', 'double'],
+      ['a3', 'double']);
+    typereg.struct('TestConf',
+      ['fb1', 'double'],
+      ['fb2', 'double']);
+    let c = new symbolic_math.SymbolicContext(typereg, 'sampleGrad', [
+      ['obs', 'TestObs'],
+      ['conf', 'TestConf'],
+      ['actGrad', 'TestAct']
     ], [
-      ['act', 'TestStruct'],
-      ['confGrad', 'TestStruct']
+      ['act', 'TestAct'],
+      ['confGrad', 'TestConf']
     ]);
 
-    let o1 = c.V('double', 'obs.o1');
-    let o2 = c.V('double', 'obs.o2');
-    let o3 = c.V('double', 'obs.o3');
-    let fb1 = c.V('double', 'conf.fb1');
-    let fb2 = c.V('double', 'conf.fb2');
     let a1 = c.E('+',
       c.E('+',
-        c.E('*', o1, fb1),
-        c.E('*', o2, fb2)),
-      c.E('*', o3, fb2));
+        c.E('*', c.structref('o1', c.ref('obs')), c.structref('fb1', c.ref('conf'))),
+        c.E('*', c.structref('o2', c.ref('obs')), c.structref('fb2', c.ref('conf')))),
+      c.E('*', c.structref('o3', c.ref('obs')), c.structref('fb2', c.ref('conf'))));
 
-    c.A('act.a1', a1);
+    c.W(c.structref('a1', c.ref('act')), a1);
 
     c.addGradients(
       (name) => name.replace(/^act\./, 'actGrad.'),
@@ -68,18 +77,14 @@ describe('symbolic_math', function() {
       ['confGrad', 'Config']
     ]);
 
-    let o1 = c.V('double', 'obs.o1');
-    let o2 = c.V('double', 'obs.o2');
-    let o3 = c.V('double', 'obs.o3');
-    let fb1 = c.V('double', 'conf.fb1', {prior: 'normal(0,5)'});
-    let fb2 = c.V('double', 'conf.fb2', {prior: 'normal(0,5)'});
     let a1 = c.E('+',
       c.E('+',
-        c.E('*', o1, fb1),
-        c.E('*', o2, fb2)),
-      c.E('*', o3, fb2));
+        c.E('*', c.structref('o1', c.ref('obs')), c.structref('fb1', c.ref('conf'), 'double')),
+        c.E('*', c.structref('o2', c.ref('obs')), c.structref('fb2', c.ref('conf'), 'double'))),
+      c.E('*', c.structref('o3', c.ref('obs')), c.structref('fb2', c.ref('conf'), 'double')));
 
-    c.A('act.a1', a1);
+    c.W(c.structref('a1', c.ref('act')), a1);
+
 
     // Ensure these got materialized
     assert.strictEqual(Config.nameToType.fb1, typereg.getType('double'));

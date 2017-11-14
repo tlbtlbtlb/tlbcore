@@ -44,6 +44,9 @@ defop('double',  'sin',             'double', {
       c.D(wrt, a),
       c.E('cos', a));
   },
+  gradient: function(c, deps, g, a) {
+    a.addGradient(deps, c.E('*', g, c.E('cos', a)));
+  },
 });
 defop('double',  '-sin',             'double', {
   imm: function(a) { return -Math.sin(a); },
@@ -145,6 +148,21 @@ defop('double',  '-',               'double', 'double', {
     b.addGradient(deps, c.E('*', c.Cd(-1), g));
   },
 });
+defop('double',  '-',               'double', {
+  imm: function(a) { return -a; },
+  c: function(a) { return `(- ${a})`; },
+  js: function(a) { return `(- ${a})`; },
+  deriv: function(c, wrt, a) {
+    return c.E('-', c.D(wrt, a));
+  },
+  gradient: function(c, deps, g, a) {
+    a.addGradient(deps, c.E('-', g));
+  },
+  replace: function(c, a) {
+    if (a.isConst()) return c.C('double', -a.value);
+  },
+});
+
 defop('double',  '/',               'double', 'double', {
   imm: function(a, b) { return a / b; },
   c: function(a, b) { return `(${a} / ${b})`; },
@@ -179,6 +197,11 @@ defop('int',           '-',                 'int', 'int', {
   c: function(a, b) { return `(${a} - ${b})`; },
   js: function(a, b) { return `(${a} - ${b})`; },
 });
+defop('int',           '-',                 'int', {
+  imm: function(a) { return - a; },
+  c: function(a) { return `(- ${a})`; },
+  js: function(a) { return `(- ${a})`; },
+});
 defop('int',           '/',                 'int', 'int', {
   imm: function(a, b) { let r = a / b; return (r < 0) ? Math.ceil(r) : Math.floor(r); }, // Math.trunc not widely supported
   c: function(a, b) { return `(${a} / ${b})`; },
@@ -205,4 +228,55 @@ defop('double',  'sqrt',        'double', {
   imm: function(a) { return Math.sqrt(a); },
   c: function(a) { return `sqrt(${a})`; },
   js: function(a) { return `Math.sqrt(${a})`; },
+});
+
+
+
+defop('double',  'normal',        'double', 'double', {
+  imm: function(a, b) { return null; }, // WRITEME
+  c: function(a, b) { return `(${a} + ${b}*frandom_normal())`; },
+  js: function(a, b) { return `(${a} + ${b}*random_normal())`; },
+});
+
+
+// JS types
+
+defop('jsonstr', 'Object', '...', {
+  c: function(...args) {
+    //debugger;
+    return `${this.type.typename}(string("{") +\n    ${(
+      _.map(_.range(args.length/2), (argi) => {
+        return `asJson(${args[argi*2]}).it + ":" + asJson(${args[argi*2+1]}).it`;
+      }).join(' + ", "\n    + ')
+    )} +\n    string("}"))`;
+  },
+  js: () => {
+    throw new Error('WRITEME');
+  },
+  deriv: () => {
+    throw new Error('WRITEME');
+  },
+  gradient: () => {
+    throw new Error('WRITEME');
+  },
+});
+
+defop('jsonstr', 'Array', '...', {
+  c: function(...args) {
+    //debugger;
+    return `${this.type.typename}(string("[") +\n    ${(
+      _.map(_.range(args.length), (argi) => {
+        return `asJson(${args[argi]}).it`;
+      }).join(' + ", "\n    + ')
+    )} +\n    string("]"))`;
+  },
+  js: () => {
+    throw new Error('WRITEME');
+  },
+  deriv: () => {
+    throw new Error('WRITEME');
+  },
+  gradient: () => {
+    throw new Error('WRITEME');
+  },
 });
