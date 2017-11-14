@@ -25,9 +25,9 @@ function StructCType(reg, typename) {
 StructCType.prototype = Object.create(CType.prototype);
 StructCType.prototype.isStruct = function() { return true; };
 
-StructCType.prototype.addArgs = function(args, startPos) {
+StructCType.prototype.addArgs = function(args) {
   let type = this;
-  for (let i=startPos; i<args.length; i++) {
+  for (let i=0; i<args.length; i++) {
     let a = args[i];
     if (_.isArray(a)) {
       let memberName = a[0];

@@ -112,7 +112,7 @@ TypeRegistry.prototype.struct = function(typename, ...args) {
   if (typename in typereg.types) throw new Error(`${ typename } already defined`);
   let t = new StructCType(typereg, typename);
   typereg.types[typename] = t;
-  t.addArgs(args, 0);
+  t.addArgs(args);
 
   let ptrType = new PtrCType(typereg, t);
   typereg.types[ptrType.typename] = ptrType;
