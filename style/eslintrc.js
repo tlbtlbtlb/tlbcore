@@ -108,6 +108,7 @@ module.exports = {
         "no-console": "off",
         "no-constant-condition": "off",
         "no-continue": "error",
+        "no-debugger": "warn",
         "no-div-regex": "error",
         "no-duplicate-imports": "error",
         "no-else-return": "off",
@@ -161,7 +162,7 @@ module.exports = {
         "no-process-env": "error",
         "no-process-exit": "error",
         "no-proto": "error",
-        "no-prototype-builtins": "warn",
+        "no-prototype-builtins": "off",    // Fix these someday
         "no-restricted-globals": "error",
         "no-restricted-imports": "error",
         "no-restricted-modules": "error",

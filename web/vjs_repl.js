@@ -31,10 +31,10 @@ function setupReplCommon(r) {
   r.context.vjs_safety = require('./vjs_safety');
   r.context.vjs_site = require('./vjs_site');
 
-  r.context.p = function() {
-    for (let i=0; i<arguments.length; i++) {
-      r.outputStream.write(util.inspect(arguments[i]));
-      r.outputStream.write((i===arguments.length-1) ? '\n': ', ');
+  r.context.p = function(...args) {
+    for (let i=0; i<args.length; i++) {
+      r.outputStream.write(util.inspect(args[i]));
+      r.outputStream.write((i===args.length-1) ? '\n': ', ');
     }
   };
 

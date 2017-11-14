@@ -84,8 +84,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
       let done = false;
       if (verbose >= 2) logio.I(handlers.label, 'rpc', msg.method, msg.params);
       try {
-        f.apply(handlers, msg.params.concat([function(error /* ... */) {
-          let result = Array.prototype.slice.call(arguments, 1);
+        f.apply(handlers, msg.params.concat([function(error, ...result) {
           if (!web_socket_helper.isRpcProgressError(error)) {
             done = true;
           }
@@ -121,11 +120,9 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
 
   function setupHandlers() {
     handlers.remoteLabel = handlers.label = wsr.remoteLabel;
-    handlers.rpc = function(method /* ... */) {
-      if (arguments.length < 2) throw new Error('rpc: bad args');
+    handlers.rpc = function(method, ...params) {
       let id = pending.getNewId();
-      let cb = arguments[arguments.length - 1];
-      let params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
+      let cb = params.pop();
       pending.add(id, cb);
       handlers.tx({method: method, id: id, params: params});
     };

@@ -25,7 +25,7 @@ function logDataSep(remote, sep, args) {
     emptyPrefix = '            ';
   }
   let maxLength0 = maxLength;
-  for (let argi = 1; argi < args.length; argi++) {
+  for (let argi = 0; argi < args.length; argi++) {
     let arg = args[argi];
     if (arg === null) {
       infos.push('null');
@@ -62,14 +62,14 @@ function logDataSep(remote, sep, args) {
   }
 }
 
-function I(remote) {
-  logDataSep(remote, ' > ', arguments);
+function I(remote, ...args) {
+  logDataSep(remote, ' > ', args);
 }
 
-function O(remote) {
-  logDataSep(remote, ' < ', arguments);
+function O(remote, ...args) {
+  logDataSep(remote, ' < ', args);
 }
 
-function E(remote) {
-  logDataSep(remote, ' ! ', arguments);
+function E(remote, ...args) {
+  logDataSep(remote, ' ! ', args);
 }

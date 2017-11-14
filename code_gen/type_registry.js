@@ -106,13 +106,13 @@ TypeRegistry.prototype.object = function(typename) {
 };
 
 
-TypeRegistry.prototype.struct = function(typename /* varargs */) {
+TypeRegistry.prototype.struct = function(typename, ...args) {
   let typereg = this;
   enforceCanonicalTypename(typename);
   if (typename in typereg.types) throw new Error(`${ typename } already defined`);
   let t = new StructCType(typereg, typename);
   typereg.types[typename] = t;
-  t.addArgs(arguments, 1);
+  t.addArgs(args, 0);
 
   let ptrType = new PtrCType(typereg, t);
   typereg.types[ptrType.typename] = ptrType;
