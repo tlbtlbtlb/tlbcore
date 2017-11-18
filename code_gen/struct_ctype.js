@@ -16,6 +16,7 @@ function StructCType(reg, typename) {
   CType.call(this, reg, typename);
   this.orderedNames = [];
   this.nameToType = {};
+  this.nameToDistributions = {};
   this.nameToOptions = {};
   this.extraMemberDecls = [];
   this.matrixStructures = [];
@@ -232,6 +233,7 @@ StructCType.prototype.add = function(memberName, memberType, memberOptions) {
     if (!memberType) memberType = type.reg.types['double'];
     if (memberName in type.nameToType) {
       if (type.nameToType[memberName] !== memberType) throw new Error('Duplicate member ' + memberName + ' with different types in ' + type.typename);
+      debugger;
       console.log('Duplicate member ' + memberName + ' with same type in ' + type.typename);
       return;
     }
@@ -243,6 +245,30 @@ StructCType.prototype.add = function(memberName, memberType, memberOptions) {
       type.add(memberName1, memberType, memberOptions);
     });
   }
+};
+
+StructCType.prototype.applyMemberDistribution = function(memberName, distName, args) {
+  let type = this;
+
+  if (!type.nameToType[memberName] && type.autoCreate) {
+    // First arg of any distribution spec must have the type of the member of the distribution.
+    type.add(memberName, args[0].type);
+  }
+  let t = type.nameToType[memberName];
+  if (!t) {
+    throw new Error(`Applying distribution to nonexistent member ${memberName} of ${type.typename}. Maybe set autoCreate?`);
+  }
+  else if (t !== args[0].type) {
+    throw new Error(`Applying distribution of type ${args[0].type.typename} to member ${memberName} of ${type.typename}.`);
+  }
+
+  if (!type.nameToDistributions[memberName]) {
+    type.nameToDistributions[memberName] = [];
+  }
+  type.nameToDistributions[memberName].push({
+    distName: distName,
+    args: args,
+  });
 };
 
 StructCType.prototype.setMemberInitializer = function(memberName, expr) {

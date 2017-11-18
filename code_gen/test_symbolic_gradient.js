@@ -45,7 +45,7 @@ describe('symbolic_math', function() {
       (name) => name.replace(/^conf\./, 'confGrad.'));
 
     let gen = cgen.mkCodeGen(null, {});
-    c.emitDefn(gen);
+    c.emitDefn('c', gen);
     gen.end();
   });
 });
@@ -97,7 +97,7 @@ describe('symbolic_math', function() {
 
     let gen = cgen.mkCodeGen(null, {});
     Config.emitTypeDecl(gen);
-    c.emitDefn(gen);
+    c.emitDefn('c', gen);
     gen.end();
   });
 });

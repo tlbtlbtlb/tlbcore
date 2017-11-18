@@ -236,32 +236,24 @@ CollectionCType.prototype.getValueExpr = function(lang, value) {
     }
   }
   else if (value === 1) {
-    switch(lang) {
+    if (type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
+      let nElem = parseInt(type.templateArgs[1]);
+      return type.getValueExpr(lang, _.map(_.range(nElem), (elemi) => {
+        return elemi === nElem-1 ? 1 : 0;
+      }));
+    }
+    else if (type.templateName === 'arma::Mat::fixed') {
+      let nRows = parseInt(type.templateArgs[1]);
+      let nCols = parseInt(type.templateArgs[2]);
 
-      case 'js':
-        if (type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
-          let nElem = parseInt(type.templateArgs[1]);
-          return type.getValueExpr(lang, _.map(_.range(nElem), (elemi) => {
-            return elemi === nElem-1 ? 1 : 0;
-          }));
-        }
-        else if (type.templateName === 'arma::Mat::fixed') {
-          let nRows = parseInt(type.templateArgs[1]);
-          let nCols = parseInt(type.templateArgs[2]);
-
-          return type.getValueExpr(lang, _.flatten(_.map(_.range(nCols), (coli) => {
-            return _.map(_.range(nRows), (rowi) => {
-              return rowi === coli ? 1 : 0;
-            });
-          })));
-        }
-        else {
-          barf();
-        }
-        break;
-
-      default:
-        barf();
+      return type.getValueExpr(lang, _.flatten(_.map(_.range(nCols), (coli) => {
+        return _.map(_.range(nRows), (rowi) => {
+          return rowi === coli ? 1 : 0;
+        });
+      })));
+    }
+    else {
+      barf();
     }
   }
   else if (_.isArray(value)) {
@@ -270,14 +262,14 @@ CollectionCType.prototype.getValueExpr = function(lang, value) {
       case 'c':
         return `${type.typename}{${
           _.map(value, function(v) {
-            return type.templateTypes[0].getValueExpr(lang, v);
+            return type.templateArgTypes[0].getValueExpr(lang, v);
           }).join(', ')
         }}`;
 
       case 'jsn':
         return `new ur.${type.jsTypename}([${
           _.map(value, function(v) {
-            return type.templateTypes[0].getValueExpr(lang, v);
+            return type.templateArgTypes[0].getValueExpr(lang, v);
           }).join(', ')
         }])`;
 

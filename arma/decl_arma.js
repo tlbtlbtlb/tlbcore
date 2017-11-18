@@ -35,14 +35,18 @@ module.exports = function(typereg) {
             typereg.aliasType(rType, 'arma::rowvec');
           }
           if (colFixed) {
-            typereg.aliasType(cType, `arma::vec${ colFixed.toString() }`);
+            typereg.aliasType(cType, `arma::vec${colFixed.toString()}`);
+            typereg.aliasType(cType, `Vec${colFixed.toString()}`);
           } else {
             typereg.aliasType(cType, 'arma::vec');
+            typereg.aliasType(cType, `Vec`);
           }
           if (colFixed && rowFixed) {
-            typereg.aliasType(mType, `arma::mat${ rowFixed.toString() }${ colFixed.toString()}`);
+            typereg.aliasType(mType, `arma::mat${rowFixed.toString()}${colFixed.toString()}`);
+            typereg.aliasType(mType, `Mat${rowFixed.toString()}${colFixed.toString()}`);
           } else {
             typereg.aliasType(mType, 'arma::mat');
+            typereg.aliasType(mType, 'Mat');
           }
         }
         else if (et === 'S64') {

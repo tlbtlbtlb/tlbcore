@@ -19,14 +19,14 @@ describe('symbolic_math', function() {
     let a2 = c.ref('a2');
     let r = c.E('*', a1, a2);
     if (0) console.log(util.inspect(r));
-    let rExpr = r.getExpr();
+    let rExpr = r.getExpr('c');
     assert.strictEqual(rExpr, '(a1 * a2)');
 
     let rWrtA1Expr = c.D(a1, r);
-    assert.strictEqual(rWrtA1Expr.getExpr({}, {}), 'a2');
+    assert.strictEqual(rWrtA1Expr.getExpr('c', {}, {}), 'a2');
 
     let rWrtA2Expr = c.D(c.ref('a2'), r);
-    assert.strictEqual(rWrtA2Expr.getExpr({}, {}), 'a1');
+    assert.strictEqual(rWrtA2Expr.getExpr('c', {}, {}), 'a1');
 
     if (0) {
       // FIXME

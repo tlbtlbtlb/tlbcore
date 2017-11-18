@@ -31,7 +31,7 @@ defop('arma::mat33',    'mat33RotationZ',   'double', {
 
 // mat44
 
-defop('arma::mat44',        'arma::mat44',
+if (0) defop('arma::mat44',        'arma::mat44',
       'double', 'double', 'double', 'double',
       'double', 'double', 'double', 'double',
       'double', 'double', 'double', 'double',
@@ -126,6 +126,9 @@ defop('arma::mat44',        'mat44Rotation',   'arma::vec3', 'double', {
   js: function(a, b) {
     return `Geom3D.mat44Rotation(${a}, ${b})`;
   },
+  c: function(a, b) {
+    return `mat44Rotation(${a}, ${b})`;
+  },
 });
 
 
@@ -143,6 +146,18 @@ _.each([0,1,2,3], function(rowi) {
       }
     });
   });
+});
+
+defop('arma::mat44',    'trans',           'arma::mat44', {
+  c: function(a) {
+    return `trans(${a})`;
+  },
+  js: function(a) {
+    return `Geom3D.trans_mat44(${a})`;
+  },
+  deriv: function(c, wrt, a) {
+    return c.E('trans', c.D(wrt, a));
+  },
 });
 
 
@@ -164,6 +179,11 @@ defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
     if (a.isOne()) return b;
     if (b.isOne()) return a;
   },
+  gradient: function(c, deps, g, a, b) {
+    a.addGradient(deps, c.E('*', c.E('trans', b), g)); // FIXME: test
+    b.addGradient(deps, c.E('*', c.E('trans', a), g)); // FIXME: test
+  },
+
 });
 
 defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4', {
@@ -182,6 +202,10 @@ defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4', {
     if (b.isZero()) return b;
     if (a.isOne()) return b;
   },
+  gradient: function(c, deps, g, a, b) {
+    // FIXME a.addGradient(c.E('kron', g, b));
+    b.addGradient(deps, c.E('*', c.E('trans', a), g));
+  },
 });
 
 defop('arma::mat44',    '+',           'arma::mat44', 'arma::mat44', {
@@ -195,6 +219,28 @@ defop('arma::mat44',    '+',           'arma::mat44', 'arma::mat44', {
   replace: function(c, a, b) {
     if (a.isZero()) return b;
     if (b.isZero()) return a;
+  },
+  gradient: function(c, deps, g, a, b) {
+    a.addGradient(deps, g);
+    b.addGradient(deps, g);
+  },
+});
+
+defop('arma::vec4',    '+',           'arma::vec4', 'arma::vec4', {
+  c: function(a, b) {
+    return `(${a} + ${b})`;
+  },
+  js: function(a, b) {
+    return `Geom3D.add_vec4_vec4(${a}, ${b})`;
+  },
+
+  replace: function(c, a, b) {
+    if (a.isZero()) return b;
+    if (b.isZero()) return a;
+  },
+  gradient: function(c, deps, g, a, b) {
+    a.addGradient(deps, g);
+    b.addGradient(deps, g);
   },
 });
 

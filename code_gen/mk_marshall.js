@@ -13,6 +13,7 @@ function main() {
 
   let watchFlag = false;
   let prefix = 'build.src/';
+  let groupname = 'root';
   let files = [];
 
   for (let argi=2; argi < process.argv.length; argi++) {
@@ -27,6 +28,10 @@ function main() {
       prefix = process.argv[++argi];
       break;
 
+    case '--groupname':
+      groupname = process.argv[++argi];
+      break;
+
     default:
       files.push(arg);
       if (watchFlag) {
@@ -39,36 +44,23 @@ function main() {
 
 
   function processFiles() {
-    let typereg = new gen_marshall.TypeRegistry('root');
+    let typereg = new gen_marshall.TypeRegistry(groupname);
     let filegen = new cgen.FileGen(prefix);
 
     if (1) {
-      let ts = typereg.struct('TestStruct',
-                              ['foo', 'double'],
-                              ['bar', 'int'],
-                              ['buz', 'double']);
-      if (0) {
-        ts.addConstructorCode(`
-          eprintf("Construct TestStruct %p\\n", this);
-        `);
-        ts.addDestructorCode(`
-          eprintf("Destruct TestStruct %p\\n", this);
-        `);
-      }
-
+      typereg.struct('TestStruct',
+         ['foo', 'double'],
+         ['bar', 'int'],
+         ['buz', 'double']);
       typereg.struct('TestStructString',
-                     ['foo', 'string']);
+        ['foo', 'string']);
     }
 
     async.eachSeries(files, (fn, cb) => {
       console.log(`Load ${fn}`);
-      if (/\.h$/.test(fn)) {
-        typereg.scanCHeader(fn, cb);
-      }
-      else {
-        typereg.scanJsDefn(fn, cb);
-      }
+      typereg.scanFile(fn, cb);
     }, (err) => {
+      if (err) throw new Error(err);
       typereg.emitAll(filegen);
       filegen.end();
     });

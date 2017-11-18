@@ -63,7 +63,10 @@ function SymbolicContext(typereg, name, inargs, outargs, lang) {
   c.name = name;
   c.inargs = inargs;
   c.outargs = outargs;
-  c.lang = lang || 'c';
+  c.langs = {
+    c: true,
+    js: true,
+  };
   c.cses = {};
   c.writes = {};
   c.reads = {};
@@ -72,42 +75,50 @@ function SymbolicContext(typereg, name, inargs, outargs, lang) {
   c.preDefn = [];
   c.arrayBuilder = {};
   c.lets = {};
-  c.registerWrapper();
   _.each(c.inargs, ([name1, type1]) => {
-    c.lets[name1] = new SymbolicRef(c, typereg.getType(type1), name1, false);
+    let t = typereg.getType(type1, true);
+    if (!t) throw new Error(`Unknown type ${type1}`);
+    c.lets[name1] = new SymbolicRef(c, t, name1, false);
   });
   _.each(c.outargs, ([name1, type1]) => {
-    c.lets[name1] = new SymbolicRef(c, typereg.getType(type1), name1, true);
+    let t = typereg.getType(type1, true);
+    if (!t) throw new Error(`Unknown type ${type1}`);
+    c.lets[name1] = new SymbolicRef(c, t, name1, true);
   });
+  c.registerWrapper();
   c.defop = defop;
 }
 
 SymbolicContext.prototype.checkArgs = function() {
   let c = this;
   _.each(c.inargs, (argInfo) => {
-    assert.ok(argInfo[1] in c.typereg.types);
+    assert.ok(c.typereg.getType(argInfo[1]));
   });
   _.each(c.outargs, (argInfo) => {
-    assert.ok(argInfo[1] in c.typereg.types);
+    assert.ok(c.typereg.getType(argInfo[1]));
   });
 };
 
 SymbolicContext.prototype.registerWrapper = function() {
   let c = this;
 
-  if (c.lang === 'c') {
-    c.typereg.addWrapFunction(c.getSignature(), '', c.name, '', 'void', c.collectArgs((argname, argTypename, isOut) => {
-      return {typename: argTypename, passing: isOut ? '&' : 'const &'};
+  if (c.langs.c) {
+    c.typereg.addWrapFunction(c.getSignature(), '', c.name, '', 'void', c.collectArgs((argname, argType, isOut) => {
+      return {typename: argType.typename, passing: isOut ? '&' : 'const &'};
     }));
   }
 };
 
 SymbolicContext.prototype.collectArgs = function(argFunc) {
   let c = this;
-  return _.map(c.inargs, (arginfo) => {
-    return argFunc(arginfo[0], arginfo[1], false);
-  }).concat(_.map(c.outargs, (arginfo) => {
-    return argFunc(arginfo[0], arginfo[1], true);
+  return _.map(c.inargs, ([argName, argTypename]) => {
+    let t = c.typereg.getType(argTypename);
+    if (!t) throw new Error(`${c.name}: Unknown type ${argTypename} for arg ${argName}`);
+    return argFunc(argName, t, false);
+  }).concat(_.map(c.outargs, ([argName, argTypename]) => {
+    let t = c.typereg.getType(argTypename);
+    if (!t) throw new Error(`${c.name}: Unknown type ${argTypename} for arg ${argName}`);
+    return argFunc(argName, t, true);
   }));
 };
 
@@ -117,37 +128,37 @@ SymbolicContext.prototype.getAllTypes = function() {
     _.map(c.outargs, (arginfo) => { return arginfo[1]; })));
 };
 
-SymbolicContext.prototype.getSignature = function() {
+SymbolicContext.prototype.getSignature = function(lang) {
   let c = this;
-  if (c.lang === 'c') {
-    return ('void ' + c.name + '(' + c.collectArgs((argname, argTypename, isOut) => {
-      return argTypename + (isOut ? ' &' : ' const &') + argname;
+  if (lang === 'c') {
+    return ('void ' + c.name + '(' + c.collectArgs((argname, argType, isOut) => {
+      return argType.typename + (isOut ? ' &' : ' const &') + argname;
     }).join(', ') + ')');
   }
-  else if (c.lang === 'js') {
-    return ('function ' + c.name + '(' + c.collectArgs((argname, argTypename, isOut) => {
+  else if (lang === 'js') {
+    return ('function ' + c.name + '(' + c.collectArgs((argname, argType, isOut) => {
       return argname;
     }).join(', ') + ')');
   }
 };
 
-SymbolicContext.prototype.emitDecl = function(f) {
+SymbolicContext.prototype.emitDecl = function(lang, f) {
   let c = this;
-  if (c.lang === 'c') {
-    f(c.getSignature() + ';');
+  if (lang === 'c') {
+    f(c.getSignature(lang) + ';');
   }
 };
 
 
-SymbolicContext.prototype.emitDefn = function(f) {
+SymbolicContext.prototype.emitDefn = function(lang, f) {
   let c = this;
-  if (c.lang === 'js') {
+  if (lang === 'js') {
     f(`exports.${c.name} = ${c.name};`);
   }
   _.each(c.preDefn, (code) => { f(code); });
-  f(`${c.getSignature()} {`);
+  f(`${c.getSignature(lang)} {`);
   _.each(c.preCode, (code) => { f(code); });
-  c.emitCode(f);
+  c.emitCode(lang, f);
   _.each(c.postCode, (code) => { f(code); });
   f(`}
   `);
@@ -257,6 +268,7 @@ SymbolicContext.prototype.assertNode = function(a) {
   if (!c.isNode(a)) {
     throw new Error(`Not a node: ${a}`);
   }
+  return a;
 };
 
 SymbolicContext.prototype.W = function(dst, value) {
@@ -347,12 +359,12 @@ SymbolicContext.prototype.matrixElem = function(matrix, rowi, coli) {
   }
 };
 
-SymbolicContext.prototype.emitCode = function(f) {
+SymbolicContext.prototype.emitCode = function(lang, f) {
   let c = this;
   let deps = c.getDeps();
   let availCses = {};
   _.each(deps.writes, (a) => {
-    a.emitCode(deps, f, availCses);
+    a.emitCode(lang, deps, f, availCses);
   });
 };
 
@@ -380,7 +392,7 @@ SymbolicContext.prototype.withGradients = function(newName, wrMap, rdMap) {
     }
   });
 
-  let c2 = c.typereg.addSymbolic(newName, newInargs, newOutargs, c.lang);
+  let c2 = c.typereg.addSymbolic(newName, newInargs, newOutargs);
   ctx.c = c2;
   c2.preCode = c.preCode;
   c2.postCode = c.postCode;
@@ -462,9 +474,9 @@ function SymbolicExpr(c, op, args) {
     let memberName = op.substring(1);
     let t = args[0].type;
     if (!t) throw new Error(`Unknown type for ${args[0]}`);
-    if (!t.nameToType) throw new Error(`No ${memberName} in ${t.typename}`);
+    if (!t.nameToType) throw new Error(`No member ${memberName} in ${t.typename}, which isn't even a struct`);
     let retType = t.nameToType[memberName];
-    if (!retType) throw new Error(`No member "${memberName}" in ${t.typename}`);
+    if (!retType) throw new Error(`No member "${memberName}" in ${t.typename}. Members include ${t.orderedNames.join(', ')}`);
 
     /*
       This fixes the situation where we have foo(os.bar), where foo(x) has a .replace method that expands into x.buz.
@@ -596,7 +608,13 @@ function SymbolicExpr(c, op, args) {
     e.opInfo = {
       impl: {
         c: function(...args) {
-          return `${this.op}{${_.map(args, (a) => `${a}`).join(', ')}}`;
+          if (this.type.templateName === 'arma::Col' || this.type.templateName === 'arma::Col::fixed' ||
+              this.type.templateName === 'arma::Row' || this.type.templateName === 'arma::Row::fixed' ||
+              this.type.templateName === 'arma::Mat' || this.type.templateName === 'arma::Mat::fixed') {
+            return `${this.type.typename}{${_.map(args, (a) => `${a}`).join(', ')}}`;
+          } else {
+            return `${this.type.typename}(${_.map(args, (a) => `${a}`).join(', ')})`;
+          }
         },
         js: function(...args) {
           if (this.type.templateName === 'arma::Col' || this.type.templateName === 'arma::Col::fixed' ||
@@ -604,11 +622,17 @@ function SymbolicExpr(c, op, args) {
               this.type.templateName === 'arma::Mat' || this.type.templateName === 'arma::Mat::fixed') {
             return `Float64Array.of(${_.map(args, (a) => `${a}`).join(', ')})`;
           }
-          return `${this.op}{${_.map(args, (a) => `${a}`).join(', ')}}`;
+          return `{__type:'${this.type.jsTypename}', ${(
+            _.map(this.type.orderedNames, (name, argi) => {
+              return `${name}:${args[argi]}`;
+            }).join(', ')
+          )}}`;
         },
         deriv: function(c, wrt, ...args) {
+          return c.E(op, ..._.map(args, (a) => c.D(a, wrt)));
         },
         gradient: function(c, deps, g, ...args) {
+          // FIXME
         }
       },
     };
@@ -850,7 +874,7 @@ SymbolicContext.prototype.D = function(wrt, e) {
   let c = this;
   assert.strictEqual(wrt.c, c);
   assert.strictEqual(e.c, c);
-  return e.getDeriv(wrt);
+  return c.assertNode(e.getDeriv(wrt));
 };
 
 SymbolicNode.prototype.getDeriv = function(wrt) {
@@ -964,6 +988,8 @@ SymbolicContext.prototype.addGradients = function(wrMap, rdMap) {
 SymbolicNode.prototype.addGradient = function(deps, g) {
   let e = this;
   let c = e.c;
+  assert.ok(deps.totGradients);
+  c.assertNode(g);
 
   if (0) console.log(`addGradient ${util.inspect(g)} to ${util.inspect(e)}`);
   if (g.isZero()) {
@@ -1050,7 +1076,11 @@ SymbolicExpr.prototype.backprop = function(deps) {
   let g = e.getGradient(deps);
 
   let gradientFunc = e.opInfo.impl.gradient;
-  if (!gradientFunc) throw new Error(`No gradient impl for ${e.op}`);
+  if (!gradientFunc) {
+    throw new Error(`No gradient impl for ${e.op}(${
+      _.map(e.args, (a) => a.type.jsTypename).join(', ')
+    })`);
+  }
   return gradientFunc.apply(e, [c, deps, g].concat(e.args));
 };
 
@@ -1065,34 +1095,34 @@ SymbolicConst.prototype.backprop = function(deps) {
   Emitting code
 */
 
-SymbolicNode.prototype.emitCses = function(deps, f, availCses) {
+SymbolicNode.prototype.emitCses = function(lang, deps, f, availCses) {
   // nothing
 };
 
-SymbolicWrite.prototype.emitCses = function(deps, f, availCses) {
+SymbolicWrite.prototype.emitCses = function(lang, deps, f, availCses) {
   let e = this;
 
-  e.value.emitCses(deps, f, availCses);
+  e.value.emitCses(lang, deps, f, availCses);
 };
 
-SymbolicExpr.prototype.emitCses = function(deps, f, availCses) {
+SymbolicExpr.prototype.emitCses = function(lang, deps, f, availCses) {
   let e = this;
   let c = e.c;
 
   if (!availCses[e.cseKey]) {
     _.each(e.args, (arg) => {
-      arg.emitCses(deps, f, availCses);
+      arg.emitCses(lang, deps, f, availCses);
     });
     if (deps.rev[e.cseKey].length > 1) {
       // Wrong for composite types, use TypeRegistry
-      if (c.lang === 'c') {
-        f(`${e.type.typename} ${e.cseKey} = ${e.getExpr(availCses)};`);
+      if (lang === 'c') {
+        f(`${e.type.typename} ${e.cseKey} = ${e.getExpr(lang, availCses)};`);
+        if (e.printName) {
+          f(`eprintf("${e.printName} ${e.cseKey} = %s\\n", asJson(${e.cseKey}).it.c_str());`);
+        }
       }
-      else if (c.lang === 'js') {
-        f(`let ${e.cseKey} = ${e.getExpr(availCses)};`);
-      }
-      if (e.printName) {
-        f(`eprintf("${e.printName} ${e.cseKey} = %s\\n", asJson(${e.cseKey}).it.c_str());`);
+      else if (lang === 'js') {
+        f(`let ${e.cseKey} = ${e.getExpr(lang, availCses)};`);
       }
       availCses[e.cseKey] = true;
     }
@@ -1100,30 +1130,30 @@ SymbolicExpr.prototype.emitCses = function(deps, f, availCses) {
 };
 
 
-SymbolicWrite.prototype.emitCode = function(deps, f, availCses) {
+SymbolicWrite.prototype.emitCode = function(lang, deps, f, availCses) {
   let e = this;
 
-  e.emitCses(deps, f, availCses);
-  f(`${e.ref.getExpr(availCses)} = ${e.value.getExpr(availCses)};`);
+  e.emitCses(lang, deps, f, availCses);
+  f(`${e.ref.getExpr(lang, availCses)} = ${e.value.getExpr(lang, availCses)};`);
 };
 
-SymbolicRead.prototype.getExpr = function(availCses) {
-  return this.ref.getExpr(availCses);
+SymbolicRead.prototype.getExpr = function(lang, availCses) {
+  return this.ref.getExpr(lang, availCses);
 };
 
 
-SymbolicRef.prototype.getExpr = function(availCses) {
+SymbolicRef.prototype.getExpr = function(lang, availCses) {
   return this.name;
 };
 
-SymbolicConst.prototype.getExpr = function(availCses) {
+SymbolicConst.prototype.getExpr = function(lang, availCses) {
   let e = this;
   let c = e.c;
 
-  return e.type.getValueExpr(c.lang, e.value);
+  return e.type.getValueExpr(lang, e.value);
 };
 
-SymbolicExpr.prototype.getExpr = function(availCses) {
+SymbolicExpr.prototype.getExpr = function(lang, availCses) {
   let e = this;
   let c = e.c;
 
@@ -1131,11 +1161,11 @@ SymbolicExpr.prototype.getExpr = function(availCses) {
     return e.cseKey;
   }
   let argExprs = _.map(e.args, (arg) => {
-    return arg.getExpr(availCses);
+    return arg.getExpr(lang, availCses);
   });
-  let impl = e.opInfo.impl[c.lang];
+  let impl = e.opInfo.impl[lang];
   if (!impl) {
-    throw new Error(`No ${c.lang} impl for ${e.op}`);
+    throw new Error(`No ${lang} impl for ${e.op}(${_.map(e.args, (a) => a.type.jsTypename).join(', ')})`);
   }
   return impl.apply(e, argExprs);
 };

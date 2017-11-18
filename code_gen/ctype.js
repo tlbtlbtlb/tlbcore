@@ -268,6 +268,7 @@ CType.prototype.emitHostCode = function(f) {
   }
   _.each(type.getDefnDependencies(), function(othertype) {
     othertype = type.reg.getType(othertype);
+    if (othertype === undefined) return;
     let fns = othertype.getFns();
     if (fns && fns.typeHeader) {
       f(`#include "${fns.typeHeader}"`);

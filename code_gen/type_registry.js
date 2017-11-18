@@ -4,6 +4,7 @@ const assert = require('assert');
 const util = require('util');
 const cgen = require('./cgen');
 const fs = require('fs');
+const path = require('path');
 const gen_utils = require('./gen_utils');
 const symbolic_math = require('./symbolic_math');
 const CType = require('./ctype').CType;
@@ -25,17 +26,21 @@ function TypeRegistry(groupname) {
   typereg.enums = [];
   typereg.consts = {};
   typereg.wrapFunctions = {};
-  typereg.symbolics = {c: {}, js: {}};
+  typereg.symbolics = {};
   typereg.extraJsWrapFuncsHeaders = [];
   typereg.conversions = [];
   typereg.extraConversionIncludes = [];
 
   typereg.debugJson = false;
 
+  typereg.fileReaders = {
+    '.h': typereg.scanCHeader,
+    '.js': typereg.scanJsDefn,
+  };
   typereg.setupBuiltins();
 }
 
-TypeRegistry.prototype.scanJsDefn = function(fn, cb) {
+TypeRegistry.prototype.scanJsDefn = function(text, fn, cb) {
   let typereg = this;
   // eslint-disable-next-line global-require
   const scanModule = require(fs.realpathSync(fn));
@@ -58,9 +63,11 @@ TypeRegistry.prototype.setupBuiltins = function() {
   typereg.primitive('bool');
   typereg.primitive('float');
   typereg.primitive('double');
+  typereg.aliasType('double', 'R');
   typereg.primitive('arma::cx_double');
   typereg.primitive('S32');
   typereg.aliasType('S32','int');
+  typereg.aliasType('S32','I');
   typereg.primitive('S64');
   typereg.primitive('U32');
   typereg.aliasType('U32','u_int');
@@ -68,6 +75,7 @@ TypeRegistry.prototype.setupBuiltins = function() {
   typereg.primitive('string');
   typereg.primitive('char const *');
   typereg.primitive('jsonstr');
+  typereg.aliasType('jsonstr', 'Object');
   typereg.template('vector< jsonstr >');
   typereg.template('map< string, jsonstr >');
 };
@@ -460,6 +468,22 @@ function escapeRegexp(s) {
   return s.replace(/[*\.\+]/g, '\\$&');
 }
 
+TypeRegistry.prototype.scanFile = function(fn, cb) {
+  let typereg = this;
+  fs.readFile(fn, {encoding: 'utf8'}, (err, text) => {
+    if (err) return cb(err);
+    typereg.scanText(text, fn, cb);
+  });
+};
+
+TypeRegistry.prototype.scanText = function(text, fn, cb) {
+  let typereg = this;
+  let ext = path.extname(fn);
+  let rdr = typereg.fileReaders[ext];
+  if (!rdr) return cb(`No reader for ${ext} files`);
+  rdr.call(typereg, text, fn, cb);
+};
+
 TypeRegistry.prototype.scanCFunctions = function(text) {
   let typereg = this;
   let typenames = _.keys(typereg.types);
@@ -513,10 +537,9 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
   if (0) console.log(typereg.wrapFunctions);
 };
 
-TypeRegistry.prototype.scanCHeader = function(fn, cb) {
+TypeRegistry.prototype.scanCHeader = function(text, fn, cb) {
   let typereg = this;
-  let rawFile = fs.readFileSync(fn, 'utf8');
-  typereg.scanCFunctions(rawFile);
+  typereg.scanCFunctions(text);
   typereg.extraJsWrapFuncsHeaders.push(`#include "${ fn }"`);
   cb(null);
 };
@@ -528,7 +551,7 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
   let hl = files.getFile(`symbolics_${ typereg.groupname }.h`);
 
   // Make a list of all includes: collect all types for all functions, then collect the customerIncludes for each type, and remove dups
-  let allTypes = _.uniq(_.flatten(_.map(typereg.symbolics.c, (func) => {
+  let allTypes = _.uniq(_.flatten(_.map(typereg.symbolics, (func) => {
     return func.getAllTypes();
   })));
   let allIncludes = _.uniq(_.flatten(_.map(allTypes, (typename) => {
@@ -543,12 +566,15 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
   let cl = files.getFile(`symbolics_${ typereg.groupname }.cc`);
   cl(`
     #include "common/std_headers.h"
+    #include "geom/geom_math.h"
     #include "./symbolics_${ typereg.groupname }.h"
   `);
 
-  _.each(typereg.symbolics.c, function(func, funcname) {
-    func.emitDecl(hl);
-    func.emitDefn(cl);
+  _.each(typereg.symbolics, function(func, funcname) {
+    if (func.langs.c) {
+      func.emitDecl('c', hl);
+      func.emitDefn('c', cl);
+    }
   });
 
   let jsl = files.getFile(`symbolics_${ typereg.groupname }.js`);
@@ -557,8 +583,10 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
     const canvasutils = require('tlbcore/web/canvasutils');
     const Geom3D = canvasutils.Geom3D;
   `);
-  _.each(typereg.symbolics.js, function(func, funcname) {
-    func.emitDefn(jsl);
+  _.each(typereg.symbolics, function(func, funcname) {
+    if (func.langs.js) {
+      func.emitDefn('js', jsl);
+    }
   });
 
 };
@@ -581,10 +609,9 @@ TypeRegistry.prototype.addWrapFunction = function(desc, funcScope, funcname, fun
   });
 };
 
-TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs, lang) {
+TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs) {
   let typereg = this;
-  if (!lang) lang='c';
-  let ret = typereg.symbolics[lang][name] = new symbolic_math.SymbolicContext(typereg, name, inargs, outargs, lang);
+  let ret = typereg.symbolics[name] = new symbolic_math.SymbolicContext(typereg, name, inargs, outargs);
   return ret;
 };
 

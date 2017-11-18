@@ -58,6 +58,9 @@ defop('double',  'cos',             'double', {
       c.D(wrt, a),
       c.E('-', c.E('sin', a)));
   },
+  gradient: function(c, deps, g, a) {
+    a.addGradient(deps, c.E('*', g, c.E('-', c.E('sin', a))));
+  },
 });
 defop('double',  'tan',             'double', {
   imm: function(a) { return Math.tan(a); },
@@ -66,6 +69,7 @@ defop('double',  'tan',             'double', {
 defop('double',  'exp',             'double', {
   imm: function(a) { return Math.exp(a); },
   c: function(a) { return `exp(${a})`; },
+  js: function(a) { return `Math.exp(${a})`; },
   deriv: function(c, wrt, a) {
     return c.E('*',
       c.D(wrt, a),
@@ -106,6 +110,23 @@ defop('double',  '*',               'double', 'double', {
 });
 
 defop('double',  'sqr',               'double', {
+  imm: function(a) { return a * a; },
+  c: function(a) { return `sqr(${a})`; },
+  js: function(a, b) { return `(${a} * ${a})`; },
+  replace: function(c, a, b) {
+    if (a.isZero()) return a;
+    if (a.isOne()) return a;
+  },
+  deriv: function(c, wrt, a, b) {
+    return c.E('*', c.C('double', 2), c.D(wrt, a));
+  },
+  gradient: function(c, deps, g, a, b) {
+    a.addGradient(deps, c.E('*', c.C('double', 2), c.E('*', g, a)));
+  },
+});
+
+
+defop('double',  'normsq',               'double', {
   imm: function(a) { return a * a; },
   c: function(a) { return `sqr(${a})`; },
   js: function(a, b) { return `(${a} * ${a})`; },
@@ -172,7 +193,16 @@ defop('double',  '/',               'double', 'double', {
   replace: function(c, a, b) {
     if (a.isZero()) return a;
   },
+  gradient: function(c, deps, g, a, b) {
+    a.addGradient(deps, c.E('/', g, b));
+
+    // FIXME
+    //b.addGradient(deps, c.E('-', c.E('*', g, a)));
+  },
 });
+
+
+
 defop('double',  'min',             'double', 'double', {
   imm: function(a, b) { return Math.min(a, b); },
   c: function(a, b) { return `min(${a}, ${b})`; },

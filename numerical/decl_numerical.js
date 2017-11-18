@@ -25,6 +25,6 @@ module.exports = function(typereg, cb) {
     require.resolve('./polyfit.h'),
     require.resolve('./haltonseq.h'),
   ], (fn, scanCb) => {
-    typereg.scanCHeader(fn, scanCb);
+    typereg.scanFile(fn, scanCb);
   }, cb);
 };
