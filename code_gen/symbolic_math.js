@@ -155,11 +155,11 @@ SymbolicContext.prototype.emitDefn = function(lang, f) {
   if (lang === 'js') {
     f(`exports.${c.name} = ${c.name};`);
   }
-  _.each(c.preDefn, (code) => { f(code); });
+  _.each(c.preDefn, (code) => { code(lang, f); });
   f(`${c.getSignature(lang)} {`);
-  _.each(c.preCode, (code) => { f(code); });
+  _.each(c.preCode, (code) => { code(lang, f); });
   c.emitCode(lang, f);
-  _.each(c.postCode, (code) => { f(code); });
+  _.each(c.postCode, (code) => { code(lang, f); });
   f(`}
   `);
 };
@@ -310,10 +310,10 @@ SymbolicContext.prototype.C = function(type, value) {
 
 SymbolicContext.prototype.Ci = function(value) { return this.C('int', value); };
 SymbolicContext.prototype.Cd = function(value) { return this.C('double', value); };
-SymbolicContext.prototype.Cm33 = function(value) { return this.C('arma::mat33', value); };
-SymbolicContext.prototype.Cm44 = function(value) { return this.C('arma::mat44', value); };
-SymbolicContext.prototype.Cv3 = function(value) { return this.C('arma::vec3', value); };
-SymbolicContext.prototype.Cv4 = function(value) { return this.C('arma::vec4', value); };
+SymbolicContext.prototype.Cm33 = function(value) { return this.C('Mat33', value); };
+SymbolicContext.prototype.Cm44 = function(value) { return this.C('Mat44', value); };
+SymbolicContext.prototype.Cv3 = function(value) { return this.C('Vec3', value); };
+SymbolicContext.prototype.Cv4 = function(value) { return this.C('Vec4', value); };
 
 
 SymbolicContext.prototype.E = function(op, ...args) {
@@ -351,7 +351,7 @@ SymbolicContext.prototype.structref = function(memberName, a, autoCreateType) {
 SymbolicContext.prototype.matrixElem = function(matrix, rowi, coli) {
   let c = this;
   assert.strictEqual(matrix.c, c);
-  if (matrix instanceof SymbolicExpr && matrix.op === 'arma::mat44') {
+  if (matrix instanceof SymbolicExpr && matrix.op === 'Mat44') {
     return matrix.args[rowi + coli*4];
   }
   else {
@@ -663,14 +663,14 @@ SymbolicConst.prototype.isZero = function() {
   let e = this;
   if (e.value === 0) return true;
   //if (e.type === 'double' && e.value === 0) return true;
-  //if (e.type === 'arma::mat44' && e.value === 0) return true;
+  //if (e.type === 'Mat44' && e.value === 0) return true;
   return false;
 };
 SymbolicConst.prototype.isOne = function() {
   let e = this;
   if (e.value === 1) return true;
   //if (e.type === 'double' && e.value === 1) return true;
-  //if (e.type === 'arma::mat44' && e.value === 1) return true;
+  //if (e.type === 'Mat44' && e.value === 1) return true;
   return false;
 };
 SymbolicConst.prototype.isConst = function() {

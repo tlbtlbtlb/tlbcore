@@ -28,59 +28,40 @@ module.exports = function(typereg) {
         srType = typereg.template(srTypename);
         scType = typereg.template(scTypename);
 
-        if (et === 'double') {
-          if (rowFixed) {
-            typereg.aliasType(rType, `arma::rowvec${ rowFixed.toString() }`);
-          } else {
-            typereg.aliasType(rType, 'arma::rowvec');
-          }
-          if (colFixed) {
-            typereg.aliasType(cType, `arma::vec${colFixed.toString()}`);
-            typereg.aliasType(cType, `Vec${colFixed.toString()}`);
-          } else {
-            typereg.aliasType(cType, 'arma::vec');
-            typereg.aliasType(cType, `Vec`);
-          }
-          if (colFixed && rowFixed) {
-            typereg.aliasType(mType, `arma::mat${rowFixed.toString()}${colFixed.toString()}`);
-            typereg.aliasType(mType, `Mat${rowFixed.toString()}${colFixed.toString()}`);
-          } else {
-            typereg.aliasType(mType, 'arma::mat');
-            typereg.aliasType(mType, 'Mat');
-          }
+        let jsPrefix = '';
+        if (et === 'float') {
+          jsPrefix = 'F';
         }
         else if (et === 'S64') {
-          if (!rowFixed) {
-            typereg.aliasType(rType, 'arma::irowvec');
-          }
-          if (!colFixed) {
-            typereg.aliasType(cType, 'arma::ivec');
-          }
-          if (!colFixed && !rowFixed) {
-            typereg.aliasType(mType, 'arma::imat');
-          }
+          jsPrefix = 'I';
         }
-        else if (et === 'cx_double') {
-          if (!rowFixed) {
-            typereg.aliasType(rType, 'arma::cx_rowvec');
-          }
-          if (!colFixed) {
-            typereg.aliasType(cType, 'arma::cx_vec');
-          }
-          if (!colFixed && !rowFixed) {
-            typereg.aliasType(mType, 'arma::cx_mat');
-          }
+        else if (et === 'U64') {
+          jsPrefix = 'U';
+        }
+        else if (et === 'arma::cx_double') {
+          jsPrefix = 'Cx';
         }
         else if (et === 'float') {
-          if (!rowFixed) {
-            typereg.aliasType(rType, 'arma::frowvec');
-          }
-          if (!colFixed) {
-            typereg.aliasType(cType, 'arma::fvec');
-          }
-          if (!colFixed && !rowFixed) {
-            typereg.aliasType(mType, 'arma::fmat');
-          }
+          jsPrefix = 'F';
+        }
+
+        if (colFixed) {
+          typereg.aliasType(cType, (cType.jsTypename = `${jsPrefix}Vec${colFixed.toString()}`));
+        }
+        else {
+          typereg.aliasType(cType, (cType.jsTypename = `${jsPrefix}Vec`));
+        }
+        if (rowFixed) {
+          typereg.aliasType(rType, (rType.jsTypename = `${jsPrefix}Row${rowFixed.toString()}`));
+        }
+        else {
+          typereg.aliasType(rType, (rType.jsTypename = `${jsPrefix}Row`));
+        }
+        if (colFixed && rowFixed) {
+          typereg.aliasType(mType, (mType.jsTypename = `${jsPrefix}Mat${rowFixed.toString()}${colFixed.toString()}`));
+        }
+        else if (!colFixed && !rowFixed) {
+          typereg.aliasType(mType, (mType.jsTypename = `${jsPrefix}Mat`));
         }
 
         srType.noSerialize = true;
@@ -264,33 +245,6 @@ module.exports = function(typereg) {
       });
     });
   });
-
-  typereg.getType('arma::Col< double >').jsTypename = 'vec';
-  typereg.getType('arma::Col< double >::fixed< 2 >').jsTypename = 'vec2';
-  typereg.getType('arma::Col< double >::fixed< 3 >').jsTypename = 'vec3';
-  typereg.getType('arma::Col< double >::fixed< 4 >').jsTypename = 'vec4';
-
-  typereg.getType('arma::Col< S64 >').jsTypename = 'ivec';
-  typereg.getType('arma::Col< S64 >::fixed< 2 >').jsTypename = 'ivec2';
-  typereg.getType('arma::Col< S64 >::fixed< 3 >').jsTypename = 'ivec3';
-  typereg.getType('arma::Col< S64 >::fixed< 4 >').jsTypename = 'ivec4';
-
-
-  typereg.getType('arma::Mat< double >').jsTypename = 'mat';
-  typereg.getType('arma::Mat< double >::fixed< 2, 2 >').jsTypename = 'mat22';
-  typereg.getType('arma::Mat< double >::fixed< 3, 3 >').jsTypename = 'mat33';
-  typereg.getType('arma::Mat< double >::fixed< 4, 4 >').jsTypename = 'mat44';
-
-  typereg.getType('arma::Mat< S64 >').jsTypename = 'imat';
-  typereg.getType('arma::Mat< S64 >::fixed< 2, 2 >').jsTypename = 'imat22';
-  typereg.getType('arma::Mat< S64 >::fixed< 3, 3 >').jsTypename = 'imat33';
-  typereg.getType('arma::Mat< S64 >::fixed< 4, 4 >').jsTypename = 'imat44';
-
-  typereg.getType('arma::Row< double >').jsTypename = 'rowvec';
-  typereg.getType('arma::Row< S64 >').jsTypename = 'irowvec';
-  typereg.getType('arma::Col< arma::cx_double >').jsTypename = 'cx_vec';
-  typereg.getType('arma::Row< arma::cx_double >').jsTypename = 'cx_rowvec';
-  typereg.getType('arma::Mat< arma::cx_double >').jsTypename = 'cx_mat';
 
   typereg.struct('MinMax',
     ['min', 'double'],

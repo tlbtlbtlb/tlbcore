@@ -11,7 +11,7 @@ const defop = symbolic_math.defop;
 
 // mat33
 
-defop('arma::mat33',    'mat33RotationZ',   'double', {
+defop('Mat33',    'mat33RotationZ',   'double', {
   imm: function(a) {
     let ca = Math.cos(a);
     let sa = Math.sin(a);
@@ -21,7 +21,7 @@ defop('arma::mat33',    'mat33RotationZ',   'double', {
       0, 0, 1];
   },
   c: function(a) {
-    return `arma::mat33 { cos(${a}), sin(${a}), 0, -sin(${a}), cos(${a}), 0, 0, 0, 1 }`;
+    return `Mat33 { cos(${a}), sin(${a}), 0, -sin(${a}), cos(${a}), 0, 0, 0, 1 }`;
   },
   js: function(a) {
     return `Float64Array.of( cos(${a}), sin(${a}), 0, -sin(${a}), cos(${a}), 0, 0, 0, 1 )`;
@@ -31,21 +31,21 @@ defop('arma::mat33',    'mat33RotationZ',   'double', {
 
 // mat44
 
-if (0) defop('arma::mat44',        'arma::mat44',
+if (0) defop('Mat44',        'Mat44',
       'double', 'double', 'double', 'double',
       'double', 'double', 'double', 'double',
       'double', 'double', 'double', 'double',
       'double', 'double', 'double', 'double', {
   c: function(a00, a10, a20, a30, a01, a11, a21, a31, a02, a12, a22, a32, a03, a13, a23, a33) {
     assert.ok(a33);
-    return (`arma::mat44 { ${a00}, ${a10}, ${a20}, ${a30},  ${a01}, ${a11}, ${a21}, ${a31},  ${a02}, ${a12}, ${a22}, ${a32},  ${a03}, ${a13}, ${a23}, ${a33}}`);
+    return (`Mat44 { ${a00}, ${a10}, ${a20}, ${a30},  ${a01}, ${a11}, ${a21}, ${a31},  ${a02}, ${a12}, ${a22}, ${a32},  ${a03}, ${a13}, ${a23}, ${a33}}`);
   },
   js: function(a00, a10, a20, a30, a01, a11, a21, a31, a02, a12, a22, a32, a03, a13, a23, a33) {
     assert.ok(a33);
     return (`Float64Array.of(${a00}, ${a10}, ${a20}, ${a30},  ${a01}, ${a11}, ${a21}, ${a31},  ${a02}, ${a12}, ${a22}, ${a32},  ${a03}, ${a13}, ${a23}, ${a33})`);
   },
   deriv: function(c, wrt) {
-    return c.E('arma::mat44',
+    return c.E('Mat44',
       c.D(wrt, this.args[0]), c.D(wrt, this.args[1]), c.D(wrt, this.args[2]), c.D(wrt, this.args[3]),
       c.D(wrt, this.args[4]), c.D(wrt, this.args[5]), c.D(wrt, this.args[6]), c.D(wrt, this.args[7]),
       c.D(wrt, this.args[8]), c.D(wrt, this.args[9]), c.D(wrt, this.args[10]), c.D(wrt, this.args[11]),
@@ -54,36 +54,36 @@ if (0) defop('arma::mat44',        'arma::mat44',
 });
 
 
-defop('arma::mat44',        'mat44RotationX',   'double', {
+defop('Mat44',        'mat44RotationX',   'double', {
   replace: function(c, a) {
     if (a.isZero()) {
       return c.Cm44(1);
     }
-    return c.E('arma::mat44',
+    return c.E('Mat44',
       c.Cd(1), c.Cd(0), c.Cd(0), c.Cd(0),
       c.Cd(0), c.E('cos', a), c.E('sin', a), c.Cd(0),
       c.Cd(0), c.E('-', c.E('sin', a)), c.E('cos', a), c.Cd(0),
       c.Cd(0), c.Cd(0), c.Cd(0), c.Cd(1));
   }
 });
-defop('arma::mat44',        'mat44RotationY',   'double', {
+defop('Mat44',        'mat44RotationY',   'double', {
   replace: function(c, a) {
     if (a.isZero()) {
       return c.Cm44(1);
     }
-    return c.E('arma::mat44',
+    return c.E('Mat44',
       c.E('cos', a), c.Cd(0), c.E('-', c.E('sin', a)), c.Cd(0),
       c.Cd(0), c.Cd(1), c.Cd(0), c.Cd(0),
       c.E('sin', a), c.Cd(0), c.E('cos', a), c.Cd(0),
       c.Cd(0), c.Cd(0), c.Cd(0), c.Cd(1));
   }
 });
-defop('arma::mat44',        'mat44RotationZ',   'double', {
+defop('Mat44',        'mat44RotationZ',   'double', {
   replace: function(c, a) {
     if (a.isZero()) {
       return c.Cm44(1);
     }
-    return c.E('arma::mat44',
+    return c.E('Mat44',
       c.E('cos', a), c.E('sin', a), c.Cd(0), c.Cd(0),
       c.E('-', c.E('sin', a)), c.E('cos', a), c.Cd(0), c.Cd(0),
       c.Cd(0), c.Cd(0), c.Cd(1), c.Cd(0),
@@ -91,12 +91,12 @@ defop('arma::mat44',        'mat44RotationZ',   'double', {
   }
 });
 
-defop('arma::mat44',        'mat44Translation',   'double', 'double', 'double', {
+defop('Mat44',        'mat44Translation',   'double', 'double', 'double', {
   replace: function(c, x, y, z) {
     if (x.isZero() && y.isZero() && z.isZero()) {
       return c.Cm44(1);
     }
-    return c.E('arma::mat44',
+    return c.E('Mat44',
       c.Cd(1), c.Cd(0), c.Cd(0), c.Cd(0),
       c.Cd(0), c.Cd(1), c.Cd(0), c.Cd(0),
       c.Cd(0), c.Cd(0), c.Cd(1), c.Cd(0),
@@ -104,12 +104,12 @@ defop('arma::mat44',        'mat44Translation',   'double', 'double', 'double', 
   }
 });
 
-defop('arma::mat44',        'mat44Scale',   'double', 'double', 'double', {
+defop('Mat44',        'mat44Scale',   'double', 'double', 'double', {
   replace: function(c, x, y, z) {
     if (x.isZero() && y.isZero() && z.isZero()) {
       return c.Cm44(0);
     }
-    return c.E('arma::mat44',
+    return c.E('Mat44',
       x, c.Cd(0), c.Cd(0), c.Cd(0),
       c.Cd(0), y, c.Cd(0), c.Cd(0),
       c.Cd(0), c.Cd(0), z, c.Cd(0),
@@ -117,7 +117,7 @@ defop('arma::mat44',        'mat44Scale',   'double', 'double', 'double', {
   }
 });
 
-defop('arma::mat44',        'mat44Rotation',   'arma::vec3', 'double', {
+defop('Mat44',        'mat44Rotation',   'Vec3', 'double', {
   replace: function(c, a, b) {
     if (b.isZero()) {
       return c.Cm44(1);
@@ -134,7 +134,7 @@ defop('arma::mat44',        'mat44Rotation',   'arma::vec3', 'double', {
 
 _.each([0,1,2,3], function(rowi) {
   _.each([0,1,2,3], function(coli) {
-    defop('double',    `(${rowi},${coli})`,           'arma::mat44', {
+    defop('double',    `(${rowi},${coli})`,           'Mat44', {
       c: function(a) {
         return `(${a}(${rowi},${coli}))`;
       },
@@ -148,7 +148,7 @@ _.each([0,1,2,3], function(rowi) {
   });
 });
 
-defop('arma::mat44',    'trans',           'arma::mat44', {
+defop('Mat44',    'trans',           'Mat44', {
   c: function(a) {
     return `trans(${a})`;
   },
@@ -161,7 +161,7 @@ defop('arma::mat44',    'trans',           'arma::mat44', {
 });
 
 
-defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
+defop('Mat44',    '*',           'Mat44', 'Mat44', {
   c: function(a, b) {
     return `(${a} * ${ b })`;
   },
@@ -186,7 +186,7 @@ defop('arma::mat44',    '*',           'arma::mat44', 'arma::mat44', {
 
 });
 
-defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4', {
+defop('Vec4',    '*',           'Mat44', 'Vec4', {
   c: function(a, b) {
     return `(${a} * ${b})`;
   },
@@ -208,7 +208,7 @@ defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4', {
   },
 });
 
-defop('arma::mat44',    '+',           'arma::mat44', 'arma::mat44', {
+defop('Mat44',    '+',           'Mat44', 'Mat44', {
   c: function(a, b) {
     return `(${a} + ${b})`;
   },
@@ -226,7 +226,7 @@ defop('arma::mat44',    '+',           'arma::mat44', 'arma::mat44', {
   },
 });
 
-defop('arma::vec4',    '+',           'arma::vec4', 'arma::vec4', {
+defop('Vec4',    '+',           'Vec4', 'Vec4', {
   c: function(a, b) {
     return `(${a} + ${b})`;
   },
@@ -246,59 +246,59 @@ defop('arma::vec4',    '+',           'arma::vec4', 'arma::vec4', {
 
 
 if (0) { // WRITEME someday
-  defop('double',        'at',          'arma::mat22', 'int', 'int');
-  defop('double',        'at',          'arma::mat33', 'int', 'int');
-  defop('double',        'at',          'arma::mat44', 'int', 'int');
+  defop('double',        'at',          'Mat22', 'int', 'int');
+  defop('double',        'at',          'Mat33', 'int', 'int');
+  defop('double',        'at',          'Mat44', 'int', 'int');
 
-  defop('double',        'at',          'arma::vec2', 'int');
-  defop('double',        'at',          'arma::vec3', 'int');
-  defop('double',        'at',          'arma::vec4', 'int');
+  defop('double',        'at',          'Vec2', 'int');
+  defop('double',        'at',          'Vec3', 'int');
+  defop('double',        'at',          'Vec4', 'int');
 
-  defop('arma::mat22',    '*',          'arma::mat22', 'arma::mat22');
-  defop('arma::mat33',    '*',          'arma::mat33', 'arma::mat33');
+  defop('Mat22',    '*',          'Mat22', 'Mat22');
+  defop('Mat33',    '*',          'Mat33', 'Mat33');
 
-  defop('arma::mat22',    '+',          'arma::mat22', 'arma::mat22');
-  defop('arma::mat33',    '+',          'arma::mat33', 'arma::mat33');
-  defop('arma::mat44',   '+',           'arma::mat44', 'arma::mat44');
+  defop('Mat22',    '+',          'Mat22', 'Mat22');
+  defop('Mat33',    '+',          'Mat33', 'Mat33');
+  defop('Mat44',   '+',           'Mat44', 'Mat44');
 
-  defop('arma::mat22',    '-',          'arma::mat22', 'arma::mat22');
-  defop('arma::mat33',    '-',          'arma::mat33', 'arma::mat33');
-  defop('arma::mat44',   '-',           'arma::mat44', 'arma::mat44');
+  defop('Mat22',    '-',          'Mat22', 'Mat22');
+  defop('Mat33',    '-',          'Mat33', 'Mat33');
+  defop('Mat44',   '-',           'Mat44', 'Mat44');
 
-  defop('arma::vec2',    '*',           'arma::vec2', 'arma::vec2');
-  defop('arma::vec3',    '*',           'arma::vec3', 'arma::vec3');
-  defop('arma::vec4',    '*',           'arma::vec4', 'arma::vec4');
+  defop('Vec2',    '*',           'Vec2', 'Vec2');
+  defop('Vec3',    '*',           'Vec3', 'Vec3');
+  defop('Vec4',    '*',           'Vec4', 'Vec4');
 
-  defop('arma::vec2',    '+',           'arma::vec2', 'arma::vec2');
-  defop('arma::vec3',    '+',           'arma::vec3', 'arma::vec3');
-  defop('arma::vec4',    '+',           'arma::vec4', 'arma::vec4');
+  defop('Vec2',    '+',           'Vec2', 'Vec2');
+  defop('Vec3',    '+',           'Vec3', 'Vec3');
+  defop('Vec4',    '+',           'Vec4', 'Vec4');
 
-  defop('arma::vec2',    '-',           'arma::vec2', 'arma::vec2');
-  defop('arma::vec3',    '-',           'arma::vec3', 'arma::vec3');
-  defop('arma::vec4',    '-',           'arma::vec4', 'arma::vec4');
+  defop('Vec2',    '-',           'Vec2', 'Vec2');
+  defop('Vec3',    '-',           'Vec3', 'Vec3');
+  defop('Vec4',    '-',           'Vec4', 'Vec4');
 
-  defop('arma::mat33',   'inverse',     'arma::mat33');
-  defop('arma::mat44',   'inverse',     'arma::mat44');
-  defop('arma::mat33',   'transpose',   'arma::mat33');
+  defop('Mat33',   'inverse',     'Mat33');
+  defop('Mat44',   'inverse',     'Mat44');
+  defop('Mat33',   'transpose',   'Mat33');
 
-  defop('arma::mat22',   '*',           'arma::mat22', 'double');
-  defop('arma::mat33',   '*',           'arma::mat33', 'double');
-  defop('arma::mat44',   '*',           'arma::mat44', 'double');
+  defop('Mat22',   '*',           'Mat22', 'double');
+  defop('Mat33',   '*',           'Mat33', 'double');
+  defop('Mat44',   '*',           'Mat44', 'double');
 
-  defop('arma::vec2',    '*',           'arma::mat22', 'arma::vec2');
-  defop('arma::vec3',    '*',           'arma::mat33', 'arma::vec3');
-  defop('arma::vec3',    '*',           'arma::mat44', 'arma::vec3');
-  defop('arma::vec4',    '*',           'arma::mat44', 'arma::vec4');
+  defop('Vec2',    '*',           'Mat22', 'Vec2');
+  defop('Vec3',    '*',           'Mat33', 'Vec3');
+  defop('Vec3',    '*',           'Mat44', 'Vec3');
+  defop('Vec4',    '*',           'Mat44', 'Vec4');
 
-  defop('arma::vec2',    '*',           'arma::vec2', 'double');
-  defop('arma::vec3',    '*',           'arma::vec3', 'double');
-  defop('arma::vec4',    '*',           'arma::vec4', 'double');
+  defop('Vec2',    '*',           'Vec2', 'double');
+  defop('Vec3',    '*',           'Vec3', 'double');
+  defop('Vec4',    '*',           'Vec4', 'double');
 
-  defop('arma::vec2',    '*',           'double', 'arma::vec2');
-  defop('arma::vec3',    '*',           'double', 'arma::vec3');
-  defop('arma::vec4',    '*',           'double', 'arma::vec4');
+  defop('Vec2',    '*',           'double', 'Vec2');
+  defop('Vec3',    '*',           'double', 'Vec3');
+  defop('Vec4',    '*',           'double', 'Vec4');
 
-  defop('arma::vec3',    'cross',       'arma::vec3', 'arma::vec3');
-  defop('float',         'dot',         'arma::vec3', 'arma::vec3');
+  defop('Vec3',    'cross',       'Vec3', 'Vec3');
+  defop('float',         'dot',         'Vec3', 'Vec3');
 
 }

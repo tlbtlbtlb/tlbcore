@@ -40,14 +40,14 @@ static void jsGet_StlSolid_bboxLo(Local< String > /*name*/, PropertyCallbackInfo
   Isolate *isolate = args.GetIsolate();
   EscapableHandleScope scope(isolate);
   auto thisObj = node::ObjectWrap::Unwrap< JsWrap_StlSolid >(args.This());
-  args.GetReturnValue().Set(JsWrap_vec::MemberInstance(isolate, thisObj->it, &(thisObj->it->bboxLo)));
+  args.GetReturnValue().Set(JsWrap_Vec::MemberInstance(isolate, thisObj->it, &(thisObj->it->bboxLo)));
 }
 
 static void jsGet_StlSolid_bboxHi(Local< String > /*name*/, PropertyCallbackInfo< Value > const &args) {
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   auto thisObj = node::ObjectWrap::Unwrap< JsWrap_StlSolid >(args.This());
-  args.GetReturnValue().Set(JsWrap_vec::MemberInstance(isolate, thisObj->it, &(thisObj->it->bboxHi)));
+  args.GetReturnValue().Set(JsWrap_Vec::MemberInstance(isolate, thisObj->it, &(thisObj->it->bboxHi)));
 }
 
 static void jsGet_StlSolid_numFaces(Local< String > /*name*/, PropertyCallbackInfo< Value > const &args) {
@@ -123,8 +123,8 @@ static void jsWrap_StlSolid_transform(FunctionCallbackInfo< Value > const &args)
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   auto thisObj = node::ObjectWrap::Unwrap< JsWrap_StlSolid >(args.This());
-  if (args.Length() == 1 && JsWrap_mat44::Extract(isolate, args[0]) != nullptr) {
-    arma::mat44 a0 = *JsWrap_mat44::Extract(isolate, args[0]);
+  if (args.Length() == 1 && JsWrap_Mat44::Extract(isolate, args[0]) != nullptr) {
+    arma::mat44 a0 = *JsWrap_Mat44::Extract(isolate, args[0]);
     thisObj->it->transform(a0);
   }
   else {
@@ -153,10 +153,10 @@ static void jsWrap_StlSolid_getIntersections(FunctionCallbackInfo< Value > const
   HandleScope scope(isolate);
   auto thisObj = node::ObjectWrap::Unwrap< JsWrap_StlSolid >(args.This());
   if (args.Length() == 2 &&
-      JsWrap_vec::Extract(isolate, args[0]) != nullptr &&
-      JsWrap_vec::Extract(isolate, args[1]) != nullptr) {
-    vec a0 = *JsWrap_vec::Extract(isolate, args[0]);
-    vec a1 = *JsWrap_vec::Extract(isolate, args[1]);
+      JsWrap_Vec::Extract(isolate, args[0]) != nullptr &&
+      JsWrap_Vec::Extract(isolate, args[1]) != nullptr) {
+    vec a0 = *JsWrap_Vec::Extract(isolate, args[0]);
+    vec a1 = *JsWrap_Vec::Extract(isolate, args[1]);
     vector< StlIntersection > ret = thisObj->it->getIntersections(a0, a1);
 
     Local< Array > retJs = Array::New(isolate, ret.size());
@@ -200,9 +200,9 @@ static void jsWrap_StlSolid_exportWebglMesh(FunctionCallbackInfo< Value > const 
     double a0 = args[0]->NumberValue();
     StlWebglMesh ret = thisObj->it->exportWebglMesh(a0);
     Local< Object > retJs = Object::New(isolate);
-    retJs->Set(String::NewFromUtf8(isolate, "coords"), JsWrap_vec::ConstructInstance(isolate, ret.coords));
-    retJs->Set(String::NewFromUtf8(isolate, "normals"), JsWrap_vec::ConstructInstance(isolate, ret.normals));
-    retJs->Set(String::NewFromUtf8(isolate, "indexes"), JsWrap_ivec::ConstructInstance(isolate, ret.indexes));
+    retJs->Set(String::NewFromUtf8(isolate, "coords"), JsWrap_Vec::ConstructInstance(isolate, ret.coords));
+    retJs->Set(String::NewFromUtf8(isolate, "normals"), JsWrap_Vec::ConstructInstance(isolate, ret.normals));
+    retJs->Set(String::NewFromUtf8(isolate, "indexes"), JsWrap_IVec::ConstructInstance(isolate, ret.indexes));
     args.GetReturnValue().Set(retJs);
   }
   else {
@@ -219,7 +219,7 @@ static void jsWrap_StlSolid_analyzeHole(FunctionCallbackInfo< Value > const &arg
   if (args.Length() == 1 && args[0]->IsNumber()) {
     double a0 = args[0]->NumberValue();
     arma::vec3 ret = thisObj->it->analyzeHole((int)a0);
-    args.GetReturnValue().Set(JsWrap_vec::ConstructInstance(isolate, ret));
+    args.GetReturnValue().Set(JsWrap_Vec::ConstructInstance(isolate, ret));
   }
   else {
     return ThrowInvalidArgs(isolate);
@@ -236,7 +236,7 @@ static void jsWrap_StlSolid_estimateVolume(FunctionCallbackInfo< Value > const &
 
     Local< Object > retJs = Object::New(isolate);
     retJs->Set(String::NewFromUtf8(isolate, "volume"), Number::New(isolate, ret.first));
-    retJs->Set(String::NewFromUtf8(isolate, "center"), JsWrap_vec::ConstructInstance(isolate, ret.second));
+    retJs->Set(String::NewFromUtf8(isolate, "center"), JsWrap_Vec::ConstructInstance(isolate, ret.second));
 
     args.GetReturnValue().Set(retJs);
   }
@@ -293,12 +293,12 @@ void jsConstructor_StlFace(JsWrap_StlFace *thisObj, FunctionCallbackInfo< Value 
     thisObj->assignDefault();
   }
   else if (args.Length() == 3 &&
-           JsWrap_vec::Extract(isolate, args[0]) != nullptr &&
-           JsWrap_vec::Extract(isolate, args[1]) != nullptr &&
-           JsWrap_vec::Extract(isolate, args[2]) != nullptr) {
-    vec a0 = *JsWrap_vec::Extract(isolate, args[0]);
-    vec a1 = *JsWrap_vec::Extract(isolate, args[1]);
-    vec a2 = *JsWrap_vec::Extract(isolate, args[2]);
+           JsWrap_Vec::Extract(isolate, args[0]) != nullptr &&
+           JsWrap_Vec::Extract(isolate, args[1]) != nullptr &&
+           JsWrap_Vec::Extract(isolate, args[2]) != nullptr) {
+    vec a0 = *JsWrap_Vec::Extract(isolate, args[0]);
+    vec a1 = *JsWrap_Vec::Extract(isolate, args[1]);
+    vec a2 = *JsWrap_Vec::Extract(isolate, args[2]);
     thisObj->assignConstruct(a0, a1, a2);
   }
   else  {
@@ -329,7 +329,7 @@ static void jsWrap_StlFace_getE1(FunctionCallbackInfo< Value > const &args)
   auto thisObj = node::ObjectWrap::Unwrap< JsWrap_StlFace >(args.This());
   if (args.Length() == 0) {
     vec ret = thisObj->it->getE1();
-    args.GetReturnValue().Set(JsWrap_vec::ConstructInstance(isolate, ret));
+    args.GetReturnValue().Set(JsWrap_Vec::ConstructInstance(isolate, ret));
   }
   else {
     return ThrowInvalidArgs(isolate);
@@ -343,7 +343,7 @@ static void jsWrap_StlFace_getE2(FunctionCallbackInfo< Value > const &args)
   auto thisObj = node::ObjectWrap::Unwrap< JsWrap_StlFace >(args.This());
   if (args.Length() == 0) {
     vec ret = thisObj->it->getE2();
-    args.GetReturnValue().Set(JsWrap_vec::ConstructInstance(isolate, ret));
+    args.GetReturnValue().Set(JsWrap_Vec::ConstructInstance(isolate, ret));
   }
   else {
     return ThrowInvalidArgs(isolate);
@@ -371,7 +371,7 @@ static void jsWrap_StlFace_getCentroid(FunctionCallbackInfo< Value > const &args
   auto thisObj = node::ObjectWrap::Unwrap< JsWrap_StlFace >(args.This());
   if (args.Length() == 0) {
     vec ret = thisObj->it->getCentroid();
-    args.GetReturnValue().Set(JsWrap_vec::ConstructInstance(isolate, ret));
+    args.GetReturnValue().Set(JsWrap_Vec::ConstructInstance(isolate, ret));
   }
   else {
     return ThrowInvalidArgs(isolate);
@@ -473,35 +473,35 @@ static void jsGet_StlMassProperties_cm(Local< String > /*name*/, PropertyCallbac
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   auto thisObj = node::ObjectWrap::Unwrap< JsWrap_StlMassProperties >(args.This());
-  args.GetReturnValue().Set(JsWrap_vec::MemberInstance(isolate, thisObj->it, &(thisObj->it->cm)));
+  args.GetReturnValue().Set(JsWrap_Vec::MemberInstance(isolate, thisObj->it, &(thisObj->it->cm)));
 }
 
 static void jsGet_StlMassProperties_inertiaOrigin(Local< String > /*name*/, PropertyCallbackInfo< Value > const &args) {
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   auto thisObj = node::ObjectWrap::Unwrap< JsWrap_StlMassProperties >(args.This());
-  args.GetReturnValue().Set(JsWrap_mat::MemberInstance(isolate, thisObj->it, &(thisObj->it->inertiaOrigin)));
+  args.GetReturnValue().Set(JsWrap_Mat::MemberInstance(isolate, thisObj->it, &(thisObj->it->inertiaOrigin)));
 }
 
 static void jsGet_StlMassProperties_inertiaCm(Local< String > /*name*/, PropertyCallbackInfo< Value > const &args) {
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   auto thisObj = node::ObjectWrap::Unwrap< JsWrap_StlMassProperties >(args.This());
-  args.GetReturnValue().Set(JsWrap_mat::MemberInstance(isolate, thisObj->it, &(thisObj->it->inertiaCm)));
+  args.GetReturnValue().Set(JsWrap_Mat::MemberInstance(isolate, thisObj->it, &(thisObj->it->inertiaCm)));
 }
 
 static void jsGet_StlMassProperties_rogOrigin(Local< String > /*name*/, PropertyCallbackInfo< Value > const &args) {
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   auto thisObj = node::ObjectWrap::Unwrap< JsWrap_StlMassProperties >(args.This());
-  args.GetReturnValue().Set(JsWrap_mat::MemberInstance(isolate, thisObj->it, &(thisObj->it->rogOrigin)));
+  args.GetReturnValue().Set(JsWrap_Mat::MemberInstance(isolate, thisObj->it, &(thisObj->it->rogOrigin)));
 }
 
 static void jsGet_StlMassProperties_rogCm(Local< String > /*name*/, PropertyCallbackInfo< Value > const &args) {
   Isolate *isolate = args.GetIsolate();
   HandleScope scope(isolate);
   auto thisObj = node::ObjectWrap::Unwrap< JsWrap_StlMassProperties >(args.This());
-  args.GetReturnValue().Set(JsWrap_mat::MemberInstance(isolate, thisObj->it, &(thisObj->it->rogCm)));
+  args.GetReturnValue().Set(JsWrap_Mat::MemberInstance(isolate, thisObj->it, &(thisObj->it->rogCm)));
 }
 
 void jsInit_StlMassProperties(Handle< Object > exports) {

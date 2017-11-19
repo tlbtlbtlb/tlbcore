@@ -47,7 +47,7 @@ if (0) describe('symbolic_math', function() {
     let a = c.ref('a');
     let az = c.E('mat44RotationZ', a);
     console.log(az.getExpr({}, {}));
-    let b = c.C('arma::mat44', [1, 0, 0, 0,
+    let b = c.C('Mat44', [1, 0, 0, 0,
                                 0, 1, 0, 0,
                                 0, 0, 1, 0,
                                 0, 0, 0, 1]);
@@ -63,16 +63,16 @@ if (0) describe('symbolic_math', function() {
     let c = new symbolic_math.SymbolicContext(typereg, 'test', [
       ['a', 'double'],
     ], [
-      ['rht', 'arma::mat44'],
+      ['rht', 'Mat44'],
     ]);
 
     let a = c.ref('a');
     let az = c.E('mat44RotationZ', a);
-    let x = c.C('arma::mat44', [1, 0, 0, 0,
+    let x = c.C('Mat44', [1, 0, 0, 0,
                                 0, 1, 0, 0,
                                 0, 0, 1, 0,
                                 0, 0, 0, 1]);
-    let y = c.C('arma::mat44', [0, 1, 0, 0,
+    let y = c.C('Mat44', [0, 1, 0, 0,
                                 1, 0, 0, 0,
                                 0, 0, 1, 0,
                                 0, 0, 0, 1]);
