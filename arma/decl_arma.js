@@ -28,28 +28,31 @@ module.exports = function(typereg) {
         srType = typereg.template(srTypename);
         scType = typereg.template(scTypename);
 
-        let jsPrefix = '';
+        let jsPrefix = '', cPrefix = '';
         if (et === 'float') {
           jsPrefix = 'F';
+          cPrefix = 'f';
         }
         else if (et === 'S64') {
           jsPrefix = 'I';
+          cPrefix = 'i';
         }
         else if (et === 'U64') {
           jsPrefix = 'U';
+          cPrefix = 'u';
         }
         else if (et === 'arma::cx_double') {
           jsPrefix = 'Cx';
-        }
-        else if (et === 'float') {
-          jsPrefix = 'F';
+          cPrefix = 'cx';
         }
 
         if (colFixed) {
           typereg.aliasType(cType, (cType.jsTypename = `${jsPrefix}Vec${colFixed.toString()}`));
+          typereg.aliasType(cType, `arma::${cPrefix}vec${colFixed.toString()}`);
         }
         else {
           typereg.aliasType(cType, (cType.jsTypename = `${jsPrefix}Vec`));
+          typereg.aliasType(cType, `arma::${cPrefix}vec`);
         }
         if (rowFixed) {
           typereg.aliasType(rType, (rType.jsTypename = `${jsPrefix}Row${rowFixed.toString()}`));
@@ -59,9 +62,11 @@ module.exports = function(typereg) {
         }
         if (colFixed && rowFixed) {
           typereg.aliasType(mType, (mType.jsTypename = `${jsPrefix}Mat${rowFixed.toString()}${colFixed.toString()}`));
+          typereg.aliasType(mType, `arma::${cPrefix}mat${rowFixed.toString()}${colFixed.toString()}`);
         }
         else if (!colFixed && !rowFixed) {
           typereg.aliasType(mType, (mType.jsTypename = `${jsPrefix}Mat`));
+          typereg.aliasType(mType, `arma::${cPrefix}mat`);
         }
 
         srType.noSerialize = true;

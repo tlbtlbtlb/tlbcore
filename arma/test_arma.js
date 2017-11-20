@@ -7,7 +7,7 @@ const ur = require('ur');
 
 describe('ur.arma', function() {
   it('mat should work', function() {
-    let m = new ur.mat(3,3);
+    let m = new ur.Mat(3,3);
     assert.equal(m.toJsonString(), '[0,0,0,0,0,0,0,0,0]');
     m[0] = 1;
     m[3] = 2;
@@ -15,7 +15,7 @@ describe('ur.arma', function() {
     assert.equal(m.toJsonString(), '[1,3,0,2,0,0,0,0,0]');
   });
   it('vec should work', function() {
-    let v = new ur.vec(4);
+    let v = new ur.Vec(4);
     assert.equal(v.toJsonString(), '[0,0,0,0]');
     assert.equal(v[0], 0);
     assert.equal(v[1], 0);
@@ -23,48 +23,48 @@ describe('ur.arma', function() {
     assert.equal(v[3], 0);
   });
   it('eye should work', function() {
-    let m = new ur.mat.eye(4,4);
+    let m = new ur.Mat.eye(4,4);
   });
   it('vec.linspace should work', function() {
-    let v = new ur.vec.linspace(0, 1, 9);
+    let v = new ur.Vec.linspace(0, 1, 9);
     assert.equal(v.toJsonString(), '[0,0.125,0.25,0.375,0.5,0.625,0.75,0.875,1]');
   });
   it('vec.ones should work', function() {
-    let v = new ur.vec.ones(3);
+    let v = new ur.Vec.ones(3);
     assert.equal(v.toJsonString(), '[1,1,1]');
   });
   it('vec.zeros should work', function() {
-    let v = new ur.vec.zeros(3);
+    let v = new ur.Vec.zeros(3);
     assert.equal(v.toJsonString(), '[0,0,0]');
   });
   it('vec.randu should work', function() {
-    let v = new ur.vec.randu(3);
+    let v = new ur.Vec.randu(3);
     assert.ok(v[0] >= 0 && v[0] < 1);
     assert.ok(v[1] >= 0 && v[1] < 1);
     assert.ok(v[2] >= 0 && v[2] < 1);
   });
 
   it('abs(vec) should work', function() {
-    let v = new ur.vec([-1,2,-3]);
+    let v = new ur.Vec([-1,2,-3]);
     let w = ur.abs(v);
     assert.equal(w.toJsonString(), '[1,2,3]');
   });
   it('dot(vec, vec) should work', function() {
-    let a = new ur.vec([-1,2,-3]);
-    let b = new ur.vec([2,2,4]);
+    let a = new ur.Vec([-1,2,-3]);
+    let b = new ur.Vec([2,2,4]);
     let c = ur.dot(a, b);
     assert.equal(c, -10);
   });
   it('dot(ivec, ivec) should work', function() {
-    let a = new ur.ivec([-1,2,-3]);
-    let b = new ur.ivec([2,2,4]);
+    let a = new ur.IVec([-1,2,-3]);
+    let b = new ur.IVec([2,2,4]);
     let c = ur.dot(a, b);
     assert.equal(c, -10);
   });
 
 
   it('cx_vec should work', function() {
-    let v = new ur.cx_vec(4);
+    let v = new ur.CxVec(4);
     assert.equal(v.toJsonString(), '[{"real":0,"imag":0},{"real":0,"imag":0},{"real":0,"imag":0},{"real":0,"imag":0}]');
     assert.deepEqual(v[0], {real: 0, imag: 0});
     v[0] = {real: 1, imag: 2};
@@ -77,32 +77,32 @@ describe('ur.arma', function() {
 describe('matrix math', function() {
 
   it('mat22 * vec2 should work', function() {
-    let t1 = new ur.mat([1,3,2,4]);
-    let t2 = new ur.vec([2,3]);
+    let t1 = new ur.Mat([1,3,2,4]);
+    let t2 = new ur.Vec([2,3]);
     let t3 = ur.mul(t1, t2);
-    let t4 = new ur.vec([8, 18]);
+    let t4 = new ur.Vec([8, 18]);
     assert.ok(ur.eq(t3, t4));
   });
 
   it('mat33 * mat33 should work', function() {
-    let t1 = new ur.mat([1,4,7,2,5,8,3,6,9]);
-    let t2 = new ur.mat([2,5,8,3,6,9,4,7,10]);
+    let t1 = new ur.Mat([1,4,7,2,5,8,3,6,9]);
+    let t2 = new ur.Mat([2,5,8,3,6,9,4,7,10]);
     let t3 = ur.mul(t1, t2);
-    let t4 = new ur.mat([36,81,126,42,96,150,48,111,174]);
+    let t4 = new ur.Mat([36,81,126,42,96,150,48,111,174]);
     assert.ok(ur.eq(t3, t4));
   });
 
   it('mat33 * vec3 should work', function() {
-    let t1 = new ur.mat([1,4,7,2,5,8,3,6,9]);
-    let t2 = new ur.vec([2,3,4]);
+    let t1 = new ur.Mat([1,4,7,2,5,8,3,6,9]);
+    let t2 = new ur.Vec([2,3,4]);
     let t3 = ur.mul(t1, t2);
-    let t4 = new ur.vec([20, 47, 74]);
+    let t4 = new ur.Vec([20, 47, 74]);
     assert.ok(ur.eq(t3, t4));
   });
 
   it('vec2 * mat33 should fail', function() {
-    let t1 = new ur.vec(2);
-    let t2 = new ur.mat(3,3);
+    let t1 = new ur.Vec(2);
+    let t2 = new ur.Mat(3,3);
     assert.throws(function() {
       ur.mul(t1, t2);
     }, TypeError);
@@ -112,7 +112,7 @@ describe('matrix math', function() {
 
 describe('vec3', function() {
   it('should work', function() {
-    let t = new ur.vec([1,2,3]);
+    let t = new ur.Vec([1,2,3]);
     assert.equal(t[0], 1);
     assert.equal(t[1], 2);
     assert.equal(t[2], 3);
@@ -121,13 +121,13 @@ describe('vec3', function() {
 
   it('should reject bad args', function() {
     assert.throws(function() {
-      let t = new ur.vec(1, 2);
+      let t = new ur.Vec(1, 2);
     }, TypeError);
   });
 
   it('math should work', function() {
-    let t1 = new ur.vec([1, 2, 3]);
-    let t2 = new ur.vec([9, 7, 5]);
+    let t1 = new ur.Vec([1, 2, 3]);
+    let t2 = new ur.Vec([9, 7, 5]);
     let t3 = ur.add(t1, t2);
     assert.equal(t3[0], 10);
     assert.equal(t3[1], 9);
@@ -135,9 +135,9 @@ describe('vec3', function() {
   });
 
   it('equality tests work', function() {
-    let t1 = new ur.vec([1, 2, 3]);
-    let t2 = new ur.vec([9, 7, 5]);
-    let t3 = new ur.vec([1, 2, 3]);
+    let t1 = new ur.Vec([1, 2, 3]);
+    let t2 = new ur.Vec([9, 7, 5]);
+    let t3 = new ur.Vec([1, 2, 3]);
 
     if (0) {
       console.log('t1=t2: ' + ur.eq(t1, t2).toString());
@@ -150,16 +150,16 @@ describe('vec3', function() {
 
 describe('mat33', function() {
   it('equality tests work', function() {
-    let t1 = new ur.mat([1,4,7, 2,5,8, 3,6,9]);
-    let t2 = new ur.mat([2,5,8, 3,6,9, 4,7,10]);
-    let t3 = new ur.mat([1,4,7, 2,5,8, 3,6,9]);
+    let t1 = new ur.Mat([1,4,7, 2,5,8, 3,6,9]);
+    let t2 = new ur.Mat([2,5,8, 3,6,9, 4,7,10]);
+    let t3 = new ur.Mat([1,4,7, 2,5,8, 3,6,9]);
 
     assert.equal(ur.all(ur.all(ur.eq(t1, t2))), 0);
     assert.equal(ur.all(ur.all(ur.eq(t1, t3))), 1);
   });
 
   it('toString should be fast (5000x)', function() {
-    let t = new ur.mat([1.25, 4, 7,
+    let t = new ur.Mat([1.25, 4, 7,
                         2.5, 5.125, 8,
                         3.75, 6, 9]);
     for (let i=0; i<5000; i++) {
@@ -169,7 +169,7 @@ describe('mat33', function() {
 
   if (0) it('fromString should be fast (5000x)', function() {
     for (let i=0; i<5000; i++) {
-      let t2 = ur.mat.fromString('[1.25,4,7,2.5,5.125,8,3.75,6,9]');
+      let t2 = ur.Mat.fromString('[1.25,4,7,2.5,5.125,8,3.75,6,9]');
       assert.equal(t2[1][1], 5.125);
     }
   });
@@ -178,7 +178,7 @@ describe('mat33', function() {
 
 describe('mat', function() {
   it('rows and cols work, mutate original matrix', function() {
-    let m = new ur.mat([1,4,7,2,5,8,3,6,9]);
+    let m = new ur.Mat([1,4,7,2,5,8,3,6,9]);
     let r0 = m.row(0);
     assert.equal(r0[0], 1);
     assert.equal(r0[1], 2);

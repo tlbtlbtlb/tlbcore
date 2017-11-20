@@ -8,9 +8,9 @@ const fs                  = require('fs');
 const ur                  = require('ur');
 
 function main() {
-  let t1 = new ur.mat([1,4,7,2,5,8,3,6,9]);
-  let t2 = new ur.vec([2,3,4]);
-  let t4 = new ur.vec([20, 47, 74]);
+  let t1 = new ur.Mat([1,4,7,2,5,8,3,6,9]);
+  let t2 = new ur.Vec([2,3,4]);
+  let t4 = new ur.Vec([20, 47, 74]);
   for (let iter=0; iter<1000000; iter++) {
     let t3 = ur.mul(t1, t2);
     assert.ok(t3[0] === t4[0] &&

@@ -37,9 +37,9 @@ describe('solid_geometry', function() {
       if (bad) throw new Error('Expected ' + _.map(expectPts, function(e) { return e.toString(); }) + ' got ' + _.map(intersectionPts, function(e) { return e.toString(); }));
     }
 
-    checkIntersection(new ur.vec([1,0,0]), [new ur.vec([5.23085,-13.0847,-8.64565]), new ur.vec([5.54745,-13.0847,-8.64565])]);
-    checkIntersection(new ur.vec([0,1,0]), [new ur.vec([5.23085,-13.0847,-8.64565]), new ur.vec([5.23085,-12.5246,-8.64565])]);
-    checkIntersection(new ur.vec([0,0,1]), [new ur.vec([5.23085,-13.0847,-8.64565]), new ur.vec([5.23085,-13.0847,-8.27919])]);
+    checkIntersection(new ur.Vec([1,0,0]), [new ur.Vec([5.23085,-13.0847,-8.64565]), new ur.Vec([5.54745,-13.0847,-8.64565])]);
+    checkIntersection(new ur.Vec([0,1,0]), [new ur.Vec([5.23085,-13.0847,-8.64565]), new ur.Vec([5.23085,-12.5246,-8.64565])]);
+    checkIntersection(new ur.Vec([0,0,1]), [new ur.Vec([5.23085,-13.0847,-8.64565]), new ur.Vec([5.23085,-13.0847,-8.27919])]);
 
     let mesh = s.exportWebglMesh(0.000001);
     console.log('coords:', mesh.coords.n_elem, 'indexes:', mesh.indexes.n_elem);
@@ -60,6 +60,6 @@ describe('solid_geometry', function() {
     console.log('bbox=', s.bboxLo.toString(), s.bboxHi.toString());
     let hole = s.analyzeHole(2);
     console.log('Hole=', hole);
-    assert.ok(ur.norm(ur.sub(hole, new ur.vec([0,0,1])), 2) < 1e-6);
+    assert.ok(ur.norm(ur.sub(hole, new ur.Vec([0,0,1])), 2) < 1e-6);
   });
 });
