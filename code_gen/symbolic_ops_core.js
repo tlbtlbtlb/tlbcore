@@ -82,6 +82,10 @@ defop('double',  'exp',             'double', {
 defop('double',  'log',             'double', {
   imm: function(a) { return Math.log(a); },
   c: function(a) { return `log(${a})`; },
+  js: function(a) { return `Math.log(${a})`; },
+  gradient: function(c, deps, g, a) {
+    a.addGradient(deps, c.E('/', g, a));
+  }
 });
 
 /*
@@ -212,6 +216,13 @@ defop('double',  'max',             'double', 'double', {
   imm: function(a, b) { return Math.max(a, b); },
   c: function(a, b) { return `max(${a}, ${b})`; },
   js: function(a, b) { return `Math.max(${a}, ${b})`; },
+  gradient: function(c, deps, g, a, b) {
+    // A non-nonparametric softmax
+    let aLess = c.E('*', c.Cd(1000), c.E('-', this, a));
+    let bLess = c.E('*', c.Cd(1000), c.E('-', this, b));
+    a.addGradient(deps, c.E('/', g, aLess));
+    b.addGradient(deps, c.E('/', g, bLess));
+  }
 });
 
 defop('int',     '*',           'int', 'int', {

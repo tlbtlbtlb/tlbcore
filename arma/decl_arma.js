@@ -47,22 +47,24 @@ module.exports = function(typereg) {
         }
 
         if (colFixed) {
-          typereg.aliasType(cType, (cType.jsTypename = `${jsPrefix}Vec${colFixed.toString()}`));
-          typereg.aliasType(cType, `arma::${cPrefix}vec${colFixed.toString()}`);
+          typereg.aliasType(cType, (cType.jsTypename = `${jsPrefix}Vec${colFixed}`));
+          typereg.aliasType(cType, `arma::${cPrefix}vec${colFixed}`);
         }
         else {
           typereg.aliasType(cType, (cType.jsTypename = `${jsPrefix}Vec`));
           typereg.aliasType(cType, `arma::${cPrefix}vec`);
         }
         if (rowFixed) {
-          typereg.aliasType(rType, (rType.jsTypename = `${jsPrefix}Row${rowFixed.toString()}`));
+          typereg.aliasType(rType, (rType.jsTypename = `${jsPrefix}Row${rowFixed}`));
+          typereg.aliasType(rType, `${cPrefix}row${rowFixed}`);
         }
         else {
           typereg.aliasType(rType, (rType.jsTypename = `${jsPrefix}Row`));
+          typereg.aliasType(cType, `arma::${cPrefix}row`);
         }
         if (colFixed && rowFixed) {
-          typereg.aliasType(mType, (mType.jsTypename = `${jsPrefix}Mat${rowFixed.toString()}${colFixed.toString()}`));
-          typereg.aliasType(mType, `arma::${cPrefix}mat${rowFixed.toString()}${colFixed.toString()}`);
+          typereg.aliasType(mType, (mType.jsTypename = `${jsPrefix}Mat${rowFixed}${colFixed}`));
+          typereg.aliasType(mType, `arma::${cPrefix}mat${rowFixed}${colFixed}`);
         }
         else if (!colFixed && !rowFixed) {
           typereg.aliasType(mType, (mType.jsTypename = `${jsPrefix}Mat`));
@@ -93,7 +95,7 @@ module.exports = function(typereg) {
         let isInteger = (et === 'S64' || et === 'U64');
         let isComplex = (et === 'arma::cx_double');
         if (!isInteger) {
-          typereg.scanCFunctions(`${ mTypename } inv(${ mTypename } a);`);
+          typereg.scanCFunctions(`${mTypename} inv(${mTypename} a);`);
         }
 
         if (!rowFixed && !colFixed) {

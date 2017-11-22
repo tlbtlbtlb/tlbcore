@@ -30,6 +30,7 @@ function TypeRegistry(groupname) {
   typereg.extraJsWrapFuncsHeaders = [];
   typereg.conversions = [];
   typereg.extraConversionIncludes = [];
+  typereg.templateHelpers = {};
 
   typereg.debugJson = false;
 
@@ -141,6 +142,11 @@ TypeRegistry.prototype.template = function(typename) {
   typereg.types[ptrType.typename] = ptrType;
   t._ptrType = ptrType;
   ptrType._nonPtrType = t;
+
+  let helper = typereg.templateHelpers[t.templateName];
+  if (helper) {
+    helper(t);
+  }
 
   if (0) console.log(`template type-ptr: ${t.typename} ${ptrType.typename}`);
   return t;
@@ -554,9 +560,7 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
   let allTypes = _.uniq(_.flatten(_.map(typereg.symbolics, (func) => {
     return func.getAllTypes();
   })));
-  let allIncludes = _.uniq(_.flatten(_.map(allTypes, (typename) => {
-    let type = typereg.types[typename];
-    if (!type) throw new Error(`No such type ${typename}`);
+  let allIncludes = _.uniq(_.flatten(_.map(allTypes, (type) => {
     return type.getCustomerIncludes();
   })));
   _.each(allIncludes, function(incl) {
@@ -609,9 +613,9 @@ TypeRegistry.prototype.addWrapFunction = function(desc, funcScope, funcname, fun
   });
 };
 
-TypeRegistry.prototype.addSymbolic = function(name, inargs, outargs) {
+TypeRegistry.prototype.addSymbolic = function(name, outArgs, updateArgs, inArgs) {
   let typereg = this;
-  let ret = typereg.symbolics[name] = new symbolic_math.SymbolicContext(typereg, name, inargs, outargs);
+  let ret = typereg.symbolics[name] = new symbolic_math.SymbolicContext(typereg, name, outArgs, updateArgs, inArgs);
   return ret;
 };
 
