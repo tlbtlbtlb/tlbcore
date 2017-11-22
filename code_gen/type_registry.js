@@ -31,6 +31,7 @@ function TypeRegistry(groupname) {
   typereg.conversions = [];
   typereg.extraConversionIncludes = [];
   typereg.templateHelpers = {};
+  typereg.emitDebugs = [];
 
   typereg.debugJson = false;
 
@@ -206,6 +207,9 @@ TypeRegistry.prototype.emitAll = function(files) {
   typereg.emitGypFile(files);
   typereg.emitMochaFile(files);
   typereg.emitSchema(files);
+  _.each(typereg.emitDebugs, (it) => {
+    it(files);
+  });
 };
 
 TypeRegistry.prototype.emitJsBoot = function(files) {
