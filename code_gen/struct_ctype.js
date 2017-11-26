@@ -16,7 +16,6 @@ function StructCType(reg, typename) {
   CType.call(this, reg, typename);
   this.orderedNames = [];
   this.nameToType = {};
-  this.nameToDistributions = {};
   this.nameToOptions = {};
   this.extraMemberDecls = [];
   this.matrixStructures = [];
@@ -260,13 +259,6 @@ StructCType.prototype.applyMemberDistribution = function(memberName, distName, a
     throw new Error(`Applying distribution of type ${args[0].type.typename} to member ${memberName} of ${type.typename}.`);
   }
 
-  if (!type.nameToDistributions[memberName]) {
-    type.nameToDistributions[memberName] = [];
-  }
-  type.nameToDistributions[memberName].push({
-    distName: distName,
-    args: args,
-  });
 };
 
 

@@ -37,6 +37,7 @@ let optimize = true;
   });
 */
 let defops = {};
+exports.defops = defops;
 function defop(retType, op, ...argTypes) {
   let impl = argTypes.pop();
 
@@ -219,11 +220,34 @@ SymbolicContext.prototype.emitDefn = function(lang, f) {
 
 
 
+SymbolicContext.prototype.findop = function(op, argTypes) {
+  let c = this;
+  let ops = defops[op];
+  if (ops) {
+    let opInfo = _.find(ops, (it) => {
+      for (let argi=0; argi < it.argTypes.length; argi++) {
+        if (it.argTypes[argi] === '...') return true;
+        if (it.argTypes[argi] === 'ANY') continue;
+        if (argTypes[argi] === 'UNKNOWN') continue;
+        let at = c.typereg.getType(it.argTypes[argi]);
+        if (at === argTypes[argi]) continue;
+        return false;
+      }
+      return true;
+    });
+    if (opInfo) {
+      return opInfo;
+    }
+  }
+  return null;
+};
+
+
 SymbolicContext.prototype.dedup = function(e) {
   let c = this;
   assert.strictEqual(e.c, c);
   while (e.opInfo && e.opInfo.impl.replace) {
-    let newe = e.opInfo.impl.replace.apply(e, [c].concat(e.args));
+    let newe = e.opInfo.impl.replace.call(e, c, ...e.args);
     if (!newe) break;
     e = newe;
   }
@@ -232,72 +256,6 @@ SymbolicContext.prototype.dedup = function(e) {
   if (cse) return cse;
   c.cses[e.cseKey] = e;
   return e;
-};
-
-SymbolicContext.prototype.lookupName = function(type, name, typeAttributes) {
-  let c = this;
-  if (!c.typereg) return null;
-  let subName = '.'+name;
-  let level = 0;
-  let subType = null;
-  while (subName.length) {
-    let m;
-
-    if ((m = /^\.([\w_]+)(.*)$/.exec(subName))) {
-      if (level === 0) {
-        subType = c.argTypes[m[1]];
-        if (!subType) {
-          console.warn(`lookupName: Can't resolve ${m[1]} (within ${name}, level=${level}): no type. argTypes=${
-            util.inspect(_.mapObject(c.argTypes, (t) => (t && t.typename)))
-          }`);
-          return null;
-        }
-      } else {
-        if (subType.typename === 'jsonstr') {
-          return {typename: type};
-        }
-        else if (!subType.nameToType) {
-          console.warn(`lookupName: looking inside ${subType.typename}: not a struct`);
-          return null;
-        }
-        let subSubType = subType.nameToType[m[1]];
-
-        if (!subSubType && subType.autoCreate && m[2] === '') {
-          subType.add(m[1], type, typeAttributes);
-          subSubType = subType.nameToType[m[1]];
-        }
-        subType = subSubType;
-      }
-      if (!subType) {
-        console.warn(`lookupName: Can't resolve ${m[1]} (within ${name}, level=${level}): no type.`);
-        return null;
-      }
-      subName = m[2];
-    }
-    else if ((m = /^\[(\d+)\](.*)$/.exec(subName))) {
-      if (level === 0) {
-        console.warn(`lookupName: starting with array access in ${name}`);
-        return null;
-      }
-      else if (subType.templateName === 'arma::Col' ||
-        subType.templateName === 'arma::Row' ||
-        subType.templateName === 'arma::Mat' ||
-        subType.templateName === 'vector') {
-        let subSubType = subType.templateArgTypes[0];
-        if (!subSubType) {
-          console.warn(`lookupName: Can't resolve ${m[1]} (within ${name}): no template args for ${subType.typename}`);
-          return null;
-        }
-        subType = subSubType;
-        subName = m[2];
-      }
-    }
-    else {
-      throw new Error(`lookupName: Can't parse ${name} (at ${subName})`);
-    }
-    level ++;
-  }
-  return subType;
 };
 
 SymbolicContext.prototype.ref = function(name) {
@@ -386,6 +344,16 @@ SymbolicContext.prototype.E = function(op, ...args) {
   return c.dedup(new SymbolicExpr(c, op, args2));
 };
 
+
+SymbolicContext.prototype.T = function(arg, t) {
+  // Dereference any reads
+  while (arg.isRead()) arg = arg.ref;
+
+  if (arg.materializeMember) {
+    arg = arg.materializeMember(t);
+  }
+  return arg;
+};
 
 SymbolicContext.prototype.structref = function(memberName, a, autoCreateType) {
   let c = this;
@@ -637,8 +605,8 @@ function SymbolicExpr(c, op, args) {
     return;
   }
 
-  let ops = defops[op];
-  if (ops) {
+  let opInfo = c.findop(op, _.map(args, (a) => a.type));
+  if (opInfo) {
     e.args = _.map(args, (a) => {
       if (a.isAddress && a.type !== 'UNKNOWN') {
         return c.dedup(new SymbolicRead(c, a.type, a));
@@ -646,16 +614,6 @@ function SymbolicExpr(c, op, args) {
         return a;
       }
     });
-    let opInfo = _.find(ops, (it) => {
-      return (it.argTypes[0] === '...' || (it.argTypes.length === e.args.length && _.every(_.range(it.argTypes.length), (argi) => {
-        return it.argTypes[argi] === 'ANY' || e.args[argi].type === c.typereg.getType(it.argTypes[argi]);
-      })));
-    });
-    if (!opInfo) {
-      throw new Error(`Could not deduce arg types for ${op} ${
-        _.map(e.args, (arg) => arg.type && arg.type.typename).join(' ')
-      }`);
-    }
     e.type = c.typereg.getType(opInfo.retType);
     e.isStructref = true;
     e.opInfo = opInfo;
@@ -709,10 +667,12 @@ function SymbolicExpr(c, op, args) {
     e.isAddress = false;
     e.cseKey = '_e' + simpleHash(`${e.type.typename},${e.op},${_.map(e.args, (arg) => arg.cseKey).join(',')}`);
     return;
-
   }
 
-  throw new Error(`No op named ${op}`);
+  throw new Error(`No op named ${op} for types (${
+    _.map(args, (a) => a.type && a.type.typename).join(', ')
+  })`);
+
 }
 SymbolicExpr.prototype = Object.create(SymbolicNode.prototype);
 

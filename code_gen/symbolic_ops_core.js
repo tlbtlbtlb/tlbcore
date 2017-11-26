@@ -16,12 +16,12 @@ const defop = symbolic_math.defop;
 defop('jsonstr', 'jsonstr', 'jsonstr', {
 });
 
-defop('double',  '(double)',    'int', {
+defop('R',  '(double)',    'I', {
   imm: function(a) { return a; },
   c: function(a) { return `(double)${a}`; },
   js: function(a) { return a; },
 });
-defop('int',     '(int)',       'double', {
+defop('I',     '(int)',       'R', {
   imm: function(a) { return Math.round(a); },
   c: function(a) { return `(int)${a}`; },
   js: function(a) { return `Math.round(${a})`; },
@@ -31,12 +31,12 @@ defop('int',     '(int)',       'double', {
 /*
   Trig
 */
-defop('double',  'pow',             'double', 'double', {
+defop('R',  'pow',             'R', 'R', {
   imm: function(a, b) { return Math.pow(a,b); },
   c: function(a, b) { return `pow(${a}, ${b})`; },
   js: function(a,b) { return `Math.pow(${a}, ${b})`; },
 });
-defop('double',  'sin',             'double', {
+defop('R',  'sin',             'R', {
   imm: function(a) { return Math.sin(a); },
   c: function(a) { return `sin(${a})`; },
   js: function(a) { return `Math.sin(${a})`; },
@@ -49,7 +49,7 @@ defop('double',  'sin',             'double', {
     a.addGradient(deps, c.E('*', g, c.E('cos', a)));
   },
 });
-defop('double',  'cos',             'double', {
+defop('R',  'cos',             'R', {
   imm: function(a) { return Math.cos(a); },
   c: function(a) { return `cos(${a})`; },
   js: function(a) { return `Math.cos(${a})`; },
@@ -62,11 +62,11 @@ defop('double',  'cos',             'double', {
     a.addGradient(deps, c.E('*', g, c.E('-', c.E('sin', a))));
   },
 });
-defop('double',  'tan',             'double', {
+defop('R',  'tan',             'R', {
   imm: function(a) { return Math.tan(a); },
   c: function(a) { return `tan(${a})`; },
 });
-defop('double',  'exp',             'double', {
+defop('R',  'exp',             'R', {
   imm: function(a) { return Math.exp(a); },
   c: function(a) { return `exp(${a})`; },
   js: function(a) { return `Math.exp(${a})`; },
@@ -79,7 +79,7 @@ defop('double',  'exp',             'double', {
     a.addGradient(deps, c.E('*', g, this));
   },
 });
-defop('double',  'log',             'double', {
+defop('R',  'log',             'R', {
   imm: function(a) { return Math.log(a); },
   c: function(a) { return `log(${a})`; },
   js: function(a) { return `Math.log(${a})`; },
@@ -92,7 +92,7 @@ defop('double',  'log',             'double', {
   Arithmetic
 */
 
-defop('double',  '*',               'double', 'double', {
+defop('R',  '*',               'R', 'R', {
   imm: function(a, b) { return a * b; },
   c: function(a, b) { return `(${a} * ${b})`; },
   js: function(a, b) { return `(${a} * ${b})`; },
@@ -113,7 +113,7 @@ defop('double',  '*',               'double', 'double', {
   },
 });
 
-defop('double',  'sqr',               'double', {
+defop('R',  'sqr',               'R', {
   imm: function(a) { return a * a; },
   c: function(a) { return `sqr(${a})`; },
   js: function(a, b) { return `(${a} * ${a})`; },
@@ -122,15 +122,15 @@ defop('double',  'sqr',               'double', {
     if (a.isOne()) return a;
   },
   deriv: function(c, wrt, a, b) {
-    return c.E('*', c.C('double', 2), c.D(wrt, a));
+    return c.E('*', c.C('R', 2), c.D(wrt, a));
   },
   gradient: function(c, deps, g, a, b) {
-    a.addGradient(deps, c.E('*', c.C('double', 2), c.E('*', g, a)));
+    a.addGradient(deps, c.E('*', c.C('R', 2), c.E('*', g, a)));
   },
 });
 
 
-defop('double',  'normsq',               'double', {
+defop('R',  'normsq',               'R', {
   imm: function(a) { return a * a; },
   c: function(a) { return `sqr(${a})`; },
   js: function(a, b) { return `(${a} * ${a})`; },
@@ -139,15 +139,15 @@ defop('double',  'normsq',               'double', {
     if (a.isOne()) return a;
   },
   deriv: function(c, wrt, a, b) {
-    return c.E('*', c.C('double', 2), c.D(wrt, a));
+    return c.E('*', c.C('R', 2), c.D(wrt, a));
   },
   gradient: function(c, deps, g, a, b) {
-    a.addGradient(deps, c.E('*', c.C('double', 2), c.E('*', g, a)));
+    a.addGradient(deps, c.E('*', c.C('R', 2), c.E('*', g, a)));
   },
 });
 
 
-defop('double',  '+',               'double', 'double', {
+defop('R',  '+',               'R', 'R', {
   imm: function(a, b) { return a + b; },
   c: function(a, b) { return `(${a} + ${b})`; },
   js: function(a, b) { return `(${a} + ${b})`; },
@@ -163,7 +163,7 @@ defop('double',  '+',               'double', 'double', {
     b.addGradient(deps, g);
   },
 });
-defop('double',  '-',               'double', 'double', {
+defop('R',  '-',               'R', 'R', {
   imm: function(a, b) { return a - b; },
   c: function(a, b) { return `(${a} - ${b})`; },
   js: function(a, b) { return `(${a} - ${b})`; },
@@ -175,7 +175,7 @@ defop('double',  '-',               'double', 'double', {
     b.addGradient(deps, c.E('-', g));
   },
 });
-defop('double',  '-',               'double', {
+defop('R',  '-',               'R', {
   imm: function(a) { return -a; },
   c: function(a) { return `(- ${a})`; },
   js: function(a) { return `(- ${a})`; },
@@ -186,11 +186,11 @@ defop('double',  '-',               'double', {
     a.addGradient(deps, c.E('-', g));
   },
   replace: function(c, a) {
-    if (a.isConst()) return c.C('double', -a.value);
+    if (a.isConst()) return c.C('R', -a.value);
   },
 });
 
-defop('double',  '/',               'double', 'double', {
+defop('R',  '/',               'R', 'R', {
   imm: function(a, b) { return a / b; },
   c: function(a, b) { return `(${a} / ${b})`; },
   js: function(a, b) { return `(${a} / ${b})`; },
@@ -207,12 +207,12 @@ defop('double',  '/',               'double', 'double', {
 
 
 
-defop('double',  'min',             'double', 'double', {
+defop('R',  'min',             'R', 'R', {
   imm: function(a, b) { return Math.min(a, b); },
   c: function(a, b) { return `min(${a}, ${b})`; },
   js: function(a, b) { return `Math.min(${a}, ${b})`; },
 });
-defop('double',  'max',             'double', 'double', {
+defop('R',  'max',             'R', 'R', {
   imm: function(a, b) { return Math.max(a, b); },
   c: function(a, b) { return `max(${a}, ${b})`; },
   js: function(a, b) { return `Math.max(${a}, ${b})`; },
@@ -225,61 +225,54 @@ defop('double',  'max',             'double', 'double', {
   }
 });
 
-defop('int',     '*',           'int', 'int', {
+defop('I',     '*',           'I', 'I', {
   imm: function(a, b) { return a * b; },
   c: function(a, b) { return `(${a} * ${b})`; },
   js: function(a, b) { return `(${a} * ${b}`; }
 });
-defop('int',           '+',                 'int', 'int', {
+defop('I',           '+',                 'I', 'I', {
   imm: function(a, b) { return a + b; },
   c: function(a, b) { return `(${a} + ${b})`; },
   js: function(a, b) { return `(${a} + ${b})`; },
 });
-defop('int',           '-',                 'int', 'int', {
+defop('I',           '-',                 'I', 'I', {
   imm: function(a, b) { return a - b; },
   c: function(a, b) { return `(${a} - ${b})`; },
   js: function(a, b) { return `(${a} - ${b})`; },
 });
-defop('int',           '-',                 'int', {
+defop('I',           '-',                 'I', {
   imm: function(a) { return - a; },
   c: function(a) { return `(- ${a})`; },
   js: function(a) { return `(- ${a})`; },
 });
-defop('int',           '/',                 'int', 'int', {
+defop('I',           '/',                 'I', 'I', {
   imm: function(a, b) { let r = a / b; return (r < 0) ? Math.ceil(r) : Math.floor(r); }, // Math.trunc not widely supported
   c: function(a, b) { return `(${a} / ${b})`; },
   js: function(a, b) { return `Math.trunc(${a} / ${b})`; },
 });
-defop('int',           'min',         'int', 'int', {
+defop('I',           'min',         'I', 'I', {
   imm: function(a, b) { return Math.min(a, b); },
   c: function(a, b) { return `min(${a}, ${b})`; },
   js: function(a, b) { return `Math.min(${a}, ${b})`; },
 });
-defop('int',           'max',         'int', 'int', {
+defop('I',           'max',         'I', 'I', {
   imm: function(a, b) { return Math.max(a, b); },
   c: function(a, b) { return `max(${a}, ${b})`; },
   js: function(a, b) { return `Math.max(${a}, ${b})`; },
 });
 
 if (0) {
-  defop('double',  'sigmoid_01',  'double');
-  defop('double',  'sigmoid_11',  'double');
-  defop('double',  'sigmoid_22',  'double');
+  defop('R',  'sigmoid_01',  'R');
+  defop('R',  'sigmoid_11',  'R');
+  defop('R',  'sigmoid_22',  'R');
 }
 
-defop('double',  'sqrt',        'double', {
+defop('R',  'sqrt',        'R', {
   imm: function(a) { return Math.sqrt(a); },
   c: function(a) { return `sqrt(${a})`; },
   js: function(a) { return `Math.sqrt(${a})`; },
 });
 
-
-
-defop('double',  'normal',        'double', 'double', {
-  imm: function(a, b) { return null; }, // WRITEME
-  c: function(a, b) { return `(${a} + ${b}*frandom_normal())`; },
-  js: function(a, b) { return `(${a} + ${b}*random_normal())`; },
-});
 
 
 // JS types
