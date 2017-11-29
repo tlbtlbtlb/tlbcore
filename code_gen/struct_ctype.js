@@ -32,7 +32,13 @@ StructCType.prototype.addArgs = function(args) {
     if (_.isArray(a)) {
       let memberName = a[0];
       let memberType = a[1];
-      let memberOptions = a[2];
+      let memberOptions = a[2] || {};
+      type.add(memberName, memberType, memberOptions);
+    }
+    else if (a.name && a.t) {
+      let memberName = a.name;
+      let memberType = a.t
+      let memberOptions = a.opt || {};
       type.add(memberName, memberType, memberOptions);
     }
     else if (_.isObject(a)) {
@@ -172,9 +178,9 @@ StructCType.prototype.getValueExpr = function(lang, value) {
         return `{__type:"${type.typename}", ${
           _.map(type.orderedNames, (name) => {
             let t = type.nameToType[name];
-            return `"${name}:${t.getValueExpr(lang, 0)}`;
+            return `${name}:${t.getValueExpr(lang, 0)}`;
           }).join(', ')
-        }`;
+        }}`;
 
       default:
         barf();

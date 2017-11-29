@@ -10,8 +10,10 @@ describe('symbolic_math', function() {
   it('should work', function() {
     let typereg = new type_registry.TypeRegistry('test');
     let c = new symbolic_math.SymbolicContext(typereg, 'test', [
-      ['a1', 'double'],
-      ['a2', 'double'],
+    ], [
+    ], [
+      ['a1', 'R'],
+      ['a2', 'R'],
     ]);
 
 
@@ -19,14 +21,14 @@ describe('symbolic_math', function() {
     let a2 = c.ref('a2');
     let r = c.E('*', a1, a2);
     if (0) console.log(util.inspect(r));
-    let rExpr = r.getExpr('c');
+    let rExpr = r.getExpr('c', {}, 'rd');
     assert.strictEqual(rExpr, '(a1 * a2)');
 
     let rWrtA1Expr = c.D(a1, r);
-    assert.strictEqual(rWrtA1Expr.getExpr('c', {}, {}), 'a2');
+    assert.strictEqual(rWrtA1Expr.getExpr('c', {}, 'rd'), 'a2');
 
     let rWrtA2Expr = c.D(c.ref('a2'), r);
-    assert.strictEqual(rWrtA2Expr.getExpr('c', {}, {}), 'a1');
+    assert.strictEqual(rWrtA2Expr.getExpr('c', {}, 'rd'), 'a1');
 
     if (0) {
       // FIXME
@@ -37,22 +39,29 @@ describe('symbolic_math', function() {
 });
 
 
-if (0) describe('symbolic_math', function() {
-  it('matrices should work', function() {
+if (1) describe('symbolic_math', function() {
+  it('matrices should work', function(cb) {
     let typereg = new type_registry.TypeRegistry('test');
-    let c = new symbolic_math.SymbolicContext(typereg, 'test', [
-      ['a', 'double']
-    ]);
+    typereg.scanFile(require.resolve('../arma/decl_arma.js'), (err) => {
+      if (err) return cb(err);
+      let c = new symbolic_math.SymbolicContext(typereg, 'test', [
+      ], [
+      ], [
+        ['a', 'R']
+      ]);
 
-    let a = c.ref('a');
-    let az = c.E('mat44RotationZ', a);
-    console.log(az.getExpr({}, {}));
-    let b = c.C('Mat44', [1, 0, 0, 0,
-                                0, 1, 0, 0,
-                                0, 0, 1, 0,
-                                0, 0, 0, 1]);
-    let r = c.E('*', az, b);
-    console.log(r.getExpr({}, {}));
+      let a = c.ref('a');
+      let az = c.E('mat44RotationZ', a);
+      console.log(az.getExpr('c', {}, 'rd'));
+      let b = c.C('Mat44', [
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1]);
+      let r = c.E('*', az, b);
+      console.log(r.getExpr('c', {}, 'rd'));
+      cb(null);
+    });
   });
 });
 

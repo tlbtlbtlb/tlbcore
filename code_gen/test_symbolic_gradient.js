@@ -13,23 +13,23 @@ describe('symbolic_math', function() {
 
     let typereg = new type_registry.TypeRegistry('test');
     typereg.struct('TestObs',
-      ['o1', 'double'],
-      ['o2', 'double'],
-      ['o3', 'double']);
+      ['o1', 'R'],
+      ['o2', 'R'],
+      ['o3', 'R']);
     typereg.struct('TestAct',
-      ['a1', 'double'],
-      ['a2', 'double'],
-      ['a3', 'double']);
+      ['a1', 'R'],
+      ['a2', 'R'],
+      ['a3', 'R']);
     typereg.struct('TestConf',
-      ['fb1', 'double'],
-      ['fb2', 'double']);
-    let c = new symbolic_math.SymbolicContext(typereg, 'sampleGrad', [
-      ['obs', 'TestObs'],
-      ['conf', 'TestConf'],
-      ['actGrad', 'TestAct']
+      ['fb1', 'R'],
+      ['fb2', 'R']);
+    let c = new symbolic_math.SymbolicContext(typereg, 'sample', [
+      {name: 'act', t: 'TestAct'},
     ], [
-      ['act', 'TestAct'],
-      ['confGrad', 'TestConf']
+
+    ], [
+      {name: 'obs', t: 'TestObs'},
+      {name: 'conf', t: 'TestConf'},
     ]);
 
     let a1 = c.E('+',
@@ -40,12 +40,10 @@ describe('symbolic_math', function() {
 
     c.W(c.structref('a1', c.ref('act')), a1);
 
-    c.addGradients(
-      (name) => name.replace(/^act\./, 'actGrad.'),
-      (name) => name.replace(/^conf\./, 'confGrad.'));
+    let d = c.withGradients('sampleGrad');
 
     let gen = cgen.mkCodeGen(null, {});
-    c.emitDefn('c', gen);
+    d.emitDefn('c', gen);
     gen.end();
   });
 });
@@ -59,22 +57,23 @@ describe('symbolic_math', function() {
     let Config = typereg.struct('Config',
       {autoCreate: true});
     let Obs = typereg.struct('Obs',
-      ['o1', 'double'],
-      ['o2', 'double'],
-      ['o3', 'double']);
+      ['o1', 'R'],
+      ['o2', 'R'],
+      ['o3', 'R']);
     let Action = typereg.struct('Action',
-      ['a1', 'double'],
-      ['a2', 'double']);
+      ['a1', 'R'],
+      ['a2', 'R']);
     let State = typereg.struct('State',
       {autoCreate: true});
 
-    let c = new symbolic_math.SymbolicContext(typereg, 'sampleGrad', [
+    let c = new symbolic_math.SymbolicContext(typereg, 'sample', [
+      ['act', 'Action'],
+      ['confGrad', 'Config']
+    ], [
+    ], [
       ['obs', 'Obs'],
       ['conf', 'Config'],
       ['actGrad', 'Action']
-    ], [
-      ['act', 'Action'],
-      ['confGrad', 'Config']
     ]);
 
     let a1 = c.E('+',
@@ -90,14 +89,11 @@ describe('symbolic_math', function() {
     assert.strictEqual(Config.nameToType.fb1, typereg.getType('double'));
     assert.strictEqual(Config.nameToType.fb2, typereg.getType('double'));
 
-    c.addGradients(
-      (name) => name.replace(/^act\./, 'actGrad.'),
-      (name) => name.replace(/^conf\./, 'confGrad.')
-    );
+    let d = c.withGradients('sampleGrad');
 
     let gen = cgen.mkCodeGen(null, {});
     Config.emitTypeDecl(gen);
-    c.emitDefn('c', gen);
+    d.emitDefn('c', gen);
     gen.end();
   });
 });

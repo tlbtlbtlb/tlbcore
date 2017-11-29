@@ -87,6 +87,14 @@ defop('R',  'log',             'R', {
     a.addGradient(deps, c.E('/', g, a));
   }
 });
+defop('R',  'sign',             'R', {
+  imm: function(a) { return Math.sign(a); },
+  c: function(a) { return `copysign(1.0, ${a})`; },
+  js: function(a) { return `Math.sign(${a})`; },
+  gradient: function(c, deps, g, a) {
+    // None. Could maybe apply a small gradient near transitions.
+  }
+});
 
 /*
   Arithmetic

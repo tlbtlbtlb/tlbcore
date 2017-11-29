@@ -57,6 +57,22 @@ function simpleHash(s) {
   return h.digest('hex').substr(0, 16);
 }
 
+function parseArg(argInfo) {
+  if (_.isArray(argInfo)) {
+    return {
+      name: argInfo[0],
+      t: argInfo[1],
+      opt: argInfo[2] || {},
+    };
+  }
+  else {
+    return {
+      name: argInfo.name,
+      t: argInfo.t,
+      opt: argInfo.opt || {},
+    }
+  }
+}
 
 function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
   let c = this;
@@ -68,7 +84,7 @@ function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
     js: true,
   };
   c.cses = {};
-  c.writes = {};
+  c.assignments = {};
   c.reads = {};
   c.preCode = [];
   c.postCode = [];
@@ -76,39 +92,44 @@ function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
   c.arrayBuilder = {};
   c.lets = {};
 
-  c.outArgs = _.map(outArgs, ([name, typeName, opt]) => {
-    if (!opt) opt = {};
-    let t = typereg.getType(typeName, true);
-    if (!t) throw new Error(`Unknown type ${typeName}`);
+  c.outArgs = _.map(_.map(outArgs, parseArg), ({name, t, opt}) => {
+    let realt = typereg.getType(t, true);
+    if (!realt) throw new Error(`Unknown type ${t}`);
+    t = realt;
     c.lets[name] = new SymbolicRef(c, t, name, 'out', opt);
-    return [name, t, opt];
+    return {name, t, opt};
   });
 
-  c.updateArgs = _.map(updateArgs, ([name, typeName, opt]) => {
-    if (!opt) opt = {};
-    let t = typereg.getType(typeName, true);
-    if (!t) throw new Error(`Unknown type ${typeName}`);
+  c.updateArgs = _.map(_.map(updateArgs, parseArg), ({name, t, opt}) => {
+    let realt = typereg.getType(t, true);
+    if (!realt) throw new Error(`Unknown type ${t}`);
+    t = realt;
     c.lets[name] = new SymbolicRef(c, t, name, 'update', opt);
-    return [name, t, opt];
+    return {name, t, opt};
   });
 
-  c.inArgs = _.map(inArgs, ([name, typeName, opt]) => {
-    if (!opt) opt = {};
-    let t = typereg.getType(typeName, true);
-    if (!t) throw new Error(`Unknown type ${typeName}`);
+  c.inArgs = _.map(_.map(inArgs, parseArg), ({name, t, opt}) => {
+    let realt = typereg.getType(t, true);
+    if (!realt) throw new Error(`Unknown type ${t}`);
+    t = realt;
     c.lets[name] = new SymbolicRef(c, t, name, 'in', opt);
-    return [name, t, opt];
+    return {name, t, opt};
   });
 
   c.registerWrapper();
   c.defop = defop;
 }
 
+SymbolicContext.prototype.finalize = function() {
+  let c = this;
+};
+
+
 SymbolicContext.prototype.registerWrapper = function() {
   let c = this;
 
   if (c.langs.c) {
-    c.typereg.addWrapFunction(c.getSignature(), '', c.name, '', 'void', c.collectArgs((argname, argType, dir) => {
+    c.typereg.addWrapFunction(c.getSignature(), '', c.name, '', 'void', c.collectArgs((argName, argType, dir) => {
       if (dir === 'out') {
         return {
           typename: argType.typename,
@@ -139,48 +160,47 @@ SymbolicContext.prototype.registerWrapper = function() {
 */
 SymbolicContext.prototype.collectArgs = function(argFunc) {
   let c = this;
-  return _.flatten([
-    _.map(c.outArgs, ([name, t, opt]) => {
+  return _.flatten([].concat(
+    _.map(c.outArgs, ({name, t, opt}) => {
       return argFunc(name, t, 'out', opt);
     }),
-    _.map(c.updateArgs, ([name, t, opt]) => {
+    _.map(c.updateArgs, ({name, t, opt}) => {
       return argFunc(name, t, 'update', opt);
     }),
-    _.map(c.inArgs, ([name, t, opt]) => {
+    _.map(c.inArgs, ({name, t, opt}) => {
       return argFunc(name, t, 'in', opt);
     })
-  ]);
+  ), true);
 };
 
 SymbolicContext.prototype.getAllTypes = function() {
-  return _.uniq(this.collectArgs((name, type, dir) => {
-    return type;
-  }));
+  return _.uniq(this.collectArgs((name, t, dir, opt) => t));
 };
 
 SymbolicContext.prototype.getSignature = function(lang) {
   let c = this;
   if (lang === 'c') {
     return `
-      void ${c.name}(${
-        c.collectArgs((argName, argType, dir) => {
-          if (dir === 'out') {
-            return `${argType.typename} &${argName}`;
-          }
-          else if (dir === 'update') {
-            return [`${argType.typename} &${argName}Next`, `${argType.typename} const &${argName}Prev`];
-          }
-          else if (dir === 'in') {
-            return `${argType.typename} const &${argName}`;
-          }
-        }).join(', ')
-      })
+      void ${c.name}(
+        ${
+          c.collectArgs((argName, argType, dir, opt) => {
+            if (dir === 'out') {
+              return `${argType.typename} &${argName}`;
+            }
+            else if (dir === 'update') {
+              return [`${argType.typename} &${argName}Next`, `${argType.typename} const &${argName}Prev`];
+            }
+            else if (dir === 'in') {
+              return `${argType.typename} const &${argName}`;
+            }
+          }).join(',\n')
+        })
     `;
   }
   else if (lang === 'js') {
     return `
       function ${c.name}(${
-        c.collectArgs((argName, argType, dir) => {
+        c.collectArgs((argName, argType, dir, opt) => {
           if (dir === 'out') {
             return argName;
           }
@@ -287,12 +307,18 @@ SymbolicContext.prototype.W = function(dst, value) {
   if (0) value.printName = name;
   c.assertNode(dst);
   c.assertNode(value);
-  let e = c.dedup(new SymbolicWrite(
-    c,
-    value.type,
-    dst,
-    value));
-  c.writes[e.cseKey] = e;
+  if (c.assignments[dst.cseKey] === undefined) {
+    c.assignments[dst.cseKey] = {
+      dst: dst,
+      augmented: false,
+      values: [value],
+      type: value.type,
+    };
+  }
+  else {
+    throw new Error(`Multiple assignments to ${util.inspect(dst)}`);
+  }
+
   return value;
 };
 
@@ -302,15 +328,21 @@ SymbolicContext.prototype.Wa = function(dst, value) {
   c.assertNode(dst);
   c.assertNode(value);
 
-  let index = dst.arrayIndex || 0;
-  dst.arrayIndex = index + 1;
+  if (c.assignments[dst.cseKey] === undefined) {
+    c.assignments[dst.cseKey] = {
+      dst: dst,
+      augmented: true,
+      values: [value],
+      type: value.type,
+    };
+  }
+  else if (c.assignments[dst.cseKey].augmented && c.assignments[dst.cseKey].type === value.type) {
+    c.assignments[dst.cseKey].values.push(value);
+  }
+  else {
+    throw new Error(`Augmented assignment to variable previously given a single assignment: ${util.inspect(dst)}`);
+  }
 
-  let e = c.dedup(new SymbolicWrite(
-    c,
-    value.type,
-    c.E(`[${index}]`, dst),
-    value));
-  c.writes[e.cseKey] = e;
   return value;
 };
 
@@ -384,15 +416,104 @@ SymbolicContext.prototype.emitCode = function(lang, f) {
   let c = this;
   let deps = c.getDeps();
   let availCses = {};
-  _.each(deps.writes, (a) => {
-    a.emitCode(lang, deps, f, availCses);
+  _.each(deps.writes, ({dst, values, augmented, type}) => {
+
+    _.each(values, (e) => e.emitCses(lang, deps, f, availCses));
+
+    if (augmented) {
+      if (type.typename === 'double') {
+        f(`${dst.getExpr(lang, availCses, 'wr')} = ${_.map(values, (value) => value.getExpr(lang, availCses, 'rd')).join(' + ')};`);
+      }
+      else if (dst.type.templateName === 'vector' && _.every(values, (value) => value.type === dst.type.templateArgTypes[0])) {
+        if (lang === 'c') {
+          f(`${dst.getExpr(lang, availCses, 'wr')}.resize(${values.length});`);
+          _.each(values, (value, index) => {
+            f(`${dst.getExpr(lang, availCses, 'wr')}[${index}] = ${value.getExpr(lang, availCses, 'rd')};`);
+          });
+        }
+        else if (lang === 'js') {
+          f(`${dst.getExpr(lang, availCses, 'wr')}.length = ${values.length};`);
+          _.each(values, (value, index) => {
+            f(`${dst.getExpr(lang, availCses, 'wr')}[${index}] = ${value.getExpr(lang, availCses, 'rd')};`);
+          });
+        }
+      }
+    }
+    else {
+      assert.equal(values.length, 1);
+      f(`${dst.getExpr(lang, availCses, 'wr')} = ${values[0].getExpr(lang, availCses, 'rd')};`);
+    }
   });
 };
+
+SymbolicContext.prototype.inlineFunction = function(c2, inArgs) {
+  let c = this;
+
+  let explicitFormals = _.filter(_.flatten([c2.updateArgs, c2.inArgs]), (a) => !a.opt.implicit);
+  let implicitFormals = _.filter(_.flatten([c2.updateArgs, c2.inArgs]), (a) => a.opt.implicit);
+
+  let explicitReturns = _.filter(c2.outArgs, (a) => !a.opt.implicit);
+  let implicitReturns = _.filter(c2.outArgs, (a) => a.opt.implicit);
+
+  if (explicitFormals.length !== inArgs.length) {
+    throw new Error(`Wrong number of arguments. formals=(${
+      _.map(explicitFormals, (a) => `${a.t.typename} ${a.name}`).join(', ')
+    }) actuals=(${
+      _.map(inArgs, (a) => `${util.inspect(a)}`).join(', ')
+    })`);
+  }
+
+  let argMap = _.extend({},
+    _.object(_.map(explicitFormals, ({name, t, opt}, argi) => {
+      return [name, inArgs[argi]];
+    })),
+    _.object(_.map(implicitFormals, ({name, t, opt}, argi) => {
+      if (!c.lets[name]) {
+        throw new Error(`No implicit parameter ${name} in caller while inlining ${c2.name} into ${c.name}`);
+      }
+      return [name, c.lets[name]];
+    })),
+    _.object(_.map(implicitReturns, ({name, t, opt}, argi) => {
+      return [name, c.lets[name]];
+    })),
+  );
+
+  let tr = new SymbolicTransform(c, {
+    ref: function(e) {
+      if (argMap[e.name]) {
+        return argMap[e.name];
+      } else {
+        return new SymbolicRef(this.c, e.type, e.name, e.dir, e.opt);
+      }
+    },
+  });
+
+  // WRITEME: when multiple writes, combine with constructors.
+  // I know the type of the return value (from c2.outArgs[0]), so I should be able to traverse through it
+  let ret = c.C('void', 0);
+  _.each(c2.assignments, ({dst, values, type, augmented}) => {
+    let values2 = _.map(values, (value) => tr.transform(value));
+    let dst2 = tr.transform(dst);
+
+    if (dst2.isRef() && explicitReturns.length === 1 && dst2.name === explicitReturns[0].name && !augmented) {
+      ret = values2[0];
+    }
+    else if (dst2.isRef() && augmented) {
+      _.each(values2, (value2) => c.Wa(dst2, value2));
+    }
+  });
+
+  return ret;
+};
+
 
 // ----------------------------------------------------------------------
 
 SymbolicContext.prototype.withGradients = function(newName) {
   let c = this;
+  let tr = new SymbolicTransform(c, {
+
+  });
   let ctx = {
     newName,
     copied: new Map(),
@@ -401,19 +522,19 @@ SymbolicContext.prototype.withGradients = function(newName) {
   let newOutArgs = _.clone(c.outArgs);
   let newUpdateArgs = _.clone(c.updateArgs);
   let newInArgs = _.clone(c.inArgs);
-  _.each(c.outArgs, function([name, type, opt]) {
+  _.each(c.outArgs, function({name, t, opt}) {
     if (!opt.noGrad) {
-      newInArgs.push([`${name}Grad`, type, _.extend({}, opt, {isGrad: true})]);
+      newInArgs.push({name: `${name}Grad`, t, opt: _.extend({}, opt, {isGrad: true})});
     }
   });
-  _.each(c.updateArgs, function([name, type, opt]) {
+  _.each(c.updateArgs, function({name, t, opt}) {
     if (!opt.noGrad) {
-      newUpdateArgs.push([`${name}Grad`, type, _.extend({}, opt, {isGrad: true})]);
+      newUpdateArgs.push({name: `${name}Grad`, t, opt: _.extend({}, opt, {isGrad: true})});
     }
   });
-  _.each(c.inArgs, function([name, type, opt]) {
+  _.each(c.inArgs, function({name, t, opt}) {
     if (!opt.noGrad) {
-      newOutArgs.push([`${name}Grad`, type, _.extend({}, opt, {isGrad: true})]);
+      newOutArgs.push({name: `${name}Grad`, t, opt: _.extend({}, opt, {isGrad: true})});
     }
   });
 
@@ -422,9 +543,15 @@ SymbolicContext.prototype.withGradients = function(newName) {
   c2.preCode = c.preCode;
   c2.postCode = c.postCode;
   c2.preDefn = c.preDefn;
-  c2.writes = _.object(_.map(c.writes, (wr) => {
-    let wr2 = wr.deepCopy(ctx);
-    return [wr2.cseKey, wr2];
+  c2.assignments = _.object(_.map(c.assignments, ({dst, values, type, augmented}) => {
+    let dst2 = dst.deepCopy(ctx);
+    let values2 = _.map(values, (value) => value.deepCopy(ctx));
+    return [dst2.cseKey, {
+      dst: dst2,
+      values: values2,
+      type,
+      augmented
+    }];
   }));
   c2.reads = _.object(_.map(c.reads, (rd) => {
     let rd2 = rd.deepCopy(ctx);
@@ -435,33 +562,77 @@ SymbolicContext.prototype.withGradients = function(newName) {
   return c2;
 };
 
+
+// ----------------------------------------------------------------------
+
+function SymbolicTransform(c, transforms) {
+  this.c = c;
+  this.copied = new Map();
+  this.transforms = transforms;
+}
+
+SymbolicTransform.prototype.transform = function(e) {
+  let copy = this.copied.get(e.cseKey);
+  if (!copy) {
+    if (e instanceof SymbolicConst) {
+      if (this.transforms.const) {
+        copy = this.transforms.const.call(this, e);
+      }
+      else {
+        copy = new SymbolicConst(this.c, e.type, e.value);
+      }
+    }
+    else if (e instanceof SymbolicRef) {
+      if (this.transforms.ref) {
+        copy = this.transforms.ref.call(this, e);
+      }
+      else {
+        copy = new SymbolicRef(this.c, e.type, e.name, e.dir, e.opt);
+      }
+    }
+    else if (e instanceof SymbolicRead) {
+      if (this.transforms.read) {
+        copy = this.transforms.read.call(this, e);
+      }
+      else {
+        let newRef = this.transform(e.ref);
+        if (newRef.isRef()) {
+          copy = new SymbolicRead(this.c, e.type, newRef);
+        } else {
+          copy = newRef;
+        }
+      }
+    }
+    else if (e instanceof SymbolicExpr) {
+      if (this.transforms.expr) {
+        copy = this.transforms.expr.call(this, e);
+      }
+      else {
+        copy = new SymbolicExpr(this.c, e.op, _.map(e.args, (arg) => this.transform(arg)));
+      }
+    }
+    else {
+      throw new Error(`Unknown node type`);
+    }
+    copy = this.c.dedup(copy);
+    this.copied.set(e.cseKey, copy);
+  }
+  return copy;
+};
+
+
 // ----------------------------------------------------------------------
 
 function SymbolicNode() {
   let e = this;
 }
 
-function SymbolicWrite(c, type, ref, value) {
-  let e = this;
-  e.c = c;
-  assert.ok(type.typename);
-  e.type = type;
-  if (!ref.isAddress) {
-    throw new Error(`Write to ${util.inspect(ref)}: not an address`);
-  }
-  e.ref = ref;
-  if (value.isAddress) {
-    value = c.dedup(new SymbolicRead(c, value.type, value));
-  }
-  e.value = value;
-  e.cseKey = '_w' + simpleHash(`{e.type.typename},${e.ref.cseKey},${e.value.cseKey}`);
-}
-SymbolicWrite.prototype = Object.create(SymbolicNode.prototype);
-SymbolicWrite.prototype.isWrite = function() { return true; }
-
 function SymbolicRead(c, type, ref) {
   let e = this;
   e.c = c;
+  while (ref.isRead()) {
+    ref = ref.ref;
+  }
   assert.ok(type.typename);
   e.type = type;
   assert.ok(ref.isAddress);
@@ -522,8 +693,13 @@ function SymbolicExpr(c, op, args) {
     if (!retType && arg.type.autoCreate) {
       retType = 'UNKNOWN';
       e.materializeMember = (t) => {
-        arg.type.add(memberName, c.typereg.getType(t));
-        return c.E(op, arg);
+        t = c.typereg.getType(t);
+        if (!arg.type.nameToType[memberName]) {
+          arg.type.add(memberName, t);
+          e.type = t; // Alert! Modifying a normally-immutable object.
+        }
+        return e;
+        //return c.E(op, arg);
       };
     }
 
@@ -531,6 +707,7 @@ function SymbolicExpr(c, op, args) {
     e.isStructref = true;
     e.memberName = memberName;
     e.opInfo = {
+      argTypes: [t.typename],
       impl: {
         imm: function(a) {
           return a[memberName];
@@ -548,15 +725,10 @@ function SymbolicExpr(c, op, args) {
 
           // WRITEME?
         },
-        replace: function(c, a) {
-          if (a.isZero()) {
-            return c.C(this.type, 0);
-          }
-        },
       },
     };
     e.isAddress = arg.isAddress;
-    e.cseKey = '_e' + simpleHash(`${e.type ? e.type.typename : '?'},${e.op},${_.map(e.args, (arg) => arg.cseKey).join(',')}`);
+    e.cseKey = '_e' + simpleHash(`${e.op},${_.map(e.args, (arg) => arg.cseKey).join(',')}`);
     return;
   }
 
@@ -607,10 +779,16 @@ function SymbolicExpr(c, op, args) {
 
   let opInfo = c.findop(op, _.map(args, (a) => a.type));
   if (opInfo) {
-    e.args = _.map(args, (a) => {
+    e.args = _.map(args, (a, argi) => {
+      if (a.materializeMember) {
+        let at = c.typereg.getType(opInfo.argTypes[argi]);
+        if (!at) throw new Error(`Can't find type ${opInfo.argTypes[argi]} referenced in defop('${op}'...)`);
+        a = a.materializeMember(at);
+      }
       if (a.isAddress && a.type !== 'UNKNOWN') {
         return c.dedup(new SymbolicRead(c, a.type, a));
-      } else {
+      }
+      else {
         return a;
       }
     });
@@ -670,7 +848,7 @@ function SymbolicExpr(c, op, args) {
   }
 
   throw new Error(`No op named ${op} for types (${
-    _.map(args, (a) => a.type && a.type.typename).join(', ')
+    _.map(args, (a) => (a.type === 'UNKNOWN' ? 'UNKNOWN' : a.type.typename)).join(', ')
   })`);
 
 }
@@ -735,6 +913,9 @@ SymbolicExpr.prototype.isOne = function() {
 
 // ----------------------------------------------------------------------
 
+
+// ----------------------------------------------------------------------
+
 SymbolicNode.prototype.deepCopy = function(ctx) {
   let e = this;
   let copy = ctx.copied.get(e.cseKey);
@@ -752,17 +933,20 @@ SymbolicConst.prototype.deepCopy1 = function(ctx) {
 
 SymbolicRef.prototype.deepCopy1 = function(ctx) {
   let e = this;
+  if (ctx.argMap && ctx.argMap[e.name]) {
+    return ctx.argMap[e.name];
+  }
   return new SymbolicRef(ctx.c, e.type, e.name, e.dir, e.opt);
-};
-
-SymbolicWrite.prototype.deepCopy1 = function(ctx) {
-  let e = this;
-  return new SymbolicWrite(ctx.c, e.type, e.ref.deepCopy(ctx), e.value.deepCopy(ctx));
 };
 
 SymbolicRead.prototype.deepCopy1 = function(ctx) {
   let e = this;
-  return new SymbolicRead(ctx.c, e.type, e.ref.deepCopy(ctx));
+  let newRef = e.ref.deepCopy(ctx);
+  if (newRef.isRef()) {
+    return new SymbolicRead(ctx.c, e.type, newRef);
+  } else {
+    return newRef;
+  }
 };
 
 SymbolicExpr.prototype.deepCopy1 = function(ctx) {
@@ -786,8 +970,17 @@ SymbolicContext.prototype.getDeps = function() {
     totGradients: {},
     inOrder: [],
   };
-  _.each(c.writes, (a) => {
-    a.addDeps(deps);
+  _.each(c.assignments, ({dst, values, type, augmented}) => {
+    deps.gradients[dst.cseKey] = [];
+    deps.writes[dst.cseKey] = {dst, values, type, augmented};
+    if (!deps.fwd[dst.cseKey]) deps.fwd[dst.cseKey] = [];
+    _.each(values, (value) => {
+      if (!deps.rev[value.cseKey]) deps.rev[value.cseKey] = [];
+      deps.rev[value.cseKey].push(dst);
+
+      value.addDeps(deps);
+    });
+    dst.addDeps(deps);
   });
   return deps;
 };
@@ -798,21 +991,6 @@ SymbolicNode.prototype.addDeps = function(deps) {
   if (!deps.fwd[e.cseKey]) {
     deps.fwd[e.cseKey] = [];
     deps.gradients[e.cseKey] = [];
-    deps.inOrder.push(e);
-  }
-};
-
-SymbolicWrite.prototype.addDeps = function(deps) {
-  let e = this;
-  deps.writes[e.cseKey] = e;
-  deps.uses[e.cseKey] = (deps.uses[e.cseKey] || 0) + 1;
-  if (!deps.fwd[e.cseKey]) {
-    deps.fwd[e.cseKey] = [e.value];
-    deps.gradients[e.cseKey] = [];
-    if (!deps.rev[e.value.cseKey]) deps.rev[e.value.cseKey] = [];
-    deps.rev[e.value.cseKey].push(e);
-    e.value.addDeps(deps);
-    e.ref.addDeps(deps);
     deps.inOrder.push(e);
   }
 };
@@ -862,10 +1040,6 @@ SymbolicExpr.prototype.addDeps = function(deps) {
 
 SymbolicNode.prototype.inspect = function(depth, opts) {
   return `${this.cseKey}`;
-};
-
-SymbolicWrite.prototype.inspect = function(depth, opts) {
-  return `${this.cseKey}=write(${util.inspect(this.ref, depth+1, opts)}, ${this.value.cseKey})`;
 };
 
 SymbolicRef.prototype.inspect = function(depth, opts) {
@@ -980,6 +1154,14 @@ SymbolicContext.prototype.addGradients = function() {
 
   let revOrder = _.clone(deps.inOrder).reverse();
 
+
+  _.each(c.assignments, ({dst, values, type, augmented}) => {
+    let g = dst.getGradient(deps);
+    _.each(values, (value) => {
+      value.addGradient(deps, g);
+    });
+  });
+
   _.each(revOrder, (node, nodei) => {
     if (0) {
       console.log(`Step ${nodei}:`);
@@ -1001,7 +1183,6 @@ SymbolicContext.prototype.addGradients = function() {
   _.each(deps.reads, function(rd) {
     assert.ok(rd.ref.isAddress);
     let gradRef = rd.ref.getGradient(deps);
-    //debugger;
     if (!gradRef.isConst()) {
       c.W(gradRef, rd.getGradient(deps));
     }
@@ -1088,14 +1269,6 @@ SymbolicRef.prototype.backprop = function(deps) {
   let g = e.getGradient(deps);
 };
 
-SymbolicWrite.prototype.backprop = function(deps) {
-  let e = this;
-  let c = e.c;
-  let g = e.ref.getGradient(deps);
-  e.value.addGradient(deps, g);
-};
-
-
 SymbolicRead.prototype.backprop = function(deps) {
   let e = this;
   let c = e.c;
@@ -1132,12 +1305,6 @@ SymbolicNode.prototype.emitCses = function(lang, deps, f, availCses) {
   // nothing
 };
 
-SymbolicWrite.prototype.emitCses = function(lang, deps, f, availCses) {
-  let e = this;
-
-  e.value.emitCses(lang, deps, f, availCses);
-};
-
 SymbolicExpr.prototype.emitCses = function(lang, deps, f, availCses) {
   let e = this;
   let c = e.c;
@@ -1163,13 +1330,6 @@ SymbolicExpr.prototype.emitCses = function(lang, deps, f, availCses) {
 };
 
 
-SymbolicWrite.prototype.emitCode = function(lang, deps, f, availCses) {
-  let e = this;
-
-  e.emitCses(lang, deps, f, availCses);
-  f(`${e.ref.getExpr(lang, availCses, 'wr')} = ${e.value.getExpr(lang, availCses, 'rd')};`);
-};
-
 SymbolicRead.prototype.getExpr = function(lang, availCses, rdwr) {
   return this.ref.getExpr(lang, availCses, 'rd');
 };
@@ -1193,7 +1353,7 @@ SymbolicRef.prototype.getExpr = function(lang, availCses, rdwr) {
 SymbolicConst.prototype.getExpr = function(lang, availCses, rdwr) {
   let e = this;
   let c = e.c;
-  assert.ok(rdwr === 'rd');
+  assert.equal(rdwr, 'rd');
 
   return e.type.getValueExpr(lang, e.value);
 };
