@@ -52,7 +52,7 @@ function defop(retType, op, ...argTypes) {
 
 
 function simpleHash(s) {
-  let h = crypto.createHmac('sha1', 'key');
+  let h = crypto.createHash('sha1');
   h.update(s);
   return h.digest('hex').substr(0, 16);
 }
@@ -332,21 +332,27 @@ SymbolicContext.prototype.W = function(dst, value) {
     while (dst2.isStructref) {
       dst2 = dst2.args[0];
       if (c.assignments[dst2.cseKey] === undefined) {
-        c.assignments[dst2.cseKey] = 'PROHIBITED';
+        c.assignments[dst2.cseKey] = {
+          dst: dst2,
+          prohibited: true,
+          prohibitedBy: dst,
+          values: [],
+          type: dst2.type,
+        };
       }
-      else if (c.assignments[dst2.cseKey] === 'PROHIBITED') {
+      else if (c.assignments[dst2.cseKey].prohibited) {
         break;
       }
       else {
-        c.error(`Assignment to ${util.inspect(dst)} prohibited by previous assignment to containing struct`)
+        c.error(`Assignment to ${dst.getExpr('c', {}, 'wr')} prohibited by previous assignment to ${dst2.getExpr('c', {}, 'wr')}`)
       }
     }
   }
-  else if (c.assignments[dst.cseKey] === 'PROHIBITED') {
-    c.error(`Assignment to ${util.inspect(dst)} prohibited by previous assignment to member`)
+  else if (c.assignments[dst.cseKey].prohibited) {
+    c.error(`Assignment to ${dst.getExpr('c', {}, 'wr')} prohibited by previous assignment to ${c.assignments[dst.cseKey].prohibitedBy.getExpr('c', {}, 'wr')}`)
   }
   else {
-    c.error(`Multiple assignments to ${util.inspect(dst)}`);
+    c.error(`Multiple assignments to ${dst.getExpr('c', {}, 'wr')}`);
   }
 
   return value;
@@ -365,8 +371,27 @@ SymbolicContext.prototype.Wa = function(dst, value) {
       values: [value],
       type: value.type,
     };
+    let dst2 = dst;
+    while (dst2.isStructref) {
+      dst2 = dst2.args[0];
+      if (c.assignments[dst2.cseKey] === undefined) {
+        c.assignments[dst2.cseKey] = {
+          dst: dst2,
+          prohibited: true,
+          prohibitedBy: dst,
+          values: [],
+          type: dst2.type,
+        };
+      }
+      else if (c.assignments[dst2.cseKey].prohibited) {
+        break;
+      }
+      else {
+        c.error(`Assignment to ${util.inspect(dst)} prohibited by previous assignment to containing struct`)
+      }
+    }
   }
-  else if (c.assignments[dst.cseKey] === 'PROHIBITED') {
+  else if (c.assignments[dst.cseKey].prohibited) {
     c.error(`Assignment to ${util.inspect(dst)} prohibited by previous assignment to member`)
   }
   else if (c.assignments[dst.cseKey].augmented && c.assignments[dst.cseKey].type === value.type) {
@@ -524,16 +549,19 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs) {
   // WRITEME: when multiple writes, combine with constructors.
   // I know the type of the return value (from c2.outArgs[0]), so I should be able to traverse through it
   let ret = c.C('void', 0);
-  _.each(c2.assignments, ({dst, values, type, augmented}) => {
-    if (!dst) return;
-    let values2 = _.map(values, (value) => tr.transform(value));
-    let dst2 = tr.transform(dst);
+  _.each(c2.assignments, ({dst: dst2, values: values2, type, augmented, prohibited}, assKey) => {
+    if (prohibited) return;
+    let values = _.map(values2, (v) => tr.transform(v));
+    let dst = tr.transform(dst2);
 
-    if (dst2.isRef() && explicitReturns.length === 1 && dst2.name === explicitReturns[0].name && !augmented) {
-      ret = values2[0];
+    if (dst.isRef() && explicitReturns.length === 1 && dst.name === explicitReturns[0].name && !augmented) {
+      ret = values[0];
     }
-    else if (dst2.isRef() && augmented) {
-      _.each(values2, (value2) => c.Wa(dst2, value2));
+    else if (augmented) {
+      _.each(values, (v) => c.Wa(dst, v));
+    }
+    else if (!augmented) {
+      _.each(values, (v) => c.W(dst, v));
     }
   });
   assert.ok(inArgs[0].sourceLoc);
@@ -567,13 +595,6 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs) {
 
 SymbolicContext.prototype.withGradients = function(newName) {
   let c = this;
-  let tr = new SymbolicTransform(c, {
-
-  });
-  let ctx = {
-    newName,
-    copied: new Map(),
-  };
 
   let newOutArgs = _.clone(c.outArgs);
   let newUpdateArgs = _.clone(c.updateArgs);
@@ -595,16 +616,18 @@ SymbolicContext.prototype.withGradients = function(newName) {
   });
 
   let c2 = c.typereg.addSymbolic(newName, newOutArgs, newUpdateArgs, newInArgs);
-  ctx.c = c2;
+  let tr = new SymbolicTransform(c2, {
+  });
+
   c2.preCode = c.preCode;
   c2.postCode = c.postCode;
   c2.preDefn = c.preDefn;
   c2.assignments = _.object(_.map(c.assignments, (assInfo, assKey) => {
-    if (assInfo === 'PROHIBITED') return [assKey, assInfo];
+    if (assInfo.prohibited) return [assKey, assInfo];
     let {dst, values, type, augmented} = assInfo;
     if (!dst) return;
-    let dst2 = dst.deepCopy(ctx);
-    let values2 = _.map(values, (value) => value.deepCopy(ctx));
+    let dst2 = tr.transform(dst);
+    let values2 = _.map(values, (value) => tr.transform(value));
     return [dst2.cseKey, {
       dst: dst2,
       values: values2,
@@ -613,7 +636,7 @@ SymbolicContext.prototype.withGradients = function(newName) {
     }];
   }));
   c2.reads = _.object(_.map(c.reads, (rd) => {
-    let rd2 = rd.deepCopy(ctx);
+    let rd2 = tr.transform(rd);
     return [rd2.cseKey, rd2];
   }));
 
@@ -987,51 +1010,6 @@ SymbolicExpr.prototype.isOne = function() {
 
 // ----------------------------------------------------------------------
 
-
-// ----------------------------------------------------------------------
-
-SymbolicNode.prototype.deepCopy = function(ctx) {
-  let e = this;
-  let copy = ctx.copied.get(e.cseKey);
-  if (!copy) {
-    copy = e.deepCopy1(ctx);
-    ctx.copied.set(e.cseKey, copy);
-  }
-  return copy;
-};
-
-SymbolicConst.prototype.deepCopy1 = function(ctx) {
-  let e = this;
-  return new SymbolicConst(ctx.c, e.type, e.value);
-};
-
-SymbolicRef.prototype.deepCopy1 = function(ctx) {
-  let e = this;
-  if (ctx.argMap && ctx.argMap[e.name]) {
-    return ctx.argMap[e.name];
-  }
-  return new SymbolicRef(ctx.c, e.type, e.name, e.dir, e.opt);
-};
-
-SymbolicRead.prototype.deepCopy1 = function(ctx) {
-  let e = this;
-  let newRef = e.ref.deepCopy(ctx);
-  if (newRef.isRef()) {
-    return new SymbolicRead(ctx.c, e.type, newRef);
-  } else {
-    return newRef;
-  }
-};
-
-SymbolicExpr.prototype.deepCopy1 = function(ctx) {
-  let e = this;
-  return new SymbolicExpr(ctx.c, e.op, _.map(e.args, (arg) => {
-    return arg.deepCopy(ctx);
-  }));
-};
-
-// ----------------------------------------------------------------------
-
 SymbolicContext.prototype.getDeps = function() {
   let c = this;
   let deps = {
@@ -1044,9 +1022,8 @@ SymbolicContext.prototype.getDeps = function() {
     totGradients: {},
     inOrder: [],
   };
-  _.each(c.assignments, (assInfo, assKey) => {
-    if (assInfo === 'PROHIBITED') return;
-    let {dst, values, type, augmented} = assInfo;
+  _.each(c.assignments, ({dst, values, type, augmented, prohibited}, assKey) => {
+    if (prohibited) return;
     deps.gradients[dst.cseKey] = [];
     deps.writes[dst.cseKey] = {dst, values, type, augmented};
     if (!deps.fwd[dst.cseKey]) deps.fwd[dst.cseKey] = [];
@@ -1277,9 +1254,8 @@ SymbolicContext.prototype.addGradients = function() {
   let revOrder = _.clone(deps.inOrder).reverse();
 
 
-  _.each(c.assignments, (assInfo, assKey) => {
-    if (assInfo === 'PROHIBITED') return;
-    let {dst, values, type, augmented} = assInfo;
+  _.each(c.assignments, ({dst, values, type, augmented, prohibited}, assKey) => {
+    if (prohibited) return;
     let g = dst.getGradient(deps);
     _.each(values, (value) => {
       value.addGradient(deps, g);
@@ -1438,7 +1414,7 @@ SymbolicExpr.prototype.emitCses = function(lang, deps, f, availCses) {
     _.each(e.args, (arg) => {
       arg.emitCses(lang, deps, f, availCses);
     });
-    if (deps.rev[e.cseKey].length > 1) {
+    if (deps.rev[e.cseKey].length > 1 && !e.isAddress) {
       // Wrong for composite types, use TypeRegistry
       if (lang === 'c') {
         f(`${e.type.typename} ${e.cseKey} = ${e.getExpr(lang, availCses, 'rd')};`);
@@ -1498,7 +1474,7 @@ SymbolicExpr.prototype.getExpr = function(lang, availCses, rdwr) {
   let e = this;
   let c = e.c;
 
-  if (availCses && availCses[e.cseKey]) {
+  if (availCses && availCses[e.cseKey] && rdwr === 'rd') {
     return e.cseKey;
   }
   let argExprs = _.map(e.args, (arg) => {
