@@ -294,14 +294,25 @@ defop('jsonstr', 'Object', '...', {
       }).join(' + ", "\n    + ')
     )} +\n    string("}"))`;
   },
-  js: () => {
-    throw new Error('WRITEME');
+  js: (...args) => {
+    return `{${
+      _.map(_.range(0, args.length, 2), (i) => {
+        return `${args[i]}: ${args[i+1]}`;
+      }).join(', ')
+    }}`;
+  },
+  debugInfo: (...args) => {
+    return `{${
+      _.map(_.range(0, args.length, 2), (i) => {
+        return `${args[i]}: ${args[i+1]}`;
+      }).join(', ')
+    }}`;
   },
   deriv: () => {
     throw new Error('WRITEME');
   },
   gradient: () => {
-    throw new Error('WRITEME');
+    // ignore
   },
 });
 
@@ -321,6 +332,19 @@ defop('jsonstr', 'Array', '...', {
     throw new Error('WRITEME');
   },
   gradient: () => {
-    throw new Error('WRITEME');
+    // ignore
+  },
+});
+
+
+
+// Visualisation operators
+
+defop('void', 'vis', '...', {
+  replace: function(c, ...args) {
+    c.annotations.push({
+      sourceLoc: c.sourceLoc,
+      args: args,
+    });
   },
 });

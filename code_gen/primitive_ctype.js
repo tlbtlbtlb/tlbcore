@@ -138,6 +138,9 @@ PrimitiveCType.prototype.getValueExpr = function(lang, value) {
     case 'js':
       return JSON.stringify(value);
 
+    case 'debugInfo':
+      return JSON.stringify(value);
+
     case 'jsn':
       return JSON.stringify(value);
 
