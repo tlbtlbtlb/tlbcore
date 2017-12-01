@@ -70,7 +70,7 @@ function parseArg(argInfo) {
       name: argInfo.name,
       t: argInfo.t,
       opt: argInfo.opt || {},
-    }
+    };
   }
 }
 
@@ -78,7 +78,6 @@ function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
   let c = this;
   c.typereg = typereg;
   c.name = name;
-  c.sourceLoc = {};
 
   c.langs = {
     c: true,
@@ -98,7 +97,7 @@ function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
     let realt = typereg.getType(t, true);
     if (!realt) c.error(`Unknown type ${t}`);
     t = realt;
-    if (opt.sourceLoc) c.sourceLoc = opt.sourceLoc;
+    if (opt.sourceLoc) c.typereg.scanLoc = opt.sourceLoc;
     c.lets[name] = new SymbolicRef(c, t, name, 'out', opt);
     return {name, t, opt};
   });
@@ -107,7 +106,7 @@ function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
     let realt = typereg.getType(t, true);
     if (!realt) c.error(`Unknown type ${t}`);
     t = realt;
-    if (opt.sourceLoc) c.sourceLoc = opt.sourceLoc;
+    if (opt.sourceLoc) c.typereg.scanLoc = opt.sourceLoc;
     c.lets[name] = new SymbolicRef(c, t, name, 'update', opt);
     return {name, t, opt};
   });
@@ -116,7 +115,7 @@ function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
     let realt = typereg.getType(t, true);
     if (!realt) c.error(`Unknown type ${t}`);
     t = realt;
-    if (opt.sourceLoc) c.sourceLoc = opt.sourceLoc;
+    if (opt.sourceLoc) c.typereg.scanLoc = opt.sourceLoc;
     c.lets[name] = new SymbolicRef(c, t, name, 'in', opt);
     return {name, t, opt};
   });
@@ -130,10 +129,8 @@ SymbolicContext.prototype.finalize = function() {
 };
 
 SymbolicContext.prototype.error = function(msg) {
-  let ln = this.lineNumbers ? this.lineNumbers[this.sourceLoc.start] : '?';
-  throw new Error(`${msg} in ${this.sourceLoc.filename}:${ln}`)
+  this.typereg.error(msg);
 };
-
 
 SymbolicContext.prototype.registerWrapper = function() {
   let c = this;
@@ -344,12 +341,12 @@ SymbolicContext.prototype.W = function(dst, value) {
         break;
       }
       else {
-        c.error(`Assignment to ${dst.getExpr('c', {}, 'wr')} prohibited by previous assignment to ${dst2.getExpr('c', {}, 'wr')}`)
+        c.error(`Assignment to ${dst.getExpr('c', {}, 'wr')} prohibited by previous assignment to ${dst2.getExpr('c', {}, 'wr')}`);
       }
     }
   }
   else if (c.assignments[dst.cseKey].prohibited) {
-    c.error(`Assignment to ${dst.getExpr('c', {}, 'wr')} prohibited by previous assignment to ${c.assignments[dst.cseKey].prohibitedBy.getExpr('c', {}, 'wr')}`)
+    c.error(`Assignment to ${dst.getExpr('c', {}, 'wr')} prohibited by previous assignment to ${c.assignments[dst.cseKey].prohibitedBy.getExpr('c', {}, 'wr')}`);
   }
   else {
     c.error(`Multiple assignments to ${dst.getExpr('c', {}, 'wr')}`);
@@ -387,12 +384,12 @@ SymbolicContext.prototype.Wa = function(dst, value) {
         break;
       }
       else {
-        c.error(`Assignment to ${util.inspect(dst)} prohibited by previous assignment to containing struct`)
+        c.error(`Assignment to ${util.inspect(dst)} prohibited by previous assignment to containing struct`);
       }
     }
   }
   else if (c.assignments[dst.cseKey].prohibited) {
-    c.error(`Assignment to ${util.inspect(dst)} prohibited by previous assignment to member`)
+    c.error(`Assignment to ${util.inspect(dst)} prohibited by previous assignment to member`);
   }
   else if (c.assignments[dst.cseKey].augmented && c.assignments[dst.cseKey].type === value.type) {
     c.assignments[dst.cseKey].values.push(value);
@@ -504,7 +501,7 @@ SymbolicContext.prototype.emitCode = function(lang, f) {
   });
 };
 
-SymbolicContext.prototype.inlineFunction = function(c2, inArgs) {
+SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc) {
   let c = this;
 
   let explicitFormals = _.filter(_.flatten([c2.updateArgs, c2.inArgs]), (a) => !a.opt.implicit);
@@ -521,6 +518,20 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs) {
     })`);
   }
 
+  inArgs = _.map(inArgs, (a, argi) => {
+    if (a.materializeMember) {
+      let at = explicitFormals[argi].t;
+      a = a.materializeMember(at);
+    }
+    if (a.isAddress && a.type !== 'UNKNOWN') {
+      return c.dedup(new SymbolicRead(c, a.type, a));
+    }
+    else {
+      return a;
+    }
+  });
+
+
   let argMap = _.extend({},
     _.object(_.map(explicitFormals, ({name, t, opt}, argi) => {
       return [name, inArgs[argi]];
@@ -533,8 +544,7 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs) {
     })),
     _.object(_.map(implicitReturns, ({name, t, opt}, argi) => {
       return [name, c.lets[name]];
-    })),
-  );
+    })));
 
   let tr = new SymbolicTransform(c, {
     ref: function(e) {
@@ -566,26 +576,41 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs) {
   });
   assert.ok(inArgs[0].sourceLoc);
 
-  _.each(c2.annotations, ({args: args2, sourceLoc: sourceLoc2}) => {
+  _.each(c2.annotations, ({args: args2, sourceLoc: sourceLoc2, uplevels: uplevels2}) => {
+    if (uplevels2 > 0) {
+      let args = _.map(args2, (a) => tr.transform(a));
+      let sourceLoc = null;
+      _.each(args, (a, ai) => {
+        if (sourceLoc) return;
+        let a2 = args2[ai];
+        while (a2.isRead()) a2 = a2.ref;
+        if (a2.isRef()) {
+          while (a.isRead()) a = a.ref;
+          sourceLoc = a.sourceLoc;
+        }
+      });
+      if (sourceLoc === null) sourceLoc = c.sourceLoc;
 
-    let args = _.map(args2, (a) => tr.transform(a));
-    let sourceLoc = null;
-    _.each(args, (a, ai) => {
-      if (sourceLoc) return;
-      let a2 = args2[ai];
-      while (a2.isRead()) a2 = a2.ref;
-      if (a2.isRef()) {
-        while (a.isRead()) a = a.ref;
-        sourceLoc = a.sourceLoc;
-      }
-    });
-    if (sourceLoc === null) sourceLoc = c.sourceLoc;
-
-    c.annotations.push({
-      args,
-      sourceLoc,
-    });
+      c.annotations.push({
+        args,
+        sourceLoc,
+        uplevels: uplevels2 - 1,
+      });
+    }
   });
+
+  c.annotations.push({
+    args: [
+      'call',
+      c2.name,
+      _.object(_.map(explicitFormals, ({name, t, opt}, argi) => {
+        return [name, inArgs[argi]];
+      })),
+    ],
+    sourceLoc: callSourceLoc,
+    uplevels: 0,
+  });
+
 
   return ret;
 };
@@ -656,7 +681,7 @@ function SymbolicTransform(c, transforms) {
 SymbolicTransform.prototype.transform = function(e) {
   let copy = this.copied.get(e.cseKey);
   if (!copy) {
-    this.c.sourceLoc = e.sourceLoc;
+    this.c.typereg.scanLoc = e.sourceLoc;
     if (e instanceof SymbolicConst) {
       if (this.transforms.const) {
         copy = this.transforms.const.call(this, e);
@@ -695,7 +720,7 @@ SymbolicTransform.prototype.transform = function(e) {
       }
     }
     else {
-      c.error(`Unknown node type`);
+      this.c.error(`Unknown node type`);
     }
     copy = this.c.dedup(copy);
     this.copied.set(e.cseKey, copy);
@@ -712,7 +737,7 @@ function SymbolicNode() {
 function SymbolicRead(c, type, ref) {
   let e = this;
   e.c = c;
-  e.sourceLoc = c.sourceLoc;
+  e.sourceLoc = c.typereg.scanLoc;
   while (ref.isRead()) {
     ref = ref.ref;
   }
@@ -723,12 +748,12 @@ function SymbolicRead(c, type, ref) {
   e.cseKey = '_r' + simpleHash(`${e.type.typename},${e.ref.cseKey}`);
 }
 SymbolicRead.prototype = Object.create(SymbolicNode.prototype);
-SymbolicRead.prototype.isRead = function() { return true; }
+SymbolicRead.prototype.isRead = function() { return true; };
 
 function SymbolicRef(c, type, name, dir, opt) {
   let e = this;
   e.c = c;
-  e.sourceLoc = c.sourceLoc;
+  e.sourceLoc = c.typereg.scanLoc;
   assert.ok(type.typename);
   e.type = type;
   assert.ok(_.isString(name));
@@ -740,12 +765,12 @@ function SymbolicRef(c, type, name, dir, opt) {
   e.cseKey = '_v' + simpleHash(`${e.type.typename},${e.name},${e.dir},${e.isAddress},${JSON.stringify(e.opt)}`);
 }
 SymbolicRef.prototype = Object.create(SymbolicNode.prototype);
-SymbolicRef.prototype.isRef = function() { return true; }
+SymbolicRef.prototype.isRef = function() { return true; };
 
 function SymbolicConst(c, type, value) {
   let e = this;
   e.c = c;
-  e.sourceLoc = c.sourceLoc;
+  e.sourceLoc = c.typereg.scanLoc;
   assert.ok(type.typename);
   e.type = type;
   e.value = value;
@@ -756,7 +781,7 @@ SymbolicConst.prototype = Object.create(SymbolicNode.prototype);
 function SymbolicExpr(c, op, args) {
   let e = this;
   e.c = c;
-  e.sourceLoc = c.sourceLoc;
+  e.sourceLoc = c.typereg.scanLoc;
   e.op = op;
 
   if (op.startsWith('.') && args.length === 1) {
@@ -1439,7 +1464,7 @@ SymbolicRead.prototype.getExpr = function(lang, availCses, rdwr) {
     return this.ref.getExpr(lang, availCses, rdwr);
   }
   else {
-    this.c.error(`${util.inspect(this)}.getExpr(${lang}, .. ${rdwr}: unimplemented`)
+    this.c.error(`${util.inspect(this)}.getExpr(${lang}, .. ${rdwr}: unimplemented`);
   }
 };
 
@@ -1458,7 +1483,7 @@ SymbolicRef.prototype.getExpr = function(lang, availCses, rdwr) {
     return this.name;
   }
   else {
-    this.c.error(`${util.inspect(this)}.getExpr(${lang}, .. ${rdwr}: unimplemented`)
+    this.c.error(`${util.inspect(this)}.getExpr(${lang}, .. ${rdwr}: unimplemented`);
   }
 };
 

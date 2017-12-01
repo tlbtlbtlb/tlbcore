@@ -42,7 +42,7 @@ describe('symbolic_math', function() {
 if (1) describe('symbolic_math', function() {
   it('matrices should work', function(cb) {
     let typereg = new type_registry.TypeRegistry('test');
-    typereg.scanFile(require.resolve('../arma/decl_arma.js'), (err) => {
+    typereg.compileFile(require.resolve('../arma/decl_arma.js'), (err) => {
       if (err) return cb(err);
       let c = new symbolic_math.SymbolicContext(typereg, 'test', [
       ], [

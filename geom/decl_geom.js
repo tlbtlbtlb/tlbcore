@@ -2,5 +2,5 @@
 
 module.exports = function(typereg, cb) {
 
-  typereg.scanFile(require.resolve('./geom_math.h'), cb);
+  typereg.compileFile(require.resolve('./geom_math.h'), cb);
 };

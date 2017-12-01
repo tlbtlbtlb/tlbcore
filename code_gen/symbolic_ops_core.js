@@ -344,7 +344,8 @@ defop('void', 'vis', '...', {
   replace: function(c, ...args) {
     c.annotations.push({
       sourceLoc: c.sourceLoc,
-      args: args,
+      args: [c.C('string', 'vis'), ...args],
+      uplevels: 3,
     });
   },
 });

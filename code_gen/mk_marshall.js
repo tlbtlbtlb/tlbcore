@@ -58,7 +58,7 @@ function main() {
 
     async.eachSeries(files, (fn, cb) => {
       console.log(`Load ${fn}`);
-      typereg.scanFile(fn, cb);
+      typereg.compileFile(fn, cb);
     }, (err) => {
       if (err) throw new Error(err);
       typereg.emitAll(filegen);

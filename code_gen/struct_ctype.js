@@ -37,7 +37,7 @@ StructCType.prototype.addArgs = function(args) {
     }
     else if (a.name && a.t) {
       let memberName = a.name;
-      let memberType = a.t
+      let memberType = a.t;
       let memberOptions = a.opt || {};
       type.add(memberName, memberType, memberOptions);
     }

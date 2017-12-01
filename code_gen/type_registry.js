@@ -478,21 +478,61 @@ function escapeRegexp(s) {
   return s.replace(/[*\.\+]/g, '\\$&');
 }
 
-TypeRegistry.prototype.scanFile = function(fn, cb) {
+function calcLineNumbers(text) {
+
+  let rows = new Int32Array(text.length);
+  let cols = new Int32Array(text.length);
+
+  let row = 0;
+  let col = 0;
+  for (let i=0; i<text.length; i++) {
+    rows[i] = row;
+    cols[i] = col;
+    if (text[i] === '\n') {
+      col = 0;
+      row++;
+    } else {
+      col++;
+    }
+  }
+  return {rows, cols};
+}
+
+
+TypeRegistry.prototype.compileFile = function(fn, cb) {
   let typereg = this;
   fs.readFile(fn, {encoding: 'utf8'}, (err, text) => {
     if (err) return cb(err);
-    typereg.scanText(text, fn, cb);
+    typereg.compileText(text, fn, cb);
   });
 };
 
-TypeRegistry.prototype.scanText = function(text, fn, cb) {
+TypeRegistry.prototype.compileText = function(text, fn, cb) {
   let typereg = this;
   let ext = path.extname(fn);
   let rdr = typereg.fileReaders[ext];
   if (!rdr) return cb(`No reader for ${ext} files`);
+  typereg.scanText = text;
+  typereg.scanFilename = fn;
+  typereg.scanLineNumbers = calcLineNumbers(text);
+  typereg.scanLoc = {filename: fn, start: 0, end: text.length, funcName: null};
   rdr.call(typereg, text, fn, cb);
 };
+
+TypeRegistry.prototype.setLoc = function(start, end) {
+  this.scanLoc = {
+    start,
+    end,
+    filename: this.scanFilename,
+    funcName: this.scanSymbolic ? this.scanSymbolic.name : null,
+  };
+};
+
+TypeRegistry.prototype.error = function(msg) {
+  let ln = this.scanLineNumbers[this.scanLoc.start];
+  throw new Error(`${msg} in ${this.scanLoc.filename}:${ln}`);
+};
+
 
 TypeRegistry.prototype.scanCFunctions = function(text) {
   let typereg = this;
