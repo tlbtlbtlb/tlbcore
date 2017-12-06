@@ -70,6 +70,7 @@ CType.prototype.isPod = function() { return false; };
 CType.prototype.isCopyConstructable = function() { return true; };
 CType.prototype.hasArrayNature = function() { return false; };
 CType.prototype.hasJsWrapper = function() { return false; };
+CType.prototype.supportsScalarMult = function() { return false; };
 
 CType.prototype.nonPtrType = function() {
   if (this._nonPtrType) return this._nonPtrType;

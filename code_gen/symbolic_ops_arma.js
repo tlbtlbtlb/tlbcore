@@ -186,6 +186,57 @@ defop('Mat44',    '*',           'Mat44', 'Mat44', {
 
 });
 
+defop('Mat44',    '*',           'R', 'Mat44', {
+  c: function(a, b) {
+    return `(${a} * ${ b })`;
+  },
+  js: function(a, b) {
+    return `Geom3D.mul_double_mat44(${a}, ${b})`;
+  },
+  deriv: function(c, wrt, a, b) {
+    return c.E('+',
+      c.E('*', a, c.D(wrt, b)),
+      c.E('*', c.D(wrt, a), b));
+  },
+  replace: function(c, a, b) {
+    if (a.isZero()) return a;
+    if (b.isZero()) return b;
+    if (a.isOne()) return b;
+    if (b.isOne()) return a;
+  },
+  gradient: function(c, deps, g, a, b) {
+    a.addGradient(deps, c.E('*', b, g));
+    b.addGradient(deps, c.E('*', c.E('trans', a), g)); // FIXME: test
+  },
+
+});
+
+defop('Vec4',    '*',           'R', 'Vec4', {
+  c: function(a, b) {
+    return `(${a} * ${ b })`;
+  },
+  js: function(a, b) {
+    return `Geom3D.mul_double_vec4(${a}, ${b})`;
+  },
+  deriv: function(c, wrt, a, b) {
+    return c.E('+',
+      c.E('*', a, c.D(wrt, b)),
+      c.E('*', c.D(wrt, a), b));
+  },
+  replace: function(c, a, b) {
+    if (a.isZero()) return a;
+    if (b.isZero()) return b;
+    if (a.isOne()) return b;
+    if (b.isOne()) return a;
+  },
+  gradient: function(c, deps, g, a, b) {
+    a.addGradient(deps, c.E('*', b, g));
+    b.addGradient(deps, c.E('*', a, g));
+  },
+
+});
+
+
 defop('Vec4',    '*',           'Mat44', 'Vec4', {
   c: function(a, b) {
     return `(${a} * ${b})`;

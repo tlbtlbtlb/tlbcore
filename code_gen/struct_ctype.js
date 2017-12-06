@@ -224,6 +224,11 @@ StructCType.prototype.getValueExpr = function(lang, value) {
   }
 };
 
+StructCType.prototype.supportsScalarMult = function() {
+  return true;
+};
+
+
 StructCType.prototype.add = function(memberName, memberType, memberOptions) {
   let type = this;
   if (!memberOptions) memberOptions = {};
@@ -361,7 +366,9 @@ StructCType.prototype.emitTypeDecl = function(f) {
 
     };
 
+
     ${type.typename} interpolate(${type.typename} const &a, ${type.typename} const &b, double cb);
+    ${type.typename} operator *(double a, ${type.typename} const &b);
     ${type.typename} addGradient(${type.typename} const &a, ${type.typename} const &b, double learningRate);
 
     char const * getTypeVersionString(${type.typename} const &);
@@ -616,6 +623,33 @@ StructCType.prototype.emitHostImpl = function(f) {
             out.${mkMemberRef(names)} = interpolate(a.${mkMemberRef(names)}, b.${mkMemberRef(names)}, cb);
           `);
         });
+      });
+      f(`
+            return out;
+          }
+        }
+      `);
+
+      f(`
+        ${type.typename} operator *(double a, ${type.typename} const &b) {
+          if (a == 0.0) {
+            return ${type.typename}();
+          }
+          else if (a == 1.0) {
+            return b;
+          }
+          else {
+            ${type.typename} out(b);
+      `);
+      _.each(rm, function(members, et) {
+        let ett = type.reg.types[et];
+        if (ett.supportsScalarMult()) {
+          _.each(members, function(names) {
+            f(`
+              out.${mkMemberRef(names)} = a * b.${mkMemberRef(names)};
+            `);
+          });
+        }
       });
       f(`
             return out;

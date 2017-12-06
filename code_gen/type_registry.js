@@ -42,17 +42,11 @@ function TypeRegistry(groupname) {
   typereg.setupBuiltins();
 }
 
-TypeRegistry.prototype.scanJsDefn = function(text, fn, cb) {
+TypeRegistry.prototype.scanJsDefn = function(text, fn) {
   let typereg = this;
   // eslint-disable-next-line global-require
   const scanModule = require(fs.realpathSync(fn));
-  if (scanModule.length === 2) {
-    scanModule(typereg, cb);
-  }
-  else {
-    scanModule(typereg);
-    cb(null);
-  }
+  scanModule(typereg);
 };
 
 TypeRegistry.prototype.setupBuiltins = function() {
@@ -501,10 +495,8 @@ function calcLineNumbers(text) {
 
 TypeRegistry.prototype.compileFile = function(fn, cb) {
   let typereg = this;
-  fs.readFile(fn, {encoding: 'utf8'}, (err, text) => {
-    if (err) return cb(err);
-    typereg.compileText(text, fn, cb);
-  });
+  let text = fs.readFileSync(fn, {encoding: 'utf8'});
+  typereg.compileText(text, fn, cb);
 };
 
 TypeRegistry.prototype.compileText = function(text, fn, cb) {
@@ -529,8 +521,12 @@ TypeRegistry.prototype.setLoc = function(start, end) {
 };
 
 TypeRegistry.prototype.error = function(msg) {
-  let ln = this.scanLineNumbers[this.scanLoc.start];
-  throw new Error(`${msg} in ${this.scanLoc.filename}:${ln}`);
+  if (this.scanLoc) {
+    let ln = this.scanLineNumbers[this.scanLoc.start];
+    throw new Error(`${msg} in ${this.scanLoc.filename}:${ln}`);
+  } else {
+    throw new Error(msg);
+  }
 };
 
 
@@ -587,11 +583,10 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
   if (0) console.log(typereg.wrapFunctions);
 };
 
-TypeRegistry.prototype.scanCHeader = function(text, fn, cb) {
+TypeRegistry.prototype.scanCHeader = function(text, fn) {
   let typereg = this;
   typereg.scanCFunctions(text);
   typereg.extraJsWrapFuncsHeaders.push(`#include "${ fn }"`);
-  cb(null);
 };
 
 TypeRegistry.prototype.emitSymbolics = function(files) {

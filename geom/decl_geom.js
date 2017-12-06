@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports = function(typereg, cb) {
+module.exports = function(typereg) {
 
-  typereg.compileFile(require.resolve('./geom_math.h'), cb);
+  typereg.compileFile(require.resolve('./geom_math.h'));
 };

@@ -310,6 +310,12 @@ CollectionCType.prototype.isPod = function() {
   return false;
 };
 
+CollectionCType.prototype.supportsScalarMult = function() {
+  let type = this;
+  if (type.templateName.startsWith('arma::')) return true;
+  return false;
+};
+
 CollectionCType.prototype.getFormalParameter = function(varname) {
   let type = this;
   return `${type.typename} const &${varname}`;

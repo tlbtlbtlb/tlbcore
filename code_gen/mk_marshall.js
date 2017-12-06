@@ -56,14 +56,12 @@ function main() {
         ['foo', 'string']);
     }
 
-    async.eachSeries(files, (fn, cb) => {
+    _.each(files, (fn) => {
       console.log(`Load ${fn}`);
-      typereg.compileFile(fn, cb);
-    }, (err) => {
-      if (err) throw new Error(err);
-      typereg.emitAll(filegen);
-      filegen.end();
+      typereg.compileFile(fn);
     });
+    typereg.emitAll(filegen);
+    filegen.end();
   }
 
 }

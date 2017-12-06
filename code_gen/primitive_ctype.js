@@ -192,6 +192,12 @@ PrimitiveCType.prototype.isPod = function() {
   }
 };
 
+PrimitiveCType.prototype.supportsScalarMult = function() {
+  let type = this;
+  return  (type.typename === 'float' || type.typename === 'double')
+};
+
+
 PrimitiveCType.prototype.getFormalParameter = function(varname) {
   let type = this;
   switch (type.typename) {

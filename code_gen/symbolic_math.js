@@ -10,9 +10,8 @@ const assert = require('assert');
 const crypto = require('crypto');
 
 exports.defop = defop;
+exports.defsynthop = defsynthop;
 exports.SymbolicContext = SymbolicContext;
-
-let optimize = true;
 
 
 /*
@@ -48,6 +47,13 @@ function defop(retType, op, ...argTypes) {
     impl,
     op,
   });
+}
+
+let defsynthops = {};
+exports.defsynthops = defsynthops;
+function defsynthop(op, f) {
+  if (!defsynthops[op]) defsynthops[op] = [];
+  defsynthops[op].push(f);
 }
 
 
@@ -92,6 +98,9 @@ function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
   c.arrayBuilder = {};
   c.annotations = [];
   c.lets = {};
+  c.optimize = 1;
+  c.modulationStack = [];
+  c.calcTotalModulation();
 
   c.outArgs = _.map(_.map(outArgs, parseArg), ({name, t, opt}) => {
     let realt = typereg.getType(t, true);
@@ -262,8 +271,13 @@ SymbolicContext.prototype.findop = function(op, argTypes) {
       }
       return true;
     });
-    if (opInfo) {
-      return opInfo;
+    if (opInfo) return opInfo;
+  }
+  let synthops = defsynthops[op];
+  if (synthops) {
+    for (let i=0; i<synthops.length; i++) {
+      let opInfo = synthops[i](argTypes);
+      if (opInfo) return opInfo;
     }
   }
   return null;
@@ -273,11 +287,38 @@ SymbolicContext.prototype.findop = function(op, argTypes) {
 SymbolicContext.prototype.dedup = function(e) {
   let c = this;
   assert.strictEqual(e.c, c);
-  while (e.opInfo && e.opInfo.impl.replace) {
-    let newe = e.opInfo.impl.replace.call(e, c, ...e.args);
-    if (!newe) break;
-    newe.sourceLoc = e.sourceLoc;
-    e = newe;
+  while (true) {
+    if (e.opInfo && e.opInfo.impl.replace) {
+      let newe = e.opInfo.impl.replace.call(e, c, ...e.args);
+      if (newe) {
+        newe.sourceLoc = e.sourceLoc;
+        e = newe;
+        continue;
+      }
+    }
+    if (c.optimize && e.opInfo && e.opInfo.impl.optimize) {
+      let newe = e.opInfo.impl.optimize.call(e, c, ...e.args);
+      if (newe) {
+        newe.sourceLoc = e.sourceLoc;
+        e = newe;
+        continue;
+      }
+    }
+    if (c.optimize && e.opInfo && e.opInfo.impl.imm) {
+      if (_.all(_.map(e.args, (a) => a.isConst()))) {
+        let newValue = e.opInfo.impl.imm(..._.map(e.args, (a) => a.value));
+        if (newValue === undefined) {
+          console.log(`Evaluate ${util.inspect(e)} => undefined`);
+        }
+        else {
+          let newe = c.C(e.type, newValue);
+          if (0) console.log(`Optimize ${util.inspect(e)} => ${util.inspect(newe)}`);
+          e = newe;
+          continue;
+        }
+      }
+    }
+    break;
   }
   assert.strictEqual(e.c, c);
   let cse = c.cses[e.cseKey];
@@ -315,14 +356,17 @@ SymbolicContext.prototype.W = function(dst, value) {
   if (0) value.printName = name;
   c.assertNode(dst);
   c.assertNode(value);
+  if (dst.type !== value.type) {
+    c.error(`Type mismatch assigning ${dst.type.typename} = ${value.type.typename}`);
+  }
   if (c.assignments[dst.cseKey] === undefined) {
-    if (dst.type !== value.type) {
-      c.error(`Type mismatch assigning ${dst.type.typename} = ${value.type.typename}`);
-    }
     c.assignments[dst.cseKey] = {
       dst: dst,
       augmented: false,
-      values: [value],
+      values: [{
+        value,
+        modulation: c.modulationStackTop,
+      }],
       type: value.type,
     };
     let dst2 = dst;
@@ -349,7 +393,10 @@ SymbolicContext.prototype.W = function(dst, value) {
     c.error(`Assignment to ${dst.getExpr('c', {}, 'wr')} prohibited by previous assignment to ${c.assignments[dst.cseKey].prohibitedBy.getExpr('c', {}, 'wr')}`);
   }
   else {
-    c.error(`Multiple assignments to ${dst.getExpr('c', {}, 'wr')}`);
+    c.assignments[dst.cseKey].values.push({
+      value,
+      modulation: c.modulationStackTop,
+    });
   }
 
   return value;
@@ -365,7 +412,10 @@ SymbolicContext.prototype.Wa = function(dst, value) {
     c.assignments[dst.cseKey] = {
       dst: dst,
       augmented: true,
-      values: [value],
+      values: [{
+        value,
+        modulation: c.modulationStackTop,
+      }],
       type: value.type,
     };
     let dst2 = dst;
@@ -392,7 +442,10 @@ SymbolicContext.prototype.Wa = function(dst, value) {
     c.error(`Assignment to ${util.inspect(dst)} prohibited by previous assignment to member`);
   }
   else if (c.assignments[dst.cseKey].augmented && c.assignments[dst.cseKey].type === value.type) {
-    c.assignments[dst.cseKey].values.push(value);
+    c.assignments[dst.cseKey].values.push({
+      value,
+      modulation: c.modulationStackTop,
+    });
   }
   else {
     c.error(`Augmented assignment to variable previously given a single assignment: ${util.inspect(dst)}`);
@@ -467,42 +520,39 @@ SymbolicContext.prototype.matrixElem = function(matrix, rowi, coli) {
   }
 };
 
-SymbolicContext.prototype.emitCode = function(lang, f) {
+SymbolicContext.prototype.combineValues = function(values) {
   let c = this;
-  let deps = c.getDeps();
-  let availCses = {};
-  _.each(deps.writes, ({dst, values, augmented, type}) => {
 
-    _.each(values, (e) => e.emitCses(lang, deps, f, availCses));
+  if (values.length === 1) {
+    return values[0].value;
+  }
 
-    if (augmented) {
-      if (type.typename === 'double') {
-        f(`${dst.getExpr(lang, availCses, 'wr')} = ${_.map(values, (value) => value.getExpr(lang, availCses, 'rd')).join(' + ')};`);
-      }
-      else if (dst.type.templateName === 'vector' && _.every(values, (value) => value.type === dst.type.templateArgTypes[0])) {
-        if (lang === 'c') {
-          f(`${dst.getExpr(lang, availCses, 'wr')}.resize(${values.length});`);
-          _.each(values, (value, index) => {
-            f(`${dst.getExpr(lang, availCses, 'wr')}[${index}] = ${value.getExpr(lang, availCses, 'rd')};`);
-          });
-        }
-        else if (lang === 'js') {
-          f(`${dst.getExpr(lang, availCses, 'wr')}.length = ${values.length};`);
-          _.each(values, (value, index) => {
-            f(`${dst.getExpr(lang, availCses, 'wr')}[${index}] = ${value.getExpr(lang, availCses, 'rd')};`);
-          });
-        }
-      }
+  let num = _.reduce(values, (a, {value, modulation}) => {
+    let num1 = c.E('*', value, modulation);
+    if (a !== null) {
+      return c.E('+', a, num1);
+    } else {
+      return num1;
     }
-    else {
-      assert.equal(values.length, 1);
-      f(`${dst.getExpr(lang, availCses, 'wr')} = ${values[0].getExpr(lang, availCses, 'rd')};`);
+  }, null);
+
+  let den = _.reduce(values, (a, {value, modulation}) => {
+    if (a !== null) {
+      return c.E('+', a, modulation);
+    } else {
+      return modulation;
     }
-  });
+  }, null);
+
+  return c.E('/', num, c.E('max', den, 0.000001));
 };
 
-SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc) {
+
+SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc, assignHandler) {
   let c = this;
+  if (!assignHandler) {
+    assignHandler = (f) => f();
+  }
 
   let explicitFormals = _.filter(_.flatten([c2.updateArgs, c2.inArgs]), (a) => !a.opt.implicit);
   let implicitFormals = _.filter(_.flatten([c2.updateArgs, c2.inArgs]), (a) => a.opt.implicit);
@@ -561,17 +611,30 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc) {
   let ret = c.C('void', 0);
   _.each(c2.assignments, ({dst: dst2, values: values2, type, augmented, prohibited}, assKey) => {
     if (prohibited) return;
-    let values = _.map(values2, (v) => tr.transform(v));
+    let values = _.map(values2, ({value, modulation}) => {
+      // WRITEME: I probably want to combine values here
+      return {
+        value: tr.transform(value),
+        modulation: tr.transform(modulation)
+      };
+    });
     let dst = tr.transform(dst2);
 
     if (dst.isRef() && explicitReturns.length === 1 && dst.name === explicitReturns[0].name && !augmented) {
-      ret = values[0];
+      ret = c.combineValues(values);
     }
     else if (augmented) {
-      _.each(values, (v) => c.Wa(dst, v));
+      _.each(values, (v) => {
+        assignHandler(() => {
+          c.Wa(dst, v.value);
+        });
+      });
     }
     else if (!augmented) {
-      _.each(values, (v) => c.W(dst, v));
+      let newValue = c.combineValues(values);
+      assignHandler(() => {
+        c.W(dst, newValue);
+      });
     }
   });
   assert.ok(inArgs[0].sourceLoc);
@@ -615,6 +678,41 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc) {
   return ret;
 };
 
+SymbolicContext.prototype.pushModulation = function(e) {
+  let c = this;
+  console.log(`pushModulation ${util.inspect(e)}`);
+  c.modulationStack.push(e);
+  c.calcTotalModulation();
+};
+
+SymbolicContext.prototype.popModulation = function() {
+  let c = this;
+  if (!c.modulationStack.length) throw new Error(`popModulation: stack empty`);
+  let om = c.modulationStack.pop();
+  console.log(`popModulation ${util.inspect(om)}`);
+  c.calcTotalModulation();
+};
+
+SymbolicContext.prototype.flipModulation = function() {
+  let c = this;
+
+  let om = c.modulationStack.pop();
+  let nm = c.E('-', c.C('R', 1), om);
+  c.modulationStack.push(nm);
+  console.log(`flipModulation ${util.inspect(om)} ${util.inspect(nm)}`);
+  c.calcTotalModulation();
+};
+
+
+SymbolicContext.prototype.calcTotalModulation = function() {
+  let c = this;
+
+  c.modulationStackTop = _.reduce(c.modulationStack, (a, b) => {
+    return c.E('*', a, b);
+  }, c.C('R', 1));
+};
+
+
 
 // ----------------------------------------------------------------------
 
@@ -644,15 +742,20 @@ SymbolicContext.prototype.withGradients = function(newName) {
   let tr = new SymbolicTransform(c2, {
   });
 
-  c2.preCode = c.preCode;
-  c2.postCode = c.postCode;
-  c2.preDefn = c.preDefn;
+  c2.preCode = _.clone(c.preCode);
+  c2.postCode = _.clone(c.postCode);
+  c2.preDefn = _.clone(c.preDefn);
   c2.assignments = _.object(_.map(c.assignments, (assInfo, assKey) => {
     if (assInfo.prohibited) return [assKey, assInfo];
     let {dst, values, type, augmented} = assInfo;
     if (!dst) return;
     let dst2 = tr.transform(dst);
-    let values2 = _.map(values, (value) => tr.transform(value));
+    let values2 = _.map(values, ({value, modulation}) => {
+      return {
+        value: tr.transform(value),
+        modulation: tr.transform(modulation),
+      };
+    });
     return [dst2.cseKey, {
       dst: dst2,
       values: values2,
@@ -821,7 +924,18 @@ function SymbolicExpr(c, op, args) {
       argTypes: [t.typename],
       impl: {
         imm: function(a) {
-          return a[memberName];
+          if (a === 0) {
+            return 0;
+          }
+          else if (a === 1) {
+            return 1;
+          }
+          else if (_.isObject(a)) {
+            return a[memberName];
+          }
+          else {
+            return undefined;
+          }
         },
         c: function(a) {
           return `${a}.${memberName}`;
@@ -975,6 +1089,9 @@ function SymbolicExpr(c, op, args) {
 
 }
 SymbolicExpr.prototype = Object.create(SymbolicNode.prototype);
+SymbolicExpr.prototype.isExpr = function(op) {
+  return op === undefined || this.op === op;
+};
 
 
 // ----------------------------------------------------------------------
@@ -991,7 +1108,7 @@ SymbolicNode.prototype.isConst = function() {
 SymbolicNode.prototype.isRead = function() {
   return false;
 };
-SymbolicNode.prototype.isWrite = function() {
+SymbolicNode.prototype.isExpr = function() {
   return false;
 };
 SymbolicNode.prototype.isRef = function() {
@@ -1052,11 +1169,13 @@ SymbolicContext.prototype.getDeps = function() {
     deps.gradients[dst.cseKey] = [];
     deps.writes[dst.cseKey] = {dst, values, type, augmented};
     if (!deps.fwd[dst.cseKey]) deps.fwd[dst.cseKey] = [];
-    _.each(values, (value) => {
+    _.each(values, ({value, modulation}) => {
       if (!deps.rev[value.cseKey]) deps.rev[value.cseKey] = [];
       deps.rev[value.cseKey].push(dst);
-
+      if (!deps.rev[modulation.cseKey]) deps.rev[modulation.cseKey] = [];
+      deps.rev[modulation.cseKey].push(dst);
       value.addDeps(deps);
+      modulation.addDeps(deps);
     });
     dst.addDeps(deps);
   });
@@ -1281,9 +1400,19 @@ SymbolicContext.prototype.addGradients = function() {
 
   _.each(c.assignments, ({dst, values, type, augmented, prohibited}, assKey) => {
     if (prohibited) return;
+    if (!type.supportsScalarMult()) {
+      if (0) console.log(`Dropping gradient for ${util.inspect(dst)}`);
+      return;
+    }
     let g = dst.getGradient(deps);
-    _.each(values, (value) => {
-      value.addGradient(deps, g);
+    if (g.isZero()) return;
+
+    let modTot = _.reduce(values, (a, {value, modulation}) => {
+      return c.E('+', a, modulation);
+    }, c.C('R', 0));
+
+    _.each(values, ({value, modulation}) => {
+      value.addGradient(deps, c.E('*', c.E('/', modulation, modTot), g));
     });
   });
 
@@ -1427,6 +1556,49 @@ SymbolicConst.prototype.backprop = function(deps) {
   Emitting code
 */
 
+
+SymbolicContext.prototype.emitCode = function(lang, f) {
+  let c = this;
+  let deps = c.getDeps();
+  let availCses = {};
+  _.each(deps.writes, ({dst, values, augmented, type}) => {
+
+    if (augmented) {
+
+      _.each(values, ({value, modulation}) => {
+        value.emitCses(lang, deps, f, availCses);
+        modulation.emitCses(lang, deps, f, availCses);
+      });
+
+      if (type.typename === 'double') {
+        f(`${dst.getExpr(lang, availCses, 'wr')} = ${_.map(values, ({value, modulation}) => {
+          return `(${value.getExpr(lang, availCses, 'rd')} * ${modulation.getExpr(lang, availCses, 'rd')})`;
+        }).join(' + ')};`);
+      }
+      else if (dst.type.templateName === 'vector' && _.every(values, (value) => value.type === dst.type.templateArgTypes[0])) {
+        if (lang === 'c') {
+          f(`${dst.getExpr(lang, availCses, 'wr')}.resize(${values.length});`);
+          _.each(values, ({value, modulation}, index) => {
+            f(`${dst.getExpr(lang, availCses, 'wr')}[${index}] = ${value.getExpr(lang, availCses, 'rd')};`);
+          });
+        }
+        else if (lang === 'js') {
+          f(`${dst.getExpr(lang, availCses, 'wr')}.length = ${values.length};`);
+          _.each(values, ({value, modulation}, index) => {
+            f(`${dst.getExpr(lang, availCses, 'wr')}[${index}] = ${value.getExpr(lang, availCses, 'rd')};`);
+          });
+        }
+      }
+    }
+    else {
+      let v = c.combineValues(values);
+      v.emitCses(lang, deps, f, availCses);
+      f(`${dst.getExpr(lang, availCses, 'wr')} = ${v.getExpr(lang, availCses, 'rd')};`);
+    }
+  });
+};
+
+
 SymbolicNode.prototype.emitCses = function(lang, deps, f, availCses) {
   // nothing
 };
@@ -1439,7 +1611,7 @@ SymbolicExpr.prototype.emitCses = function(lang, deps, f, availCses) {
     _.each(e.args, (arg) => {
       arg.emitCses(lang, deps, f, availCses);
     });
-    if (deps.rev[e.cseKey].length > 1 && !e.isAddress) {
+    if (deps.rev[e.cseKey] && deps.rev[e.cseKey].length > 1 && !e.isAddress) {
       // Wrong for composite types, use TypeRegistry
       if (lang === 'c') {
         f(`${e.type.typename} ${e.cseKey} = ${e.getExpr(lang, availCses, 'rd')};`);

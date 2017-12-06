@@ -40,28 +40,25 @@ describe('symbolic_math', function() {
 
 
 if (1) describe('symbolic_math', function() {
-  it('matrices should work', function(cb) {
+  it('matrices should work', function() {
     let typereg = new type_registry.TypeRegistry('test');
-    typereg.compileFile(require.resolve('../arma/decl_arma.js'), (err) => {
-      if (err) return cb(err);
-      let c = new symbolic_math.SymbolicContext(typereg, 'test', [
-      ], [
-      ], [
-        ['a', 'R']
-      ]);
+    typereg.compileFile(require.resolve('../arma/decl_arma.js'));
+    let c = new symbolic_math.SymbolicContext(typereg, 'test', [
+    ], [
+    ], [
+      ['a', 'R']
+    ]);
 
-      let a = c.ref('a');
-      let az = c.E('mat44RotationZ', a);
-      console.log(az.getExpr('c', {}, 'rd'));
-      let b = c.C('Mat44', [
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1]);
-      let r = c.E('*', az, b);
-      console.log(r.getExpr('c', {}, 'rd'));
-      cb(null);
-    });
+    let a = c.ref('a');
+    let az = c.E('mat44RotationZ', a);
+    console.log(az.getExpr('c', {}, 'rd'));
+    let b = c.C('Mat44', [
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1]);
+    let r = c.E('*', az, b);
+    console.log(r.getExpr('c', {}, 'rd'));
   });
 });
 

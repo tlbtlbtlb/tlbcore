@@ -1,7 +1,7 @@
 'use strict';
-const async = require('async');
+const _ = require('underscore');
 
-module.exports = function(typereg, cb) {
+module.exports = function(typereg) {
 
   typereg.struct('Polyfit1',
                  ['c0', 'double'],
@@ -21,10 +21,10 @@ module.exports = function(typereg, cb) {
                  ['c4', 'double'],
                  ['c5', 'double']);
 
-  async.eachSeries([
+  _.each([
     require.resolve('./polyfit.h'),
     require.resolve('./haltonseq.h'),
-  ], (fn, scanCb) => {
-    typereg.compileFile(fn, scanCb);
-  }, cb);
+  ], (fn) => {
+    typereg.compileFile(fn);
+  });
 };
