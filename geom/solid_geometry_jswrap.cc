@@ -1,9 +1,9 @@
 #include "common/std_headers.h"
 #include "nodebase/jswrapbase.h"
-#include "build.src/vec_jsWrap.h"
-#include "build.src/ivec_jsWrap.h"
-#include "build.src/mat_jsWrap.h"
-#include "build.src/mat44_jsWrap.h"
+#include "build.src/Vec_jsWrap.h"
+#include "build.src/IVec_jsWrap.h"
+#include "build.src/Mat_jsWrap.h"
+#include "build.src/Mat44_jsWrap.h"
 #include "./solid_geometry_jswrap.h"
 
 using namespace arma;

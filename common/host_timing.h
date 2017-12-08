@@ -108,8 +108,8 @@ static inline uint64_t rdtsc()
 static __inline u_int64_t
 rdtsc()
 {
-  struct timeval tv;
-  gettimeofday(&tv, 0);
+  struct timeval tv {};
+  gettimeofday(&tv, nullptr);
   return (u_int64_t)tv.tv_sec * 1000000000LL + (u_int64_t)tv.tv_usec*1000LL;
 }
 

@@ -8,6 +8,7 @@ const util = require('util');
 const cgen = require('./cgen');
 const assert = require('assert');
 const crypto = require('crypto');
+const fs = require('fs');
 
 exports.defop = defop;
 exports.defsynthop = defsynthop;
@@ -34,6 +35,10 @@ exports.SymbolicContext = SymbolicContext;
         b.addGradient(deps, c.E('*', g, a));
     },
   });
+
+  For calculating gradients, see:
+    https://en.wikipedia.org/wiki/Differentiation_rules
+    https://en.wikipedia.org/wiki/Vector_calculus_identities
 */
 let defops = {};
 exports.defops = defops;
@@ -56,11 +61,24 @@ function defsynthop(op, f) {
   defsynthops[op].push(f);
 }
 
+/*
+  Utilities
+*/
 
-function simpleHash(s) {
+let simpleHashLog = null;
+
+function simpleHash(prefix, ...args) {
   let h = crypto.createHash('sha1');
-  h.update(s);
-  return h.digest('hex').substr(0, 16);
+  let argsstr = args.join(',');
+  h.update(argsstr);
+  let ret = prefix + h.digest('hex').substr(0, 16);
+  if (1) {
+    if (!simpleHashLog) {
+      simpleHashLog = fs.createWriteStream('build.src/hashlog');
+    }
+    simpleHashLog.write(`${ret} ${argsstr}\n`);
+  }
+  return ret;
 }
 
 function parseArg(argInfo) {
@@ -80,6 +98,9 @@ function parseArg(argInfo) {
   }
 }
 
+/*
+  Create a SymbolicContext in order to generate a function
+*/
 function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
   let c = this;
   c.typereg = typereg;
@@ -128,6 +149,8 @@ function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
     c.lets[name] = new SymbolicRef(c, t, name, 'in', opt);
     return {name, t, opt};
   });
+
+  c.lets.PI = c.C('R', Math.PI);
 
   c.registerWrapper();
   c.defop = defop;
@@ -287,39 +310,37 @@ SymbolicContext.prototype.findop = function(op, argTypes) {
 SymbolicContext.prototype.dedup = function(e) {
   let c = this;
   assert.strictEqual(e.c, c);
-  while (true) {
-    if (e.opInfo && e.opInfo.impl.replace) {
-      let newe = e.opInfo.impl.replace.call(e, c, ...e.args);
-      if (newe) {
-        newe.sourceLoc = e.sourceLoc;
-        e = newe;
-        continue;
-      }
+
+  if (e.opInfo && e.opInfo.impl.replace) {
+    let newe = e.opInfo.impl.replace.call(e, c, ...e.args);
+    if (newe) {
+      newe.sourceLoc = e.sourceLoc;
+      e = newe;
     }
-    if (c.optimize && e.opInfo && e.opInfo.impl.optimize) {
-      let newe = e.opInfo.impl.optimize.call(e, c, ...e.args);
-      if (newe) {
-        newe.sourceLoc = e.sourceLoc;
-        e = newe;
-        continue;
-      }
-    }
-    if (c.optimize && e.opInfo && e.opInfo.impl.imm) {
-      if (_.all(_.map(e.args, (a) => a.isConst()))) {
-        let newValue = e.opInfo.impl.imm(..._.map(e.args, (a) => a.value));
-        if (newValue === undefined) {
-          console.log(`Evaluate ${util.inspect(e)} => undefined`);
-        }
-        else {
-          let newe = c.C(e.type, newValue);
-          if (0) console.log(`Optimize ${util.inspect(e)} => ${util.inspect(newe)}`);
-          e = newe;
-          continue;
-        }
-      }
-    }
-    break;
   }
+
+  if (c.optimize && e.opInfo && e.opInfo.impl.optimize) {
+    let newe = e.opInfo.impl.optimize.call(e, c, ...e.args);
+    if (newe) {
+      newe.sourceLoc = e.sourceLoc;
+      e = newe;
+    }
+  }
+
+  if (c.optimize && e.opInfo && e.opInfo.impl.imm) {
+    if (_.all(_.map(e.args, (a) => a.isConst()))) {
+      let newValue = e.opInfo.impl.imm(..._.map(e.args, (a) => a.value));
+      if (newValue === undefined) {
+        console.log(`Evaluate ${util.inspect(e)} => undefined`);
+      }
+      else {
+        let newe = c.C(e.type, newValue);
+        if (0) console.log(`Optimize ${util.inspect(e)} => ${util.inspect(newe)}`);
+        e = newe;
+      }
+    }
+  }
+
   assert.strictEqual(e.c, c);
   let cse = c.cses[e.cseKey];
   if (cse) return cse;
@@ -848,7 +869,7 @@ function SymbolicRead(c, type, ref) {
   e.type = type;
   assert.ok(ref.isAddress);
   e.ref = ref;
-  e.cseKey = '_r' + simpleHash(`${e.type.typename},${e.ref.cseKey}`);
+  e.cseKey = simpleHash('_r', e.type.typename, e.ref.cseKey);
 }
 SymbolicRead.prototype = Object.create(SymbolicNode.prototype);
 SymbolicRead.prototype.isRead = function() { return true; };
@@ -865,7 +886,7 @@ function SymbolicRef(c, type, name, dir, opt) {
   e.dir = dir;
   e.isAddress = true;
   e.opt = opt;
-  e.cseKey = '_v' + simpleHash(`${e.type.typename},${e.name},${e.dir},${e.isAddress},${JSON.stringify(e.opt)}`);
+  e.cseKey = simpleHash('_v', e.type.typename, e.name, e.dir, e.isAddress, e.opt.implicit || false);
 }
 SymbolicRef.prototype = Object.create(SymbolicNode.prototype);
 SymbolicRef.prototype.isRef = function() { return true; };
@@ -877,7 +898,7 @@ function SymbolicConst(c, type, value) {
   assert.ok(type.typename);
   e.type = type;
   e.value = value;
-  e.cseKey = '_c' + simpleHash(`${e.type.typename},${JSON.stringify(e.value)}`);
+  e.cseKey = simpleHash('_c', e.type.typename, JSON.stringify(e.value));
 }
 SymbolicConst.prototype = Object.create(SymbolicNode.prototype);
 
@@ -961,7 +982,7 @@ function SymbolicExpr(c, op, args) {
       },
     };
     e.isAddress = arg.isAddress;
-    e.cseKey = '_e' + simpleHash(`${e.op},${_.map(e.args, (arg) => arg.cseKey).join(',')}`);
+    e.cseKey = simpleHash('_e', e.op, ..._.map(e.args, (arg) => arg.cseKey));
     return;
   }
 
@@ -1009,7 +1030,7 @@ function SymbolicExpr(c, op, args) {
       },
     };
     e.isAddress = arg.isAddress;
-    e.cseKey = '_e' + simpleHash(`${e.type.typename},${e.op},${_.map(e.args, (arg) => arg.cseKey).join(',')}`);
+    e.cseKey = simpleHash('_e', e.type.typename, e.op, ..._.map(e.args, (arg) => arg.cseKey));
     return;
   }
 
@@ -1032,7 +1053,7 @@ function SymbolicExpr(c, op, args) {
     e.isStructref = true;
     e.opInfo = opInfo;
     e.isAddress = false;
-    e.cseKey = '_e' + simpleHash(`${e.type.typename},${e.op},${_.map(e.args, (arg) => arg.cseKey).join(',')}`);
+    e.cseKey = simpleHash('_e', e.type.typename, e.op, ..._.map(e.args, (arg) => arg.cseKey));
     return;
   }
 
@@ -1079,7 +1100,7 @@ function SymbolicExpr(c, op, args) {
       },
     };
     e.isAddress = false;
-    e.cseKey = '_e' + simpleHash(`${e.type.typename},${e.op},${_.map(e.args, (arg) => arg.cseKey).join(',')}`);
+    e.cseKey = simpleHash('_e', e.type.typename, e.op, ..._.map(e.args, (arg) => arg.cseKey));
     return;
   }
 
@@ -1387,7 +1408,7 @@ SymbolicContext.prototype.addGradients = function() {
 
   deps.letRdGrads = {};
   _.each(c.lets, function(ref) {
-    if (!ref.opt.noGrad) {
+    if (ref.isRef() && !ref.opt.noGrad) {
       let gradName = `${ref.name}Grad`;
       if (c.lets[gradName]) {
         deps.letRdGrads[ref.cseKey] = c.lets[gradName];

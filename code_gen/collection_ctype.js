@@ -69,7 +69,7 @@ function CollectionCType(reg, typename) {
       return null;
     }
     else {
-      let t = type.reg.getType(name);
+      let t = type.reg.getType(name, true);
       if (!t) {
         console.log(`No type for template arg ${name} in ${type.templateName} < ${type.templateArgs.join(' , ')} >`);
         console.log(util.inspect(type.templateArgs));

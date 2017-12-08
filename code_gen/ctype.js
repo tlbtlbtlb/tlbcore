@@ -325,7 +325,7 @@ CType.prototype.emitJsWrapCode = function(f) {
   });
   f(`
     #include "${type.getFns().jsWrapHeader}"
-    #include "vec_jsWrap.h"
+    #include "Vec_jsWrap.h"
     #include "build.src/map_string_jsonstr_jsWrap.h"
   `);
   type.emitJsWrapImpl(f);

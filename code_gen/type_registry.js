@@ -32,6 +32,7 @@ function TypeRegistry(groupname) {
   typereg.extraConversionIncludes = [];
   typereg.templateHelpers = {};
   typereg.emitDebugs = [];
+  typereg.compileCache = new Set();
 
   typereg.debugJson = false;
 
@@ -493,22 +494,37 @@ function calcLineNumbers(text) {
 }
 
 
-TypeRegistry.prototype.compileFile = function(fn, cb) {
+TypeRegistry.prototype.compileFile = function(fn) {
   let typereg = this;
+  let path = fs.realpathSync(fn);
+  if (typereg.compileCache.has(path)) return;
+  typereg.compileCache.add(path);
+  if (0) console.log(`Load ${fn}`);
   let text = fs.readFileSync(fn, {encoding: 'utf8'});
-  typereg.compileText(text, fn, cb);
+  typereg.compileText(text, fn);
 };
 
-TypeRegistry.prototype.compileText = function(text, fn, cb) {
+TypeRegistry.prototype.compileText = function(text, fn) {
   let typereg = this;
   let ext = path.extname(fn);
   let rdr = typereg.fileReaders[ext];
-  if (!rdr) return cb(`No reader for ${ext} files`);
+  if (!rdr) throw new Error(`No reader for ${ext} files`);
+
+  let saveScanText = typereg.scanText;
+  let saveScanFilename = typereg.scanFilename;
+  let saveScanLineNumbers = typereg.scanLineNumbers;
+  let saveScanLoc = typereg.scanLoc;
   typereg.scanText = text;
   typereg.scanFilename = fn;
   typereg.scanLineNumbers = calcLineNumbers(text);
   typereg.scanLoc = {filename: fn, start: 0, end: text.length, funcName: null};
-  rdr.call(typereg, text, fn, cb);
+
+  rdr.call(typereg, text, fn);
+
+  typereg.scanText = saveScanText;
+  typereg.scanFilename = saveScanFilename;
+  typereg.scanLineNumbers = saveScanLineNumbers;
+  typereg.scanLoc = saveScanLoc;
 };
 
 TypeRegistry.prototype.setLoc = function(start, end) {

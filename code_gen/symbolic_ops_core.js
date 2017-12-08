@@ -501,6 +501,36 @@ defop('R',  'max',             'R', 'R', {
   }
 });
 
+defop('R',  '||',             'R', 'R', {
+  imm: function(a, b) {
+    return Math.max(a, b);
+  },
+  c: function(a, b) {
+    return `max(${a}, ${b})`;
+  },
+  js: function(a, b) {
+    return `Math.max(${a}, ${b})`;
+  },
+  optimize: function(c, a, b) {
+    if (a.isConst() && b.isConst()) {
+      return c.C(a.type, Math.max(a.value, b.value));
+    }
+  },
+  gradient: function(c, deps, g, a, b) {
+    let smd = c.E('*', 0.5, c.E('tanh', c.E('*', c.E('-', a, b), 999)));
+    a.addGradient(deps, c.E('*', g, c.E('+', 0.5, smd)));
+    b.addGradient(deps, c.E('*', g, c.E('-', 0.5, smd)));
+  }
+});
+
+
+defop('R',  'lim',             'R', 'R', 'R', {
+  replace: function(c, value, lb, ub) {
+    return c.E('max', c.E('min', value, ub), lb);
+  }
+});
+
+
 /*
   Integers
 */
@@ -586,6 +616,26 @@ defop('I',           'max',         'I', 'I', {
   },
   js: function(a, b) {
     return `Math.max(${a}, ${b})`;
+  },
+});
+
+// string
+
+defop('R',  '==',               'string', 'string', {
+  imm: function(a, b) {
+    return (a == b) ? 1 : 0;
+  },
+  c: function(a, b) {
+    return `((${a} == ${b}) ? 1.0 : 0.0)`;
+  },
+  js: function(a, b) {
+    return `((${a} == ${b}) ? 1.0 : 0.0)`;
+  },
+  deriv: function(c, wrt, a, b) {
+    return c.C('R', 0);
+  },
+  gradient: function(c, deps, g, a, b) {
+    // none
   },
 });
 
