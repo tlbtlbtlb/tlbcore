@@ -371,13 +371,17 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         `);
 
         let callargs = [];
+        let retref = [];
 
         _.each(funcInfo.args, function(argInfo, argi) {
           let argType = typereg.types[argInfo.typename];
           f(`
             ${ argType.getArgTempDecl('a' + argi) } = ${ argType.getJsToCppExpr('args[' + argi + ']', {}) };
           `);
-          callargs.push(`a${ argi }`);
+          callargs.push(`a${argi}`);
+          if (argInfo.passing === '&' && !argType.isStruct()) {
+            retref.push({name: `a${argi}`, type: argType});
+          }
         });
 
         f(`
@@ -386,6 +390,21 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         if (funcInfo.returnType === 'void') {
           f(`
             ${ funcInfo.funcInvocation }(${ callargs.join(', ') });
+          `)
+          if (retref.length) {
+            f(`
+              Local< Array > ret = Array::New(isolate, ${retref.length});
+            `);
+            _.each(retref, ({name, type}, reti) => {
+              f(`
+                ret->Set(${reti}, ${type.getCppToJsExpr(name)});
+              `);
+            });
+            f(`
+              args.GetReturnValue().Set(Local< Value >::Cast(ret));
+            `);
+          }
+          f(`
             return;
           `);
         }

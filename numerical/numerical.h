@@ -182,3 +182,21 @@ arma::Row< T > addGradient(arma::Row< T > const &a, arma::Row< T > const &grad, 
 {
   return a + (grad * learningRate);
 }
+
+
+
+
+
+template<typename T> T yogaCombineValues(pair<double, T> arg0)
+{
+  if (arg0.first > 0.0) {
+    return arg0.second;
+  } else {
+    return T();
+  }
+}
+
+template<typename T, typename... Args> T yogaCombineValues(pair<double, T> arg0, pair<double, T> arg1, Args... args)
+{
+  return yogaCombineValues(make_pair(max(arg0.first, arg1.first), (arg0.first >= arg1.first) ? arg0.second : arg1.second), args...);
+}

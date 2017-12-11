@@ -172,21 +172,25 @@ SymbolicContext.prototype.registerWrapper = function() {
       if (dir === 'out') {
         return {
           typename: argType.typename,
+          dir,
           passing: '&',
         };
       }
       else if (dir === 'update') {
         return [{
           typename: argType.typename,
+          dir,
           passing: '&',
         }, {
           typename: argType.typename,
+          dir,
           passing: 'const &',
         }];
       }
       else if (dir === 'in') {
         return {
           typename: argType.typename,
+          dir,
           passing: 'const &',
         };
       }
@@ -283,27 +287,69 @@ SymbolicContext.prototype.findop = function(op, argTypes) {
   let c = this;
   let ops = defops[op];
   if (ops) {
-    let opInfo = _.find(ops, (it) => {
+
+    let argFixes = _.map(ops, (it) => {
+      let argConversions = [];
+      let cost = 0;
       for (let argi=0; argi < it.argTypes.length; argi++) {
-        if (it.argTypes[argi] === '...') return true;
-        if (it.argTypes[argi] === 'ANY') continue;
-        if (argTypes[argi] === 'UNKNOWN') continue;
-        let at = c.typereg.getType(it.argTypes[argi]);
-        if (at === argTypes[argi]) continue;
-        return false;
+        let actualType = argTypes[argi];
+        if (!actualType) {
+          cost = 1/0;
+          break;
+        }
+
+        argConversions[argi] = null;
+        if (it.argTypes[argi] === '...') {
+          cost += 5;
+          break;
+        }
+        if (it.argTypes[argi] === 'ANY') {
+          cost += 1;
+          continue;
+        }
+        if (actualType === 'UNKNOWN') {
+          continue;
+        }
+        let formalType = c.typereg.getType(it.argTypes[argi]);
+        if (!formalType) {
+          cost = 1/0;
+          break;
+        }
+        if (formalType === actualType) {
+          continue;
+        }
+        else if (formalType.typename === 'double' && (actualType.typename === 'bool' || actualType.typename === 'S32')) {
+          argConversions[argi] = '(double)';
+          cost += 1;
+          continue;
+        }
+        else {
+          cost = 1/0;
+          break;
+        }
       }
-      return true;
+      return {cost, argConversions, opInfo: it};
     });
-    if (opInfo) return opInfo;
+
+    argFixes = _.sortBy(argFixes, (a) => a.cost);
+    if (argFixes[0] && argFixes[0].cost < 1000) {
+      return argFixes[0];
+    }
   }
   let synthops = defsynthops[op];
   if (synthops) {
     for (let i=0; i<synthops.length; i++) {
       let opInfo = synthops[i](argTypes);
-      if (opInfo) return opInfo;
+      if (opInfo) return {
+        opInfo,
+        argConversions: [],
+      }
     }
   }
-  return null;
+  return {
+    opInfo: null,
+    argConversions: []
+  };
 };
 
 
@@ -541,31 +587,38 @@ SymbolicContext.prototype.matrixElem = function(matrix, rowi, coli) {
   }
 };
 
-SymbolicContext.prototype.combineValues = function(values) {
+SymbolicContext.prototype.combineValues = function(values, type) {
   let c = this;
 
   if (values.length === 1) {
     return values[0].value;
   }
 
-  let num = _.reduce(values, (a, {value, modulation}) => {
-    let num1 = c.E('*', value, modulation);
-    if (a !== null) {
-      return c.E('+', a, num1);
-    } else {
-      return num1;
-    }
-  }, null);
+  if (type.supportsScalarMult()) {
 
-  let den = _.reduce(values, (a, {value, modulation}) => {
-    if (a !== null) {
-      return c.E('+', a, modulation);
-    } else {
-      return modulation;
-    }
-  }, null);
+    let num = _.reduce(values, (a, {value, modulation}) => {
+      let num1 = c.E('*', value, modulation);
+      if (a !== null) {
+        return c.E('+', a, num1);
+      } else {
+        return num1;
+      }
+    }, null);
 
-  return c.E('/', num, c.E('max', den, 0.000001));
+    let den = _.reduce(values, (a, {value, modulation}) => {
+      if (a !== null) {
+        return c.E('+', a, modulation);
+      } else {
+        return modulation;
+      }
+    }, null);
+
+    return c.E('/', num, c.E('max', den, 0.000001));
+  }
+  else {
+    return c.E('combineValues', ..._.flatten(_.map(values, ({value, modulation}) => [modulation, value])));
+  }
+
 };
 
 
@@ -642,7 +695,7 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc, a
     let dst = tr.transform(dst2);
 
     if (dst.isRef() && explicitReturns.length === 1 && dst.name === explicitReturns[0].name && !augmented) {
-      ret = c.combineValues(values);
+      ret = c.combineValues(values, type);
     }
     else if (augmented) {
       _.each(values, (v) => {
@@ -652,7 +705,7 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc, a
       });
     }
     else if (!augmented) {
-      let newValue = c.combineValues(values);
+      let newValue = c.combineValues(values, type);
       assignHandler(() => {
         c.W(dst, newValue);
       });
@@ -1034,13 +1087,16 @@ function SymbolicExpr(c, op, args) {
     return;
   }
 
-  let opInfo = c.findop(op, _.map(args, (a) => a.type));
+  let {opInfo, argConversions} = c.findop(op, _.map(args, (a) => a.type));
   if (opInfo) {
     e.args = _.map(args, (a, argi) => {
       if (a.materializeMember) {
         let at = c.typereg.getType(opInfo.argTypes[argi]);
         if (!at) c.error(`Can't find type ${opInfo.argTypes[argi]} referenced in defop('${op}'...)`);
         a = a.materializeMember(at);
+      }
+      if (argConversions[argi]) {
+        a = c.E(argConversions[argi], a);
       }
       if (a.isAddress && a.type !== 'UNKNOWN') {
         return c.dedup(new SymbolicRead(c, a.type, a));
@@ -1612,7 +1668,7 @@ SymbolicContext.prototype.emitCode = function(lang, f) {
       }
     }
     else {
-      let v = c.combineValues(values);
+      let v = c.combineValues(values, type);
       v.emitCses(lang, deps, f, availCses);
       f(`${dst.getExpr(lang, availCses, 'wr')} = ${v.getExpr(lang, availCses, 'rd')};`);
     }

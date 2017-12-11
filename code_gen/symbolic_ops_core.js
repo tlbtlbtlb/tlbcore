@@ -27,7 +27,25 @@ defop('R',  '(double)',    'I', {
   js: function(a) {
     return a;
   },
+  gradient: function(c, deps, g, a) {
+    a.addGradient(deps, g);
+  }
 });
+defop('R',  '(double)',    'bool', {
+  imm: function(a) {
+    return a ? 1 : 0;
+  },
+  c: function(a) {
+    return `(${a} ? 1.0 : 0.0)`;
+  },
+  js: function(a) {
+    return `(${a} ? 1 : 0)`;
+  },
+  gradient: function(c, deps, g, a) {
+    a.addGradient(deps, g);
+  }
+});
+
 defop('I',     '(int)',       'R', {
   imm: function(a) {
     return Math.round(a);
@@ -38,6 +56,9 @@ defop('I',     '(int)',       'R', {
   js: function(a) {
     return `Math.round(${a})`;
   },
+  gradient: function(c, deps, g, a) {
+    a.addGradient(deps, g);
+  }
 });
 
 /*
@@ -705,4 +726,31 @@ defop('void', 'vis', '...', {
       uplevels: 3,
     });
   },
+});
+
+defsynthop('combineValues', (argTypes) => {
+  if (argTypes.length % 2 === 0) {
+    let retType = argTypes[1].typename;
+    return {
+      retType,
+      argTypes: _.map(argTypes, (a) => a.typename),
+      op: 'combineValues',
+      impl: {
+        c: function(...argExprs) {
+          return `yogaCombineValues(\n    ${
+            _.map(_.range(0, argExprs.length, 2), (i) => `make_pair(${argExprs[i]}, ${argExprs[i+1]})`).join(',\n    ')
+          })`;
+        },
+        js: function(...argExprs) {
+          return `yogaCombineValues(${argExprs.join(', ')})`;
+        },
+        deriv: function(c, wrt, ...actuals) {
+          return c.E('combineValues', _.map(actuals, (a, ai) => ai%2 ? c.D(wrt, a) : c.C(retType, 0)));
+        },
+        gradient: function(c, deps, g, a, b) {
+          // WRITEME
+        },
+      }
+    };
+  }
 });
