@@ -42,8 +42,9 @@ StructCType.prototype.addArgs = function(args) {
       type.add(memberName, memberType, memberOptions);
     }
     else if (_.isObject(a)) {
-      _.each(a, function(v, k) {
+      _.each(a, (v, k) => {
         type[k] = v;
+        type.extraOptions[k] = v;
       });
     }
     else {
@@ -228,22 +229,25 @@ StructCType.prototype.supportsScalarMult = function() {
   return true;
 };
 
+StructCType.prototype.checkValidMemberType = function(memberType) {
+  if (this.isOnehot && memberType.typename !== 'double') this.reg.error(`Only double types allowed in Onehot struct`);
+};
 
 StructCType.prototype.add = function(memberName, memberType, memberOptions) {
   let type = this;
   if (!memberOptions) memberOptions = {};
   if (_.isString(memberType)) {
     let newMemberType = type.reg.getType(memberType, true);
-    if (!newMemberType) throw new Error('Unknown member type ' + memberType);
+    if (!newMemberType) type.reg.error(`Unknown member type ${memberType}`);
     memberType = newMemberType;
   }
   if (memberType.noPacket) type.noPacket = true;
   if (memberType.noSerialize) type.noSerialize = true;
+  type.checkValidMemberType(memberType);
   if (_.isString(memberName)) {
     if (!memberType) memberType = type.reg.types['double'];
     if (memberName in type.nameToType) {
       if (type.nameToType[memberName] !== memberType) throw new Error('Duplicate member ' + memberName + ' with different types in ' + type.typename);
-      debugger;
       console.log('Duplicate member ' + memberName + ' with same type in ' + type.typename);
       return;
     }
@@ -322,9 +326,8 @@ StructCType.prototype.emitTypeDecl = function(f) {
     `);
   }
 
+  type.emitMemberFunctionDecls(f);
   f(`
-    ${type.typename} copy() const;
-
     // Member variables
   `);
   _.each(type.orderedNames, function(name) {
@@ -404,6 +407,21 @@ StructCType.prototype.emitTypeDecl = function(f) {
   CType.prototype.emitTypeDecl.call(type, f);
   f('');
 };
+
+StructCType.prototype.emitMemberFunctionDecls = function(f) {
+  let type = this;
+  f(`
+    ${type.typename} copy() const;
+  `);
+  if (type.isOnehot) {
+    f(`
+      void normalize();
+      string hotStr() const;
+      static ${type.typename} fromHotStr(string const &str);
+    `);
+  }
+};
+
 
 function mkMemberRef(names) {
   return _.map(names, function(namePart) {
@@ -489,13 +507,25 @@ StructCType.prototype.emitHostImpl = function(f) {
       char const * ${type.typename}::jsTypeName = "${type.jsTypename}";
       char const * ${type.typename}::schema = "${cgen.escapeCString(JSON.stringify(type.getSchema()))}";
 
-      char const * getTypeVersionString(${type.typename} const &it) { return ${type.typename}::typeVersionString; }
-      char const * getTypeName(${type.typename} const &it) { return ${type.typename}::typeName; }
-      char const * getJsTypeName(${type.typename} const &it) { return ${type.typename}::jsTypeName; }
-      char const * getSchema(${type.typename} const &it) { return ${type.typename}::schema; }
-      void addSchemas(${type.typename} const &, map< string, jsonstr > &all) { ${type.typename}::addSchemas(all); }
+      char const * getTypeVersionString(${type.typename} const &it) {
+        return ${type.typename}::typeVersionString;
+      }
+      char const * getTypeName(${type.typename} const &it) {
+        return ${type.typename}::typeName;
+      }
+      char const * getJsTypeName(${type.typename} const &it) {
+        return ${type.typename}::jsTypeName;
+      }
+      char const * getSchema(${type.typename} const &it) {
+        return ${type.typename}::schema;
+      }
+      void addSchemas(${type.typename} const &, map< string, jsonstr > &all) {
+        ${type.typename}::addSchemas(all);
+      }
     `);
   }
+
+  type.emitMemberFunctionHostImpls(f);
 
   if (1) {
     f(`
@@ -671,6 +701,11 @@ StructCType.prototype.emitHostImpl = function(f) {
           `);
         });
       });
+      if (type.isOnehot) {
+        f(`
+          out.normalize();
+        `);
+      }
       f(`
           return out;
         }
@@ -678,6 +713,42 @@ StructCType.prototype.emitHostImpl = function(f) {
     }
   }
 };
+
+StructCType.prototype.emitMemberFunctionHostImpls = function(f) {
+  let type = this;
+  if (type.isOnehot) {
+    f(`
+      void ${this.typename}::normalize() {
+        double _tot = ${_.map(type.orderedNames, (name) => name).join(' + ')};
+        ${
+          _.map(type.orderedNames, (name, namei) => `${name} = (_tot > 0.0) ? ${name} / _tot : ${namei==0 ? '1.0' : '0.0'};`).join('\n')
+        }
+      }
+
+      string ${this.typename}::hotStr() const {
+        double hottest = 0.0;
+        string ret = "";
+        ${
+          _.map(type.orderedNames, (name) => `
+            if (${name} > hottest) {
+              hottest = ${name};
+              ret = "${name}";
+            }
+          `).join('')
+        }
+        return ret;
+      }
+
+      ${type.typename} ${type.typename}::fromHotStr(string const &str) {
+        return ${type.typename}(${
+          _.map(type.orderedNames, (name) => `(str == "${name}") ? 1.0 : 0.0`).join(', ')
+        });
+      }
+
+    `);
+  }
+};
+
 
 StructCType.prototype.getExampleValueJs = function() {
   let type = this;

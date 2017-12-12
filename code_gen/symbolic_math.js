@@ -106,21 +106,26 @@ function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
   c.typereg = typereg;
   c.name = name;
 
+  // Which languages to generate. Set elements to false if the code isn't implementable in that language
   c.langs = {
     c: true,
     js: true,
   };
-  c.cses = {};
+
   c.assignments = {};
-  c.reads = {};
+  c.lets = {};
+  c.modulationStack = [];
+  c.normalizeNeeded = {};
+
+  c.cses = {};
+
   c.preCode = [];
   c.postCode = [];
   c.preDefn = [];
-  c.arrayBuilder = {};
+
   c.annotations = [];
-  c.lets = {};
   c.optimize = 1;
-  c.modulationStack = [];
+
   c.calcTotalModulation();
 
   c.outArgs = _.map(_.map(outArgs, parseArg), ({name, t, opt}) => {
@@ -171,6 +176,7 @@ SymbolicContext.prototype.registerWrapper = function() {
     c.typereg.addWrapFunction(c.getSignature(), '', c.name, '', 'void', c.collectArgs((argName, argType, dir) => {
       if (dir === 'out') {
         return {
+          argName,
           typename: argType.typename,
           dir,
           passing: '&',
@@ -178,17 +184,20 @@ SymbolicContext.prototype.registerWrapper = function() {
       }
       else if (dir === 'update') {
         return [{
+          argName: `${argName}Next`,
           typename: argType.typename,
-          dir,
+          dir: 'out',
           passing: '&',
         }, {
+          argName: `${argName}Prev`,
           typename: argType.typename,
-          dir,
+          dir: 'in',
           passing: 'const &',
         }];
       }
       else if (dir === 'in') {
         return {
+          argName,
           typename: argType.typename,
           dir,
           passing: 'const &',
@@ -438,6 +447,9 @@ SymbolicContext.prototype.W = function(dst, value) {
     };
     let dst2 = dst;
     while (dst2.isStructref) {
+      if (dst2.type.isOnehot) {
+        c.normalizeNeeded[dst2.cseKey] = dst2;
+      }
       dst2 = dst2.args[0];
       if (c.assignments[dst2.cseKey] === undefined) {
         c.assignments[dst2.cseKey] = {
@@ -595,28 +607,10 @@ SymbolicContext.prototype.combineValues = function(values, type) {
   }
 
   if (type.supportsScalarMult()) {
-
-    let num = _.reduce(values, (a, {value, modulation}) => {
-      let num1 = c.E('*', value, modulation);
-      if (a !== null) {
-        return c.E('+', a, num1);
-      } else {
-        return num1;
-      }
-    }, null);
-
-    let den = _.reduce(values, (a, {value, modulation}) => {
-      if (a !== null) {
-        return c.E('+', a, modulation);
-      } else {
-        return modulation;
-      }
-    }, null);
-
-    return c.E('/', num, c.E('max', den, 0.000001));
+    return c.E('combineValuesLinear', ..._.flatten(_.map(values, ({value, modulation}) => [modulation, value])));
   }
   else {
-    return c.E('combineValues', ..._.flatten(_.map(values, ({value, modulation}) => [modulation, value])));
+    return c.E('combineValuesMax', ..._.flatten(_.map(values, ({value, modulation}) => [modulation, value])));
   }
 
 };
@@ -754,7 +748,7 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc, a
 
 SymbolicContext.prototype.pushModulation = function(e) {
   let c = this;
-  console.log(`pushModulation ${util.inspect(e)}`);
+  if (0) console.log(`pushModulation ${util.inspect(e)}`);
   c.modulationStack.push(e);
   c.calcTotalModulation();
 };
@@ -763,7 +757,7 @@ SymbolicContext.prototype.popModulation = function() {
   let c = this;
   if (!c.modulationStack.length) throw new Error(`popModulation: stack empty`);
   let om = c.modulationStack.pop();
-  console.log(`popModulation ${util.inspect(om)}`);
+  if (0) console.log(`popModulation ${util.inspect(om)}`);
   c.calcTotalModulation();
 };
 
@@ -773,7 +767,7 @@ SymbolicContext.prototype.flipModulation = function() {
   let om = c.modulationStack.pop();
   let nm = c.E('-', c.C('R', 1), om);
   c.modulationStack.push(nm);
-  console.log(`flipModulation ${util.inspect(om)} ${util.inspect(nm)}`);
+  if (0) console.log(`flipModulation ${util.inspect(om)} ${util.inspect(nm)}`);
   c.calcTotalModulation();
 };
 
@@ -836,10 +830,6 @@ SymbolicContext.prototype.withGradients = function(newName) {
       type,
       augmented
     }];
-  }));
-  c2.reads = _.object(_.map(c.reads, (rd) => {
-    let rd2 = tr.transform(rd);
-    return [rd2.cseKey, rd2];
   }));
 
   c2.addGradients();
@@ -1161,7 +1151,7 @@ function SymbolicExpr(c, op, args) {
   }
 
   c.error(`No op named ${op} for types (${
-    _.map(args, (a) => (a.type === 'UNKNOWN' ? 'UNKNOWN' : a.type.typename)).join(', ')
+    _.map(args, (a) => (a.type === undefined ? 'undefined' : (a.type === 'UNKNOWN' ? 'UNKNOWN' : a.type.typename))).join(', ')
   })`);
 
 }
@@ -1672,6 +1662,9 @@ SymbolicContext.prototype.emitCode = function(lang, f) {
       v.emitCses(lang, deps, f, availCses);
       f(`${dst.getExpr(lang, availCses, 'wr')} = ${v.getExpr(lang, availCses, 'rd')};`);
     }
+  });
+  _.each(c.normalizeNeeded, (dst) => {
+    f(`${dst.getExpr(lang, availCses, 'wr')}.normalize();`);
   });
 };
 

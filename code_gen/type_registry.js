@@ -114,7 +114,7 @@ TypeRegistry.prototype.object = function(typename) {
 TypeRegistry.prototype.struct = function(typename, ...args) {
   let typereg = this;
   enforceCanonicalTypename(typename);
-  if (typename in typereg.types) throw new Error(`${ typename } already defined`);
+  if (typename in typereg.types) throw new Error(`${typename} already defined`);
   let t = new StructCType(typereg, typename);
   typereg.types[typename] = t;
   t.addArgs(args);
@@ -126,6 +126,7 @@ TypeRegistry.prototype.struct = function(typename, ...args) {
 
   return t;
 };
+
 
 TypeRegistry.prototype.template = function(typename) {
   let typereg = this;
@@ -361,41 +362,64 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
           // ${ funcInfo.desc}
         `);
 
-        f(`
-          if (args.Length() == ${ funcInfo.args.length } ${
-            _.map(funcInfo.args, function(argInfo, argi) {
-              let argType = typereg.types[argInfo.typename];
-              return ' && ' + argType.getJsToCppTest(`args[${ argi }]`, {});
-            }).join('')
-          }) {
-        `);
 
-        let callargs = [];
-        let retref = [];
+        let upArgs = [];
+        let downArgs = [];
+        let retRef = [];
+        let upChecks = [];
+        let argDecls = [];
 
         _.each(funcInfo.args, function(argInfo, argi) {
           let argType = typereg.types[argInfo.typename];
-          f(`
-            ${ argType.getArgTempDecl('a' + argi) } = ${ argType.getJsToCppExpr('args[' + argi + ']', {}) };
-          `);
-          callargs.push(`a${argi}`);
-          if (argInfo.passing === '&' && !argType.isStruct()) {
-            retref.push({name: `a${argi}`, type: argType});
+
+          if (argInfo.dir === 'in') {
+            argDecls.push(`
+              ${argType.getArgTempDecl(`a${argi}`) } = ${argType.getJsToCppExpr(`args[${upArgs.length}]`, {}) }; // in ${argInfo.argName}
+            `);
+            upChecks.push(argType.getJsToCppTest(`args[${upArgs.length}]`, {}));
+            upArgs.push({name: `a${argi}`, type: argType});
           }
+          else if (argInfo.dir === 'inout') {
+            argDecls.push(`
+              ${argType.getArgTempDecl(`a${argi}`) } = ${argType.getJsToCppExpr(`args[${upArgs.length}]`, {}) }; // inout ${argInfo.argName}"
+            `);
+            upChecks.push(argType.getJsToCppTest(`args[${upArgs.length}]`, {}));
+            upArgs.push({name: `a${argi}`, type: argType});
+            if (!argType.isStruct()) {
+              retRef.push({name: `a${argi}`, type: argType});
+            }
+          }
+          else if (argInfo.dir === 'out') {
+            argDecls.push(`
+              ${argType.getVarDecl(`a${argi}`) }; // out ${argInfo.argName}
+            `);
+            retRef.push({name: `a${argi}`, type: argType});
+          }
+          else {
+            throw new Error(`Unknown arg dir ${argInfo.dir}`);
+          }
+          downArgs.push({name: `a${argi}`, type: argType});
         });
 
         f(`
+          if (args.Length() == ${upArgs.length}${
+            _.map(upChecks, (check) => ` && ${check}`).join('')
+          }) {
+        `);
+
+        f(`
           try {
+            ${_.map(argDecls, (a) => a.trim()).join('\n')}
         `);
         if (funcInfo.returnType === 'void') {
           f(`
-            ${ funcInfo.funcInvocation }(${ callargs.join(', ') });
+            ${funcInfo.funcInvocation}(${_.map(downArgs, ({name, type}) => name).join(', ')});
           `)
-          if (retref.length) {
+          if (retRef.length > 1) {
             f(`
-              Local< Array > ret = Array::New(isolate, ${retref.length});
+              Local< Array > ret = Array::New(isolate, ${retRef.length});
             `);
-            _.each(retref, ({name, type}, reti) => {
+            _.each(retRef, ({name, type}, reti) => {
               f(`
                 ret->Set(${reti}, ${type.getCppToJsExpr(name)});
               `);
@@ -404,13 +428,18 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
               args.GetReturnValue().Set(Local< Value >::Cast(ret));
             `);
           }
+          else if (retRef.length === 1) {
+            f(`
+              args.GetReturnValue().Set(Local< Value >::Cast(${retRef[0].type.getCppToJsExpr(retRef[0].name)}));
+            `);
+          }
           f(`
             return;
           `);
         }
         else if (funcInfo.returnType === 'buffer') {
           f(`
-            string ret = ${ funcInfo.funcInvocation }(${ callargs.join(', ') });
+            string ret = ${funcInfo.funcInvocation}(${_.map(downArgs, ({name, type}) => name).join(', ')});
             args.GetReturnValue().Set(convStringToJsBuffer(isolate, ret));
             return;
           `);
@@ -427,8 +456,8 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
           }
 
           f(`
-            ${ returnType.typename } ret = ${ gen_utils.getFunctionCallExpr(funcInfo.funcInvocation, callargs) };
-            args.GetReturnValue().Set(${ typereg.types[returnType.typename].getCppToJsExpr('ret') });
+            ${returnType.typename} ret = ${gen_utils.getFunctionCallExpr(funcInfo.funcInvocation, _.map(downArgs, ({name, type}) => name))};
+            args.GetReturnValue().Set(${typereg.types[returnType.typename].getCppToJsExpr('ret')});
             return;
           `);
         }
@@ -557,7 +586,7 @@ TypeRegistry.prototype.setLoc = function(start, end) {
 
 TypeRegistry.prototype.error = function(msg) {
   if (this.scanLoc) {
-    let ln = this.scanLineNumbers[this.scanLoc.start];
+    let ln = this.scanLineNumbers.rows[this.scanLoc.start];
     throw new Error(`${msg} in ${this.scanLoc.filename}:${ln}`);
   } else {
     throw new Error(msg);
@@ -604,10 +633,24 @@ TypeRegistry.prototype.scanCFunctions = function(text) {
       let funcScope = m[2] || '';
       let funcname = m[3].replace(/\s+/g, '');
       let funcTemplate = m[5] || '';
-      let args = _.range(0, arity).map(function(i) {
-        return {typename: m[6+i*3],
-                passing: m[7+i*3].replace(/\s+/g, ''),
-                argname: m[8+i*3]};
+      let args = _.range(0, arity).map((i) => {
+        let passing = m[7+i*3].replace(/\s+/g, '');
+        let dir;
+        if (passing === '&') {
+          dir = 'inout';
+        }
+        else if (passing === 'const&' || passing === '') {
+          dir = 'in';
+        }
+        else {
+          this.error(`Unknown passing style "${passing}"`);
+        }
+        return {
+          typename: m[6+i*3],
+          passing,
+          dir,
+          argName: m[8+i*3]
+        };
       });
       if (0) console.log('Found prototype', desc);
 

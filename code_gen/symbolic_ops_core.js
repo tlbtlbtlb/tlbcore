@@ -728,24 +728,64 @@ defop('void', 'vis', '...', {
   },
 });
 
-defsynthop('combineValues', (argTypes) => {
+defsynthop('combineValuesMax', (argTypes) => {
   if (argTypes.length % 2 === 0) {
     let retType = argTypes[1].typename;
     return {
       retType,
       argTypes: _.map(argTypes, (a) => a.typename),
-      op: 'combineValues',
+      op: 'combineValuesMax',
       impl: {
         c: function(...argExprs) {
-          return `yogaCombineValues(\n    ${
-            _.map(_.range(0, argExprs.length, 2), (i) => `make_pair(${argExprs[i]}, ${argExprs[i+1]})`).join(',\n    ')
+          let pairs = _.map(_.range(0, argExprs.length, 2), (i) => {
+            return {
+              mod: argExprs[i],
+              val: argExprs[i+1]
+            }
+          });
+          return `yogaCombineValuesMax(\n    ${
+            _.map(pairs, ({mod, val}) => `make_pair(${mod}, ${val})`).join(',\n    ')
           })`;
         },
         js: function(...argExprs) {
-          return `yogaCombineValues(${argExprs.join(', ')})`;
+          return `yogaCombineValuesMax(${argExprs.join(', ')})`;
         },
         deriv: function(c, wrt, ...actuals) {
-          return c.E('combineValues', _.map(actuals, (a, ai) => ai%2 ? c.D(wrt, a) : c.C(retType, 0)));
+          return c.E('combineValuesMax', _.map(actuals, (a, ai) => ai%2 ? c.D(wrt, a) : a));
+        },
+        gradient: function(c, deps, g, ...actuals) {
+          // WRITEME
+        },
+      }
+    };
+  }
+});
+
+
+defsynthop('combineValuesLinear', (argTypes) => {
+  if (argTypes.length % 2 === 0) {
+    let retType = argTypes[1].typename;
+    return {
+      retType,
+      argTypes: _.map(argTypes, (a) => a.typename),
+      op: 'combineValuesLinear',
+      impl: {
+        c: function(...argExprs) {
+          let pairs = _.map(_.range(0, argExprs.length, 2), (i) => {
+            return {
+              mod: argExprs[i],
+              val: argExprs[i+1]
+            }
+          });
+          return `yogaCombineValuesLinear(\n    ${
+            _.map(pairs, ({mod, val}) => `make_pair(${mod}, ${val})`).join(',\n    ')
+          })`;
+        },
+        js: function(...argExprs) {
+          return `yogaCombineValuesLinear(${argExprs.join(', ')})`;
+        },
+        deriv: function(c, wrt, ...actuals) {
+          return c.E('combineValuesLinear', _.map(actuals, (a, ai) => ai%2 ? c.D(wrt, a) : a));
         },
         gradient: function(c, deps, g, a, b) {
           // WRITEME

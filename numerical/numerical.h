@@ -187,16 +187,31 @@ arma::Row< T > addGradient(arma::Row< T > const &a, arma::Row< T > const &grad, 
 
 
 
-template<typename T> T yogaCombineValues(pair<double, T> arg0)
+template<typename T> T yogaCombineValuesMax(pair<double, T> arg0)
 {
   if (arg0.first > 0.0) {
     return arg0.second;
   } else {
-    return T();
+    return T {};
   }
 }
 
-template<typename T, typename... Args> T yogaCombineValues(pair<double, T> arg0, pair<double, T> arg1, Args... args)
+template<typename T, typename... Args> T yogaCombineValuesMax(pair<double, T> arg0, pair<double, T> arg1, Args... args)
 {
-  return yogaCombineValues(make_pair(max(arg0.first, arg1.first), (arg0.first >= arg1.first) ? arg0.second : arg1.second), args...);
+  return yogaCombineValuesMax(make_pair(max(arg0.first, arg1.first), (arg0.first >= arg1.first) ? arg0.second : arg1.second), args...);
+}
+
+
+template<typename T> T yogaCombineValuesLinear(pair<double, T> arg0)
+{
+  if (arg0.first > 0.0) {
+    return arg0.second;
+  } else {
+    return T {};
+  }
+}
+
+template<typename T, typename... Args> T yogaCombineValuesLinear(pair<double, T> arg0, pair<double, T> arg1, Args... args)
+{
+  return yogaCombineValuesLinear(make_pair(arg0.first + arg1.first, arg0.first * arg0.second + arg1.first * arg1.second), args...);
 }

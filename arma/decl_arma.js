@@ -17,9 +17,9 @@ module.exports = function(typereg) {
       _.each([0,2,3,4], function(colFixed) {
         if (rowFixed && colFixed && rowFixed !== colFixed) return;
 
-        rTypename = `arma::Row< ${et} >${ rowFixed ? `::fixed< ${ rowFixed } >` : '' }`;
-        cTypename = `arma::Col< ${et} >${ colFixed ? `::fixed< ${ colFixed } >` : '' }`;
-        mTypename = `arma::Mat< ${et} >${ (colFixed && rowFixed) ? `::fixed< ${ rowFixed }, ${ colFixed } >` : '' }`;
+        rTypename = `arma::Row< ${et} >${rowFixed ? `::fixed< ${rowFixed} >` : ''}`;
+        cTypename = `arma::Col< ${et} >${colFixed ? `::fixed< ${colFixed} >` : ''}`;
+        mTypename = `arma::Mat< ${et} >${(colFixed && rowFixed) ? `::fixed< ${rowFixed}, ${colFixed} >` : ''}`;
         srTypename = `arma::subview_row< ${et} >`;
         scTypename = `arma::subview_col< ${et} >`;
         rType = typereg.template(rTypename);
@@ -234,18 +234,18 @@ module.exports = function(typereg) {
         else if (rowFixed && colFixed) {
           typereg.scanCFunctions([
             `
-              ${ cTypename } operator + (${ cTypename } a, ${ cTypename } b);
-              ${ cTypename } operator - (${ cTypename } a, ${ cTypename } b);
+              ${cTypename} operator + (${cTypename} a, ${cTypename} b);
+              ${cTypename} operator - (${cTypename} a, ${cTypename} b);
 
-              ${ rTypename } operator + (${ rTypename } a, ${ rTypename } b);
-              ${ rTypename } operator - (${ rTypename } a, ${ rTypename } b);
+              ${rTypename} operator + (${rTypename} a, ${rTypename} b);
+              ${rTypename} operator - (${rTypename} a, ${rTypename} b);
 
-              ${ mTypename } operator + (${ mTypename } a, ${ mTypename } b);
-              ${ mTypename } operator - (${ mTypename } a, ${ mTypename } b);
+              ${mTypename} operator + (${mTypename} a, ${mTypename} b);
+              ${mTypename} operator - (${mTypename} a, ${mTypename} b);
             `,
             isInteger ? '' : `
-              double norm(${ cTypename } a, int p);
-              double norm(${ mTypename } a, int p);
+              double norm(${cTypename} a, int p);
+              double norm(${mTypename} a, int p);
             `
           ].join('\n'));
         }

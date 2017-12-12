@@ -222,7 +222,23 @@ PrimitiveCType.prototype.getArgTempDecl = function(varname) {
 
 PrimitiveCType.prototype.getVarDecl = function(varname) {
   let type = this;
-  return type.typename + ' ' + varname;
+  switch (type.typename) {
+  case 'S32':
+  case 'S64':
+  case 'U32':
+  case 'U64':
+    return `${type.typename} ${varname} = 0`;
+  case 'float':
+    return `${type.typename} ${varname} = 0.0f`;
+  case 'double':
+    return `${type.typename} ${varname} = 0.0`;
+  case 'bool':
+    return `${type.typename} ${varname} = false`;
+  case 'char const*':
+    return `${type.typename} ${varname} = nullptr`;
+  default:
+    return `${type.typename} ${varname}`;
+  }
 };
 
 PrimitiveCType.prototype.getJsToCppTest = function(valueExpr, o) {

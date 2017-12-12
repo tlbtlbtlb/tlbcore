@@ -15,6 +15,7 @@ function CType(reg, typename) {
   type.typename = typename;
   type.jsTypename = typename.replace(/[ >]+$/g, '').replace(/< /g, '_').replace(/ >/g, '_').replace(/, /g,'_').replace(/::/g,'_');
 
+  this.extraOptions = {};
   type.extraFunctionDecls = [];
   type.extraMemberDecls = [];
   type.extraConstructorArgs = [];
@@ -87,7 +88,11 @@ CType.prototype.getConstructorArgs = function() {
 };
 
 CType.prototype.getSchema = function() {
-  return {typename: this.jsTypename, hasArrayNature: this.hasArrayNature(), members: this.getMembers()};
+  return _.extend({
+    typename: this.jsTypename,
+    hasArrayNature: this.hasArrayNature(),
+    members: this.getMembers(),
+  }, this.extraOptions);
 };
 
 CType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
