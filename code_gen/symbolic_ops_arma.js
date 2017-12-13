@@ -31,34 +31,13 @@ defop('Mat33',    'mat33RotationZ',   'double', {
 
 // mat44
 
-if (0) defop('Mat44',        'Mat44',
-      'double', 'double', 'double', 'double',
-      'double', 'double', 'double', 'double',
-      'double', 'double', 'double', 'double',
-      'double', 'double', 'double', 'double', {
-  c: function(a00, a10, a20, a30, a01, a11, a21, a31, a02, a12, a22, a32, a03, a13, a23, a33) {
-    assert.ok(a33);
-    return (`Mat44 { ${a00}, ${a10}, ${a20}, ${a30},  ${a01}, ${a11}, ${a21}, ${a31},  ${a02}, ${a12}, ${a22}, ${a32},  ${a03}, ${a13}, ${a23}, ${a33}}`);
-  },
-  js: function(a00, a10, a20, a30, a01, a11, a21, a31, a02, a12, a22, a32, a03, a13, a23, a33) {
-    assert.ok(a33);
-    return (`Float64Array.of(${a00}, ${a10}, ${a20}, ${a30},  ${a01}, ${a11}, ${a21}, ${a31},  ${a02}, ${a12}, ${a22}, ${a32},  ${a03}, ${a13}, ${a23}, ${a33})`);
-  },
-  deriv: function(c, wrt) {
-    return c.E('Mat44',
-      c.D(wrt, this.args[0]), c.D(wrt, this.args[1]), c.D(wrt, this.args[2]), c.D(wrt, this.args[3]),
-      c.D(wrt, this.args[4]), c.D(wrt, this.args[5]), c.D(wrt, this.args[6]), c.D(wrt, this.args[7]),
-      c.D(wrt, this.args[8]), c.D(wrt, this.args[9]), c.D(wrt, this.args[10]), c.D(wrt, this.args[11]),
-      c.D(wrt, this.args[12]), c.D(wrt, this.args[13]), c.D(wrt, this.args[14]), c.D(wrt, this.args[15]));
-  },
-});
-
-
 defop('Mat44',        'mat44RotationX',   'double', {
-  replace: function(c, a) {
+  optimize: function(c, a) {
     if (a.isZero()) {
       return c.Cm44(1);
     }
+  },
+  expand: function(c, a) {
     return c.E('Mat44',
       c.Cd(1), c.Cd(0), c.Cd(0), c.Cd(0),
       c.Cd(0), c.E('cos', a), c.E('sin', a), c.Cd(0),
@@ -66,11 +45,14 @@ defop('Mat44',        'mat44RotationX',   'double', {
       c.Cd(0), c.Cd(0), c.Cd(0), c.Cd(1));
   }
 });
+
 defop('Mat44',        'mat44RotationY',   'double', {
-  replace: function(c, a) {
+  optimize: function(c, a) {
     if (a.isZero()) {
       return c.Cm44(1);
     }
+  },
+  expand: function(c, a) {
     return c.E('Mat44',
       c.E('cos', a), c.Cd(0), c.E('-', c.E('sin', a)), c.Cd(0),
       c.Cd(0), c.Cd(1), c.Cd(0), c.Cd(0),
@@ -78,11 +60,14 @@ defop('Mat44',        'mat44RotationY',   'double', {
       c.Cd(0), c.Cd(0), c.Cd(0), c.Cd(1));
   }
 });
+
 defop('Mat44',        'mat44RotationZ',   'double', {
-  replace: function(c, a) {
+  optimize: function(c, a) {
     if (a.isZero()) {
       return c.Cm44(1);
     }
+  },
+  expand: function(c, a) {
     return c.E('Mat44',
       c.E('cos', a), c.E('sin', a), c.Cd(0), c.Cd(0),
       c.E('-', c.E('sin', a)), c.E('cos', a), c.Cd(0), c.Cd(0),
@@ -92,10 +77,12 @@ defop('Mat44',        'mat44RotationZ',   'double', {
 });
 
 defop('Mat44',        'mat44Translation',   'double', 'double', 'double', {
-  replace: function(c, x, y, z) {
+  optimize: function(c, x, y, z) {
     if (x.isZero() && y.isZero() && z.isZero()) {
       return c.Cm44(1);
     }
+  },
+  expand: function(c, x, y, z) {
     return c.E('Mat44',
       c.Cd(1), c.Cd(0), c.Cd(0), c.Cd(0),
       c.Cd(0), c.Cd(1), c.Cd(0), c.Cd(0),
@@ -105,10 +92,12 @@ defop('Mat44',        'mat44Translation',   'double', 'double', 'double', {
 });
 
 defop('Mat44',        'mat44Scale',   'double', 'double', 'double', {
-  replace: function(c, x, y, z) {
+  optimize: function(c, x, y, z) {
     if (x.isZero() && y.isZero() && z.isZero()) {
       return c.Cm44(0);
     }
+  },
+  expand: function(c, x, y, z) {
     return c.E('Mat44',
       x, c.Cd(0), c.Cd(0), c.Cd(0),
       c.Cd(0), y, c.Cd(0), c.Cd(0),
@@ -118,7 +107,7 @@ defop('Mat44',        'mat44Scale',   'double', 'double', 'double', {
 });
 
 defop('Mat44',        'mat44Rotation',   'Vec3', 'double', {
-  replace: function(c, a, b) {
+  optimize: function(c, a, b) {
     if (b.isZero()) {
       return c.Cm44(1);
     }
@@ -173,7 +162,7 @@ defop('Mat44',    '*',           'Mat44', 'Mat44', {
       c.E('*', a, c.D(wrt, b)),
       c.E('*', c.D(wrt, a), b));
   },
-  replace: function(c, a, b) {
+  optimize: function(c, a, b) {
     if (a.isZero()) return a;
     if (b.isZero()) return b;
     if (a.isOne()) return b;
@@ -183,7 +172,6 @@ defop('Mat44',    '*',           'Mat44', 'Mat44', {
     a.addGradient(deps, c.E('*', c.E('trans', b), g)); // FIXME: test
     b.addGradient(deps, c.E('*', c.E('trans', a), g)); // FIXME: test
   },
-
 });
 
 defop('Mat44',    '*',           'R', 'Mat44', {
@@ -198,17 +186,14 @@ defop('Mat44',    '*',           'R', 'Mat44', {
       c.E('*', a, c.D(wrt, b)),
       c.E('*', c.D(wrt, a), b));
   },
-  replace: function(c, a, b) {
-    if (a.isZero()) return a;
+  optimize: function(c, a, b) {
     if (b.isZero()) return b;
     if (a.isOne()) return b;
-    if (b.isOne()) return a;
   },
   gradient: function(c, deps, g, a, b) {
     a.addGradient(deps, c.E('*', b, g));
     b.addGradient(deps, c.E('*', c.E('trans', a), g)); // FIXME: test
   },
-
 });
 
 defop('Vec4',    '*',           'R', 'Vec4', {
@@ -223,17 +208,14 @@ defop('Vec4',    '*',           'R', 'Vec4', {
       c.E('*', a, c.D(wrt, b)),
       c.E('*', c.D(wrt, a), b));
   },
-  replace: function(c, a, b) {
-    if (a.isZero()) return a;
+  optimize: function(c, a, b) {
     if (b.isZero()) return b;
     if (a.isOne()) return b;
-    if (b.isOne()) return a;
   },
   gradient: function(c, deps, g, a, b) {
     a.addGradient(deps, c.E('*', b, g));
     b.addGradient(deps, c.E('*', a, g));
   },
-
 });
 
 
@@ -249,7 +231,7 @@ defop('Vec4',    '*',           'Mat44', 'Vec4', {
       c.E('*', a, c.D(wrt, b)),
       c.E('*', c.D(wrt, a), b));
   },
-  replace: function(c, a, b) {
+  optimize: function(c, a, b) {
     if (b.isZero()) return b;
     if (a.isOne()) return b;
   },
@@ -266,8 +248,12 @@ defop('Mat44',    '+',           'Mat44', 'Mat44', {
   js: function(a, b) {
     return `Geom3D.add_mat44_mat44(${a}, ${b})`;
   },
-
-  replace: function(c, a, b) {
+  deriv: function(c, wrt, a, b) {
+    return c.E('+',
+      c.D(wrt, a),
+      c.D(wrt, b));
+  },
+  optimize: function(c, a, b) {
     if (a.isZero()) return b;
     if (b.isZero()) return a;
   },
@@ -284,8 +270,12 @@ defop('Vec4',    '+',           'Vec4', 'Vec4', {
   js: function(a, b) {
     return `Geom3D.add_vec4_vec4(${a}, ${b})`;
   },
-
-  replace: function(c, a, b) {
+  deriv: function(c, wrt, a, b) {
+    return c.E('+',
+      c.D(wrt, a),
+      c.D(wrt, b));
+  },
+  optimize: function(c, a, b) {
     if (a.isZero()) return b;
     if (b.isZero()) return a;
   },

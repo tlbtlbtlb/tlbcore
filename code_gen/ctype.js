@@ -176,7 +176,9 @@ CType.prototype.getTypeAndVersion = function() {
   return type.typename + '@' + type.getSignature();
 };
 
-
+CType.prototype.toString = function() {
+  return `CType(${this.typename})`;
+};
 
 /*
   Defn Dependencies:

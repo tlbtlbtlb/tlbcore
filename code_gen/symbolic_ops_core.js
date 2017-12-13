@@ -31,6 +31,7 @@ defop('R',  '(double)',    'I', {
     a.addGradient(deps, g);
   }
 });
+
 defop('R',  '(double)',    'bool', {
   imm: function(a) {
     return a ? 1 : 0;
@@ -244,9 +245,6 @@ defop('R',  'tanh',               'R', {
   js: function(a) {
     return `Math.tanh(${a})`;
   },
-  optimize: function(c, a) {
-    if (a.isZero()) return a;
-  },
   deriv: function(c, wrt, a) {
     return c.E('-', 1, c.E('sqr', c.E('tanh', a)));
   },
@@ -352,10 +350,6 @@ defop('R',  'normsq',               'R', {
   js: function(a, b) {
     return `(${a} * ${a})`;
   },
-  optimize: function(c, a, b) {
-    if (a.isZero()) return a;
-    if (a.isOne()) return a;
-  },
   deriv: function(c, wrt, a, b) {
     return c.E('*', c.C('R', 2), c.D(wrt, a));
   },
@@ -455,10 +449,31 @@ defop('R',  '-',               'R', {
   gradient: function(c, deps, g, a) {
     a.addGradient(deps, c.E('-', g));
   },
+});
+
+defop('R',  '!',               'R', {
+  imm: function(a) {
+    return 1.0 - a;
+  },
+  c: function(a) {
+    return `(1.0 - ${a})`;
+  },
+  js: function(a) {
+    return `(1.0 - ${a})`;
+  },
+  deriv: function(c, wrt, a) {
+    return c.E('-', c.D(wrt, a));
+  },
   optimize: function(c, a) {
-    if (a.isConst()) return c.C('R', -a.value);
+    if (a.isExpr('!')) {
+      return a.args[0];
+    }
+  },
+  gradient: function(c, deps, g, a) {
+    a.addGradient(deps, c.E('-', g));
   },
 });
+
 
 defop('R',  '/',               'R', 'R', {
   imm: function(a, b) {
@@ -510,11 +525,6 @@ defop('R',  'max',             'R', 'R', {
   js: function(a, b) {
     return `Math.max(${a}, ${b})`;
   },
-  optimize: function(c, a, b) {
-    if (a.isConst() && b.isConst()) {
-      return c.C(a.type, Math.max(a.value, b.value));
-    }
-  },
   gradient: function(c, deps, g, a, b) {
     let smd = c.E('*', 0.5, c.E('tanh', c.E('*', c.E('-', a, b), 999)));
     a.addGradient(deps, c.E('*', g, c.E('+', 0.5, smd)));
@@ -531,11 +541,6 @@ defop('R',  '||',             'R', 'R', {
   },
   js: function(a, b) {
     return `Math.max(${a}, ${b})`;
-  },
-  optimize: function(c, a, b) {
-    if (a.isConst() && b.isConst()) {
-      return c.C(a.type, Math.max(a.value, b.value));
-    }
   },
   gradient: function(c, deps, g, a, b) {
     let smd = c.E('*', 0.5, c.E('tanh', c.E('*', c.E('-', a, b), 999)));

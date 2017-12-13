@@ -435,7 +435,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
   f(`
     /*
       templateName = ${type.templateName}
-      templateArgs = ${util.inspect(type.templateArgs)}
+      templateArgs = ${type.templateArgs}
     */
   `);
 
