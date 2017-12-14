@@ -161,6 +161,8 @@ function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
   });
 
   c.lets.PI = c.C('R', Math.PI);
+  c.lets.EPS = new SymbolicRef(c, typereg.getType('double'), 'numeric_limits<double>::epsilon()', 'const', {});
+  c.lets.INF = new SymbolicRef(c, typereg.getType('double'), 'numeric_limits<double>::infinity()', 'const', {});
 
   c.registerWrapper();
   c.defop = defop;
@@ -449,8 +451,11 @@ SymbolicContext.prototype.W = function(dst, value) {
   if (0) value.printName = name;
   c.assertNode(dst);
   c.assertNode(value);
-  if (dst.type !== value.type) {
-    c.error(`Type mismatch assigning ${dst.type.typename} = ${value.type.typename}`);
+  if (dst.type === value.type) {
+  }
+  // WRITEME: assignment conversion
+  else {
+    c.error(`Type mismatch assigning ${dst} of type ${dst.type.typename} = ${value} of type ${value.type.typename}`);
   }
   if (c.assignments[dst.cseKey] === undefined) {
     c.assignments[dst.cseKey] = {
@@ -622,12 +627,25 @@ SymbolicContext.prototype.combineValues = function(values, type) {
   if (values.length === 1) {
     return values[0].value;
   }
+  let modArgs = [];
+  let defValue = null;
+  _.each(values, ({value, modulation}) => {
+    if (modulation === c.lets.EPS || modulation.isRead() && modulation.ref === c.lets.EPS) {
+      defValue = value;
+    } else {
+      modArgs.push(modulation);
+      modArgs.push(value);
+    }
+  });
+  if (defValue === null) {
+    defValue = c.C(type, 0);
+  }
 
   if (type.supportsScalarMult()) {
-    return c.E('combineValuesLinear', ..._.flatten(_.map(values, ({value, modulation}) => [modulation, value])));
+    return c.E('combineValuesLinear', defValue, ...modArgs);
   }
   else {
-    return c.E('combineValuesMax', ..._.flatten(_.map(values, ({value, modulation}) => [modulation, value])));
+    return c.E('combineValuesMax', defValue, ...modArgs);
   }
 
 };
@@ -768,9 +786,15 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc, a
 */
 SymbolicContext.prototype.pushModulation = function(e) {
   let c = this;
-  c.assertNode(e);
-
   if (0) console.log(`pushModulation ${e}`);
+  if (e === 'DEFAULT') {
+    if (c.modulationStack.length !== 0) {
+      c.error(`Default given under another modulation`);
+    }
+  }
+  else {
+    c.assertNode(e);
+  }
   c.modulationStack.push(e);
   c.calcTotalModulation();
 };
@@ -798,9 +822,13 @@ SymbolicContext.prototype.flipModulation = function() {
 SymbolicContext.prototype.calcTotalModulation = function() {
   let c = this;
 
-  c.modulationStackTop = _.reduce(c.modulationStack, (a, b) => {
-    return c.E('*', a, b);
-  }, c.C('R', 1));
+  if (c.modulationStack.length === 1 && c.modulationStack[0] === 'DEFAULT') {
+    c.modulationStackTop = 'DEFAULT';
+  } else {
+    c.modulationStackTop = _.reduce(c.modulationStack, (a, b) => {
+      return c.E('*', a, b);
+    }, c.C('R', 1));
+  }
 };
 
 
@@ -910,7 +938,7 @@ SymbolicTransform.prototype.transform = function(e) {
       }
     }
     else {
-      this.c.error(`Unknown node type`);
+      this.c.error(`Unknown node type for ${e}`);
     }
     copy = this.c.dedup(copy);
     this.copied.set(e.cseKey, copy);
@@ -948,7 +976,7 @@ function SymbolicRef(c, type, name, dir, opt) {
   e.type = type;
   assert.ok(_.isString(name));
   e.name = name;
-  assert.ok(dir === 'in' || dir === 'out' || dir === 'update');
+  assert.ok(dir === 'in' || dir === 'out' || dir === 'update' || dir === 'const');
   e.dir = dir;
   e.isAddress = true;
   e.opt = opt;
@@ -1759,6 +1787,9 @@ SymbolicRef.prototype.getExpr = function(lang, availCses, rdwr) {
     return `${this.name}Next`;
   }
   else if (this.dir === 'in' && rdwr === 'rd') {
+    return this.name;
+  }
+  else if (this.dir === 'const' && rdwr === 'rd') {
     return this.name;
   }
   else if (this.dir === 'out' && rdwr === 'wr') {

@@ -9,7 +9,7 @@ const gen_utils = require('./gen_utils');
 const symbolic_math = require('./symbolic_math');
 const CType = require('./ctype').CType;
 const StructCType = require('./struct_ctype').StructCType;
-const CollectionCType = require('./collection_ctype').CollectionCType;
+const TemplateCType = require('./template_ctype').TemplateCType;
 const PrimitiveCType = require('./primitive_ctype').PrimitiveCType;
 const DspCType = require('./dsp_ctype').DspCType;
 const PtrCType = require('./ptr_ctype').PtrCType;
@@ -132,7 +132,7 @@ TypeRegistry.prototype.template = function(typename) {
   let typereg = this;
   enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
-  let t = new CollectionCType(typereg, typename);
+  let t = new TemplateCType(typereg, typename);
   typereg.types[typename] = t;
 
   let ptrType = new PtrCType(typereg, t);
@@ -688,6 +688,7 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
   cl(`
     #include "common/std_headers.h"
     #include "geom/geom_math.h"
+    #include "numerical/yoga_builtins.h"
     #include "./symbolics_${ typereg.groupname }.h"
   `);
 
@@ -703,6 +704,7 @@ TypeRegistry.prototype.emitSymbolics = function(files) {
     'use strict';
     const canvasutils = require('tlbcore/web/canvasutils');
     const Geom3D = canvasutils.Geom3D;
+    const yoga_builtins = require('tlbcore/numerical/yoga_builtins');
   `);
   _.each(typereg.symbolics, function(func, funcname) {
     if (func.langs.js) {

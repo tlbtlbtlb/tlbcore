@@ -6,13 +6,13 @@ const cgen = require('./cgen');
 const gen_utils = require('./gen_utils');
 const CType = require('./ctype').CType;
 
-exports.CollectionCType = CollectionCType;
+exports.TemplateCType = TemplateCType;
 
 /* ----------------------------------------------------------------------
    Template or collection types (lumped together)
 */
 
-function CollectionCType(reg, typename) {
+function TemplateCType(reg, typename) {
   let type = this;
   CType.call(type, reg, typename);
 
@@ -92,11 +92,11 @@ function CollectionCType(reg, typename) {
 
   if (0) console.log(`template ${typename} ${type.templateName} ${type.templateArgs}`);
 }
-CollectionCType.prototype = Object.create(CType.prototype);
-CollectionCType.prototype.isCollection = function() { return true; };
+TemplateCType.prototype = Object.create(CType.prototype);
+TemplateCType.prototype.isCollection = function() { return true; };
 
 
-CollectionCType.prototype.emitTypeDecl = function(f) {
+TemplateCType.prototype.emitTypeDecl = function(f) {
   let type = this;
   f(`
     char const * getTypeVersionString(${type.typename} const &);
@@ -107,7 +107,7 @@ CollectionCType.prototype.emitTypeDecl = function(f) {
   `);
 };
 
-CollectionCType.prototype.emitHostImpl = function(f) {
+TemplateCType.prototype.emitHostImpl = function(f) {
   let type = this;
 
   let schema = {
@@ -129,7 +129,7 @@ CollectionCType.prototype.emitHostImpl = function(f) {
 
 };
 
-CollectionCType.prototype.getAllTypes = function() {
+TemplateCType.prototype.getAllTypes = function() {
   let type = this;
   let ret = _.flatten(_.map(type.templateArgTypes, function(t) {
     return t ? t.getAllTypes() : [];
@@ -141,13 +141,13 @@ CollectionCType.prototype.getAllTypes = function() {
   else if (type.templateName === 'Timestamped') {
     ret.push(type.reg.getType('GenericTimestamped'));
   }
-  if (0) console.log(`CollectionCType.getAllTypes ${type.typename}`, _.map(ret, function(t) { return t.typename; }));
+  if (0) console.log(`TemplateCType.getAllTypes ${type.typename}`, _.map(ret, function(t) { return t.typename; }));
 
   return ret;
 };
 
 
-CollectionCType.prototype.getSpecialIncludes = function() {
+TemplateCType.prototype.getSpecialIncludes = function() {
   let type = this;
   let ret = [];
   if (type.templateName === 'Timeseq') {
@@ -163,7 +163,7 @@ CollectionCType.prototype.getSpecialIncludes = function() {
   return ret;
 };
 
-CollectionCType.prototype.getHeaderIncludes = function() {
+TemplateCType.prototype.getHeaderIncludes = function() {
   let type = this;
   let ret = _.flatten(_.map(type.templateArgTypes, function(t) {
     return t ? t.getCustomerIncludes() : [];
@@ -173,7 +173,7 @@ CollectionCType.prototype.getHeaderIncludes = function() {
   return ret;
 };
 
-CollectionCType.prototype.getCustomerIncludes = function() {
+TemplateCType.prototype.getCustomerIncludes = function() {
   let type = this;
   let ret = _.flatten(_.map(type.templateArgTypes, function(t) {
     return t ? t.getCustomerIncludes() : [];
@@ -183,16 +183,16 @@ CollectionCType.prototype.getCustomerIncludes = function() {
 };
 
 
-CollectionCType.prototype.hasJsWrapper = function() {
+TemplateCType.prototype.hasJsWrapper = function() {
   return true;
 };
 
-CollectionCType.prototype.getSynopsis = function() {
+TemplateCType.prototype.getSynopsis = function() {
   let type = this;
   return `(${type.typename})`;
 };
 
-CollectionCType.prototype.getValueExpr = function(lang, value) {
+TemplateCType.prototype.getValueExpr = function(lang, value) {
   let type = this;
 
   if (value === 0) {
@@ -302,36 +302,36 @@ CollectionCType.prototype.getValueExpr = function(lang, value) {
 };
 
 
-CollectionCType.prototype.getExampleValueJs = function() {
+TemplateCType.prototype.getExampleValueJs = function() {
   return `new ur.${this.jsTypename}()`;
 };
 
-CollectionCType.prototype.isPod = function() {
+TemplateCType.prototype.isPod = function() {
   return false;
 };
 
-CollectionCType.prototype.supportsScalarMult = function() {
+TemplateCType.prototype.supportsScalarMult = function() {
   let type = this;
   if (type.templateName.startsWith('arma::')) return true;
   return false;
 };
 
-CollectionCType.prototype.getFormalParameter = function(varname) {
+TemplateCType.prototype.getFormalParameter = function(varname) {
   let type = this;
   return `${type.typename} const &${varname}`;
 };
 
-CollectionCType.prototype.getArgTempDecl = function(varname) {
+TemplateCType.prototype.getArgTempDecl = function(varname) {
   let type = this;
   return `${type.typename} &${ varname}`;
 };
 
-CollectionCType.prototype.getVarDecl = function(varname) {
+TemplateCType.prototype.getVarDecl = function(varname) {
   let type = this;
   return `${type.typename} ${varname}`;
 };
 
-CollectionCType.prototype.getJsToCppTest = function(valueExpr, o) {
+TemplateCType.prototype.getJsToCppTest = function(valueExpr, o) {
   let type = this;
   let ret = `(JsWrap_${type.jsTypename}::Extract(isolate, ${valueExpr}) != nullptr)`;
   if (o.conv) {
@@ -354,7 +354,7 @@ CollectionCType.prototype.getJsToCppTest = function(valueExpr, o) {
   return ret;
 };
 
-CollectionCType.prototype.accumulateRecursiveMembers = function(context, acc) {
+TemplateCType.prototype.accumulateRecursiveMembers = function(context, acc) {
   let type = this;
   // Don't need to index into arma types, because StructCType.emitWrJsonBulk handles them
   if (0 && type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
@@ -373,7 +373,7 @@ CollectionCType.prototype.accumulateRecursiveMembers = function(context, acc) {
 };
 
 
-CollectionCType.prototype.getJsToCppExpr = function(valueExpr, o) {
+TemplateCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   let type = this;
   let ret = `(*JsWrap_${type.jsTypename}::Extract(isolate, ${valueExpr}))`;
 
@@ -400,7 +400,7 @@ CollectionCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   return ret;
 };
 
-CollectionCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
+TemplateCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   let type = this;
 
   if (ownerExpr) {
@@ -411,16 +411,16 @@ CollectionCType.prototype.getCppToJsExpr = function(valueExpr, ownerExpr) {
   }
 };
 
-CollectionCType.prototype.getMemberTypes = function() {
+TemplateCType.prototype.getMemberTypes = function() {
   let type = this;
   let subtypes = gen_utils.sortTypes(_.filter(_.map(type.typename.split(/\s*[<,>]\s*/), function(typename1) {
     return typename1.length > 0 ? type.reg.types[typename1] : null;
   }), function(type) { return type; }));
-  if (0) console.log('CollectionCType.getMemberTypes', type.typename, _.map(subtypes, function(t) { return t.typename; }));
+  if (0) console.log('TemplateCType.getMemberTypes', type.typename, _.map(subtypes, function(t) { return t.typename; }));
   return subtypes;
 };
 
-CollectionCType.prototype.emitJsWrapDecl = function(f) {
+TemplateCType.prototype.emitJsWrapDecl = function(f) {
   let type = this;
   f(`
     using JsWrap_${type.jsTypename} = JsWrapGeneric< ${type.typename} >;
@@ -429,7 +429,7 @@ CollectionCType.prototype.emitJsWrapDecl = function(f) {
   `);
 };
 
-CollectionCType.prototype.emitJsWrapImpl = function(f) {
+TemplateCType.prototype.emitJsWrapImpl = function(f) {
   let type = this;
 
   f(`
@@ -1220,7 +1220,7 @@ CollectionCType.prototype.emitJsWrapImpl = function(f) {
 };
 
 
-CollectionCType.prototype.emitJsTestImpl = function(f) {
+TemplateCType.prototype.emitJsTestImpl = function(f) {
   let type = this;
   f(`
     describe("${type.jsTypename} C++ impl", function() {

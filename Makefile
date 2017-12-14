@@ -71,7 +71,7 @@ BUILD_SRC_DEPS := \
 	code_gen/type_registry.js \
 	code_gen/ctype.js \
 	code_gen/struct_ctype.js \
-	code_gen/collection_ctype.js \
+	code_gen/template_ctype.js \
 	code_gen/dsp_ctype.js \
 	code_gen/object_ctype.js \
 	code_gen/primitive_ctype.js \
