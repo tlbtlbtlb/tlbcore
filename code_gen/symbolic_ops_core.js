@@ -7,6 +7,7 @@ const util = require('util');
 const cgen = require('./cgen');
 const assert = require('assert');
 const symbolic_math = require('./symbolic_math');
+const yoga_builtins = require('../numerical/yoga_builtins.js');
 const defop = symbolic_math.defop;
 const defsynthop = symbolic_math.defsynthop;
 
@@ -533,27 +534,29 @@ defop('R',  'max',             'R', 'R', {
 });
 
 defop('R',  '||',             'R', 'R', {
-  imm: function(a, b) {
-    return Math.max(a, b);
-  },
-  c: function(a, b) {
-    return `max(${a}, ${b})`;
-  },
-  js: function(a, b) {
-    return `Math.max(${a}, ${b})`;
-  },
-  gradient: function(c, deps, g, a, b) {
-    let smd = c.E('*', 0.5, c.E('tanh', c.E('*', c.E('-', a, b), 999)));
-    a.addGradient(deps, c.E('*', g, c.E('+', 0.5, smd)));
-    b.addGradient(deps, c.E('*', g, c.E('-', 0.5, smd)));
+  replace: function(c, a, b) {
+    return c.E('-', 1, c.E('*', c.E('lim', c.E('-', 1, a), 0, 1), c.E('lim', c.E('-', 1, b), 0, 1)));
   }
 });
 
 
 defop('R',  'lim',             'R', 'R', 'R', {
-  replace: function(c, value, lb, ub) {
-    return c.E('max', c.E('min', value, ub), lb);
-  }
+  imm: function(a, lo, hi) {
+    return Math.min(Math.max(a, lo), hi);
+  },
+  c: function(a, lo, hi) {
+    return `limit(${a}, ${lo}, ${hi})`;
+  },
+  js: function(a, lo, hi) {
+    return `yoga_builtins.limit(${a}, ${lo}, ${hi})`;
+  },
+  gradient: function(c, deps, g, a, lo, hi) {
+    let smdLo = c.E('tanh', c.E('*', c.E('-', a, lo), 999));
+    let smdHi = c.E('tanh', c.E('*', c.E('-', hi, a), 999));
+    a.addGradient(deps, c.E('*', g, c.E('*', 0.5, c.E('-', smdLo, smdHi))));
+    lo.addGradient(deps, c.E('*', g, c.E('-', 0.5, c.E('*', 0.5, smdLo))));
+    hi.addGradient(deps, c.E('*', g, c.E('-', 0.5, c.E('*', 0.5, smdHi))));
+  },
 });
 
 
@@ -672,8 +675,8 @@ defop('jsonstr', 'Object', '...', {
   c: function(...args) {
     //debugger;
     return `${this.type.typename}(string("{") +\n    ${(
-      _.map(_.range(args.length/2), (argi) => {
-        return `asJson(${args[argi*2]}).it + ":" + asJson(${args[argi*2+1]}).it`;
+      _.map(_.range(0, args.length, 2), (argi) => {
+        return `asJson(${args[argi]}).it + ":" + asJson(${args[argi+1]}).it`;
       }).join(' + ", "\n    + ')
     )} +\n    string("}"))`;
   },
@@ -768,7 +771,11 @@ defsynthop('combineValuesLinear', (argTypes) => {
       op: 'combineValuesLinear',
       impl: {
         c: function(...argExprs) {
-          return `yogaCombineValuesLinear(\n    ${argExprs.join(',\n')})`;
+          if (argExprs.join(', ').length > 50) {
+            return `yogaCombineValuesLinear(\n    ${argExprs.join(',\n    ')})`;
+          } else {
+            return `yogaCombineValuesLinear(${argExprs.join(', ')})`;
+          }
         },
         js: function(...argExprs) {
           return `yoga_builtins.yogaCombineValuesLinear(${argExprs.join(', ')})`;

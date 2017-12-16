@@ -226,6 +226,9 @@ TemplateCType.prototype.getValueExpr = function(lang, value) {
           let nElem = parseInt(type.templateArgs[1]) * parseInt(type.templateArgs[2]);
           return `Float64Array.of(${_.map(_.range(nElem), (i) => '0').join(', ')})`;
         }
+        else if (type.templateName === 'vector') {
+          return `[]`;
+        }
         else {
           barf();
         }

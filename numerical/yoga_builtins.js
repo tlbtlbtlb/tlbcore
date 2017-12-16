@@ -1,4 +1,8 @@
+const assert = require('assert');
 
+exports.yogaCombineValuesLinear = yogaCombineValuesLinear;
+exports.yogaCombineValuesMax = yogaCombineValuesMax;
+exports.limit = limit;
 
 function yogaCombineValuesLinear(defVal, ...args) {
   assert.ok(args.length%2 === 0);
@@ -18,7 +22,7 @@ function yogaCombineValuesLinear(defVal, ...args) {
     }
   }
   if (totMod > 0) {
-    return (1.0/totMod) * val;
+    return (1.0/totMod) * totVal;
   }
   else {
     return defVal;
@@ -39,4 +43,10 @@ function yogaCombineValuesMax(defVal, ...args) {
     }
   }
   return maxVal;
+}
+
+function limit(v, lo, hi) {
+  if (v < lo) return lo;
+  if (v > hi) return hi;
+  return v;
 }

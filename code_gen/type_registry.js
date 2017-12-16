@@ -114,7 +114,7 @@ TypeRegistry.prototype.object = function(typename) {
 TypeRegistry.prototype.struct = function(typename, ...args) {
   let typereg = this;
   enforceCanonicalTypename(typename);
-  if (typename in typereg.types) throw new Error(`${typename} already defined`);
+  if (typename in typereg.types) typereg.error(`${typename} already defined`);
   let t = new StructCType(typereg, typename);
   typereg.types[typename] = t;
   t.addArgs(args);
@@ -174,7 +174,7 @@ TypeRegistry.prototype.getType = function(typename, create) {
     else if (/</.test(typename)) {
       type = typereg.template(typename);
     }
-    if (!type) throw new Error(`Can't create type ${ typename }`);
+    if (!type) typereg.error(`Can't create type ${typename}`);
   }
   return type;
 };
@@ -183,7 +183,7 @@ TypeRegistry.prototype.aliasType = function(existingName, newName) {
   let typereg = this;
   enforceCanonicalTypename(newName);
   let type = typereg.getType(existingName);
-  if (!type) throw new Error(`No such type ${existingName}`);
+  if (!type) typereg.error(`No such type ${existingName}`);
   typereg.types[newName] = type;
 };
 
@@ -396,7 +396,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
             retRef.push({name: `a${argi}`, type: argType});
           }
           else {
-            throw new Error(`Unknown arg dir ${argInfo.dir}`);
+            typereg.error(`Unknown arg dir ${argInfo.dir}`);
           }
           downArgs.push({name: `a${argi}`, type: argType});
         });
@@ -452,7 +452,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         else {
           let returnType = typereg.getType(funcInfo.returnType);
           if (!returnType) {
-            throw new Error('No such type ' + funcInfo.returnType + ' for ' + jsFuncname);
+            typereg.error(`No such type ${funcInfo.returnType} for ${jsFuncname}`);
           }
 
           f(`

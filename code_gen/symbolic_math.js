@@ -161,8 +161,8 @@ function SymbolicContext(typereg, name, outArgs, updateArgs, inArgs) {
   });
 
   c.lets.PI = c.C('R', Math.PI);
-  c.lets.EPS = new SymbolicRef(c, typereg.getType('double'), 'numeric_limits<double>::epsilon()', 'const', {});
-  c.lets.INF = new SymbolicRef(c, typereg.getType('double'), 'numeric_limits<double>::infinity()', 'const', {});
+  c.lets.EPS = c.C('R', 'epsilon');
+  c.lets.INF = c.C('R', 'Inf');
 
   c.registerWrapper();
   c.defop = defop;
@@ -261,10 +261,10 @@ SymbolicContext.prototype.getSignature = function(lang) {
       function ${c.name}(${
         c.collectArgs((argName, argType, dir, opt) => {
           if (dir === 'out') {
-            return argName;
+            return []; // XXX was argName;
           }
           else if (dir === 'update') {
-            return [`${argName}Next`, `${argName}Prev`];
+            return `${argName}Prev`;
           }
           else if (dir === 'in') {
             return argName;
@@ -291,8 +291,26 @@ SymbolicContext.prototype.emitDefn = function(lang, f) {
   _.each(c.preDefn, (code) => { code(lang, f); });
   f(`${c.getSignature(lang)} {`);
   _.each(c.preCode, (code) => { code(lang, f); });
+  let returns = [];
+  if (lang === 'js') {
+    c.collectArgs((argName, argType, dir, opt) => {
+      if (dir === 'out') {
+        f(`let ${argName} = ${argType.getValueExpr(lang, 0)};`);
+        returns.push(argName);
+      }
+      else if (dir === 'update') {
+        f(`let ${argName}Next = ${argType.getValueExpr(lang, 0)};`);
+        returns.push(`${argName}Next`);
+      }
+    });
+  }
   c.emitCode(lang, f);
   _.each(c.postCode, (code) => { code(lang, f); });
+
+  if (lang === 'js' && returns.length) {
+    f(`return {${returns.join(', ')}};`);
+  }
+
   f(`}
   `);
 };
@@ -630,7 +648,7 @@ SymbolicContext.prototype.combineValues = function(values, type) {
   let modArgs = [];
   let defValue = null;
   _.each(values, ({value, modulation}) => {
-    if (modulation === c.lets.EPS || modulation.isRead() && modulation.ref === c.lets.EPS) {
+    if (modulation === c.lets.EPS) {
       defValue = value;
     } else {
       modArgs.push(modulation);

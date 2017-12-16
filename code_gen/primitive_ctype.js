@@ -67,6 +67,12 @@ PrimitiveCType.prototype.getValueExpr = function(lang, value) {
           if (isNaN(value)) {
             return `numeric_limits<double>::quiet_NaN()`;
           }
+          else if (value === 'epsilon') {
+            return `numeric_limits<double>::epsilon()`;
+          }
+          else if (value === 'Inf') {
+            return `numeric_limits<double>::infinity()`;
+          }
           else if (_.isNumber(value)) {
             sv = value.toString();
             if (/\./.test(sv)) {
@@ -136,7 +142,56 @@ PrimitiveCType.prototype.getValueExpr = function(lang, value) {
       break;
 
     case 'js':
-      return JSON.stringify(value);
+      switch (type.typename) {
+        case 'float':
+        case 'double':
+        case 'S32':
+        case 'S64':
+        case 'U32':
+        case 'U64':
+          if (isNaN(value)) {
+            return `(0/0)`;
+          }
+          else if (value === 'epsilon') {
+            return `${Math.pow(2,-52)}`;
+          }
+          else if (value === 'Inf') {
+            return `(1/0)`;
+          }
+          else {
+            return JSON.stringify(value);
+          }
+
+        case 'string':
+        case 'bool':
+          if (value === 0) {
+            return '""';
+          }
+          else if (_.isString(value)) {
+            return JSON.stringify(value);
+          }
+          else {
+            barf();
+          }
+
+        case 'char const*':
+          if (value === 0) {
+            return 'null';
+          }
+          else if (_.isString(value)) {
+            return JSON.stringify(value);
+          }
+          else {
+            barf();
+          }
+
+        case 'jsonstr':
+          return JSON.stringify(value);
+
+        default:
+          barf();
+      }
+      break;
 
     case 'debugInfo':
       return JSON.stringify(value);
@@ -149,7 +204,7 @@ PrimitiveCType.prototype.getValueExpr = function(lang, value) {
   }
 
   function barf() {
-    throw new Error(`Unhandled value ${value} for type ${type.typename} in language ${lang}`);
+    type.reg.error(`Unhandled value ${value} for type ${type.typename} in language ${lang}`);
   }
 };
 
