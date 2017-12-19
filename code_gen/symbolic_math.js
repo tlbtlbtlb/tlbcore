@@ -642,7 +642,7 @@ SymbolicContext.prototype.matrixElem = function(matrix, rowi, coli) {
 SymbolicContext.prototype.combineValues = function(values, type) {
   let c = this;
 
-  if (values.length === 1) {
+  if (values.length === 1 && values[0].modulation.isOne()) {
     return values[0].value;
   }
   let modArgs = [];
@@ -729,7 +729,7 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc, a
 
   // WRITEME: when multiple writes, combine with constructors.
   // I know the type of the return value (from c2.outArgs[0]), so I should be able to traverse through it
-  let ret = c.C('void', 0);
+  let returnVals = _.map(explicitReturns, (er) => null);
   _.each(c2.assignments, ({dst: dst2, values: values2, type, augmented, prohibited}, assKey) => {
     if (prohibited) return;
     let values = _.map(values2, ({value, modulation}) => {
@@ -741,8 +741,12 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc, a
     });
     let dst = tr.transform(dst2);
 
-    if (dst.isRef() && explicitReturns.length === 1 && dst.name === explicitReturns[0].name && !augmented) {
-      ret = c.combineValues(values, type);
+    if (dst.isRef() && !augmented) {
+      let reti = _.findIndex(explicitReturns, (er) => er.name === dst.name);
+      if (reti < 0) {
+        c.error(`Assignment to ${dst.name} not found in output args`);
+      }
+      returnVals[reti] = c.combineValues(values, type);
     }
     else if (augmented) {
       _.each(values, (v) => {
@@ -795,8 +799,15 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc, a
     uplevels: 0,
   });
 
-
-  return ret;
+  if (returnVals.length === 1) {
+    return returnVals[0];
+  }
+  else if (returnVals.length === 0) {
+    return c.C('void', 0);
+  }
+  else {
+    return c.E('Array', ...returnVals);
+  }
 };
 
 /*
