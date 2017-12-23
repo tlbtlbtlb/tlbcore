@@ -91,6 +91,7 @@ TypeRegistry.prototype.primitive = function(typename) {
   let typereg = this;
   enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
+  if (typename in typereg.symbolics) typereg.error(`Can't define type name ${typename}, which is already a function name`);
   let t = new PrimitiveCType(typereg, typename);
   typereg.types[typename] = t;
   return t;
@@ -100,6 +101,7 @@ TypeRegistry.prototype.object = function(typename) {
   let typereg = this;
   enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
+  if (typename in typereg.symbolics) typereg.error(`Can't define type name ${typename}, which is already a function name`);
   let t = new ObjectCType(typereg, typename);
   typereg.types[typename] = t;
 
@@ -115,6 +117,7 @@ TypeRegistry.prototype.struct = function(typename, ...args) {
   let typereg = this;
   enforceCanonicalTypename(typename);
   if (typename in typereg.types) typereg.error(`${typename} already defined`);
+  if (typename in typereg.symbolics) typereg.error(`Can't define type name ${typename}, which is already a function name`);
   let t = new StructCType(typereg, typename);
   typereg.types[typename] = t;
   t.addArgs(args);
@@ -132,6 +135,7 @@ TypeRegistry.prototype.template = function(typename) {
   let typereg = this;
   enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
+  if (typename in typereg.symbolics) typereg.error(`Can't define type name ${typename}, which is already a function name`);
   let t = new TemplateCType(typereg, typename);
   typereg.types[typename] = t;
 
@@ -154,6 +158,7 @@ TypeRegistry.prototype.dsp = function(lbits, rbits) {
   let typename = `dsp${ lbits.toString() }${ rbits.toString() }`;
   enforceCanonicalTypename(typename);
   if (typename in typereg.types) return typereg.types[typename];
+  if (typename in typereg.symbolics) typereg.error(`Can't define type name ${typename}, which is already a function name`);
   let t = new DspCType(typereg, lbits, rbits);
   typereg.types[typename] = t;
   return t;
@@ -164,9 +169,9 @@ TypeRegistry.prototype.getType = function(typename, create) {
   let typereg = this;
   if (typename === null || typename === undefined) return null;
   if (typename.typename) return typename; // already a type object
-  enforceCanonicalTypename(typename);
   let type = typereg.types[typename];
   if (!type && create) {
+    enforceCanonicalTypename(typename);
     let match = /^shared_ptr< (.*) >$/.exec(typename);
     if (match) {
       type = typereg.getType(match[1], true).ptrType();
@@ -585,6 +590,7 @@ TypeRegistry.prototype.setLoc = function(start, end) {
 };
 
 TypeRegistry.prototype.error = function(msg) {
+  console.log(msg);
   if (this.scanLoc) {
     let ln = this.scanLineNumbers.rows[this.scanLoc.start];
     throw new Error(`${msg} in ${this.scanLoc.filename}:${ln}`);

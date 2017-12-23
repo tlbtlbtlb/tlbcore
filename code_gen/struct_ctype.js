@@ -170,6 +170,7 @@ StructCType.prototype.getValueExpr = function(lang, value) {
     switch(lang) {
 
       case 'c':
+      case 'human':
         return `${type.typename}()`;
 
       case 'jsn':
@@ -191,6 +192,7 @@ StructCType.prototype.getValueExpr = function(lang, value) {
     switch(lang) {
 
       case 'c':
+      case 'human':
         return `${type.typename}(${
           _.map(constructorArgs, function(argInfo) {
             return argInfo.type.getValueExpr(lang, value[argInfo.name]);
@@ -301,7 +303,7 @@ StructCType.prototype.getMemberInitializer = function(memberName) {
   return memberType.getValueExpr('c', 0);
 };
 
-StructCType.prototype.emitTypeDecl = function(f) {
+StructCType.prototype.emitCppTypeDecl = function(f) {
   let type = this;
   f(`
     struct ${type.typename} ${(type.superTypes.length ? ' : ' : '') + _.map(type.superTypes, (st) => st.typename).join(', ') }{
@@ -404,7 +406,7 @@ StructCType.prototype.emitTypeDecl = function(f) {
     `);
   }
 
-  CType.prototype.emitTypeDecl.call(type, f);
+  CType.prototype.emitCppTypeDecl.call(type, f);
   f('');
 };
 
@@ -420,6 +422,33 @@ StructCType.prototype.emitMemberFunctionDecls = function(f) {
       static ${type.typename} fromHotStr(string const &str);
     `);
   }
+};
+
+StructCType.prototype.emitJsImpl = function(f) {
+  let type = this;
+
+  // Not if a superclass is an object, which have nontrivial C++ implementations
+  if (_.any(_.map(type.superTypes, (st) => st.isObject()))) return;
+
+  f(`
+    exports.${type.jsTypename} = ${type.jsTypename};
+    function ${type.jsTypename}(${_.map(type.getConstructorArgs(), (a) => a.name).join(', ')}) {
+      this.__type = "${type.jsTypename}";
+      ${_.map(type.getConstructorArgs(), (a) => `this.${a.name} = ${a.name};`).join('\n')}
+    }
+    ${_.map(type.superTypes, (st, sti) => {
+      if (sti === 0) {
+        return `
+          ${type.jsTypename}.prototype = Object.create(${st.jsTypename}.prototype);
+        `;
+      }
+      else {
+        return `
+          _.extend(${type.jsTypename}.prototype, ${st.jsTypename}.prototype);
+        `;
+      }
+    }).join('')}
+  `);
 };
 
 

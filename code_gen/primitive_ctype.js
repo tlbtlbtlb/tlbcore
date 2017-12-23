@@ -142,6 +142,7 @@ PrimitiveCType.prototype.getValueExpr = function(lang, value) {
       break;
 
     case 'js':
+    case 'human':
       switch (type.typename) {
         case 'float':
         case 'double':

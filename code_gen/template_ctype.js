@@ -96,7 +96,7 @@ TemplateCType.prototype = Object.create(CType.prototype);
 TemplateCType.prototype.isCollection = function() { return true; };
 
 
-TemplateCType.prototype.emitTypeDecl = function(f) {
+TemplateCType.prototype.emitCppTypeDecl = function(f) {
   let type = this;
   f(`
     char const * getTypeVersionString(${type.typename} const &);
@@ -213,6 +213,7 @@ TemplateCType.prototype.getValueExpr = function(lang, value) {
         return `new ur.${this.jsTypename}()`;
 
       case 'js':
+      case 'human':
         if (type.templateName === 'arma::Col' ||
             type.templateName === 'arma::Row' ||
             type.templateName === 'arma::Mat') {
@@ -263,6 +264,7 @@ TemplateCType.prototype.getValueExpr = function(lang, value) {
     switch(lang) {
 
       case 'c':
+      case 'human':
         return `${type.typename}{${
           _.map(value, function(v) {
             return type.templateArgTypes[0].getValueExpr(lang, v);

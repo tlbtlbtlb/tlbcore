@@ -307,8 +307,13 @@ SymbolicContext.prototype.emitDefn = function(lang, f) {
   c.emitCode(lang, f);
   _.each(c.postCode, (code) => { code(lang, f); });
 
-  if (lang === 'js' && returns.length) {
-    f(`return {${returns.join(', ')}};`);
+  if (lang === 'js') {
+    if (returns.length > 1) {
+      f(`return [${returns.join(', ')}];`);
+    }
+    else if (returns.length === 1) {
+      f(`return ${returns[0]};`);
+    }
   }
 
   f(`}
@@ -589,15 +594,14 @@ SymbolicContext.prototype.Cv4 = function(value) { return this.C('Vec4', value); 
 SymbolicContext.prototype.E = function(op, ...args) {
   let c = this;
   let args2 = _.map(args, (arg, argi) => {
-    if (arg instanceof SymbolicExpr || arg instanceof SymbolicRead || arg instanceof SymbolicRef || arg instanceof SymbolicConst) {
-      assert.strictEqual(arg.c, c);
+    if (c.isNode(arg)) {
       return arg;
     }
     else if (_.isNumber(arg)) {
       return c.C('double', arg);
     }
     else {
-      c.error(`Unknown arg type for op ${op}, args[${argi}] in ${args}`);
+      c.error(`Unknown arg type for op ${op}, args[${argi}] in ${args[argi].astName || args[argi]}`);
     }
   });
   return c.dedup(new SymbolicExpr(c, op, args2));
@@ -1052,9 +1056,15 @@ function SymbolicExpr(c, op, args) {
       retType = 'UNKNOWN';
       e.materializeMember = (t) => {
         t = c.typereg.getType(t);
-        if (!arg.type.nameToType[memberName]) {
+        if (arg.type.nameToType[memberName] === t) {
+          // ignore
+        }
+        else if (!arg.type.nameToType[memberName]) {
           arg.type.add(memberName, t);
           e.type = t; // Alert! Modifying a normally-immutable object.
+        }
+        else {
+          c.error(`Can't materialize ${arg}.${memberName} as type ${t.typename} because it's already declared as type ${arg.type.nameToType[memberName].typename}`);
         }
         return e;
         //return c.E(op, arg);
@@ -1383,7 +1393,8 @@ SymbolicExpr.prototype.addDeps = function(deps) {
 // ----------------------------------------------------------------------
 
 SymbolicNode.prototype.toString = function() {
-  return util.inspect(this, {depth: 2, breakLength: 1/0});
+  return this.getExpr('human', {}, 'rd');
+  //return util.inspect(this, {depth: 2, breakLength: 1/0});
 };
 
 SymbolicNode.prototype.inspect = function(depth, opts) {
@@ -1752,6 +1763,9 @@ SymbolicContext.prototype.emitCode = function(lang, f) {
             f(`${dst.getExpr(lang, availCses, 'wr')}[${index}] = ${value.getExpr(lang, availCses, 'rd')};`);
           });
         }
+        else {
+          c.error(`Unhandled lang`);
+        }
       }
     }
     else {
@@ -1761,7 +1775,15 @@ SymbolicContext.prototype.emitCode = function(lang, f) {
     }
   });
   _.each(c.normalizeNeeded, (dst) => {
-    f(`${dst.getExpr(lang, availCses, 'wr')}.normalize();`);
+    if (lang === 'c') {
+      f(`${dst.getExpr(lang, availCses, 'wr')}.normalize();`);
+    }
+    else if (lang === 'js') {
+      f(`throw new Error('WRITEME: normalize ${dst.type.typename}');`);
+    }
+    else {
+      c.error(`Unhandled lang`);
+    }
   });
 };
 
@@ -1847,6 +1869,13 @@ SymbolicExpr.prototype.getExpr = function(lang, availCses, rdwr) {
   let argExprs = _.map(e.args, (arg) => {
     return arg.getExpr(lang, availCses, rdwr);
   });
+  if (lang === 'human') {
+    let impl = e.opInfo.impl.js || e.opInfo.impl.c;
+    if (impl) {
+      return impl.apply(e, argExprs);
+    }
+    return `${e.op}(${argExprs.join(', ')})`;
+  }
   let impl = e.opInfo.impl[lang];
   if (!impl) {
     c.error(`No ${lang} impl for ${e.op}(${_.map(e.args, (a) => a.type.jsTypename).join(', ')})`);

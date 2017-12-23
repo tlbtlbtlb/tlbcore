@@ -113,12 +113,13 @@ CType.prototype.getFns = function() {
   let type = this;
   let base = type.getFnBase();
   return {
-    hostCode: type.noHostCode ? undefined : base + '_host.cc',
-    jsTestCode: 'test_' + base + '.js',
-    typeHeader: type.noHostCode ? undefined : base + '_decl.h',
-    jsWrapHeader: base + '_jsWrap.h',
-    jsWrapCode: base + '_jsWrap.cc',
-    rosCode: base + '_ros.h',
+    hostCode: type.noHostCode ? undefined : `${base}_host.cc`,
+    jsTestCode: `test_${base}.js`,
+    typeHeader: type.noHostCode ? undefined : `${base}_decl.h`,
+    jsWrapHeader: `${base}_jsWrap.h`,
+    jsWrapCode: `${base}_jsWrap.cc`,
+    rosCode: `${base}_ros.h`,
+    jsImpl: 'jsimpl.js',
   };
 };
 
@@ -140,6 +141,9 @@ CType.prototype.emitAll = function(files) {
   }
   if (fns.rosCode) {
     type.emitRosCode(files.getFile(fns.rosCode).child({TYPENAME: type.typename, JSTYPE: type.jsTypename}));
+  }
+  if (fns.jsImpl) {
+    type.emitJsImpl(files.getFile(fns.jsImpl).child({TYPENAME: type.typename, JSTYPE: type.jsTypename}));
   }
 };
 
@@ -248,7 +252,7 @@ CType.prototype.emitHeader = function(f) {
   _.each(type.getHeaderIncludes(), function(l) {
     f(l);
   });
-  type.emitTypeDecl(f);
+  type.emitCppTypeDecl(f);
   type.emitFunctionDecl(f);
 };
 
@@ -288,6 +292,7 @@ CType.prototype.emitHostCode = function(f) {
     f(l);
   });
 };
+
 
 CType.prototype.emitJsWrapHeader = function(f) {
   let type = this;
@@ -381,8 +386,12 @@ CType.prototype.emitJsTestImpl = function(f) {
 CType.prototype.emitForwardDecl = function(f) {
 };
 
-CType.prototype.emitTypeDecl = function(f) {
+CType.prototype.emitCppTypeDecl = function(f) {
 };
+
+CType.prototype.emitJsImpl = function(f) {
+};
+
 
 CType.prototype.emitFunctionDecl = function(f) {
   let type = this;
