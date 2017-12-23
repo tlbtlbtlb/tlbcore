@@ -40,6 +40,10 @@ CType.prototype.extend = function(options) {
   return this;
 };
 
+CType.prototype.toString = function() {
+  return this.typename;
+};
+
 CType.prototype.addFunctionDecl = function(x) { this.extraFunctionDecls.push(x); };
 CType.prototype.addMemberDecl = function(x) { this.extraMemberDecls.push(x); };
 CType.prototype.addConstructorArg = function(x) { this.extraConstructorArgs.push(x); };
@@ -178,10 +182,6 @@ CType.prototype.getSignature = function() {
 CType.prototype.getTypeAndVersion = function() {
   let type = this;
   return type.typename + '@' + type.getSignature();
-};
-
-CType.prototype.toString = function() {
-  return `CType(${this.typename})`;
 };
 
 /*

@@ -478,7 +478,7 @@ SymbolicContext.prototype.W = function(dst, value) {
   }
   // WRITEME: assignment conversion
   else {
-    c.error(`Type mismatch assigning ${dst} of type ${dst.type.typename} = ${value} of type ${value.type.typename}`);
+    c.error(`Type mismatch assigning ${dst} of type ${dst.type} = ${value} of type ${value.type}`);
   }
   if (c.assignments[dst.cseKey] === undefined) {
     c.assignments[dst.cseKey] = {
@@ -624,7 +624,7 @@ SymbolicContext.prototype.structref = function(memberName, a, autoCreateType) {
 
   let t = a.type;
   if (!t) c.error(`Unknown type for ${a}`);
-  if (!t.nameToType) c.error(`Not dererenceable: ${a.t.typename}`);
+  if (!t.nameToType) c.error(`Not dererenceable: ${a.t}`);
   let retType = t.nameToType[memberName];
   if (!retType && t.autoCreate) {
     t.add(memberName, autoCreateType);
@@ -687,7 +687,7 @@ SymbolicContext.prototype.inlineFunction = function(c2, inArgs, callSourceLoc, a
 
   if (explicitFormals.length !== inArgs.length) {
     c.error(`Wrong number of arguments. formals=(${
-      _.map(explicitFormals, (a) => `${a.t.typename} ${a.name}`).join(', ')
+      _.map(explicitFormals, (a) => `${a.t} ${a.name}`).join(', ')
     }) actuals=(${
       _.map(inArgs, (a) => `${a}`).join(', ')
     })`);
@@ -1049,7 +1049,7 @@ function SymbolicExpr(c, op, args) {
     e.args = [arg];
     let t = arg.type;
     if (!t) c.error(`Unknown type for ${arg}`);
-    if (!t.nameToType) c.error(`No member ${memberName} in ${t.typename}, which isn't even a struct`);
+    if (!t.nameToType) c.error(`No member ${memberName} in ${t}, which isn't even a struct`);
 
     let retType = t.nameToType[memberName];
     if (!retType && arg.type.autoCreate) {
@@ -1064,7 +1064,7 @@ function SymbolicExpr(c, op, args) {
           e.type = t; // Alert! Modifying a normally-immutable object.
         }
         else {
-          c.error(`Can't materialize ${arg}.${memberName} as type ${t.typename} because it's already declared as type ${arg.type.nameToType[memberName].typename}`);
+          c.error(`Can't materialize ${arg}.${memberName} as type ${t} because it's already declared as type ${arg.type.nameToType[memberName]}`);
         }
         return e;
         //return c.E(op, arg);
@@ -1130,7 +1130,7 @@ function SymbolicExpr(c, op, args) {
       t.templateName === 'arma::Mat' || t.templateName === 'arma::Mat::fixed') {
       retType = t.templateArgTypes[0];
     }
-    if (!retType) c.error(`Can't index into ${t.type.typename}`);
+    if (!retType) c.error(`Can't index into ${t.type}`);
 
     let arg = args[0];
     if (arg instanceof SymbolicRead) {
@@ -1510,7 +1510,7 @@ SymbolicContext.prototype.D = function(wrt, e) {
 SymbolicNode.prototype.getDeriv = function(wrt) {
   let e = this;
   let c = e.c;
-  c.error(`Unknown expression type for getDeriv ${e.toString()}`);
+  c.error(`Unknown expression type for getDeriv ${e}`);
 };
 
 SymbolicRead.prototype.getDeriv = function(wrt) {

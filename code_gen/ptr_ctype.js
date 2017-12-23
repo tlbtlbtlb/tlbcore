@@ -60,7 +60,7 @@ PtrCType.prototype.getValueExpr = function(lang, value) {
   }
 
   function barf() {
-    throw new Error(`Unhandled value ${value} for type ${type.typename} in language ${lang}`);
+    throw new Error(`Unhandled value ${value} for type ${type} in language ${lang}`);
   }
 };
 

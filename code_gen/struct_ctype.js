@@ -149,7 +149,7 @@ StructCType.prototype.getSynopsis = function() {
 StructCType.prototype.getMemberTypes = function() {
   let type = this;
   let subtypes = gen_utils.sortTypes(_.values(type.nameToType).concat(type.superTypes));
-  if (0) console.log(`StructCType.getMemberTypes ${type.typename}`, _.map(subtypes, function(type) { return type.typename; }));
+  if (0) console.log(`StructCType.getMemberTypes ${type}`, _.map(subtypes, function(type) { return type.typename; }));
   return subtypes;
 };
 
@@ -223,7 +223,7 @@ StructCType.prototype.getValueExpr = function(lang, value) {
   }
 
   function barf() {
-    throw new Error(`Unhandled value ${value} for type ${type.typename} in language ${lang}`);
+    throw new Error(`Unhandled value ${value} for type ${type} in language ${lang}`);
   }
 };
 
@@ -270,10 +270,10 @@ StructCType.prototype.applyMemberDistribution = function(memberName, distName, a
   type.autoCreateMember(memberName, args[0].type);
   let t = type.nameToType[memberName];
   if (!t) {
-    throw new Error(`Applying distribution to nonexistent member ${memberName} of ${type.typename}. Maybe set autoCreate?`);
+    throw new Error(`Applying distribution to nonexistent member ${memberName} of ${type}. Maybe set autoCreate?`);
   }
   else if (t !== args[0].type) {
-    throw new Error(`Applying distribution of type ${args[0].type.typename} to member ${memberName} of ${type.typename}.`);
+    throw new Error(`Applying distribution of type ${args[0].type} to member ${memberName} of ${type}.`);
   }
 
 };
@@ -284,6 +284,9 @@ StructCType.prototype.autoCreateMember = function(memberName, t) {
 
   if (!type.nameToType[memberName] && type.autoCreate) {
     type.add(memberName, t);
+  }
+  else if (type.nameToType[memberName] && type.nameToType[memberName] !== t) {
+    type.reg.error(`autoCreate ${memberName} in ${type}: inconsistent types ${type.nameToType[memberName]} and ${t}`);
   }
 };
 

@@ -141,7 +141,7 @@ TemplateCType.prototype.getAllTypes = function() {
   else if (type.templateName === 'Timestamped') {
     ret.push(type.reg.getType('GenericTimestamped'));
   }
-  if (0) console.log(`TemplateCType.getAllTypes ${type.typename}`, _.map(ret, function(t) { return t.typename; }));
+  if (0) console.log(`TemplateCType.getAllTypes ${type}`, _.map(ret, function(t) { return t.typename; }));
 
   return ret;
 };
@@ -302,7 +302,7 @@ TemplateCType.prototype.getValueExpr = function(lang, value) {
   }
 
   function barf() {
-    throw new Error(`Unhandled value ${value} for type ${type.typename} in language ${lang}`);
+    throw new Error(`Unhandled value ${value} for type ${type} in language ${lang}`);
   }
 };
 
