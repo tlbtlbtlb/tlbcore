@@ -187,11 +187,6 @@ TemplateCType.prototype.hasJsWrapper = function() {
   return true;
 };
 
-TemplateCType.prototype.getSynopsis = function() {
-  let type = this;
-  return `(${type.typename})`;
-};
-
 TemplateCType.prototype.getValueExpr = function(lang, value) {
   let type = this;
 
@@ -199,15 +194,15 @@ TemplateCType.prototype.getValueExpr = function(lang, value) {
     switch(lang) {
 
       case 'c':
-      if (type.templateName === 'arma::Col::fixed' ||
-          type.templateName === 'arma::Row::fixed' ||
-          type.templateName === 'arma::Mat::fixed') {
-        // If you want zero-filled, you have to ask for it
-        return `${type.typename}(arma::fill::zeros)`;
-      }
-      else {
-        return `${type.typename}()`;
-      }
+        if (type.templateName === 'arma::Col::fixed' ||
+            type.templateName === 'arma::Row::fixed' ||
+            type.templateName === 'arma::Mat::fixed') {
+          // If you want zero-filled, you have to ask for it
+          return `${type.typename}(arma::fill::zeros)`;
+        }
+        else {
+          return `${type.typename}()`;
+        }
 
       case 'jsn':
         return `new ur.${this.jsTypename}()`;
@@ -358,25 +353,6 @@ TemplateCType.prototype.getJsToCppTest = function(valueExpr, o) {
   }
   return ret;
 };
-
-TemplateCType.prototype.accumulateRecursiveMembers = function(context, acc) {
-  let type = this;
-  // Don't need to index into arma types, because StructCType.emitWrJsonBulk handles them
-  if (0 && type.templateName === 'arma::Col::fixed' || type.templateName === 'arma::Row::fixed') {
-    _.each(_.range(0, parseInt(type.templateArgs[1])), function(i) {
-      type.templateArgTypes[0].accumulateRecursiveMembers(context.concat([i]), acc);
-    });
-  }
-  else if (0 && type.templateName === 'arma::Mat::fixed') {
-    _.each(_.range(0, parseInt(type.templateArgs[1]) * parseInt(type.templateArgs[2])), function(i) {
-      type.templateArgTypes[0].accumulateRecursiveMembers(context.concat([i]), acc);
-    });
-  }
-  else {
-    CType.prototype.accumulateRecursiveMembers.call(type, context, acc);
-  }
-};
-
 
 TemplateCType.prototype.getJsToCppExpr = function(valueExpr, o) {
   let type = this;

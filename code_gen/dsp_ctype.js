@@ -13,7 +13,7 @@ function DspCType(reg, lbits, rbits) {
   type.rbits = rbits;
   type.tbits = lbits + rbits;
 
-  let typename = `dsp${ lbits.toString() }${ rbits.toString() }`;
+  let typename = `dsp${lbits}${rbits}`;
   CType.call(type, reg, typename);
 }
 DspCType.prototype = Object.create(CType.prototype);
@@ -22,11 +22,6 @@ DspCType.prototype.isDsp = function() { return true; };
 DspCType.prototype.getFns = function() {
   let type = this;
   return {};
-};
-
-DspCType.prototype.getSynopsis = function() {
-  let type = this;
-  return `(${ type.typename })`;
 };
 
 DspCType.prototype.getHeaderIncludes = function() {

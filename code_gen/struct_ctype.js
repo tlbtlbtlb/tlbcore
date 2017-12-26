@@ -138,19 +138,14 @@ StructCType.prototype.getMembers = function() {
 };
 
 StructCType.prototype.getSynopsis = function() {
-  let type = this;
-  return `(${type.typename}={
-    ${ _.map(type.orderedNames, function(name) {
-      return type.nameToType[name].getSynopsis();
-    }).join(',')
-  }})`;
+  return `${this.typename}={${
+     _.map(this.orderedNames, (name) => `${name}:${this.nameToType[name].getSynopsis()}`).join(', ')
+  }}`;
 };
 
 StructCType.prototype.getMemberTypes = function() {
   let type = this;
-  let subtypes = gen_utils.sortTypes(_.values(type.nameToType).concat(type.superTypes));
-  if (0) console.log(`StructCType.getMemberTypes ${type}`, _.map(subtypes, function(type) { return type.typename; }));
-  return subtypes;
+  return gen_utils.sortTypes(_.values(type.nameToType).concat(type.superTypes));
 };
 
 StructCType.prototype.accumulateRecursiveMembers = function(context, acc) {

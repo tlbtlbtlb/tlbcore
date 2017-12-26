@@ -21,11 +21,6 @@ ObjectCType.prototype.getCustomerIncludes = function() {
   return [];
 };
 
-ObjectCType.prototype.getSynopsis = function() {
-  return `(${ this.typename })`;
-};
-
-
 ObjectCType.prototype.getValueExpr = function(lang, value) {
   let type = this;
 

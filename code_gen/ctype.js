@@ -171,6 +171,10 @@ CType.prototype.getHeaderIncludes = function() {
   return ret.concat(type.extraHeaderIncludes);
 };
 
+CType.prototype.getSynopsis = function() {
+  return this.typename;
+};
+
 CType.prototype.getSignature = function() {
   let type = this;
   let syn = type.getSynopsis();

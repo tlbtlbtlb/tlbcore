@@ -33,11 +33,6 @@ PtrCType.prototype.getFns = function() {
   return {};
 };
 
-PtrCType.prototype.getSynopsis = function() {
-  return `(${ this.typename })`;
-};
-
-
 PtrCType.prototype.getValueExpr = function(lang, value) {
   let type = this;
 

@@ -34,11 +34,6 @@ PrimitiveCType.prototype.getCustomerIncludes = function() {
   return type.extraCustomerIncludes;
 };
 
-PrimitiveCType.prototype.getSynopsis = function() {
-  let type = this;
-  return `( ${type.typename})`;
-};
-
 PrimitiveCType.prototype.getValueExpr = function(lang, value) {
   let type = this;
   let sv;
