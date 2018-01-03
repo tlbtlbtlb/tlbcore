@@ -128,11 +128,14 @@ _.each([0,1,2,3], function(rowi) {
         return `(${a}(${rowi},${coli}))`;
       },
       js: function(a) {
-        return `(${a}[${rowi} + 4*${coli}))`;
+        return `(${a}[${rowi} + 4*${coli}])`;
       },
       deriv: function(c, wrt, a) {
         return c.E(`(${rowi},${coli})`, c.D(wrt, a));
-      }
+      },
+      gradient: function(c, deps, g, a) {
+        a.addGradient(deps, c.E('*', g, c.C('Mat44', _.map(_.range(16), (i) => (i == coli*4 + rowi) ? 1 : 0))));
+      },
     });
   });
 });

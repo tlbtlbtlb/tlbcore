@@ -67,16 +67,39 @@ defop('I',     '(int)',       'R', {
   Exponents
 */
 
-defop('R',  'pow',             'R', 'R', {
+defop('R',  '^',             'R', 'R', {
   imm: function(a, b) {
     return Math.pow(a,b);
   },
   c: function(a, b) {
-    return `pow(${a}, ${b})`;
+    if (b === '2' || b === '2.0') {
+      return `sqr(${a})`;
+    }
+    else if (b === '0.5') {
+      return `sqrt(${a})`;
+    }
+    else {
+      return `pow(${a}, ${b})`;
+    }
   },
-  js: function(a,b) {
-    return `Math.pow(${a}, ${b})`;
+  js: function(a, b) {
+    if (b === '0.5') {
+      return `Math.sqrt(${a})`;
+    }
+    else {
+      return `Math.pow(${a}, ${b})`;
+    }
   },
+  optimize: function(c, a, b) {
+    if (b.isOne()) return a;
+  },
+  deriv: function(c, wrt, a, b) {
+    return c.E('*', c.D(wrt, a), c.E('*', b, c.E('^', a, c.E('-', b, 1))));
+  },
+  gradient: function(c, deps, g, a, b) {
+    a.addGradient(deps, c.E('*', g, c.E('*', b, c.E('^', a, c.E('-', b, 1)))));
+  },
+
 });
 
 defop('R',  'exp',             'R', {
@@ -129,6 +152,22 @@ defop('R',  'sign',             'R', {
   }
 });
 
+defop('R',  'abs',             'R', {
+  imm: function(a) {
+    return Math.abs(a);
+  },
+  c: function(a) {
+    return `abs(${a})`;
+  },
+  js: function(a) {
+    return `Math.abs(${a})`;
+  },
+  gradient: function(c, deps, g, a) {
+    // None. Could maybe apply a small gradient near transitions.
+    a.addGradient(deps, c.E('*', g, c.E('sign', a)));
+  }
+});
+
 
 if (0) {
   defop('R',  'sigmoid_01',  'R');
@@ -136,6 +175,7 @@ if (0) {
   defop('R',  'sigmoid_22',  'R');
 }
 
+// Prefer x^0.5
 defop('R',  'sqrt',        'R', {
   imm: function(a) {
     return Math.sqrt(a);
@@ -320,10 +360,9 @@ defsynthop('*', (args) => {
   }
 });
 
-
+// Prefer x^2
 defop('R',  'sqr',               'R', {
   imm: function(a) {
-    debugger;
     return a * a;
   },
   c: function(a) {
@@ -376,10 +415,10 @@ defop('R',  '+',               'R', 'R', {
   optimize: function(c, a, b) {
     if (a.isZero()) return b;
     if (b.isZero()) return a;
-    if (a.isExpr('-') && a.args[0].isOne() && a.args[1] === b) {
+    if (a.isExpr('-') && a.args[0].isOne() && a.args[1] === b) { // (1-x) + x => 1
       return a.args[0];
     }
-    if (b.isExpr('-') && b.args[0].isOne() && b.args[1] === a) {
+    if (b.isExpr('-') && b.args[0].isOne() && b.args[1] === a) { // x + (1-x) => 1
       return b.args[0];
     }
   },
@@ -427,6 +466,9 @@ defop('R',  '-',               'R', 'R', {
   },
   deriv: function(c, wrt, a, b) {
     return c.E('-', c.D(wrt, a), c.D(wrt, b));
+  },
+  optimize: function(c, a, b) {
+    if (b.isZero()) return a;
   },
   gradient: function(c, deps, g, a, b) {
     a.addGradient(deps, g);
