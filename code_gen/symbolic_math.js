@@ -480,6 +480,9 @@ SymbolicContext.prototype.W = function(dst, value) {
   else {
     c.error(`Type mismatch assigning ${dst} of type ${dst.type} = ${value} of type ${value.type}`);
   }
+  while (dst.isRead()) {
+    dst = dst.ref;
+  }
   if (c.assignments[dst.cseKey] === undefined) {
     c.assignments[dst.cseKey] = {
       dst: dst,
@@ -1323,6 +1326,7 @@ SymbolicContext.prototype.getDeps = function() {
   };
   _.each(c.assignments, ({dst, values, type, augmented, prohibited}, assKey) => {
     if (prohibited) return;
+    if (dst.isRead()) c.error(`Assignment to a read`);
     deps.gradients[dst.cseKey] = [];
     deps.writes[dst.cseKey] = {dst, values, type, augmented};
     if (!deps.fwd[dst.cseKey]) deps.fwd[dst.cseKey] = [];
@@ -1485,8 +1489,11 @@ SymbolicExpr.prototype.getDebugInfo = function() {
   if (e.opInfo.impl.debugInfo) {
     return e.opInfo.impl.debugInfo.apply(e, argExprs);
   }
-  else {
+  else if (e.opInfo.impl.imm) {
     return e.opInfo.impl.imm.apply(e, argExprs);
+  }
+  else {
+    return null;
   }
 };
 
@@ -1771,7 +1778,7 @@ SymbolicContext.prototype.emitCode = function(lang, f) {
     else {
       let v = c.combineValues(values, type);
       v.emitCses(lang, deps, f, availCses);
-      f(`${dst.getExpr(lang, availCses, 'wr')} = ${v.getExpr(lang, availCses, 'rd')};`);
+      f(`${dst.getExpr(lang, {}, 'wr')} = ${v.getExpr(lang, availCses, 'rd')};`);
     }
   });
   _.each(c.normalizeNeeded, (dst) => {
@@ -1825,7 +1832,7 @@ SymbolicRead.prototype.getExpr = function(lang, availCses, rdwr) {
     return this.ref.getExpr(lang, availCses, rdwr);
   }
   else {
-    this.c.error(`${this}.getExpr(${lang}, .. ${rdwr}: unimplemented`);
+    this.c.error(`${this}.getExpr(${lang}, .. ${rdwr}): unimplemented`);
   }
 };
 

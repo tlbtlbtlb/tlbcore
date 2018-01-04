@@ -159,11 +159,20 @@ PrimitiveCType.prototype.getValueExpr = function(lang, value) {
           }
 
         case 'string':
-        case 'bool':
           if (value === 0) {
             return '""';
           }
           else if (_.isString(value)) {
+            return JSON.stringify(value);
+          }
+          else {
+            barf();
+          }
+
+        case 'bool':
+          if (value === 0) {
+            return 'false';
+          } else if (_.isBoolean(value)) {
             return JSON.stringify(value);
           }
           else {
