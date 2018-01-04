@@ -123,7 +123,7 @@ defop('Mat44',        'mat44Rotation',   'Vec3', 'double', {
 
 _.each([0,1,2,3], function(rowi) {
   _.each([0,1,2,3], function(coli) {
-    defop('double',    `(${rowi},${coli})`,           'Mat44', {
+    defop('R',    `(${rowi},${coli})`,           'Mat44', {
       c: function(a) {
         return `(${a}(${rowi},${coli}))`;
       },
@@ -139,6 +139,41 @@ _.each([0,1,2,3], function(rowi) {
     });
   });
 });
+
+_.each([0,1,2,3], function(i) {
+  defop('R',    `(${i})`,           'Vec4', {
+    c: function(a) {
+      return `(${a}(${i}))`;
+    },
+    js: function(a) {
+      return `(${a}[${i}])`;
+    },
+    deriv: function(c, wrt, a) {
+      return c.E(`(${i})`, c.D(wrt, a));
+    },
+    gradient: function(c, deps, g, a) {
+      a.addGradient(deps, c.E('*', g, c.C('Vec4', _.map(_.range(4), (i2) => (i2 == i) ? 1 : 0))));
+    },
+  });
+});
+
+_.each([0,1,2], function(i) {
+  defop('R',    `(${i})`,           'Vec3', {
+    c: function(a) {
+      return `(${a}(${i}))`;
+    },
+    js: function(a) {
+      return `(${a}[${i}])`;
+    },
+    deriv: function(c, wrt, a) {
+      return c.E(`(${i})`, c.D(wrt, a));
+    },
+    gradient: function(c, deps, g, a) {
+      a.addGradient(deps, c.E('*', g, c.C('Vec3', _.map(_.range(3), (i2) => (i2 == i) ? 1 : 0))));
+    },
+  });
+});
+
 
 defop('Mat44',    'trans',           'Mat44', {
   c: function(a) {
@@ -287,6 +322,39 @@ defop('Vec4',    '+',           'Vec4', 'Vec4', {
     b.addGradient(deps, g);
   },
 });
+
+defop('Vec3',    '+',           'Vec3', 'Vec3', {
+  c: function(a, b) {
+    return `(${a} + ${b})`;
+  },
+  js: function(a, b) {
+    return `Geom3D.add_vec3_vec3(${a}, ${b})`;
+  },
+  deriv: function(c, wrt, a, b) {
+    return c.E('+',
+      c.D(wrt, a),
+      c.D(wrt, b));
+  },
+  optimize: function(c, a, b) {
+    if (a.isZero()) return b;
+    if (b.isZero()) return a;
+  },
+  gradient: function(c, deps, g, a, b) {
+    a.addGradient(deps, g);
+    b.addGradient(deps, g);
+  },
+});
+
+
+defop('Vec3',    'fromHomo',           'Vec4', {
+  replace: function(c, a) {
+    return c.E('Vec3',
+      c.E('/', c.E('(0)', a), c.E('(3)', a)),
+      c.E('/', c.E('(1)', a), c.E('(3)', a)),
+      c.E('/', c.E('(2)', a), c.E('(3)', a)));
+  }
+});
+
 
 
 if (0) { // WRITEME someday
