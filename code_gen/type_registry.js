@@ -419,7 +419,7 @@ TypeRegistry.prototype.emitFunctionWrappers = function(f) {
         if (funcInfo.returnType === 'void') {
           f(`
             ${funcInfo.funcInvocation}(${_.map(downArgs, ({name, type}) => name).join(', ')});
-          `)
+          `);
           if (retRef.length > 1) {
             f(`
               Local< Array > ret = Array::New(isolate, ${retRef.length});

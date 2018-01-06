@@ -92,7 +92,7 @@ describe('symbolic_math', function() {
     let d = c.withGradients('sampleGrad');
 
     let gen = cgen.mkCodeGen(null, {});
-    Config.emitCppTypeDecl(gen);
+    //Config.emitCppTypeDecl(gen);
     d.emitDefn('c', gen);
     gen.end();
   });

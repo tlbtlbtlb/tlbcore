@@ -69,7 +69,7 @@ function main() {
       process.stderr.write(`Load ${fn}...`);
       typereg.compileFile(fn);
       let t1 = Date.now();
-      if (profile) process.stderr.write(`${t1-t0} mS`)
+      if (profile) process.stderr.write(`${t1-t0} mS`);
       process.stderr.write('\n');
     });
     let t2 = Date.now();
@@ -77,7 +77,7 @@ function main() {
     typereg.emitAll(filegen);
     filegen.end();
     let t3 = Date.now();
-    if (profile) console.log(`${t3-t2} mS`)
+    if (profile) console.log(`${t3-t2} mS`);
     process.stderr.write('\n');
   }
 

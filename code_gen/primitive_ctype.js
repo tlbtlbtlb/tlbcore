@@ -168,6 +168,7 @@ PrimitiveCType.prototype.getValueExpr = function(lang, value) {
           else {
             barf();
           }
+          break;
 
         case 'bool':
           if (value === 0) {
@@ -178,6 +179,7 @@ PrimitiveCType.prototype.getValueExpr = function(lang, value) {
           else {
             barf();
           }
+          break;
 
         case 'char const*':
           if (value === 0) {
@@ -189,6 +191,7 @@ PrimitiveCType.prototype.getValueExpr = function(lang, value) {
           else {
             barf();
           }
+          break;
 
         case 'jsonstr':
           return JSON.stringify(value);
@@ -254,7 +257,7 @@ PrimitiveCType.prototype.isPod = function() {
 
 PrimitiveCType.prototype.supportsScalarMult = function() {
   let type = this;
-  return  (type.typename === 'float' || type.typename === 'double')
+  return  (type.typename === 'float' || type.typename === 'double');
 };
 
 

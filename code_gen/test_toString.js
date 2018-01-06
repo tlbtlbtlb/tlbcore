@@ -6,7 +6,7 @@ function Obj(foo) {
 
 Obj.prototype.toString = function() {
   return `Obj(foo=${this.foo})`;
-}
+};
 
 describe('template strings', function() {
   it('interpolating object should call toString', function() {
@@ -16,7 +16,7 @@ describe('template strings', function() {
   });
 
   it('interpolating array should call toString', function() {
-    let o = [new Obj('buz'), new Obj('bar')]
+    let o = [new Obj('buz'), new Obj('bar')];
     let s = `o=${o}`;
     assert.equal(s, 'o=Obj(foo=buz),Obj(foo=bar)');
   });
