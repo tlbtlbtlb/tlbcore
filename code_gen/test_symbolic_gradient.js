@@ -26,8 +26,6 @@ describe('symbolic_math', function() {
     let c = new symbolic_math.SymbolicContext(typereg, 'sample', [
       {name: 'act', t: 'TestAct'},
     ], [
-
-    ], [
       {name: 'obs', t: 'TestObs'},
       {name: 'conf', t: 'TestConf'},
     ]);
@@ -68,12 +66,9 @@ describe('symbolic_math', function() {
 
     let c = new symbolic_math.SymbolicContext(typereg, 'sample', [
       ['act', 'Action'],
-      ['confGrad', 'Config']
-    ], [
     ], [
       ['obs', 'Obs'],
       ['conf', 'Config'],
-      ['actGrad', 'Action']
     ]);
 
     let a1 = c.E('+',
