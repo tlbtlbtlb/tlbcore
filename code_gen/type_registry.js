@@ -590,7 +590,7 @@ TypeRegistry.prototype.setLoc = function(start, end) {
 };
 
 TypeRegistry.prototype.error = function(msg) {
-  console.log(msg);
+  if (0) console.log(msg);
   if (this.scanLoc) {
     let ln = this.scanLineNumbers.rows[this.scanLoc.start];
     throw new Error(`${msg} in ${this.scanLoc.filename}:${ln}`);

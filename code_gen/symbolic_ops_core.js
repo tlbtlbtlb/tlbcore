@@ -753,8 +753,8 @@ defop('jsonstr', 'Array', '...', {
       }).join(' + ", "\n    + ')
     )} +\n    string("]"))`;
   },
-  js: () => {
-    throw new Error('WRITEME');
+  js: (...args) => {
+    return `[${args.join(', ')}]`;
   },
   deriv: () => {
     throw new Error('WRITEME');

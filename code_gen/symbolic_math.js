@@ -40,3 +40,5 @@ const symbolic_hash = require('./symbolic_hash');
 const simpleHash = exports.simpleHash = symbolic_hash.simpleHash;
 
 const symbolic_deps = require('./symbolic_deps');
+
+const symbolic_func = require('./symbolic_func');

@@ -23,12 +23,12 @@ SymbolicContext.prototype.withGradients = function(newName) {
   let newInArgs = _.clone(c.inArgs);
   _.each(c.outArgs, function({name, t, opt}) {
     if (!opt.noGrad) {
-      newInArgs.push({name: `${name}Grad`, t, opt: _.extend({}, opt, {isGrad: true})});
+      newInArgs.push({name: `${name}Grad`, t, opt: _.extend({}, opt, {isGrad: true, update: false})});
     }
   });
   _.each(c.inArgs, function({name, t, opt}) {
     if (!opt.noGrad) {
-      newOutArgs.push({name: `${name}Grad`, t, opt: _.extend({}, opt, {isGrad: true})});
+      newOutArgs.push({name: `${name}Grad`, t, opt: _.extend({}, opt, {isGrad: true, update: false})});
     }
   });
 
@@ -77,7 +77,6 @@ SymbolicContext.prototype.addGradients = function() {
       if (debug) console.log(`Dropping gradient for ${dst}`);
       return;
     }
-    debugger;
     let g = dst.getDstGradient(deps);
     if (debug) console.log(`Gradient for ${dst}: ${g}`);
     if (g.isZero()) return;
@@ -136,7 +135,7 @@ function fmtDep(deps, n1, flag) {
       deps.letRdGrads[n1.cseKey] ? `rd=[${deps.letRdGrads[n1.cseKey]}]` : ``
     } ${
       deps.letWrGrads[n1.cseKey] ? `wr=[${deps.letWrGrads[n1.cseKey]}]` : ``
-    }`
+    }`;
 }
 
 

@@ -79,4 +79,4 @@ SymbolicTransform.prototype.transformAssignments = function(assignments) {
       augmented
     }];
   }));
-}
+};
