@@ -4,11 +4,12 @@ UNAME_HOST := $(shell uname -n | sed -e 's/\..*//')
 UNAME_MACHINE := $(shell uname -m)
 
 printvar.% : ## Print named variable, eg "make printvar.UNAME_SYSTEM"
-	@echo $*=$($*)
+	@echo "$*=$($*) (flavor=$(flavor $*) origin=$(origin $*))"
 
 printenv :
 	env
 
+printvars : $(foreach x,$(.VARIABLES),printvar.$(x))
 
 .PHONY: help
 help: force ## Show make targets

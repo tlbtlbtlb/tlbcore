@@ -7,6 +7,7 @@ const _ = require('underscore');
 
 exports.drawTooltip = drawTooltip;
 exports.goodGraphColor = goodGraphColor;
+exports.darkGraphColor = darkGraphColor;
 exports.mkShinyPattern = mkShinyPattern;
 exports.drawRountangle = drawRountangle;
 exports.drawSpinner = drawSpinner;
