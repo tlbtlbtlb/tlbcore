@@ -66,6 +66,12 @@ WebServer.prototype.setUrl = function(url, p) {
   }
 };
 
+WebServer.prototype.getUrl = function(url) {
+  let webServer = this;
+  return webServer.urlProviders['GET ' + url];
+};
+
+
 WebServer.prototype.setPrefixHosts = function(prefix, hosts) {
   let webServer = this;
   prefix = path.join('/', prefix, '/');
