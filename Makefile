@@ -134,10 +134,10 @@ force :
 	git ls-files -z >$@
 
 push.%: .gitfiles
-	rsync -ai --inplace --from0 --relative --files-from .gitfiles . $*:tlbcore/.
+	rsync -a --inplace --from0 --relative --files-from .gitfiles . $*:tlbcore/.
 
 pushdist.% : force
-	rsync -ai --inplace --relative $(DOCKER_EXCLUDES) $(patsubst %,--exclude %,$(PUSHDIST_EXCLUDE_REGEXPS)) --delete . $*:tlbcore/.
+	rsync -a --inplace --relative $(DOCKER_EXCLUDES) $(patsubst %,--exclude %,$(PUSHDIST_EXCLUDE_REGEXPS)) --delete . $*:tlbcore/.
 
 
 cross.%: push.%
