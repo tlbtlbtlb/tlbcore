@@ -39,11 +39,11 @@ function setup() {
     // eslint-disable-next-line global-require
     servers = require(serversModulePath);
   } catch(ex) {
-    console.log(`No ${serversModulePath}`);
+    if (0) console.log(`No ${serversModulePath}`);
     servers = {};
   }
   if (!servers[hostname]) {
-    logio.E(serversModulePath, `No entry for myself (${hostname}), using defaults`);
+    if (0) logio.E(serversModulePath, `No entry for myself (${hostname}), using defaults`);
     servers[hostname] = {
       roles: {web: true, test: true, compute: true},
     };
