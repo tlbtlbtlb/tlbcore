@@ -1,7 +1,15 @@
 #pragma once
 
 static inline double normangle(double x) {
-  return fmod((x + M_PI), M_2PI) - M_PI;
+  if (x > M_PI) {
+    return fmod((x + M_PI), M_2PI) - M_PI;
+  }
+  else if (x < -M_PI) {
+    return -(fmod((-x + M_PI), M_2PI) - M_PI);
+  }
+  else {
+    return x;
+  }
 }
 static inline double sqr(double x) {
   return x*x;
