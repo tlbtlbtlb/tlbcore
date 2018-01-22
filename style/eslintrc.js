@@ -57,7 +57,7 @@ module.exports = {
         "func-call-spacing": "error",
         "func-name-matching": "error",
         "func-names": [
-            "error",
+            "warn",
             "never"
         ],
         "func-style": "off",
