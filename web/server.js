@@ -1,6 +1,6 @@
 'use strict';
 // process.env.UV_THREADPOOL_SIZE = 10;
-const _ = require('underscore');
+const _ = require('lodash');
 const net = require('net');
 const fs = require('fs');
 

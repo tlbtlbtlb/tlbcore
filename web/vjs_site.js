@@ -2,7 +2,7 @@
 /*
   It's reasonable to use this behind nginx. See http://nginx.org/en/docs/
 */
-const _ = require('underscore');
+const _ = require('lodash');
 const util = require('util');
 const http = require('http');
 const https = require('https');
@@ -104,7 +104,7 @@ WebServer.prototype.setupBaseProvider = function() {
   // Add more CSS files here
 
   if (1) p.addScript(require.resolve('./vjs_preamble.js'));
-  if (1) p.addScript(require.resolve('underscore'), 'underscore');
+  if (1) p.addScript(require.resolve('lodash/lodash.min.js'), 'lodash');
   if (1) p.addScript(require.resolve('../common/MoreUnderscore.js'));
   if (1) p.addScript(require.resolve('eventemitter'), 'events');
   if (1) p.addScript(require.resolve('jquery/dist/jquery.js'));

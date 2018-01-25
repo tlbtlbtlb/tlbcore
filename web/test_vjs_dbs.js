@@ -1,5 +1,5 @@
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 const assert = require('assert');
 const vjs_dbs = require('./vjs_dbs');
 

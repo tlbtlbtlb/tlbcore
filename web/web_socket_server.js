@@ -27,7 +27,7 @@
 */
 
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 const logio = require('../common/logio');
 const web_socket_helper = require('./web_socket_helper');
 

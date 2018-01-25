@@ -1,5 +1,5 @@
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 const url = require('url');
 const vjs_safety = require('./vjs_safety');
 

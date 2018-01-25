@@ -4,7 +4,7 @@
   node environments are slightly different there are two versions. See there for doc
 */
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 const web_socket_helper = require('web_socket_helper');
 
 let verbose = 1;

@@ -1,4 +1,4 @@
-const _ = require('underscore');
+const _ = require('lodash');
 const assert = require('assert');
 const path = require('path');
 const async = require('async');

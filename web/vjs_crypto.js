@@ -1,7 +1,7 @@
 
 /* globals DataView, crypto */
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 
 exports.sha256 = sha256;
 

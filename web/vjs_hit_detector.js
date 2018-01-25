@@ -1,5 +1,5 @@
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 
 exports.HitDetector = HitDetector;
 
@@ -72,6 +72,10 @@ HitDetector.prototype.add = function(t, r, b, l, actions) {
   if (actions.onHover && inside && !hd.hoverActive && !hd.dragging) {
     hd.hoverActive = true;
     actions.onHover();
+  }
+  if (actions.onHoverDrag && inside && !hd.hoverActive) {
+    hd.hoverActive = true;
+    actions.onHoverDrag();
   }
 };
 

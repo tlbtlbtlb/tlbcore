@@ -3,7 +3,7 @@
   https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
 */
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 
 exports.drawTooltip = drawTooltip;
 exports.goodGraphColor = goodGraphColor;

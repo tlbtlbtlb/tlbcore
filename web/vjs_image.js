@@ -1,5 +1,5 @@
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 const child_process = require('child_process');
 const async = require('async');
 const logio = require('../common/logio');

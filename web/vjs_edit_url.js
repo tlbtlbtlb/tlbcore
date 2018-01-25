@@ -1,6 +1,6 @@
 /* globals CodeMirror, replaceLocationHash, gotoCurrentState */
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 
 $.startEditUrl = function() {
 

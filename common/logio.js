@@ -1,5 +1,5 @@
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 require('../common/MoreUnderscore');
 const child_process = require('child_process');
 

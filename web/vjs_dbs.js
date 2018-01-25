@@ -1,5 +1,5 @@
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 const redis = require('redis');
 const logio = require('../common/logio');
 const vjs_auth = require('./vjs_auth');

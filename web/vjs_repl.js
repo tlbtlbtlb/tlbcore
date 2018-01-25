@@ -1,5 +1,5 @@
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 const net = require('net');
 const util = require('util');
 const repl = require('repl');

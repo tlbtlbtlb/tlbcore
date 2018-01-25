@@ -1,6 +1,6 @@
 'use strict';
 /* global mkDeferQ */
-const _ = require('underscore');
+const _ = require('lodash');
 const web_socket_browser = require('web_socket_browser');
 const vjs_hit_detector = require('vjs_hit_detector');
 const box_layout = require('box_layout');
@@ -296,7 +296,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   top.on('mousemove', function(ev) {
     let md = eventOffsets(ev);
     let action = hd.find(md.x, md.y);
-    if (hd.buttonDown || hd.hoverActive || hd.dragging || (action && action.onHover)) {
+    if (hd.buttonDown || hd.hoverActive || hd.dragging || (action && (action.onHover || action.onHoverDrag))) {
       hd.mdX = md.x;
       hd.mdY = md.y;
       hd.shiftKey = ev.shiftKey;

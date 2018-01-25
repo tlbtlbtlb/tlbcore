@@ -1,5 +1,5 @@
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');

@@ -1,5 +1,5 @@
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 const fs = require('fs');
 const parsejs = require('./UglifyJS/lib/parse-js.js');
 

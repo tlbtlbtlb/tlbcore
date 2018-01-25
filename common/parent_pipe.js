@@ -3,7 +3,7 @@
   which can't be easily forwarded with ssh.
 */
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 const async = require('async');
 const child_process = require('child_process');
 const logio = require('../common/logio');

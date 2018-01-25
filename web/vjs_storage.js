@@ -1,5 +1,5 @@
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 
 exports.fmtUploadDir = fmtUploadDir;
 exports.chooseUploadDir = chooseUploadDir;

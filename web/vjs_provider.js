@@ -5,7 +5,7 @@
     - automatic reloading when files change
     - handles css, svg, markdown, and it's easy to add others
 */
-const _ = require('underscore');
+const _ = require('lodash');
 const assert = require('assert');
 const events = require('events');
 const net = require('net');

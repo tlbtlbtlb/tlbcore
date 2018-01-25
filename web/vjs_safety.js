@@ -1,5 +1,5 @@
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 
 /*
   Argument validation. This is how we protect ourselves from Bobby Tables.

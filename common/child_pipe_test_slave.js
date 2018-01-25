@@ -1,5 +1,5 @@
 'use strict';
-const _ = require('underscore');
+const _ = require('lodash');
 const async = require('async');
 const assert = require('assert');
 const parent_pipe = require('./parent_pipe');
