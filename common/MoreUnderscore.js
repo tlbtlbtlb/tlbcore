@@ -117,20 +117,6 @@ _.mixin({
 });
 
 _.mixin({
-  nameCompare: function(a, b) {
-    let as = a.replace(/0*(\d+)/, function(ns) {
-      return String.fromCharCode(1000+ns.length) + ns;
-    });
-    let bs = b.replace(/0*(\d+)/, function(ns) {
-      return String.fromCharCode(1000+ns.length) + ns;
-    });
-    if (as > bs) return 1;
-    if (as < bs) return -1;
-    return 0;
-  }
-});
-
-_.mixin({
 
   randomNormal: function() {
     let v1, v2, r, fac;
