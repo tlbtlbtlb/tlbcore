@@ -1,4 +1,5 @@
 'use strict';
+/* eslint-env mocha */
 const _ = require('lodash');
 const assert = require('assert');
 const vjs_dbs = require('./vjs_dbs');

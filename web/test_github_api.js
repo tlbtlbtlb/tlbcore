@@ -1,4 +1,5 @@
 'use strict';
+/* eslint-env mocha */
 const github_api = require('./github_api');
 const assert = require('assert');
 const util = require('util');

@@ -1,4 +1,5 @@
 'use strict';
+/* eslint-env mocha */
 const _ = require('lodash');
 const os = require('os');
 const fs = require('fs');

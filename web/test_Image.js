@@ -1,4 +1,5 @@
 'use strict';
+/* eslint-env mocha */
 const logio = require('../common/logio');
 const child_process = require('child_process');
 const vjs_image = require('./vjs_image');

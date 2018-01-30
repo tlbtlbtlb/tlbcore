@@ -1,4 +1,5 @@
 'use strict';
+/* eslint-env mocha */
 const _ = require('lodash');
 const url = require('url');
 const vjs_safety = require('./vjs_safety');
