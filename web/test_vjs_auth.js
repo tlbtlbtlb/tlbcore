@@ -1,5 +1,5 @@
 'use strict';
-/* eslint-env mocha */
+
 const vjs_auth = require('./vjs_auth');
 
 describe('generateCookie', function() {

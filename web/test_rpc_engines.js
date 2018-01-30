@@ -1,5 +1,5 @@
 'use strict';
-/* eslint-env mocha */
+
 const url = require('url');
 const fs = require('fs');
 

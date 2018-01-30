@@ -1,5 +1,5 @@
 'use strict';
-/* eslint-env mocha */
+
 const _ = require('lodash');
 const assert = require('assert');
 const web_socket_helper = require('./web_socket_helper');

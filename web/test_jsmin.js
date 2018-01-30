@@ -1,5 +1,5 @@
 'use strict';
-/* eslint-env mocha */
+
 const jsmin = require('jsmin2');
 
 
