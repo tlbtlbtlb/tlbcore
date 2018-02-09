@@ -1,5 +1,5 @@
 'use strict';
-/* global mkDeferQ */
+/* global $, mkDeferQ */
 const _ = require('lodash');
 const web_socket_browser = require('web_socket_browser');
 const vjs_hit_detector = require('vjs_hit_detector');
@@ -224,6 +224,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   let avgTime = null;
   let drawCount = 0;
   let hd = new vjs_hit_detector.HitDetector(); // Persistent
+  let didCaptureKeys = false;
 
   // Isn't this what jQuery is supposed to do for me?
   // http://stackoverflow.com/questions/12704686/html5-with-jquery-e-offsetx-is-undefined-in-firefox
@@ -269,6 +270,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   });
 
   top.on('mousedown', function(ev) {
+    if (ev.ctrlKey) return;
     let md = eventOffsets(ev);
     let action = hd.find(md.x, md.y) || hd.defaultActions;
     if (action) {
@@ -342,6 +344,20 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     }
     requestAnimationFrame(redrawCanvas);
     return false;
+  });
+
+  top.on('contextmenu', function(ev) {
+    let md = eventOffsets(ev);
+    let action = hd.findContextMenu(md.x, md.y);
+    if (action && action.onContextMenu) {
+      $(top).one('mousedown', (ev) => {
+        $.endContextMenu();
+        return false;
+      });
+
+      $.popupContextMenu(ev, action.onContextMenu);
+      return false;
+    }
   });
 
 

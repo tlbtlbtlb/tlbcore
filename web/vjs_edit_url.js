@@ -1,4 +1,4 @@
-/* globals CodeMirror, replaceLocationHash, gotoCurrentState */
+/* globals $, CodeMirror, replaceLocationHash, gotoCurrentState */
 'use strict';
 const _ = require('lodash');
 

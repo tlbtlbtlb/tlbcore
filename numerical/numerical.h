@@ -34,159 +34,132 @@ static inline double limit(double v, double lo, double hi) {
   return v;
 }
 
-#if 0
-static inline double tanh(double x)
+static inline double linearComb(double aCoeff, double const &a, double bCoeff, double const &b)
 {
-  if (x > 40.0) {
-    return 1.0;
-  }
-  else if (x < -40.0) {
-    return -1.0;
-  }
-  else {
-    double exp2x = exp(2.0 * x);
-    return (exp2x - 1.0) / (exp2x + 1.0);
-  }
+  return aCoeff*a + bCoeff*b;
 }
-#endif
-
-static inline double interpolate(double const &a, double const &b, double cb)
+static inline float linearComb(double aCoeff, float const &a, double bCoeff, float const &b)
 {
-  return a * (1.0-cb) + b * cb;
+  return aCoeff*a + bCoeff*b;
 }
-static inline float interpolate(float const &a, float const &b, double cb)
+static inline S64 linearComb(double aCoeff, S64 const &a, double bCoeff, S64 const &b)
 {
-  return a * (1.0-cb) + b * cb;
+  return  S64(aCoeff * (double)a + bCoeff * (double)b);
 }
-
-static inline S64 interpolate(S64 const &a, S64 const &b, double cb)
+static inline S32 linearComb(double aCoeff, S32 const &a, double bCoeff, S32 const &b)
 {
-  return a + S64((double)(b-a) * cb);
+  return  S32(aCoeff * (double)a + bCoeff * (double)b);
 }
-static inline S32 interpolate(S32 const &a, S32 const &b, double cb)
+static inline U64 linearComb(double aCoeff, U64 const &a, double bCoeff, U64 const &b)
 {
-  return a + S32((double)(b-a) * cb);
+  return  U64(aCoeff * (double)a + bCoeff * (double)b);
+}
+static inline U32 linearComb(double aCoeff, U32 const &a, double bCoeff, U32 const &b)
+{
+  return  U32(aCoeff * (double)a + bCoeff * (double)b);
 }
 
-static inline U64 interpolate(U64 const &a, U64 const &b, double cb)
+static inline string linearComb(double aCoeff, string const &a, double bCoeff, string const &b)
 {
-  return (U64)((S64)a + S64((double)((S64)b-(S64)a) * cb));
-}
-static inline U32 interpolate(U32 const &a, U32 const &b, double cb)
-{
-  return (U32)((S32)a + S32((double)((S32)b-(S32)a) * cb));
-}
-
-static inline string interpolate(string const &a, string const &b, double cb)
-{
-  return (cb >= 0.5) ? b : a;
+  return aCoeff > bCoeff ? a : b;
 }
 
 template<typename T>
-map<string, T> interpolate(map<string, T> const &a, map<string, T> const &b, double cb)
+map<string, T> linearComb(double aCoeff, map<string, T> const &a, double bCoeff, map<string, T> const &b)
 {
-  return a; // WRITEME
+  return aCoeff > bCoeff ? a : b;
 }
 
 template<typename T>
-vector< T > interpolate(vector< T > const &a, vector< T > const &b, double cb)
+vector< T > linearComb(double aCoeff, vector< T > const &a, double bCoeff, vector< T > const &b)
 {
-  if (cb == 0.0) {
-    return a;
-  }
-  else if (cb == 1.0) {
-    return b;
-  }
-  else {
-    assert(a.size() == b.size());
-    vector< T > ret(a.size());
-    for (size_t i = 0; i < a.size(); i++) {
-      ret[i] = interpolate(a[i], b[i], cb);
-    }
-    return ret;
-  }
-}
-
-
-template<typename T>
-arma::Col< T > interpolate(arma::Col< T > const &a, arma::Col< T > const &b, double cb)
-{
-  return a + ((b-a) * cb);
-}
-template<typename T>
-arma::Mat< T > interpolate(arma::Mat< T > const &a, arma::Mat< T > const &b, double cb)
-{
-  return a + ((b-a) * cb);
-}
-template<typename T>
-arma::Row< T > interpolate(arma::Row< T > const &a, arma::Row< T > const &b, double cb)
-{
-  return a + ((b-a) * cb);
-}
-
-
-static inline double addGradient(double const &a, double const &grad, double learningRate)
-{
-  return a + grad * learningRate;
-}
-static inline float addGradient(float const &a, float const &grad, double learningRate)
-{
-  return a + grad * learningRate;
-}
-
-static inline S64 addGradient(S64 const &a, S64 const &grad, double learningRate)
-{
-  return a + S64((double)(grad) * learningRate);
-}
-static inline S32 addGradient(S32 const &a, S32 const &grad, double learningRate)
-{
-  return a + S32((double)(grad) * learningRate);
-}
-
-static inline U64 addGradient(U64 const &a, U64 const &grad, double learningRate)
-{
-  return (U64)((S64)a + S64((double)(grad * learningRate)));
-}
-static inline U32 addGradient(U32 const &a, U32 const &grad, double learningRate)
-{
-  return (U32)((S32)a + S32((double)(grad * learningRate)));
-}
-
-static inline string addGradient(string const &a, string const &grad, double learningRate)
-{
-  return a; // WRITEME
-}
-
-template<typename T>
-map<string, T> addGradient(map<string, T> const &a, map<string, T> const &grad, double learningRate)
-{
-  return a; // WRITEME
-}
-
-template<typename T>
-vector< T > addGradient(vector< T > const &a, vector< T > const &grad, double learningRate)
-{
-  assert(a.size() == grad.size());
+  assert(a.size() == b.size());
   vector< T > ret(a.size());
   for (size_t i = 0; i < a.size(); i++) {
-    ret[i] = addGradient(a[i], grad[i], learningRate);
+    ret[i] = linearComb(aCoeff, a[i], bCoeff, b[i]);
   }
   return ret;
 }
 
 
 template<typename T>
-arma::Col< T > addGradient(arma::Col< T > const &a, arma::Col< T > const &grad, double learningRate)
+arma::Col< T > linearComb(double aCoeff, arma::Col< T > const &a, double bCoeff, arma::Col< T > const &b)
 {
-  return a + (grad * learningRate);
+  return aCoeff*a + bCoeff*b;
 }
 template<typename T>
-arma::Mat< T > addGradient(arma::Mat< T > const &a, arma::Mat< T > const &grad, double learningRate)
+arma::Mat< T > linearComb(double aCoeff, arma::Mat< T > const &a, double bCoeff, arma::Mat< T > const &b)
 {
-  return a + (grad * learningRate);
+  return aCoeff*a + bCoeff*b;
 }
 template<typename T>
-arma::Row< T > addGradient(arma::Row< T > const &a, arma::Row< T > const &grad, double learningRate)
+arma::Row< T > linearComb(double aCoeff, arma::Row< T > const &a, double bCoeff, arma::Row< T > const &b)
 {
-  return a + (grad * learningRate);
+  return aCoeff*a + bCoeff*b;
+}
+
+
+
+static inline double linearMetric(double const &a, double const &b)
+{
+  return a*b;
+}
+static inline double linearMetric(float const &a, float const &b)
+{
+  return (double)a * (double)b;
+}
+static inline double linearMetric(S64 const &a, S64 const &b)
+{
+  return (double)a * (double)b;
+}
+static inline double linearMetric(S32 const &a, S32 const &b)
+{
+  return (double)a * (double)b;
+}
+static inline double linearMetric(U64 const &a, U64 const &b)
+{
+  return (double)a * (double)b;
+}
+static inline double linearMetric(U32 const &a, U32 const &b)
+{
+  return (double)a * (double)b;
+}
+
+static inline double linearMetric(string const &a, string const &b)
+{
+  return 0.0;
+}
+
+template<typename T>
+double linearMetric(map<string, T> const &a, map<string, T> const &b)
+{
+  return 0.0;
+}
+
+template<typename T>
+double linearMetric(vector< T > const &a, vector< T > const &b)
+{
+  assert(a.size() == b.size());
+  double ret = 0.0;
+  for (size_t i = 0; i < a.size(); i++) {
+    ret += linearMetric(a[i], b[i]);
+  }
+  return ret;
+}
+
+
+template<typename T>
+double linearMetric(arma::Col< T > const &a, arma::Col< T > const &b)
+{
+  return dot(a, b);
+}
+template<typename T>
+double linearMetric(arma::Mat< T > const &a, arma::Mat< T > const &b)
+{
+  return dot(a, b);
+}
+template<typename T>
+double linearMetric(arma::Row< T > const &a, arma::Row< T > const &b)
+{
+  return dot(a, b);
 }

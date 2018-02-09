@@ -2,7 +2,7 @@
   Basic browser infrastructore for tlbcore.
   We stick a lot of stuff in jquery's $.XXX namespace
 */
-/* globals _ */
+/* globals _, $ */
 'use strict';
 const web_socket_browser = require('web_socket_browser');
 const vjs_hit_detector = require('vjs_hit_detector');
@@ -585,6 +585,34 @@ $.fn.syncChildren = function(newItems, options) {
   return this;
 };
 
+
+$.popupContextMenu = function(ev, fn) {
+
+  let cm = $('#contextMenu');
+  if (cm.length === 0) {
+    cm = $('<div id="contextMenu">').appendTo(document.body);
+  }
+
+  let posX=0, posY=0;
+  if (ev.pageX) {
+    posX = ev.pageX;
+    posY = ev.pageY;
+  }
+  else if (ev.clientX) {
+    posX = ev.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+    posY = ev.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+  }
+  cm.css({left: `${posX}px`, top: `${posY}px`});
+  fn(cm);
+  cm.show();
+};
+
+$.endContextMenu = function() {
+  let cm = $('#contextMenu');
+  cm.empty();
+  cm.off();
+  cm.hide();
+};
 
 
 /* ----------------------------------------------------------------------

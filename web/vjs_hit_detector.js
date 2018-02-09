@@ -7,6 +7,7 @@ function HitDetector() {
   let hd = this;
   hd.hits = [];
   hd.scrolls = [];
+  hd.contextMenus = [];
   hd.defaultActions = null;
   hd.buttonDown = false;
   hd.mdX = hd.mdY = null;
@@ -34,7 +35,9 @@ HitDetector.prototype.beginDrawing = function(ctx) {
   hd.scrolls.length = 0;
   hd.defaultActions = null;
   hd.hoverActive = false;
+  hd.wantsKeys = false;
   hd.dataPending = false;
+  hd.wantsContextMenu = false;
 };
 
 HitDetector.prototype.endDrawing = function(ctx) {
@@ -77,6 +80,9 @@ HitDetector.prototype.add = function(t, r, b, l, actions) {
     hd.hoverActive = true;
     actions.onHoverDrag();
   }
+  if (actions.onContextMenu && !hd.wantsContextMenu) {
+    hd.wantsContextMenu = true;
+  }
 };
 
 HitDetector.prototype.addScroll = function(t, r, b, l, actions) {
@@ -84,6 +90,13 @@ HitDetector.prototype.addScroll = function(t, r, b, l, actions) {
   let priority = (b - t) * (r - l) * (actions.priorityFactor || 1);
   hd.scrolls.push({t, r, b, l, actions, priority});
 };
+
+HitDetector.prototype.addContextMenu = function(t, r, b, l, actions) {
+  let hd = this;
+  let priority = (b - t) * (r - l) * (actions.priorityFactor || 1);
+  hd.contextMenus.push({t, r, b, l, actions, priority});
+};
+
 
 HitDetector.prototype.addDefault = function(actions) {
   let hd = this;
@@ -96,6 +109,24 @@ HitDetector.prototype.addDefault = function(actions) {
 HitDetector.prototype.find = function(x, y) {
   let hd = this;
   let hits = hd.hits;
+  let hitsLen = hits.length;
+  let bestPriority = 1e9;
+  let bestActions = null;
+  for (let i=0; i<hitsLen; i++) {
+    let hit = hits[i];
+    if (x >= hit.l && x <= hit.r && y >= hit.t && y <= hit.b) {
+      if (hit.priority < bestPriority) {
+        bestPriority = hit.priority;
+        bestActions = hit.actions;
+      }
+    }
+  }
+  return bestActions;
+};
+
+HitDetector.prototype.findContextMenu = function(x, y) {
+  let hd = this;
+  let hits = hd.contextMenus;
   let hitsLen = hits.length;
   let bestPriority = 1e9;
   let bestActions = null;

@@ -187,13 +187,12 @@ ostream & operator<<(ostream &s, const jsonstr &obj)
   return s << obj.it;
 }
 
-
-jsonstr interpolate(jsonstr const &a, jsonstr const &b, double cb)
+jsonstr linearComb(double aCoeff, jsonstr const &a, double bCoeff, jsonstr const &b)
 {
-  return (cb >= 0.5) ? b : a;
+  return aCoeff > bCoeff ? a : b;
 }
 
-jsonstr addGradient(jsonstr const &a, jsonstr const &grad, double learningRate)
+R linearMetric(jsonstr const &a, jsonstr const &b)
 {
-  return a; // WRITEME someday
+  return 0.0;
 }
