@@ -602,9 +602,15 @@ $.popupContextMenu = function(ev, fn) {
     posX = ev.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
     posY = ev.clientY + document.body.scrollTop + document.documentElement.scrollTop;
   }
+  let winH = $(window).height();
   cm.css({left: `${posX}px`, top: `${posY}px`});
   fn(cm);
   cm.show();
+  let menuH = $(cm).height();
+  if (posY + menuH >= winH - 20) {
+    cm.css({top: `${winH - menuH - 20}px`});
+  }
+
 };
 
 $.endContextMenu = function() {
@@ -612,6 +618,28 @@ $.endContextMenu = function() {
   cm.empty();
   cm.off();
   cm.hide();
+};
+
+
+$.fn.fmtContextMenu = function(items) {
+
+  this.html(`
+    <ul>
+    ${
+      _.map(items, (it, i) => {
+        return `<li><a href="#item${i}">${it.label}</a></li>`;
+      }).join('')
+    }
+    </ul>
+  `).on('click', function(ev) {
+    let h = ev.target && ev.target.hash;
+    if (h && h.startsWith('#item')) {
+      let i = parseInt(h.substring(5));
+      items[i].onClick(ev);
+      $.endContextMenu();
+      return false;
+    }
+  });
 };
 
 

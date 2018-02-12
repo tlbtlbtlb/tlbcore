@@ -15,6 +15,7 @@ function HitDetector() {
   hd.hoverActive = false;
   hd.dragging = null;
   hd.dataPending = false;
+  hd.hoverCursor = null;
 }
 
 HitDetector.prototype.clear = function() {
@@ -37,6 +38,7 @@ HitDetector.prototype.beginDrawing = function(ctx) {
   hd.hoverActive = false;
   hd.wantsKeys = false;
   hd.dataPending = false;
+  hd.hoverCursor = null;
   hd.wantsContextMenu = false;
 };
 

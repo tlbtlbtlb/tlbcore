@@ -197,7 +197,7 @@ blockquote {
     display: block;
     position: absolute;
     z-index: 3001;
-    background: #cccccc;
+    background: #dddddd;
     border: 1px #888888;
 }
 
@@ -211,11 +211,15 @@ blockquote {
     display: flex;
     justify-content: space-between;
     padding: 2px 6px;
-    border-bottom: solid 1px #dfdfdf;
 }
 
 #contextMenu li:hover {
-    background: #eeeeee;
+    background: #6666ff;
+    color: #ffffff;
+}
+
+#contextMenu li:hover a {
+    color: #ffffff;
 }
 
 #contextMenu li:last-child {

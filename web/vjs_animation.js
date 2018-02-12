@@ -458,6 +458,11 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       ctx.fillText(drawCount.toString() + '  ' + avgTime.toFixed(2) + ' ' + (t1-t0).toFixed(0), lo.boxR - 5, lo.boxT + 1);
     }
     hd.endDrawing();
+    if (hd.hoverCursor) {
+      top.css('cursor', hd.hoverCursor);
+    } else {
+      top.css('cursor', 'default');
+    }
     ctx.restore();
   }
 
