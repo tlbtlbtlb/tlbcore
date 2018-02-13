@@ -445,9 +445,15 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       ctx.fillText(drawCount.toString() + '  ' + avgTime.toFixed(2) + ' ' + (t1-t0).toFixed(0), lo.boxR - 5, lo.boxT + 1);
     }
     hd.endDrawing();
-    if (hd.hoverCursor) {
+    if (hd.dragCursor) {
+      // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
+      // Grab not supported on IE or Chrome/Windows
+      top.css('cursor', hd.dragCursor);
+    }
+    else if (hd.hoverCursor) {
       top.css('cursor', hd.hoverCursor);
-    } else {
+    }
+    else {
       top.css('cursor', 'default');
     }
     if (hd.wantsContextMenu && !didContextMenu) {

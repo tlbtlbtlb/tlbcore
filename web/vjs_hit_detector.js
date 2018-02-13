@@ -57,12 +57,19 @@ HitDetector.prototype.mouseIn = function(t, r, b, l) {
 HitDetector.prototype.add = function(t, r, b, l, actions) {
   let hd = this;
   if (!(l <= r && t <= b)) {
-    throw new Error(`HitDetector region (${t.toString()},${r.toString()},${b.toString()},${l.toString()}) invalid`);
+    throw new Error(`HitDetector region (${t},${r},${b},${l}) invalid`);
   }
   let inside = hd.mouseIn(t, r, b, l);
+  let priority = (b - t) * (r - l) * (actions.priorityFactor || 1);
   if (actions.onClick || actions.onDown || actions.onUp) {
-    let priority = (b - t) * (r - l) * (actions.priorityFactor || 1);
     hd.hits.push({t, r, b, l, actions, priority});
+  }
+  if (actions.onContextMenu) {
+    hd.contextMenus.push({t, r, b, l, actions, priority});
+    hd.wantsContextMenu = true;
+  }
+  if (actions.onScroll) {
+    hd.scrolls.push({t, r, b, l, actions, priority});
   }
   if (actions.draw || actions.drawDown) {
     hd.ctx.save();
@@ -83,19 +90,6 @@ HitDetector.prototype.add = function(t, r, b, l, actions) {
     hd.hoverActive = true;
     actions.onHoverDrag();
   }
-};
-
-HitDetector.prototype.addScroll = function(t, r, b, l, actions) {
-  let hd = this;
-  let priority = (b - t) * (r - l) * (actions.priorityFactor || 1);
-  hd.scrolls.push({t, r, b, l, actions, priority});
-};
-
-HitDetector.prototype.addContextMenu = function(t, r, b, l, actions) {
-  let hd = this;
-  let priority = (b - t) * (r - l) * (actions.priorityFactor || 1);
-  hd.contextMenus.push({t, r, b, l, actions, priority});
-  hd.wantsContextMenu = true;
 };
 
 
