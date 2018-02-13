@@ -226,6 +226,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   let drawCount = 0;
   let hd = new vjs_hit_detector.HitDetector(); // Persistent
   let didCaptureKeys = false;
+  let didContextMenu = false;
 
   // Isn't this what jQuery is supposed to do for me?
   // http://stackoverflow.com/questions/12704686/html5-with-jquery-e-offsetx-is-undefined-in-firefox
@@ -347,21 +348,6 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     return false;
   });
 
-  top.on('contextmenu', function(ev) {
-    let md = eventOffsets(ev);
-    let action = hd.findContextMenu(md.x, md.y);
-    if (action && action.onContextMenu) {
-      $(top).one('mousedown', (ev) => {
-        $.endContextMenu();
-        return false;
-      });
-
-      $.popupContextMenu(ev, action.onContextMenu);
-      return false;
-    }
-  });
-
-
   $(window).on('mouseup.mkAnimatedCanvas', function(ev) {
     if (hd.dragCursor) {
       top.css('cursor', 'default');
@@ -464,6 +450,40 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     } else {
       top.css('cursor', 'default');
     }
+    if (hd.wantsContextMenu && !didContextMenu) {
+      console.log(`Enabling contextMenu`);
+      didContextMenu = true;
+      top.parent().contextMenu({
+        selector: 'canvas',
+        build: function($trigger, ev) {
+          let md = eventOffsets(ev);
+          let allActions = hd.findContextMenus(md.x, md.y);
+          let ret = {
+            items: {
+            },
+          };
+          let needSep = false;
+          let sepIndex = 0;
+          _.each(allActions, (a) => {
+            if (needSep) {
+              ret.items[`autosep${sepIndex}`] = '-';
+              sepIndex++;
+            }
+            let oldItemsCount = _.keys(ret.iems).length;
+            a.onContextMenu(ret);
+            let newItemsCount = _.keys(ret.iems).length;
+            if (newItemsCount > oldItemsCount) {
+              needSep = true;
+            }
+          });
+          if (_.isEmpty(ret.items)) {
+            ret.items.dummy = '------';
+          }
+          return ret;
+        }
+      });
+    }
+
     ctx.restore();
   }
 

@@ -34,6 +34,7 @@ HitDetector.prototype.beginDrawing = function(ctx) {
   hd.ctx = ctx;
   hd.hits.length = 0;
   hd.scrolls.length = 0;
+  hd.contextMenus.length = 0;
   hd.defaultActions = null;
   hd.hoverActive = false;
   hd.wantsKeys = false;
@@ -82,9 +83,6 @@ HitDetector.prototype.add = function(t, r, b, l, actions) {
     hd.hoverActive = true;
     actions.onHoverDrag();
   }
-  if (actions.onContextMenu && !hd.wantsContextMenu) {
-    hd.wantsContextMenu = true;
-  }
 };
 
 HitDetector.prototype.addScroll = function(t, r, b, l, actions) {
@@ -97,6 +95,7 @@ HitDetector.prototype.addContextMenu = function(t, r, b, l, actions) {
   let hd = this;
   let priority = (b - t) * (r - l) * (actions.priorityFactor || 1);
   hd.contextMenus.push({t, r, b, l, actions, priority});
+  hd.wantsContextMenu = true;
 };
 
 
@@ -126,22 +125,18 @@ HitDetector.prototype.find = function(x, y) {
   return bestActions;
 };
 
-HitDetector.prototype.findContextMenu = function(x, y) {
+HitDetector.prototype.findContextMenus = function(x, y) {
   let hd = this;
   let hits = hd.contextMenus;
   let hitsLen = hits.length;
-  let bestPriority = 1e9;
-  let bestActions = null;
+  let all = [];
   for (let i=0; i<hitsLen; i++) {
     let hit = hits[i];
     if (x >= hit.l && x <= hit.r && y >= hit.t && y <= hit.b) {
-      if (hit.priority < bestPriority) {
-        bestPriority = hit.priority;
-        bestActions = hit.actions;
-      }
+      all.push(hit);
     }
   }
-  return bestActions;
+  return _.map(_.sortBy(all, (a) => a.priority), (a) => a.actions);
 };
 
 HitDetector.prototype.findScroll = function(x, y) {

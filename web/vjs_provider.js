@@ -308,6 +308,7 @@ function AnyProvider() {
   this.asCssHead = null;
   this.asHtmlBody = null;
   this.asScriptBody = null;
+  this.asScriptHead = null;
   this.started = false;
   this.pending = false;
   this.silent = false;
@@ -587,7 +588,7 @@ BrowserifyProvider.prototype.handleRequest = function(req, res, suffix) {
       'Content-Length': this.asScriptGzBuf.length.toString(),
       'Content-Encoding': 'gzip',
       'Vary': 'Accept-Encoding',
-      'ETag': this.contentMac,
+      'ETag': `"${this.contentMac}"`,
     });
     res.write(this.asScriptGzBuf, 'binary');
     logio.O(remote, this.toString() + ' (200 ' + contentType + ' len=' + this.asScriptGzBuf.length + ' compressed)');
@@ -597,7 +598,7 @@ BrowserifyProvider.prototype.handleRequest = function(req, res, suffix) {
       'Content-Type': contentType,
       'Content-Length': this.asScriptBuf.length.toString(),
       'Vary': 'Accept-Encoding',
-      'ETag': this.contentMac,
+      'ETag': `"${this.contentMac}"`,
     });
     res.write(this.asScriptBuf, 'binary');
     logio.O(remote, this.toString() + ' (200 ' + contentType + ' len=' + this.asScriptBuf.length + ')');
@@ -997,22 +998,14 @@ ProviderSet.prototype.genOutput = function() {
       let t = p[key];
       if (t && t.length) {
         if (!nonEmpty) {
-          if (_.isFunction(preamble)) {
-            cat.push(preamble(p));
-          } else {
-            cat.push(preamble);
-          }
+          cat.push(preamble);
           nonEmpty = true;
         }
         cat.push(t);
       }
     });
     if (nonEmpty) {
-      if (_.isFunction(postamble)) {
-        cat.push(postamble());
-      } else {
-        cat.push(postamble);
-      }
+      cat.push(postamble);
     }
   };
 
@@ -1027,31 +1020,23 @@ ProviderSet.prototype.genOutput = function() {
   if (this.ogLogoUrl) {
     cat.push(`<meta property="og:logo" content="${this.ogLogoUrl}">`);
   }
-  cat.push(`<script>window.resourceMacs=[]; window.reloadKey="${this.reloadKey}";</script>`);
+  cat.push(`<script>\nwindow.resourceMacs=[];\nwindow.reloadKey="${this.reloadKey}";\n</script>\n`);
   emitAll('asCssHead', `<style type="text/css">\n/* <![CDATA[ */\n`, `\n/* ]]> */\n</style>\n`);
+  emitAll('asScriptHead', `<script type="text/javascript">\n//<![CDATA[\n`, `\n//]]></script>\n`);
   emitAll('asHtmlHead', '', '');
   cat.push(`\n</head><body>\n`);
   cat.push(this.body);
 
-  emitAll('asHtmlBody', '', '');
-  emitAll('asScriptBody', `
-<script type="text/javascript">
-//<![CDATA[
-`, `
-//]]>
-</script>
-  `);
-
-  let hmac = crypto.createHash('sha256');
-  hmac.update(cat.join(''), 'utf8');
-  let contentMac = hmac.digest('base64');
-
-  cat.push(`
-</body>
-</html>
-`);
+  emitAll('asHtmlBody', '', `\n`);
+  emitAll('asScriptBody', `<script type="text/javascript">\n//<![CDATA[\n`, `//]]>\n</script>\n`);
+  cat.push(`</body>\n</html>\n`);
 
   let asHtmlBuf = Buffer.from(cat.join(''), 'utf8');
+
+  let hmac = crypto.createHash('sha256');
+  hmac.update(asHtmlBuf, 'utf8');
+  let contentMac = hmac.digest('base64');
+
   let zlibT0 = Date.now();
   zlib.gzip(asHtmlBuf, (err, asHtmlGzBuf) => {
     this.asHtmlBuf = asHtmlBuf;

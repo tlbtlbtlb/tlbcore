@@ -48,8 +48,8 @@ install.brew ::
 	brew install rename zopfli ffmpeg trash node tree ack hub git
 
 install.npm ::
-	sudo npm install -g underscore node-gyp jshint mocha uglify-js
-	sudo npm install -g hiredis redis marked websocket xmldom  eventemitter jquery jsmin2 async codemirror mori cookie scrypt
+	npm install -g lodash node-gyp jshint mocha uglify-js
+	npm install -g hiredis redis marked websocket xmldom  eventemitter jquery jsmin2 async codemirror mori cookie scrypt
 
 install.armadillo ::
 	curl -L -O http://sourceforge.net/projects/arma/files/armadillo-7.200.2.tar.xz
