@@ -102,23 +102,6 @@ WebServer.prototype.setupBaseProvider = function() {
   if (1) p.addCss(require.resolve('./common.css'));
   if (1) p.addCss(require.resolve('./spinner-lib/spinner.css'));
   // Add more CSS files here
-
-  if (1) p.addScript(require.resolve('./vjs_preamble.js'));
-  if (1) p.addScript(require.resolve('lodash/lodash.min.js'), 'lodash');
-  if (1) p.addScript(require.resolve('../common/MoreUnderscore.js'));
-  if (1) p.addScript(require.resolve('eventemitter'), 'events');
-  if (1) p.addScript(require.resolve('jquery/dist/jquery.js'));
-  if (1) p.addScript(require.resolve('./ajaxupload-lib/ajaxUpload.js'));       // http://valums.com/ajax-upload/
-  if (1) p.addScript(require.resolve('./mixpanel-lib/mixpanel.js'));
-  if (1) p.addScript(require.resolve('./web_socket_helper.js'), 'web_socket_helper');
-  if (1) p.addScript(require.resolve('./web_socket_browser.js'), 'web_socket_browser');
-  if (1) p.addScript(require.resolve('./box_layout.js'), 'box_layout');
-  if (1) p.addScript(require.resolve('./vjs_browser.js'));
-  if (1) p.addScript(require.resolve('./vjs_animation.js'), 'vjs_animation');
-  if (1) p.addScript(require.resolve('./vjs_error.js'), 'vjs_error');
-  if (1) p.addScript(require.resolve('./vjs_hit_detector.js'), 'vjs_hit_detector');
-  if (1) p.addScript(require.resolve('./canvasutils.js'), 'canvasutils');
-
   webServer.baseProvider = p;
 };
 
@@ -400,12 +383,12 @@ WebServer.prototype.reloadAllBrowsers = function(reloadKey) {
   });
 };
 
-WebServer.prototype.findByContentMac = function(contentMac) {
+WebServer.prototype.getAllContentMacs = function() {
   let webServer = this;
-  let ret = [];
+  let ret = {};
   _.each(webServer.urlProviders, function(provider, url) {
-    if (provider && provider.contentMac == contentMac) {
-      ret.push(provider);
+    if (provider && provider.contentMac) {
+      ret[provider.contentMac] = true;
     }
   });
   return ret;
@@ -439,15 +422,15 @@ WebServer.prototype.mkConsoleHandler = function() {
     rpc_reloadOn: function(msg, cb) {
       let self = this;
       self.reloadKey = msg.reloadKey;
-      self.contentMac = msg.contentMac;
-      if (self.contentMac) {
-        let sameContent = webServer.findByContentMac(self.contentMac);
-        if (!sameContent.length) {
-          logio.I(self.label, 'Obsolete contentMac (suggesting reload)', self.contentMac);
-          cb('reload');
-        } else {
-          logio.I(self.label, 'Valid contentMac', self.contentMac);
+      self.resourceMacs = msg.resourceMacs;
+      if (self.resourceMacs) {
+        let goodMacs = webServer.getAllContentMacs();
+        if (_.every(self.resourceMacs, (mac) => goodMacs[mac])) {
+          logio.I(self.label, 'Valid contentMac', self.resourceMacs);
           self.reloadCb = cb;
+        } else {
+          logio.I(self.label, 'Obsolete contentMac (suggesting reload)', self.resourceMacs);
+          cb('reload');
         }
       }
     }

@@ -5,7 +5,7 @@
 */
 'use strict';
 const _ = require('lodash');
-const web_socket_helper = require('web_socket_helper');
+const web_socket_helper = require('./web_socket_helper');
 
 let verbose = 1;
 

@@ -2,41 +2,31 @@
   Basic browser infrastructore for tlbcore.
   We stick a lot of stuff in jquery's $.XXX namespace
 */
-/* globals _, $ */
 'use strict';
-const web_socket_browser = require('web_socket_browser');
-const vjs_hit_detector = require('vjs_hit_detector');
-const box_layout = require('box_layout');
+const _ = require('lodash');
+const $ = require('jquery');
+window.jQuery = $;
+const web_socket_browser = require('./web_socket_browser');
+const vjs_hit_detector = require('./vjs_hit_detector');
+const box_layout = require('./box_layout');
 
+exports.pushLocationHash = pushLocationHash;
+exports.replaceLocationHash = replaceLocationHash;
+exports.gotoLocationHash = gotoLocationHash;
+exports.mkDeferQ = mkDeferQ;
+exports.mkImage = mkImage;
+exports.errlog = errlog;
+exports.mkWebSocket = mkWebSocket;
+exports.pageSetupFromHash = pageSetupFromHash;
+exports.pageSetupFull = pageSetupFull;
+exports.interactiveLimitOutstanding = interactiveLimitOutstanding;
+exports.fmtHashOptions = fmtHashOptions;
+exports.escapeHtml = escapeHtml;
 
 $.action = {};
 $.humanUrl = {};
 $.enhance = {};
 $.allContent = {};
-
-/*
-  Cheap version of safety checks, vaguely compatible with Server.js which is server-side
-*/
-const vjs_safety = {
-  isValidServerName: function(serverName) {
-    if (!(/^[\w_\.]+$/.test(serverName))) return false;
-    if (serverName === 'all') return false;
-    return true;
-  },
-
-  isValidToken: function(token) {
-    if (!(/^[\w_]+$/.test(token))) return false;
-    if (token.length < 3 || token.length > 128) return false;
-    return true;
-  },
-
-  isValidUserName: function(userName) {
-    if (!(/^[-a-z0-9\~\!\$\%\^\&\*_\=\+\}\{\'\?]+(\.[-a-z0-9\~\!\$\%\^\&\*_\=\+\}\{\'\?]+)*@([a-z0-9_][-a-z0-9_]*(\.[-a-z0-9_]+)*\.(aero|arpa|biz|com|coop|edu|gov|info|int|mil|museum|name|net|org|pro|travel|mobi|[a-z][a-z])|([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}))$/i.test(userName))) {
-      return false;
-    }
-    return true;
-  }
-};
 
 // Might want to write something that works without window.crypto
 function mkRandomToken(len) {
@@ -748,7 +738,7 @@ $.fn.withJsonItems = function(items, f) {
    Console
 */
 
-function setupConsole(reloadKey, contentMac) {
+function setupConsole() {
   // Gracefully degrade firebug logging
   function donothing () {}
   if (!window.console) {
@@ -759,20 +749,18 @@ function setupConsole(reloadKey, contentMac) {
   }
 
   // Create remote console over a websocket connection
-  if (window.enableRemoteConsole) {
-    console.log('setupConsole reload', reloadKey, contentMac);
+  if (window.reloadKey) {
+    console.log('setupConsole reload', window.reloadKey, window.resourceMacs);
     window.rconsole = mkWebSocket('console', {
       start: function() {
-        if (reloadKey) {
-          // Ask the server to tell us to reload. Look for reloadKey in vjs_site.js for the control flow.
-          this.rpc('reloadOn', {
-            reloadKey: reloadKey,
-            contentMac: contentMac
-          }, function(msg) {
-            console.log('Reload');
-            window.location.reload(true);
-          });
-        }
+        // Ask the server to tell us to reload. Look for reloadKey in vjs_site.js for the control flow.
+        this.rpc('reloadOn', {
+          reloadKey: window.reloadKey,
+          resourceMacs: window.resourceMacs,
+        }, (msg) => {
+          console.log('Reload');
+          window.location.reload(true);
+        });
       },
       close: function() {
         window.rconsole = null;
@@ -783,7 +771,7 @@ function setupConsole(reloadKey, contentMac) {
       }
     });
   } else {
-    console.log('setupConsole noreload', reloadKey, contentMac);
+    console.log('setupConsole noreload');
   }
 }
 
@@ -907,15 +895,15 @@ function mkWebSocket(path, handlers) {
    Called from web page setup code (search for pageSetupFromHash in vjs_provider.js)
 */
 
-function pageSetupFromHash(reloadKey, contentMac) {
-  setupConsole(reloadKey, contentMac);
+function pageSetupFromHash(reloadKey) {
+  setupConsole(reloadKey);
   setupClicks();
   gotoCurrentHash();
   startHistoryPoll();
 }
 
-function pageSetupFull(reloadKey, contentMac, pageid, options) {
-  setupConsole(reloadKey, contentMac);
+function pageSetupFull(reloadKey, pageid, options) {
+  setupConsole(reloadKey);
   setupClicks();
   replaceLocationHash(pageid, options);
   gotoCurrentState();

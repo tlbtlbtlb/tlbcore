@@ -1,5 +1,7 @@
-/* globals $, CodeMirror, replaceLocationHash, gotoCurrentState */
+/* globals CodeMirror, replaceLocationHash, gotoCurrentState */
 'use strict';
+const $ = require('jquery');
+const vjs_browser = require('./vjs_browser');
 const _ = require('lodash');
 
 $.startEditUrl = function() {
@@ -46,8 +48,8 @@ $.startEditUrl = function() {
         return;
       }
       eu.remove();
-      replaceLocationHash(pageid, options2);
-      gotoCurrentState();
+      vjs_browser.replaceLocationHash(pageid, options2);
+      vjs_browser.gotoCurrentState();
     }
     function closeEdit() {
       eu.remove();

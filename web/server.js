@@ -32,7 +32,6 @@ function main() {
     switch (arg) {
 
     case '--noMin':
-      vjs_provider.ScriptProvider.prototype.minifyLevel = 0;
       vjs_provider.CssProvider.prototype.minifyLevel = 0;
       break;
 
