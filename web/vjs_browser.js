@@ -5,7 +5,6 @@
 'use strict';
 const _ = require('lodash');
 const $ = require('jquery');
-window.jQuery = $;
 const web_socket_browser = require('./web_socket_browser');
 const vjs_hit_detector = require('./vjs_hit_detector');
 const box_layout = require('./box_layout');

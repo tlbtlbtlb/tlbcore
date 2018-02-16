@@ -521,7 +521,15 @@ BrowserifyProvider.prototype.start = function() {
   const bundle = () => {
     this.pending = true;
     this.browserify.bundle((err, buf) => {
-      if (err) throw new Error(err);
+      if (err) {
+        console.log(err.toString());
+        this.pending = false;
+        this.asHtmlHead = `<div class="syntaxError">${err}</div>`;
+        this.asScriptBuf = this.asScriptGzBuf = null;
+        this.contentMac = undefined;
+        this.emit('changed');
+        return;
+      }
       this.asScriptBuf = buf;
 
       let hmac = crypto.createHash('sha256');
