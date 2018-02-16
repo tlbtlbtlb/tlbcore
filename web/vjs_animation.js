@@ -228,6 +228,11 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   let didCaptureKeys = false;
   let didContextMenu = false;
 
+  if (0) {
+    if (!window.hds) window.hds = [];
+    window.hds.push(hd);
+  }
+
   // Isn't this what jQuery is supposed to do for me?
   // http://stackoverflow.com/questions/12704686/html5-with-jquery-e-offsetx-is-undefined-in-firefox
   function eventOffsets(ev) {
@@ -285,11 +290,6 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
         hd.ctrlKey = ev.ctrlKey;
         if (action.onDown) {
           action.onDown(hd.mdX, hd.mdY, ev);
-          if (hd.dragging && hd.dragCursor) {
-            // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
-            // Grab not supported on IE or Chrome/Windows
-            top.css('cursor', hd.dragCursor);
-          }
         }
       }
     }
@@ -337,10 +337,6 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       action.onUp();
     }
     if (hd.dragging) {
-      if (hd.dragCursor) {
-        top.css('cursor', 'default');
-        hd.dragCursor = null;
-      }
       hd.dragging(hd.mdX, hd.mdY, false);
       hd.dragging = null;
     }
@@ -350,7 +346,6 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
 
   $(window).on('mouseup.mkAnimatedCanvas', function(ev) {
     if (hd.dragCursor) {
-      top.css('cursor', 'default');
       hd.dragCursor = null;
     }
     if (hd.dragging) {
@@ -445,7 +440,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       ctx.fillText(drawCount.toString() + '  ' + avgTime.toFixed(2) + ' ' + (t1-t0).toFixed(0), lo.boxR - 5, lo.boxT + 1);
     }
     hd.endDrawing();
-    if (hd.dragCursor) {
+    if (hd.dragCursor && hd.dragging) {
       // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
       // Grab not supported on IE or Chrome/Windows
       top.css('cursor', hd.dragCursor);
@@ -457,10 +452,10 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       top.css('cursor', 'default');
     }
     if (hd.wantsContextMenu && !didContextMenu) {
-      console.log(`Enabling contextMenu`);
       didContextMenu = true;
       top.parent().contextMenu({
         selector: 'canvas',
+        autoHide: true,
         build: function($trigger, ev) {
           let md = eventOffsets(ev);
           let allActions = hd.findContextMenus(md.x, md.y);
