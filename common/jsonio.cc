@@ -196,3 +196,8 @@ R linearMetric(jsonstr const &a, jsonstr const &b)
 {
   return 0.0;
 }
+
+bool hasNaN(jsonstr const &a)
+{
+  return false;
+}

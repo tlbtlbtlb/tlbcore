@@ -59,6 +59,7 @@ ostream & operator<<(ostream &s, jsonstr const &obj);
 
 jsonstr linearComb(double aCoeff, jsonstr const &a, double bCoeff, jsonstr const &b);
 R linearMetric(jsonstr const &a, jsonstr const &b);
+bool hasNaN(jsonstr const &a);
 
 #include "./jsonio_parse.h"
 #include "./jsonio_types.h"

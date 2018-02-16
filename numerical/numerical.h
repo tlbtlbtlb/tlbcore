@@ -163,3 +163,76 @@ double linearMetric(arma::Row< T > const &a, arma::Row< T > const &b)
 {
   return dot(a, b);
 }
+
+
+
+
+
+
+
+static inline bool hasNaN(double const &a)
+{
+  return isnan(a);
+}
+static inline bool hasNaN(float const &a)
+{
+  return isnan(a);
+}
+static inline bool hasNaN(S64 const &a)
+{
+  return false;
+}
+static inline bool hasNaN(S32 const &a)
+{
+  return false;
+}
+static inline bool hasNaN(U64 const &a)
+{
+  return false;
+}
+static inline bool hasNaN(U32 const &a)
+{
+  return false;
+}
+
+static inline bool hasNaN(string const &a)
+{
+  return false;
+}
+
+template<typename T>
+bool hasNaN(map<string, T> const &a)
+{
+  bool out = false;
+  for (auto &it: a) {
+    out = out || hasNaN(it.second);
+  }
+  return out;
+}
+
+template<typename T>
+bool hasNaN(vector< T > const &a)
+{
+  bool out = false;
+  for (size_t i = 0; i < a.size(); i++) {
+    out = out || hasNaN(a[i]);
+  }
+  return out;
+}
+
+
+template<typename T>
+bool hasNaN(arma::Col< T > const &a)
+{
+  return a.has_nan();
+}
+template<typename T>
+bool hasNaN(arma::Mat< T > const &a)
+{
+  return a.has_nan();
+}
+template<typename T>
+bool hasNaN(arma::Row< T > const &a)
+{
+  return a.has_nan();
+}
