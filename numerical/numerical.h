@@ -165,7 +165,10 @@ double linearMetric(arma::Row< T > const &a, arma::Row< T > const &b)
 }
 
 
-
+/*
+  hasNaN returns true if there's a NaN somewhere.
+  Null pointers or empty data structures return false.
+*/
 
 
 
@@ -235,4 +238,11 @@ template<typename T>
 bool hasNaN(arma::Row< T > const &a)
 {
   return a.has_nan();
+}
+
+template<typename T>
+bool hasNaN(shared_ptr< T > const &a)
+{
+  if (!a) return false;
+  return hasNaN(*a);
 }
