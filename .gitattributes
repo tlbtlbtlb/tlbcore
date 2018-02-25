@@ -1,0 +1,5 @@
+*.mov filter=lfs diff=lfs merge=lfs -crlf
+*.sch linguist-vendored
+*.brd linguist-vendored
+*.lbr linguist-vendored
+*.nb linguist-vendored
