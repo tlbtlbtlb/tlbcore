@@ -12,7 +12,6 @@ function HitDetector() {
   hd.buttonDown = false;
   hd.mdX = hd.mdY = null;
   hd.ctx = null;
-  hd.hoverActive = false;
   hd.dragging = null;
   hd.dataPending = false;
   hd.hoverCursor = null;
@@ -24,7 +23,6 @@ HitDetector.prototype.clear = function() {
   hd.scrolls = null;
   hd.defaultActions = null;
   hd.ctx = null;
-  hd.hoverActive = false;
   hd.dragging = null;
   hd.dataPending = false;
 };
@@ -36,11 +34,13 @@ HitDetector.prototype.beginDrawing = function(ctx) {
   hd.scrolls.length = 0;
   hd.contextMenus.length = 0;
   hd.defaultActions = null;
-  hd.hoverActive = false;
   hd.wantsKeys = false;
   hd.dataPending = false;
-  hd.hoverCursor = null;
   hd.wantsContextMenu = false;
+
+  hd.hoverCursor = null;
+  hd.hoverPriority = 1e9;
+  hd.hoverAction = null;
 };
 
 HitDetector.prototype.endDrawing = function(ctx) {
@@ -82,13 +82,19 @@ HitDetector.prototype.add = function(t, r, b, l, actions) {
   else if (actions.drawCustom) {
     actions.drawCustom(hd.buttonDown && inside);
   }
-  if (actions.onHover && inside && !hd.hoverActive && !hd.dragging) {
-    hd.hoverActive = true;
-    actions.onHover();
-  }
-  if (actions.onHoverDrag && inside && !hd.hoverActive) {
-    hd.hoverActive = true;
-    actions.onHoverDrag();
+  if (inside) {
+    if (actions.onHover && !hd.dragging) {
+      if (priority < hd.hoverPriority) {
+        hd.hoverPriority = priority;
+        hd.hoverAction = actions.onHover;
+      }
+    }
+    if (actions.onHoverDrag) {
+      if (priority < hd.hoverPriority) {
+        hd.hoverPriority = priority;
+        hd.hoverAction = actions.onHoverDrag;
+      }
+    }
   }
 };
 

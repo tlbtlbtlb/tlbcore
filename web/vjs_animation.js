@@ -228,7 +228,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   let didCaptureKeys = false;
   let didContextMenu = false;
 
-  if (0) {
+  if (0) { // for debugging
     if (!window.hds) window.hds = [];
     window.hds.push(hd);
   }
@@ -300,7 +300,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   top.on('mousemove', function(ev) {
     let md = eventOffsets(ev);
     let action = hd.find(md.x, md.y);
-    if (hd.buttonDown || hd.hoverActive || hd.dragging || (action && (action.onHover || action.onHoverDrag))) {
+    if (hd.buttonDown || hd.hoverAction || hd.dragging || (action && (action.onHover || action.onHoverDrag))) {
       hd.mdX = md.x;
       hd.mdY = md.y;
       hd.shiftKey = ev.shiftKey;
@@ -423,8 +423,12 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     ctx.textLayer.now();
     ctx.buttonLayer.now();
     ctx.cursorLayer.now();
+    // Hover actions are often set in the button layer, and often add tooltips so this goes between them.
+    if (hd.hoverAction) {
+      hd.hoverAction(hd.mdX, hd.mdY);
+    }
     ctx.tooltipLayer.now();
-    ctx.textLayer = ctx.buttonLayer = ctx.cursorLayer = ctx.tooltipLayer = ctx.curLayer = undefined; // GC paranoia
+    ctx.textLayer = ctx.buttonLayer = ctx.cursorLayer = ctx.tooltipLayer = ctx.curLayer = null; // GC paranoia
 
     if (m.uiDebug >= 1) {
       let t1 = Date.now();
