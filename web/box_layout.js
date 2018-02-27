@@ -16,6 +16,10 @@ function BoxLayout(t, r, b, l, pixelRatio, o) {
   lo.boxR = lo.canvasR = r;
   lo.boxB = lo.canvasB = b;
   lo.boxL = lo.canvasL = l;
+  lo.canvasW = lo.canvasR - lo.canvasL;
+  lo.canvasH = lo.canvasB - lo.canvasT;
+  lo.boxW = lo.boxR - lo.boxL;
+  lo.boxH = lo.boxB - lo.boxT;
   lo.pixelRatio = pixelRatio;
   lo.thinWidth = 1 / pixelRatio;
   if (pixelRatio >= 2) {
@@ -75,6 +79,8 @@ BoxLayout.prototype.childBox = function(t, r, b, l, o) {
   lo2.boxR = r;
   lo2.boxB = b;
   lo2.boxL = l;
+  lo2.boxW = lo2.boxR - lo2.boxL;
+  lo2.boxH = lo2.boxB - lo2.boxT;
   if (o) {
     _.extend(lo2, o);
   }
