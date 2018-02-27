@@ -9,8 +9,8 @@ setup ::
 size ::
 node_modules ::
 
-include common/MakeSystem.inc
-include common/MakeDocker.inc
+include mk/makesystem.inc
+include mk/makedocker.inc
 
 ifeq ($(UNAME_SYSTEM),Darwin)
 export NODE_PATH = /usr/local/lib/node_modules
