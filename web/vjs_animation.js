@@ -380,14 +380,14 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
                                ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1);
       let ratio = devicePixelRatio / backingStoreRatio;
       canvas.pixelRatio = ratio;
-      let cssWidth = o.autoSizeToParent ? $(canvas).parent().width() : $(canvas).width();
-      let cssHeight = o.autoSizeToParent ? $(canvas).parent().height() : $(canvas).height();
+      let cssWidth = canvas.clientWidth;
+      let cssHeight = canvas.clientHeight;
       if (0) console.log('autoSize', cssWidth, cssHeight);
       let canvasPixelWidth = Math.floor(cssWidth * ratio);
       let canvasPixelHeight = Math.floor(cssHeight * ratio);
       if (canvasPixelWidth != canvas.width || canvasPixelHeight != canvas.height) {
-        canvas.width = cssWidth * ratio;
-        canvas.height = cssHeight * ratio;
+        canvas.width = Math.min(5000, cssWidth * ratio);
+        canvas.height = Math.min(5000, cssHeight * ratio);
         ctx = canvas.getContext(o.contextStyle || '2d'); // refetch context
       }
     }
