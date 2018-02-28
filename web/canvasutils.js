@@ -5,6 +5,8 @@
 'use strict';
 const _ = require('lodash');
 
+exports.registerSvg = registerSvg;
+exports.getSvgImage = getSvgImage;
 exports.drawTooltip = drawTooltip;
 exports.goodGraphColor = goodGraphColor;
 exports.darkGraphColor = darkGraphColor;
@@ -12,6 +14,24 @@ exports.mkShinyPattern = mkShinyPattern;
 exports.drawRountangle = drawRountangle;
 exports.drawSpinner = drawSpinner;
 exports.blendColors = blendColors;
+
+const svgTexts = {};
+const svgImages = {};
+
+function registerSvg(name, data) {
+  svgTexts[name] = data;
+  let img = new Image();
+  img.src = `data:image/svg+xml;charset=UTF-8,${data}`;
+  img.id = `svg_${name}`;
+  if (0) {
+    document.head.appendChild(img);
+  }
+  svgImages[name] = img;
+}
+
+function getSvgImage(name) {
+  return svgImages[name];
+}
 
 function drawTooltip(ctx, lo, x, y, str) {
   ctx.tooltipLayer(function() {

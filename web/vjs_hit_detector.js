@@ -74,7 +74,7 @@ HitDetector.prototype.add = function(t, r, b, l, actions) {
   if (actions.draw || actions.drawDown) {
     hd.ctx.save();
     let down = hd.buttonDown && inside;
-    if (!down) hd.ctx.globalAlpha = 0.5;
+    if (!down) hd.ctx.globalAlpha = 0.75;
     if (actions.draw) actions.draw();
     if (down && actions.drawDown) actions.drawDown();
     hd.ctx.restore();
