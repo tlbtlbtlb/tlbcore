@@ -217,7 +217,8 @@ $.fn.animation2 = function(m) {
 $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   let top = this;
   if (top.length === 0) return;
-  if (!o.autoSize) {
+  let autoSize = top.hasClass('fillContainer');
+  if (!autoSize) {
     top.maximizeCanvasResolution();
   }
   let canvas = top[0];
@@ -355,7 +356,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     }
   });
   top.one('destroyed', function() {
-    console.log('mkAnimatedCanvas: top destroyed');
+    if (0) console.log('mkAnimatedCanvas: top destroyed');
     $(window).off('mouseup.mkAnimatedCanvas');
     m = null;
     drawFunc = null;
@@ -374,7 +375,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     drawCount++;
     let ctx = canvas.getContext(o.contextStyle || '2d');
 
-    if (o.autoSize) {
+    if (autoSize) {
       let devicePixelRatio = window.devicePixelRatio || 1;
       let backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
                                ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1);
@@ -383,15 +384,15 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       let cssWidth = canvas.clientWidth;
       let cssHeight = canvas.clientHeight;
       if (0) console.log('autoSize', cssWidth, cssHeight);
-      let canvasPixelWidth = Math.floor(cssWidth * ratio);
-      let canvasPixelHeight = Math.floor(cssHeight * ratio);
+      let canvasPixelWidth = Math.min(5000, Math.floor(cssWidth * ratio));
+      let canvasPixelHeight = Math.min(5000, Math.floor(cssHeight * ratio));
       if (canvasPixelWidth != canvas.width || canvasPixelHeight != canvas.height) {
-        canvas.width = Math.min(5000, cssWidth * ratio);
-        canvas.height = Math.min(5000, cssHeight * ratio);
+        canvas.width = canvasPixelWidth;
+        canvas.height = canvasPixelHeight;
         ctx = canvas.getContext(o.contextStyle || '2d'); // refetch context
       }
     }
-    if (canvas.width === 0 || canvas.height === 0) return;
+    if (!canvas.width || !canvas.height) return;
 
 
     let pixelRatio = canvas.pixelRatio || 1;
@@ -557,6 +558,9 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   }
 };
 
+$.fn.fmtAnimatedCanvas = function(m, drawFunc, o) {
+  this.html('<canvas class="fillContainer"></canvas>').children().first().mkAnimatedCanvas(m, drawFunc, o);
+};
 
 
 /* ----------------------------------------------------------------------

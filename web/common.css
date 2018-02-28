@@ -127,6 +127,12 @@ blockquote {
   clear: both;
 }
 
+.fillContainer {
+    height: 100%;
+    width: 100%;
+}
+
+
 /* Whole page overlays */
 #flashErrorMessage {
     position: fixed;
