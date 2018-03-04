@@ -216,12 +216,12 @@ struct UvStream {
   {
     assert(stream && (stream->type == UV_TCP || stream->type == UV_NAMED_PIPE || stream->type == UV_TTY));
     int rc;
-    alloc_cb = _alloc_cb;
+    read_alloc_cb = _alloc_cb;
     read_cb = _read_cb;
     rc = uv_read_start(stream,
       [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
         auto this1 = reinterpret_cast<UvStream *>(handle->data);
-        this1->alloc_cb(suggested_size, buf);
+        this1->read_alloc_cb(suggested_size, buf);
       },
       [](uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
         auto this1 = reinterpret_cast<UvStream *>(stream->data);
@@ -254,6 +254,8 @@ struct UvStream {
     if (!stream) return;
     rc = uv_read_stop(stream);
     if (rc < 0) throw uv_error("uv_read_stop", rc);
+    read_cb = nullptr;
+    read_alloc_cb = nullptr;
   }
 
   void write(string const &data, std::function< void(int) > const &_write_cb)
@@ -385,12 +387,12 @@ struct UvStream {
   {
     int rc;
     assert(stream && stream->type == UV_UDP);
-    alloc_cb = _alloc_cb;
+    recv_alloc_cb = _alloc_cb;
     recv_cb = _recv_cb;
     rc = uv_udp_recv_start(reinterpret_cast<uv_udp_t *>(stream),
       [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
         auto this1 = reinterpret_cast<UvStream *>(handle->data);
-        this1->alloc_cb(suggested_size, buf);
+        this1->recv_alloc_cb(suggested_size, buf);
       },
       [](uv_udp_t* udp, ssize_t nread, const uv_buf_t* buf, struct sockaddr const *addr, u_int flags) {
         auto this1 = reinterpret_cast<UvStream *>(udp->data);
@@ -423,6 +425,8 @@ struct UvStream {
     assert(stream && stream->type == UV_UDP);
     rc = uv_udp_recv_stop(reinterpret_cast<uv_udp_t *>(stream));
     if (rc < 0) throw uv_error("uv_udp_recv_stop", rc);
+    recv_cb = nullptr;
+    recv_alloc_cb = nullptr;
   }
 
   void close() {
@@ -492,9 +496,10 @@ struct UvStream {
   }
 
 
-  std::function<void(size_t suggested_size, uv_buf_t *buf)> alloc_cb;
+  std::function<void(size_t suggested_size, uv_buf_t *buf)> read_alloc_cb;
   std::function<void(ssize_t nread, uv_buf_t const *buf)> read_cb;
   std::function<void(uv_stream_t *server, int status)> listen_cb;
+  std::function<void(size_t suggested_size, uv_buf_t *buf)> recv_alloc_cb;
   std::function<void(ssize_t nread, uv_buf_t const *buf, struct sockaddr const *addr, u_int flags)> recv_cb;
 
   uv_loop_t *loop {nullptr};
