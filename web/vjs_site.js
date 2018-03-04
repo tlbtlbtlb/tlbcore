@@ -130,6 +130,9 @@ WebServer.prototype.setupStdContent = function(prefix) {
   webServer.setUrl(prefix+'favicon.ico', require.resolve('./images/umbrella.ico'));
   webServer.setUrl(prefix+'spinner-lib/spinner24.gif', require.resolve('./spinner-lib/spinner24.gif'));
   webServer.setUrl(prefix+'spinner-lib/spinner32t.gif', require.resolve('./spinner-lib/spinner32t.gif'));
+  webServer.setUrl(prefix+'spinner-lib/spinner128t.gif', require.resolve('./spinner-lib/spinner128t.gif'));
+  webServer.setUrl(prefix+'spinner-lib/spinner128a.gif', require.resolve('./spinner-lib/spinner128a.gif'));
+  webServer.setUrl(prefix+'spinner-lib/spinner64a.svg', require.resolve('./spinner-lib/spinner64a.svg'));
   webServer.setUrl(prefix+'images/icons.png', require.resolve('./images/ui-icons_888888_256x240.png'));
 
   webServer.setUrl(prefix+'healthcheck', {
