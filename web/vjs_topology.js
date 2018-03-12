@@ -10,6 +10,7 @@ exports.getServerInfo = getServerInfo;
 exports.getRoleServers = getRoleServers;
 exports.getLocalServer = getLocalServer;
 exports.getBestAddr = getBestAddr;
+exports.richError = richError;
 
 
 let verbose = 0;
@@ -29,12 +30,13 @@ let verbose = 0;
 
 let hostname = null;
 let servers = {};
+let serversModulePath = null;
 
 function setup() {
   hostname = os.hostname().replace(/\..*$/, '');
   if (0) console.log('hostname=' + hostname);
 
-  let serversModulePath = path.join(process.cwd(), 'deploy/servers');
+  serversModulePath = path.join(process.cwd(), 'deploy/servers.js');
   try {
     // eslint-disable-next-line global-require
     servers = require(serversModulePath);
@@ -68,6 +70,10 @@ function setup() {
   }
 
   if (verbose >= 1) console.log(servers);
+}
+
+function richError(msg) {
+  return new Error(`${msg}. Servers should be defined in ${serversModulePath}`);
 }
 
 

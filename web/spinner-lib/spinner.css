@@ -11,31 +11,35 @@
 }
 
 .spinner-img {
-    background: url(/spinner-lib/spinner32t.gif) no-repeat;
     background-size: contain;
-    width: 32px;
-    height: 32px;
     margin: 0 auto;
 }
 
 .spinner-img12 {
     background: url(/spinner-lib/spinner32t.gif) no-repeat;
-    background-size: contain;
     width: 12px;
     height: 12px;
+    background-size: contain;
     margin: 0 auto;
 }
 .spinner-img16 {
     background: url(/spinner-lib/spinner32t.gif) no-repeat;
-    background-size: contain;
     width: 16px;
     height: 16px;
+    background-size: contain;
     margin: 0 auto;
 }
 .spinner-img32 {
     background: url(/spinner-lib/spinner32t.gif) no-repeat;
-    background-size: contain;
     width: 32px;
     height: 32px;
+    background-size: contain;
+    margin: 0 auto;
+}
+.spinner-img64a {
+    background: url(/spinner-lib/spinner64a.svg) no-repeat;
+    width: 64px;
+    height: 64px;
+    background-size: contain;
     margin: 0 auto;
 }

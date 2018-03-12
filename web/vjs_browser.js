@@ -359,7 +359,7 @@ $.fn.inputSetRed = function() {
   Remove any spinners from inside this element
 */
 $.fn.clearSpinner = function() {
-  this.find('.spinner320x240').add('.spinner24x24').add('.spinner160x120').remove();
+  this.find('.spinner-img').remove();
   return this;
 };
 
