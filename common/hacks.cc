@@ -5,6 +5,7 @@
 
 #include <regex.h>
 #include <netdb.h>
+#include <typeindex>
 
 
 char *
@@ -631,27 +632,8 @@ string tlb_basename(const string &pathname)
 
 bool same_type(std::type_info const &t1, std::type_info const &t2)
 {
-
-  /*
-    <typeinfo> believes that if GXX has weak symbols, then it's valid
-    to compare typeinfo structures by equality of the __name pointer
-    rather than the contents of the string. Indeed, the typeinfo names
-    are weak symbols, but they don't actually seem to get merged. This
-    is with g++4.2 on FreeBSD 6.2.
-
-    There is a preprocessor symbol, _GXX_MERGED_TYPEINFO_NAMES, which
-    changes the #included file behavior, but we'd have to change it
-    when building libstdc++ also.
-
-    Comparing by name does work, tho. So use this function instead of
-    ==.
-  */
-
-  if (t1==t2) return true;
-  if (!strcmp(t1.name(), t2.name())) {
-    if (0) eprintf("Type %s has two instances: %p[%p], %p[%p]\n", t1.name(), &t1, t1.name(), &t2, t2.name());
-    return true;
-  }
+  if (&t1 == &t2) return true;
+  if (std::type_index(t1) == std::type_index(t2)) return true;
   return false;
 }
 
