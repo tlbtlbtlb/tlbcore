@@ -6,7 +6,8 @@ const vjs_dbs = require('./vjs_dbs');
 
 vjs_dbs.defDb('local', 'redis', '127.0.0.1', 6379);
 
-describe('vjs_dbs/Redis', function() {
+// skip because we don't have redis installed everywhere
+describe.skip('vjs_dbs/Redis', function() {
   it('Should work', function(done) {
 
     let db = vjs_dbs('local');
@@ -17,6 +18,7 @@ describe('vjs_dbs/Redis', function() {
         assert.equal(getErr, null);
         assert.deepEqual(foo1, foo2);
         if (0) console.log('Set foo=', foo1, 'Got foo=', foo2);
+        db.quit();
         done();
       });
     });
