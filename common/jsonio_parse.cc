@@ -1,56 +1,125 @@
 #include "std_headers.h"
 #include "jsonio.h"
+#include <cxxabi.h>
+#include <typeindex>
 
 /* ----------------------------------------------------------------------
    Low-level json stuff
    Spec at http://www.json.org/
 */
 
-bool jsonSkipValue(RdJsonContext &ctx) {
-  jsonSkipSpace(ctx);
-  if (*ctx.s == '\"') {
+
+RdJsonContext::RdJsonContext(char const *_s, shared_ptr<ChunkFile> const &_blobs, bool _noTypeCheck)
+  :fullStr(_s),
+   s(_s),
+   blobs(_blobs),
+   noTypeCheck(_noTypeCheck)
+{
+}
+
+
+bool RdJsonContext::fail(std::type_info const &t, string const &reason)
+{
+  failType = &t;
+  failReason = reason;
+  failPos = s;
+  return false;
+}
+
+bool RdJsonContext::fail(std::type_info const &t, char const *reason)
+{
+  failType = &t;
+  failReason = reason;
+  failPos = s;
+  return false;
+}
+
+static char const *niceTypeName(std::type_info const &t)
+{
+  auto ti = std::type_index(t);
+  if (ti == std::type_index(typeid(string))) return "string";
+  int status = 0;
+  return abi::__cxa_demangle(t.name(), 0, 0, &status);
+ }
+
+string RdJsonContext::fmtFail()
+{
+  if (!failPos || !failType || failReason.empty()) {
+    return "no failure noted";
+  }
+
+  auto ret = string("rdJson<") + niceTypeName(*failType) + string("> fail: ") + failReason;
+
+  string ss(fullStr);
+  size_t off = (failPos - fullStr);
+  if (ss.size() < 1000 && off < ss.size()+2) {
+    ret += " in\n" + ss + "\n" + string(off, ' ') + "^";
+  }
+  else {
+    ret += stringprintf("at pos %zu/%zu", off, ss.size());
+  }
+  if (0) eprintf("%s\n", ret.c_str());
+  return ret;
+}
+
+
+void RdJsonContext::skipSpace() {
+  while (1) {
+    char c = *s;
+    // Because isspace does funky locale-dependent stuff that I don't want
+    if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+      s++;
+    } else {
+      break;
+    }
+  }
+}
+
+bool RdJsonContext::skipValue() {
+  skipSpace();
+  if (*s == '\"') {
     string tmp;
     shared_ptr< ChunkFile > blobs;
-    rdJson(ctx, tmp);
+    rdJson(*this, tmp);
   }
-  else if (*ctx.s == '[') {
-    ctx.s++;
-    jsonSkipSpace(ctx);
+  else if (*s == '[') {
+    s++;
+    skipSpace();
     while (1) {
-      if (*ctx.s == ',') {
-        ctx.s++;
+      if (*s == ',') {
+        s++;
       }
-      else if (*ctx.s == ']') {
-        ctx.s++;
+      else if (*s == ']') {
+        s++;
         break;
       }
       else {
-        if (!jsonSkipValue(ctx)) return false;
+        if (!skipValue()) return false;
       }
     }
   }
-  else if (*ctx.s == '{') {
-    ctx.s++;
-    jsonSkipSpace(ctx);
+  else if (*s == '{') {
+    s++;
+    skipSpace();
     while (1) {
-      if (*ctx.s == ',') {
-        ctx.s++;
+      if (*s == ',') {
+        s++;
       }
-      else if (*ctx.s == ':') {
-        ctx.s++;
+      else if (*s == ':') {
+        s++;
       }
-      else if (*ctx.s == '}') {
-        ctx.s++;
+      else if (*s == '}') {
+        s++;
         break;
       }
       else {
-        if (!jsonSkipValue(ctx)) return false;
+        if (!skipValue()) return false;
       }
     }
   }
-  else if (isalnum(*ctx.s) || *ctx.s=='.' || *ctx.s == '-') {
-    ctx.s++;
-    while (isalnum(*ctx.s) || *ctx.s=='.' || *ctx.s == '-') ctx.s++;
+  else if (isalnum(*s) || *s=='.' || *s == '-') {
+    s++;
+    while (isalnum(*s) || *s=='.' || *s == '-') s++;
   }
   else {
     return false;
@@ -59,47 +128,49 @@ bool jsonSkipValue(RdJsonContext &ctx) {
   return true;
 }
 
-bool jsonSkipMember(RdJsonContext &ctx) {
-  jsonSkipSpace(ctx);
-  if (*ctx.s == '\"') {
+bool RdJsonContext::skipMember() {
+  skipSpace();
+  if (*s == '\"') {
     string tmp;
-    rdJson(ctx, tmp);
-    jsonSkipSpace(ctx);
-    if (*ctx.s == ':') {
-      ctx.s++;
-      jsonSkipSpace(ctx);
-      if (!jsonSkipValue(ctx)) return false;
+    rdJson(*this, tmp);
+    skipSpace();
+    if (*s == ':') {
+      s++;
+      skipSpace();
+      if (!skipValue()) return false;
       return true;
     }
   }
   return false;
 }
 
-bool jsonMatch(RdJsonContext &ctx, char const *pattern)
+bool RdJsonContext::match(char const *pattern)
 {
-  jsonSkipSpace(ctx);
-  char const *p = ctx.s;
+  skipSpace();
+  char const *p = s;
   while (*pattern) {
     if (*pattern == ' ') {
+      while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+        p++;
+      }
       pattern++;
-      jsonSkipSpace(ctx);
-      continue;
     }
-    if (*p == *pattern) {
+    else if (*p == *pattern) {
       p++;
       pattern++;
-    } else {
+    }
+    else {
       return false;
     }
   }
-  ctx.s = p;
+  s = p;
   return true;
 }
 
-bool jsonMatchKey(RdJsonContext &ctx, char const *pattern)
+bool RdJsonContext::matchKey(char const *pattern)
 {
-  jsonSkipSpace(ctx);
-  char const *p = ctx.s;
+  skipSpace();
+  char const *p = s;
   if (*p != '"') {
     return false;
   }
@@ -108,7 +179,8 @@ bool jsonMatchKey(RdJsonContext &ctx, char const *pattern)
     if (*p == *pattern) {
       p++;
       pattern++;
-    } else {
+    }
+    else {
       return false;
     }
   }
@@ -116,12 +188,24 @@ bool jsonMatchKey(RdJsonContext &ctx, char const *pattern)
     return false;
   }
   p++;
-  jsonSkipSpace(p);
+  while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+    p++;
+  }
   if (*p != ':') {
     return false;
   }
   p++;
-  jsonSkipSpace(p);
-  ctx.s = p;
+  while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+    p++;
+  }
+  s = p;
   return true;
+}
+
+
+void WrJsonContext::emit(char const *str)
+{
+  while (*str) {
+    *s++ = *str++;
+  }
 }

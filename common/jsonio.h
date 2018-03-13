@@ -88,42 +88,52 @@ jsonstr asJson(const T &value) {
 
 
 template <typename T>
-bool fromJson(jsonstr const &sj, T &value) {
-  RdJsonContext ctx;
-  ctx.s = sj.it.c_str();
-  ctx.blobs = sj.blobs;
-  return rdJson(ctx, value);
+bool fromJson(jsonstr const &sj, T &value, string &err) {
+  RdJsonContext ctx(sj.it.c_str(), sj.blobs, false);
+  if (!rdJson(ctx, value)) {
+    err = ctx.fmtFail();
+    return false;
+  }
+  return true;
 }
 
 template <typename T>
-bool fromJson(jsonstr const &sj, bool noTypeCheck, T &value) {
-  RdJsonContext ctx;
-  ctx.s = sj.it.c_str();
-  ctx.blobs = sj.blobs;
-  ctx.noTypeCheck = noTypeCheck;
-  return rdJson(ctx, value);
+bool fromJson(jsonstr const &sj, bool noTypeCheck, T &value, string &err) {
+  RdJsonContext ctx(sj.it.c_str(), sj.blobs, noTypeCheck);
+  if (!rdJson(ctx, value)) {
+    err = ctx.fmtFail();
+    return false;
+  }
+  return true;
 }
 
 template <typename T>
-bool fromJson(string const &ss, shared_ptr< ChunkFile > const &blobs, T &value) {
-  RdJsonContext ctx;
-  ctx.s = ss.c_str();
-  ctx.blobs = blobs;
-  return rdJson(ctx, value);
+bool fromJson(string const &ss, shared_ptr< ChunkFile > const &blobs, T &value, string &err) {
+  RdJsonContext ctx(ss.c_str(), blobs, false);
+  if (!rdJson(ctx, value)) {
+    err = ctx.fmtFail();
+    return false;
+  }
+  return true;
 }
 
 template <typename T>
-bool fromJson(string const &ss, T &value) {
-  RdJsonContext ctx;
-  ctx.s = ss.c_str();
-  return rdJson(ctx, value);
+bool fromJson(string const &ss, T &value, string &err) {
+  RdJsonContext ctx(ss.c_str(), nullptr, false);
+  if (!rdJson(ctx, value)) {
+    err = ctx.fmtFail();
+    return false;
+  }
+  return true;
 }
 
 
 template <typename T>
-bool fromJson(string const &ss, bool noTypeCheck, T &value) {
-  RdJsonContext ctx;
-  ctx.s = ss.c_str();
-  ctx.noTypeCheck = noTypeCheck;
-  return rdJson(ctx, value);
+bool fromJson(string const &ss, bool noTypeCheck, T &value, string &err) {
+  RdJsonContext ctx(ss.c_str(), nullptr, noTypeCheck);
+  if (!rdJson(ctx, value)) {
+    err = ctx.fmtFail();
+    return false;
+  }
+  return true;
 }

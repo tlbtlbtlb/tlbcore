@@ -2,14 +2,6 @@
 #include "jsonio.h"
 #include "build.src/ndarray_decl.h"
 
-bool RdJsonContext::_fail(char const *reason, char const *file, int line)
-{
-  string ss(s);
-  if (ss.size() > 100) ss = ss.substr(0, 100) + "...";
-  failReason = stringprintf("rdJsonFail: %s at %s:%d\n", reason, file, line) + ss;
-  return false;
-}
-
 /*
   As used by Python's numpy, which we interoperate with.
 */
@@ -56,22 +48,15 @@ void wrJsonSize(WrJsonContext &ctx, bool const &value) {
 
 void wrJson(WrJsonContext &ctx, bool const &value) {
   if (value) {
-    *ctx.s++ = 't';
-    *ctx.s++ = 'r';
-    *ctx.s++ = 'u';
-    *ctx.s++ = 'e';
+    ctx.emit("true");
   } else {
-    *ctx.s++ = 'f';
-    *ctx.s++ = 'a';
-    *ctx.s++ = 'l';
-    *ctx.s++ = 's';
-    *ctx.s++ = 'e';
+    ctx.emit("false");
   }
 }
 
 bool rdJson(RdJsonContext &ctx, bool &value) {
   u_char c;
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   c = *ctx.s++;
   if (c == 't') {
     c = *ctx.s++;
@@ -103,7 +88,7 @@ bool rdJson(RdJsonContext &ctx, bool &value) {
     }
   }
   ctx.s--;
-  return rdJsonFail("expected true or false");
+  return ctx.fail(typeid(bool), "expected true or false");
 }
 
 /*
@@ -129,7 +114,7 @@ void wrJson(WrJsonContext &ctx, U8 const &value) {
 
 bool rdJson(RdJsonContext &ctx, U8 &value) {
   char *end = nullptr;
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   value = (U8) strtoul(ctx.s, &end, 10);
   ctx.s = end;
   return true;
@@ -159,7 +144,7 @@ void wrJson(WrJsonContext &ctx, S32 const &value) {
 
 bool rdJson(RdJsonContext &ctx, S32 &value) {
   char *end = nullptr;
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   value = strtol(ctx.s, &end, 10);
   ctx.s = end;
   return true;
@@ -188,7 +173,7 @@ void wrJson(WrJsonContext &ctx, U32 const &value) {
 
 bool rdJson(RdJsonContext &ctx, U32 &value) {
   char *end = nullptr;
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   value = strtoul(ctx.s, &end, 10);
   ctx.s = end;
   return true;
@@ -217,7 +202,7 @@ void wrJson(WrJsonContext &ctx, S64 const &value) {
 
 bool rdJson(RdJsonContext &ctx, S64 &value) {
   char *end = nullptr;
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   value = strtol(ctx.s, &end, 10);
   ctx.s = end;
   return true;
@@ -246,7 +231,7 @@ void wrJson(WrJsonContext &ctx, U64 const &value) {
 
 bool rdJson(RdJsonContext &ctx, U64 &value) {
   char *end = nullptr;
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   value = strtoul(ctx.s, &end, 10);
   ctx.s = end;
   return true;
@@ -276,7 +261,7 @@ void wrJson(WrJsonContext &ctx, float const &value) {
 
 bool rdJson(RdJsonContext &ctx, float &value) {
   char *end = nullptr;
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   value = strtof(ctx.s, &end);
   ctx.s = end;
   return true;
@@ -331,7 +316,7 @@ void wrJson(WrJsonContext &ctx, double const &value) {
 
 bool rdJson(RdJsonContext &ctx, double &value) {
   char *end = nullptr;
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   if (ctx.s[0] == '0' && (ctx.s[1] == ',' || ctx.s[1] == '}' || ctx.s[1] == ']')) {
     value = 0.0;
     ctx.s ++;
@@ -405,7 +390,7 @@ void wrJson(WrJsonContext &ctx, string const &value) {
 
 bool rdJson(RdJsonContext &ctx, string &value) {
   u_char c;
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   c = *ctx.s++;
   if (c == 0x22) {
     while (1) {
@@ -437,16 +422,16 @@ bool rdJson(RdJsonContext &ctx, string &value) {
           if (0) eprintf("Got unicode escape %s\n", ctx.s);
           uint32_t codept = 0;
           c = *ctx.s++;
-          if (!isHexDigit(c)) return rdJsonFail("expected unicode escape hex");
+          if (!isHexDigit(c)) return ctx.fail(typeid(value), "expected unicode escape hex");
           codept |= fromHexDigit(c) << 12;
           c = *ctx.s++;
-          if (!isHexDigit(c)) return rdJsonFail("expected unicode escape hex");
+          if (!isHexDigit(c)) return ctx.fail(typeid(value), "expected unicode escape hex");
           codept |= fromHexDigit(c) << 8;
           c = *ctx.s++;
-          if (!isHexDigit(c)) return rdJsonFail("expected unicode escape hex");
+          if (!isHexDigit(c)) return ctx.fail(typeid(value), "expected unicode escape hex");
           codept |= fromHexDigit(c) << 4;
           c = *ctx.s++;
-          if (!isHexDigit(c)) return rdJsonFail("expected unicode escape hex");
+          if (!isHexDigit(c)) return ctx.fail(typeid(value), "expected unicode escape hex");
           codept |= fromHexDigit(c) << 0;
 
           char mb[MB_LEN_MAX];
@@ -463,9 +448,13 @@ bool rdJson(RdJsonContext &ctx, string &value) {
       else if (c == 0x22) {
         return true;
       }
+      else if (c == 0) { // end of string
+        ctx.s--;
+        return ctx.fail(typeid(value), "end of string");
+      }
       else if (c < 0x20) { // control character, error
         ctx.s--;
-        return rdJsonFail("surprising control character");
+        return ctx.fail(typeid(value), "surprising control character");
       }
       else {
         value.push_back(c);
@@ -473,7 +462,7 @@ bool rdJson(RdJsonContext &ctx, string &value) {
     }
   }
   ctx.s--;
-  return rdJsonFail("no closing quote");
+  return ctx.fail(typeid(value), "no closing quote");
 }
 
 /*
@@ -500,10 +489,10 @@ void wrJson(WrJsonContext &ctx, jsonstr const &value) {
 }
 
 bool rdJson(RdJsonContext &ctx, jsonstr &value) {
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   char const *begin = ctx.s;
-  if (!jsonSkipValue(ctx)) {
-    return rdJsonFail("jsonSkipValue");
+  if (!ctx.skipValue()) {
+    return ctx.fail(typeid(value), "skipping");
   }
   value.it = string(begin, ctx.s);
   value.blobs = ctx.blobs;
@@ -524,23 +513,9 @@ void wrJsonSize(WrJsonContext &ctx, arma::cx_double const &value)
 
 void wrJson(WrJsonContext &ctx, arma::cx_double const &value)
 {
-  *ctx.s++ = '{';
-  *ctx.s++ = '"';
-  *ctx.s++ = 'r';
-  *ctx.s++ = 'e';
-  *ctx.s++ = 'a';
-  *ctx.s++ = 'l';
-  *ctx.s++ = '"';
-  *ctx.s++ = ':';
+  ctx.emit("{\"real\":");
   wrJson(ctx, value.real());
-  *ctx.s++ = ',';
-  *ctx.s++ = '"';
-  *ctx.s++ = 'i';
-  *ctx.s++ = 'm';
-  *ctx.s++ = 'a';
-  *ctx.s++ = 'g';
-  *ctx.s++ = '"';
-  *ctx.s++ = ':';
+  ctx.emit(",\"imag\":");
   wrJson(ctx, value.imag());
   *ctx.s++ = '}';
 }
@@ -550,11 +525,11 @@ bool rdJson(RdJsonContext &ctx, arma::cx_double &value)
   double value_real = 0.0, value_imag = 0.0;
 
   char c;
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   c = *ctx.s++;
   if (c == '{') {
     while(1) {
-      jsonSkipSpace(ctx);
+      ctx.skipSpace();
       c = *ctx.s++;
       if (c == '}') {
         value = arma::cx_double(value_real, value_imag);
@@ -574,7 +549,7 @@ bool rdJson(RdJsonContext &ctx, arma::cx_double &value)
                   c = *ctx.s++;
                   if (c == ':') {
                     if (rdJson(ctx, value_real)) {
-                      jsonSkipSpace(ctx);
+                      ctx.skipSpace();
                       c = *ctx.s++;
                       if (c == ',') continue;
                       if (c == '}') {
@@ -600,7 +575,7 @@ bool rdJson(RdJsonContext &ctx, arma::cx_double &value)
                   c = *ctx.s++;
                   if (c == ':') {
                     if (rdJson(ctx, value_imag)) {
-                      jsonSkipSpace(ctx);
+                      ctx.skipSpace();
                       c = *ctx.s++;
                       if (c == ',') continue;
                       if (c == '}') {
@@ -616,10 +591,10 @@ bool rdJson(RdJsonContext &ctx, arma::cx_double &value)
         }
       }
     }
-    return rdJsonFail("expected real or imag");
+    return ctx.fail(typeid(value), "expected real or imag");
   }
   ctx.s--;
-  return rdJsonFail("expected {");
+  return ctx.fail(typeid(value), "expected {");
 }
 
 /*
@@ -724,17 +699,17 @@ void wrJson(WrJsonContext &ctx, arma::Col< T > const &arr) {
 
 template<typename T>
 bool rdJson(RdJsonContext &ctx, arma::Col< T > &arr) {
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   if (*ctx.s == '[') {
     ctx.s++;
     vector< T > tmparr;
     while (1) {
-      jsonSkipSpace(ctx);
+      ctx.skipSpace();
       if (*ctx.s == ']') break;
       T tmp;
-      if (!rdJson(ctx, tmp)) return rdJsonFail("rdJson(tmp)");
+      if (!rdJson(ctx, tmp)) return ctx.fail(typeid(arr), "rdJson(tmp)");
       tmparr.push_back(tmp);
-      jsonSkipSpace(ctx);
+      ctx.skipSpace();
       if (*ctx.s == ',') {
         ctx.s++;
       }
@@ -742,7 +717,7 @@ bool rdJson(RdJsonContext &ctx, arma::Col< T > &arr) {
         break;
       }
       else {
-        return rdJsonFail("Expected , or ]");
+        return ctx.fail(typeid(arr), "Expected , or ]");
       }
     }
     ctx.s++;
@@ -758,7 +733,7 @@ bool rdJson(RdJsonContext &ctx, arma::Col< T > &arr) {
   }
   else if (*ctx.s == '{' && ctx.blobs) {
     ndarray nd;
-    if (!rdJson(ctx, nd)) return rdJsonFail("rdJson(nd)");
+    if (!rdJson(ctx, nd)) return ctx.fail(typeid(arr), "rdJson(nd)");
     arr.set_size(nd.shape[0]);
     if ((size_t)arr.n_elem > (size_t)numeric_limits< int >::max() / sizeof(arr[0])) throw length_error("rdJson< arma::Col >");
     size_t partBytes = mul_overflow< size_t >((size_t)arr.n_elem, sizeof(arr[0]));
@@ -768,11 +743,11 @@ bool rdJson(RdJsonContext &ctx, arma::Col< T > &arr) {
       return true;
     }
     else {
-      return rdJsonFail("Wrong dtype or size");
+      return ctx.fail(typeid(arr), "Wrong dtype or size");
     }
   }
   else {
-    return rdJsonFail("Expected [ or {");
+    return ctx.fail(typeid(arr), "Expected [ or {");
   }
 }
 
@@ -804,18 +779,18 @@ void wrJson(WrJsonContext &ctx, arma::Row< T > const &arr) {
 
 template<typename T>
 bool rdJson(RdJsonContext &ctx, arma::Row< T > &arr) {
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   // FIXME: blobs
-  if (*ctx.s != '[') return rdJsonFail("Expected [");
+  if (*ctx.s != '[') return ctx.fail(typeid(arr), "Expected [");
   ctx.s++;
   vector< T > tmparr;
   while (1) {
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     if (*ctx.s == ']') break;
     T tmp;
-    if (!rdJson(ctx, tmp)) return rdJsonFail("rdJson(tmp)");
+    if (!rdJson(ctx, tmp)) return ctx.fail(typeid(arr), "rdJson(tmp)");
     tmparr.push_back(tmp);
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     if (*ctx.s == ',') {
       ctx.s++;
     }
@@ -823,7 +798,7 @@ bool rdJson(RdJsonContext &ctx, arma::Row< T > &arr) {
       break;
     }
     else {
-      return rdJsonFail("Expected , or ]");
+      return ctx.fail(typeid(arr), "Expected , or ]");
     }
   }
   ctx.s++;
@@ -861,18 +836,18 @@ void wrJson(WrJsonContext &ctx, arma::Mat< T > const &arr) {
 
 template<typename T>
 bool rdJson(RdJsonContext &ctx, arma::Mat< T > &arr) {
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   // FIXME: blobs
-  if (*ctx.s != '[') return rdJsonFail("Expected [");
+  if (*ctx.s != '[') return ctx.fail(typeid(arr), "Expected [");
   ctx.s++;
   vector< T > tmparr;
   while (1) {
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     if (*ctx.s == ']') break;
     T tmp;
-    if (!rdJson(ctx, tmp)) return rdJsonFail("rdJson(tmp)");
+    if (!rdJson(ctx, tmp)) return ctx.fail(typeid(arr), "rdJson(tmp)");
     tmparr.push_back(tmp);
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     if (*ctx.s == ',') {
       ctx.s++;
     }
@@ -880,7 +855,7 @@ bool rdJson(RdJsonContext &ctx, arma::Mat< T > &arr) {
       break;
     }
     else {
-      return rdJsonFail("Expected , or ]");
+      return ctx.fail(typeid(arr), "Expected , or ]");
     }
   }
   ctx.s++;
@@ -963,7 +938,7 @@ bool rdJsonBin(RdJsonContext &ctx, vector< T > &arr)
       }
     }
   }
-  return rdJsonFail("rdJson(nd)");
+  return ctx.fail(typeid(arr), "rdJson(nd)");
 }
 
 /*
@@ -1013,7 +988,7 @@ bool rdJsonBin(RdJsonContext &ctx, vector< bool > &arr)
       }
     }
   }
-  return rdJsonFail("rdJson(nd)");
+  return ctx.fail(typeid(arr), "rdJson(nd)");
 }
 
 /*
@@ -1032,7 +1007,7 @@ void wrJson(WrJsonContext &ctx, vector< double > const &arr) {
 
 template<>
 bool rdJson(RdJsonContext &ctx, vector< double > &arr) {
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   return (*ctx.s=='[') ? rdJsonVec(ctx, arr) : rdJsonBin(ctx, arr);
 }
 
@@ -1052,7 +1027,7 @@ void wrJson(WrJsonContext &ctx, vector< float > const &arr) {
 
 template<>
 bool rdJson(RdJsonContext &ctx, vector< float > &arr) {
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   return (*ctx.s=='[') ? rdJsonVec(ctx, arr) : rdJsonBin(ctx, arr);
 }
 
@@ -1072,7 +1047,7 @@ void wrJson(WrJsonContext &ctx, vector< bool > const &arr) {
 
 template<>
 bool rdJson(RdJsonContext &ctx, vector< bool > &arr) {
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   return (*ctx.s=='[') ? rdJsonVec(ctx, arr) : rdJsonBin(ctx, arr);
 }
 
@@ -1093,7 +1068,7 @@ void wrJson(WrJsonContext &ctx, vector< S32 > const &arr) {
 
 template<>
 bool rdJson(RdJsonContext &ctx, vector< S32 > &arr) {
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   return (*ctx.s=='[') ? rdJsonVec(ctx, arr) : rdJsonBin(ctx, arr);
 }
 
@@ -1113,7 +1088,7 @@ void wrJson(WrJsonContext &ctx, vector< U32 > const &arr) {
 
 template<>
 bool rdJson(RdJsonContext &ctx, vector< U32 > &arr) {
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   return (*ctx.s=='[') ? rdJsonVec(ctx, arr) : rdJsonBin(ctx, arr);
 }
 
@@ -1133,7 +1108,7 @@ void wrJson(WrJsonContext &ctx, vector< S64 > const &arr) {
 
 template<>
 bool rdJson(RdJsonContext &ctx, vector< S64 > &arr) {
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   return (*ctx.s=='[') ? rdJsonVec(ctx, arr) : rdJsonBin(ctx, arr);
 }
 
@@ -1153,7 +1128,7 @@ void wrJson(WrJsonContext &ctx, vector< U64 > const &arr) {
 
 template<>
 bool rdJson(RdJsonContext &ctx, vector< U64 > &arr) {
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   return (*ctx.s=='[') ? rdJsonVec(ctx, arr) : rdJsonBin(ctx, arr);
 }
 
@@ -1201,28 +1176,28 @@ template<typename T>
 bool rdJsonBin(RdJsonContext &ctx, vector< typename arma::Col< T > > &arr)
 {
   ndarray nd;
-  if (!rdJson(ctx, nd)) return rdJsonFail("rdJson(nd)");
+  if (!rdJson(ctx, nd)) return ctx.fail(typeid(arr), "rdJson(nd)");
 
   if (nd.shape.size() != 2 ) {
-    return rdJsonFail(stringprintf(
+    return ctx.fail(typeid(arr), stringprintf(
       "rdJson(arma::Col< T >: Size mismatch: %zu [%zu %zu]",
       (size_t)nd.shape.size(),
       nd.shape.size()>0 ? (size_t)nd.shape[0] : (size_t)0,
-      nd.shape.size()>1 ? (size_t)nd.shape[1] : (size_t)0).c_str());
+      nd.shape.size()>1 ? (size_t)nd.shape[1] : (size_t)0));
   }
   arr.resize(nd.shape[0]);
   size_t n = nd.shape[1];
 
   vector< T > tmp(nd.shape[0] * nd.shape[1]);
   if (tmp.size() * sizeof(T) != nd.partBytes) {
-    return rdJsonFail(stringprintf(
+    return ctx.fail(typeid(arr), stringprintf(
       "rdJson(arma::Col< T >: size mismatch: %zu*%zu != %zu\\n",
-      tmp.size(), sizeof(T), (size_t)nd.partBytes).c_str());
+      tmp.size(), sizeof(T), (size_t)nd.partBytes));
   }
   if (!ctx.blobs->readChunk(reinterpret_cast<char *>(tmp.data()), nd.partOfs, nd.partBytes)) {
-    return rdJsonFail(stringprintf(
+    return ctx.fail(typeid(arr), stringprintf(
       "rdJson(arma::Col< T >): no chunk %zu %zu\\n",
-      (size_t)nd.partOfs, (size_t)nd.partBytes).c_str());
+      (size_t)nd.partOfs, (size_t)nd.partBytes));
   }
 
   for (size_t i=0; i<arr.size(); i++) {
@@ -1270,27 +1245,27 @@ template<typename T>
 bool rdJsonBin(RdJsonContext &ctx, vector< typename arma::Row< T > > &arr)
 {
   ndarray nd;
-  if (!rdJson(ctx, nd)) return rdJsonFail("rdJson(nd)");
+  if (!rdJson(ctx, nd)) return ctx.fail(typeid(arr), "rdJson(nd)");
 
   if (nd.shape.size() != 2 ) {
-    return rdJsonFail(stringprintf(
+    return ctx.fail(typeid(arr), stringprintf(
       "rdJson(arma::Row< T >: Size mismatch: %zu [%zu %zu]\n",
       (size_t)nd.shape.size(),
       nd.shape.size()>0 ? (size_t)nd.shape[0] : (size_t)0,
-      nd.shape.size()>1 ? (size_t)nd.shape[1] : (size_t)0).c_str());
+      nd.shape.size()>1 ? (size_t)nd.shape[1] : (size_t)0));
   }
   arr.resize(nd.shape[0]);
   size_t n = nd.shape[1];
 
   vector< T > tmp(nd.shape[0] * nd.shape[1]);
   if (tmp.size() * sizeof(T) != nd.partBytes) {
-    return rdJsonFail(stringprintf(
+    return ctx.fail(typeid(arr), stringprintf(
       "rdJson(arma::Row< T >: size mismatch: %zu*%zu != %zu\\n",
-      tmp.size(), sizeof(T), (size_t)nd.partBytes).c_str());
+      tmp.size(), sizeof(T), (size_t)nd.partBytes));
   }
   if (!ctx.blobs->readChunk(reinterpret_cast<char *>(tmp.data()), nd.partOfs, nd.partBytes)) {
-    return rdJsonFail(stringprintf("rdJson(arma::Row< T >): no chunk %zu %zu\\n",
-      (size_t)nd.partOfs, (size_t)nd.partBytes).c_str());
+    return ctx.fail(typeid(arr), stringprintf("rdJson(arma::Row< T >): no chunk %zu %zu\\n",
+      (size_t)nd.partOfs, (size_t)nd.partBytes));
   }
 
   for (size_t i=0; i<arr.size(); i++) {
@@ -1342,15 +1317,15 @@ template<typename T>
 bool rdJsonBin(RdJsonContext &ctx, vector< typename arma::Mat< T > > &arr)
 {
   ndarray nd;
-  if (!rdJson(ctx, nd)) return rdJsonFail("rdJson(nd)");
+  if (!rdJson(ctx, nd)) return ctx.fail(typeid(arr), "rdJson(nd)");
 
   if (nd.shape.size() != 3 ) {
-    return rdJsonFail(stringprintf(
+    return ctx.fail(typeid(arr), stringprintf(
       "rdJson(arma::Mat< T >: Size mismatch: %zu [%zu %zu %zu]\n",
       (size_t)nd.shape.size(),
       nd.shape.size()>0 ? (size_t)nd.shape[0] : (size_t)0,
       nd.shape.size()>1 ? (size_t)nd.shape[1] : (size_t)0,
-      nd.shape.size()>1 ? (size_t)nd.shape[1] : (size_t)0).c_str());
+      nd.shape.size()>1 ? (size_t)nd.shape[1] : (size_t)0));
   }
   arr.resize(nd.shape[0]);
   size_t nc = nd.shape[1];
@@ -1359,14 +1334,14 @@ bool rdJsonBin(RdJsonContext &ctx, vector< typename arma::Mat< T > > &arr)
 
   vector< T > tmp(nd.shape[0] * ne);
   if (tmp.size() * sizeof(T) != nd.partBytes) {
-    return rdJsonFail(stringprintf(
+    return ctx.fail(typeid(arr), stringprintf(
       "rdJson(arma::Mat< T >: size mismatch: %zu*%zu != %zu\\n",
-      tmp.size(), sizeof(T), (size_t)nd.partBytes).c_str());
+      tmp.size(), sizeof(T), (size_t)nd.partBytes));
   }
   if (!ctx.blobs->readChunk(reinterpret_cast<char *>(tmp.data()), nd.partOfs, nd.partBytes)) {
-    return rdJsonFail(stringprintf(
+    return ctx.fail(typeid(arr), stringprintf(
       "rdJson(arma::Mat< T >): no chunk %zu %zu\\n",
-      (size_t)nd.partOfs, (size_t)nd.partBytes).c_str());
+      (size_t)nd.partOfs, (size_t)nd.partBytes));
   }
 
   for (size_t i=0; i<arr.size(); i++) {

@@ -1,3 +1,4 @@
+#pragma once
 
 /*
   Write C++ types to a string (char *) as JSON.
@@ -14,7 +15,6 @@
   See fromJson (defined below) for the right way to do it.
 
 */
-
 
 
 void wrJsonSize(WrJsonContext &ctx, bool const &value);
@@ -78,16 +78,13 @@ void wrJson(WrJsonContext &ctx, shared_ptr< T > const &p) {
   if (p) {
     wrJson(ctx, *p);
   } else {
-    *ctx.s++ = 'n';
-    *ctx.s++ = 'u';
-    *ctx.s++ = 'l';
-    *ctx.s++ = 'l';
+    ctx.emit("null");
   }
 }
 
 template<typename T>
 bool rdJson(RdJsonContext &ctx, shared_ptr< T > &p) {
-  jsonSkipSpace(ctx);
+  ctx.skipSpace();
   if (ctx.s[0] == 'n' && ctx.s[1] == 'u' && ctx.s[2] == 'l' && ctx.s[3] == 'l') {
     ctx.s += 4;
     p = nullptr;
@@ -336,17 +333,17 @@ void wrJsonSizeVec(WrJsonContext &ctx, vector< T > const &arr) {
 }
 template<typename T>
 bool rdJsonVec(RdJsonContext &ctx, vector< T > &arr) {
-  jsonSkipSpace(ctx);
-  if (*ctx.s != '[') return rdJsonFail("expected [");
+  ctx.skipSpace();
+  if (*ctx.s != '[') return ctx.fail(typeid(arr), "expected [");
   ctx.s++;
   arr.clear();
   while (1) {
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     if (*ctx.s == ']') break;
     T tmp;
-    if (!rdJson(ctx, tmp)) return rdJsonFail("rdJson(tmp)");
+    if (!rdJson(ctx, tmp)) return ctx.fail(typeid(arr), "rdJson(tmp)");
     arr.push_back(tmp);
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     if (*ctx.s == ',') {
       ctx.s++;
     }
@@ -354,7 +351,7 @@ bool rdJsonVec(RdJsonContext &ctx, vector< T > &arr) {
       break;
     }
     else {
-      return rdJsonFail("expected , or ]");
+      return ctx.fail(typeid(arr), "expected , or ]");
     }
   }
   ctx.s++;
@@ -374,7 +371,7 @@ void wrJsonVec(WrJsonContext &ctx, vector< shared_ptr< T > > const &arr) {
     if (sep) *ctx.s++ = ',';
     sep = true;
     if (!*it) {
-      *ctx.s++ = 'n'; *ctx.s++ = 'u'; *ctx.s++ = 'l'; *ctx.s++ = 'l';
+      ctx.emit("null");
     } else {
       wrJson(ctx, **it);
     }
@@ -394,22 +391,22 @@ void wrJsonSizeVec(WrJsonContext &ctx, vector< shared_ptr< T > > const &arr) {
 }
 template<typename T>
 bool rdJsonVec(RdJsonContext &ctx, vector< shared_ptr< T > > &arr) {
-  jsonSkipSpace(ctx);
-  if (*ctx.s != '[') return rdJsonFail("expected [");
+  ctx.skipSpace();
+  if (*ctx.s != '[') return ctx.fail(typeid(arr), "expected [");
   ctx.s++;
   arr.clear();
   while (1) {
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     if (*ctx.s == ']') break;
     if (ctx.s[0] == 'n' && ctx.s[1]=='u' && ctx.s[2]=='l' && ctx.s[3]=='l') {
       ctx.s += 4;
       arr.emplace_back(nullptr);
     } else {
       auto tmp = make_shared< T >();
-      if (!rdJson(ctx, *tmp)) return rdJsonFail("rdJson(tmp)");
+      if (!rdJson(ctx, *tmp)) return ctx.fail(typeid(arr), "rdJson(tmp)");
       arr.push_back(tmp);
     }
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     if (*ctx.s == ',') {
       ctx.s++;
     }
@@ -417,7 +414,7 @@ bool rdJsonVec(RdJsonContext &ctx, vector< shared_ptr< T > > &arr) {
       break;
     }
     else {
-      return rdJsonFail("expected , or ]");
+      return ctx.fail(typeid(arr), "expected , or ]");
     }
   }
   ctx.s++;
@@ -453,24 +450,24 @@ void wrJson(WrJsonContext &ctx, map< KT, VT > const &arr) {
 }
 template<typename KT, typename VT>
 bool rdJson(RdJsonContext &ctx, map< KT, VT > &arr) {
-  jsonSkipSpace(ctx);
-  if (*ctx.s != '{') return rdJsonFail("expected {");
+  ctx.skipSpace();
+  if (*ctx.s != '{') return ctx.fail(typeid(arr), "expected {");
   ctx.s++;
   arr.clear();
   while (1) {
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     if (*ctx.s == '}') break;
     KT ktmp;
-    if (!rdJson(ctx, ktmp)) return rdJsonFail("rdJson(ktmp)");
-    jsonSkipSpace(ctx);
-    if (*ctx.s != ':') return rdJsonFail("expected :");
+    if (!rdJson(ctx, ktmp)) return ctx.fail(typeid(arr), "rdJson(ktmp)");
+    ctx.skipSpace();
+    if (*ctx.s != ':') return ctx.fail(typeid(arr), "expected :");
     ctx.s++;
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     VT vtmp;
-    if (!rdJson(ctx, vtmp)) return rdJsonFail("rdJson(vtmp)");
+    if (!rdJson(ctx, vtmp)) return ctx.fail(typeid(arr), "rdJson(vtmp)");
     arr[ktmp] = vtmp;
 
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     if (*ctx.s == ',') {
       ctx.s++;
     }
@@ -478,7 +475,7 @@ bool rdJson(RdJsonContext &ctx, map< KT, VT > &arr) {
       break;
     }
     else {
-      return rdJsonFail("Expected , or }");
+      return ctx.fail(typeid(arr), "Expected , or }");
     }
   }
   ctx.s++;
@@ -515,24 +512,24 @@ void wrJson(WrJsonContext &ctx, map< KT, shared_ptr< VT > > const &arr) {
 }
 template<typename KT, typename VT>
 bool rdJson(RdJsonContext &ctx, map< KT, shared_ptr< VT > > &arr) {
-  jsonSkipSpace(ctx);
-  if (*ctx.s != '{') return rdJsonFail("Expected {");
+  ctx.skipSpace();
+  if (*ctx.s != '{') return ctx.fail(typeid(arr), "Expected {");
   ctx.s++;
   arr.clear();
   while (1) {
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     if (*ctx.s == '}') break;
     KT ktmp;
-    if (!rdJson(ctx, ktmp)) return rdJsonFail("rdJson(ktmp)");
-    jsonSkipSpace(ctx);
-    if (*ctx.s != ':') return rdJsonFail("Expected :");
+    if (!rdJson(ctx, ktmp)) return ctx.fail(typeid(arr), "rdJson(ktmp)");
+    ctx.skipSpace();
+    if (*ctx.s != ':') return ctx.fail(typeid(arr), "Expected :");
     ctx.s++;
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     auto vtmp = make_shared< VT >();
-    if (!rdJson(ctx, *vtmp)) return rdJsonFail("rdJson(vtmp)");
+    if (!rdJson(ctx, *vtmp)) return ctx.fail(typeid(arr), "rdJson(vtmp)");
     arr[ktmp] = vtmp;
 
-    jsonSkipSpace(ctx);
+    ctx.skipSpace();
     if (*ctx.s == ',') {
       ctx.s++;
     }
@@ -540,7 +537,7 @@ bool rdJson(RdJsonContext &ctx, map< KT, shared_ptr< VT > > &arr) {
       break;
     }
     else {
-      return rdJsonFail("Expected , or }");
+      return ctx.fail(typeid(arr), "Expected , or }");
     }
   }
   ctx.s++;
@@ -567,18 +564,18 @@ void wrJson(WrJsonContext &ctx, pair<FIRST, SECOND > const &it) {
 }
 template<typename FIRST, typename SECOND>
 bool rdJson(RdJsonContext &ctx, pair<FIRST, SECOND > &it) {
-  jsonSkipSpace(ctx);
-  if (*ctx.s != '[') return rdJsonFail("expected [");
+  ctx.skipSpace();
+  if (*ctx.s != '[') return ctx.fail(typeid(it), "expected [");
   ctx.s++;
-  jsonSkipSpace(ctx);
-  if (!rdJson(ctx, it.first)) return rdJsonFail("rdJson(it.first)");
-  jsonSkipSpace(ctx);
-  if (*ctx.s != ',') return rdJsonFail("expected ,");
+  ctx.skipSpace();
+  if (!rdJson(ctx, it.first)) return ctx.fail(typeid(it), "rdJson(it.first)");
+  ctx.skipSpace();
+  if (*ctx.s != ',') return ctx.fail(typeid(it), "expected ,");
   ctx.s++;
-  jsonSkipSpace(ctx);
-  if (!rdJson(ctx, it.second)) return rdJsonFail("rdJson(it.second)");
-  jsonSkipSpace(ctx);
-  if (*ctx.s != ']') return rdJsonFail("expected ]");
+  ctx.skipSpace();
+  if (!rdJson(ctx, it.second)) return ctx.fail(typeid(it), "rdJson(it.second)");
+  ctx.skipSpace();
+  if (*ctx.s != ']') return ctx.fail(typeid(it), "expected ]");
   ctx.s++;
   return true;
 }

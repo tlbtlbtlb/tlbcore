@@ -1,65 +1,45 @@
-
+#pragma once
+#include "./chunk_file.h"
 
 struct RdJsonContext {
+
+  RdJsonContext(char const *_s, shared_ptr<ChunkFile> const &_blobs, bool _noTypeCheck);
+
+  char const *fullStr {nullptr};
   char const *s {nullptr};
   shared_ptr<ChunkFile> blobs;
   bool noTypeCheck {false};
-  string failReason;
 
-  bool _fail(char const *reason, char const *file, int line);
+  string failReason;
+  std::type_info const *failType {nullptr};
+  char const *failPos {nullptr};
+
+  bool fail(std::type_info const &t, string const &reason);
+  bool fail(std::type_info const &t, char const *reason);
+
+  string fmtFail();
+
+  void skipSpace();
+
+  /*
+    Skip past a value or member of an object, ie "foo":123,
+  */
+  bool skipValue();
+  bool skipMember();
+
+  /*
+    If the pattern matches, advance s past it and return true. Otherwise leave s the same and return false.
+    jsonMatchKey matches "pattern":
+  */
+  bool match(char const *pattern);
+  bool matchKey(char const *pattern);
+
 };
 
 struct WrJsonContext {
   char *s {nullptr};
   size_t size {0};
   shared_ptr<ChunkFile> blobs;
+
+  void emit(char const *str);
 };
-
-
-#if 1
-#define rdJsonFail(REASON) ctx._fail((REASON), __FILE__, __LINE__)
-#else
-#define rdJsonFail(REASON) false
-#endif
-
-
-/*
-  Skip past a value or member of an object, ie "foo":123,
-*/
-bool jsonSkipValue(RdJsonContext &ctx);
-bool jsonSkipMember(RdJsonContext &ctx);
-
-/*
-  Skip whitespace.
-*/
-inline void jsonSkipSpace(RdJsonContext &ctx) {
-  while (1) {
-    char c = *ctx.s;
-    // Because isspace does funky locale-dependent stuff that I don't want
-    if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
-      ctx.s++;
-    } else {
-      break;
-    }
-  }
-}
-
-inline void jsonSkipSpace(char const *&s) {
-  while (1) {
-    char c = *s;
-    // Because isspace does funky locale-dependent stuff that I don't want
-    if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
-      s++;
-    } else {
-      break;
-    }
-  }
-}
-
-
-/*
-  If the pattern matches, advance s past it and return true. Otherwise leave s the same and return false.
-  jsonMatchKey matches "pattern":
-*/
-bool jsonMatch(RdJsonContext &ctx, char const *pattern);
-bool jsonMatchKey(RdJsonContext &ctx, char const *pattern);
