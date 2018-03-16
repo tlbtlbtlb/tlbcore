@@ -495,15 +495,15 @@ $.fn.syncChildren = function(newItems, options) {
   let domKey = options.domKey || 'syncDomChildren';
   let domClass = options.domClass || 'syncDomChildren';
 
-  let removeEl = options.removeEl || (function (name) {
-    $(this).remove();
+  let removeEl = options.removeEl || (function (el, name) {
+    el.remove();
   });
   let createEl = options.createEl || (function (name) {
-    return $('<div class="' + domClass + '">');
+    return $(`<div class="${domClass}">`);
   });
-  let setupEl = options.setupEl || (function () {
+  let setupEl = options.setupEl || (function (el) {
   });
-  let updateEl = options.updateEl || (function () {
+  let updateEl = options.updateEl || (function (el) {
   });
 
   // Find all contained dom elements with domClass, index them by domKey
@@ -525,7 +525,7 @@ $.fn.syncChildren = function(newItems, options) {
   // Remove orphaned elems (in oldEls but not in itemToIndex)
   _.each(oldEls, (obj, name) => {
     if (!itemToIndex.hasOwnProperty(name)) {
-      removeEl.call($(oldEls[name]), name);
+      removeEl($(oldEls[name]), name);
     }
   });
 
@@ -547,7 +547,7 @@ $.fn.syncChildren = function(newItems, options) {
         this.prepend(newEl);
         afterEl = newEl;
       }
-      setupEl.call($(newEl), name);
+      setupEl($(newEl), name);
     }
     /*
       If calcSignature is supplied, we use it to avoid updates when nothing has changed.
@@ -558,10 +558,10 @@ $.fn.syncChildren = function(newItems, options) {
       let oldSignature = $(oldEls[name]).attr('signature');
       if (signature !== oldSignature) {
         $(oldEls[name]).attr('signature', signature);
-        updateEl.call($(oldEls[name]), name);
+        updateEl($(oldEls[name]), name);
       }
     } else {
-      updateEl.call($(oldEls[name]), name);
+      updateEl($(oldEls[name]), name);
     }
   });
 

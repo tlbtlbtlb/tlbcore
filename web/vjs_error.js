@@ -89,7 +89,7 @@ $.flashErrorMessage = function(msg) {
   if (flashErrorMessageTimeout) {
     clearTimeout(flashErrorMessageTimeout);
   }
-  flashErrorMessageTimeout = setTimeout(function() {
+  flashErrorMessageTimeout = setTimeout(() => {
     fem.fadeOut(500, function() {
       $(this).empty();
     });
@@ -112,7 +112,7 @@ $.flashSuccessMessage = function(msg) {
   if (flashSuccessMessageTimeout) {
     clearTimeout(flashSuccessMessageTimeout);
   }
-  flashSuccessMessageTimeout = setTimeout(function() {
+  flashSuccessMessageTimeout = setTimeout(() => {
     fem.fadeOut(500, function() {
       $(this).empty();
     });
