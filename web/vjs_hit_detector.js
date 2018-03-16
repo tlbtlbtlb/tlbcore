@@ -4,95 +4,89 @@ const _ = require('lodash');
 exports.HitDetector = HitDetector;
 
 function HitDetector() {
-  let hd = this;
-  hd.hits = [];
-  hd.scrolls = [];
-  hd.contextMenus = [];
-  hd.defaultActions = null;
-  hd.buttonDown = false;
-  hd.mdX = hd.mdY = null;
-  hd.ctx = null;
-  hd.dragging = null;
-  hd.dataPending = false;
-  hd.hoverCursor = null;
+  this.hits = [];
+  this.scrolls = [];
+  this.contextMenus = [];
+  this.defaultActions = null;
+  this.buttonDown = false;
+  this.mdX = this.mdY = null;
+  this.ctx = null;
+  this.dragging = null;
+  this.dataPending = false;
+  this.hoverCursor = null;
 }
 
 HitDetector.prototype.clear = function() {
-  let hd = this;
-  hd.hits = null;
-  hd.scrolls = null;
-  hd.defaultActions = null;
-  hd.ctx = null;
-  hd.dragging = null;
-  hd.dataPending = false;
+  this.hits = null;
+  this.scrolls = null;
+  this.defaultActions = null;
+  this.ctx = null;
+  this.dragging = null;
+  this.dataPending = false;
 };
 
 HitDetector.prototype.beginDrawing = function(ctx) {
-  let hd = this;
-  hd.ctx = ctx;
-  hd.hits.length = 0;
-  hd.scrolls.length = 0;
-  hd.contextMenus.length = 0;
-  hd.defaultActions = null;
-  hd.wantsKeys = false;
-  hd.dataPending = false;
-  hd.wantsContextMenu = false;
+  this.ctx = ctx;
+  this.hits.length = 0;
+  this.scrolls.length = 0;
+  this.contextMenus.length = 0;
+  this.defaultActions = null;
+  this.wantsKeys = false;
+  this.dataPending = false;
+  this.wantsContextMenu = false;
 
-  hd.hoverCursor = null;
-  hd.hoverPriority = 1e9;
-  hd.hoverAction = null;
+  this.hoverCursor = null;
+  this.hoverPriority = 1e9;
+  this.hoverAction = null;
 };
 
 HitDetector.prototype.endDrawing = function(ctx) {
-  let hd = this;
-  hd.ctx = null;
+  this.ctx = null;
 };
 
 HitDetector.prototype.mouseIn = function(t, r, b, l) {
-  let hd = this;
-  return hd.mdX >= l && hd.mdX <= r && hd.mdY >= t && hd.mdY <= b;
+  return this.mdX >= l && this.mdX <= r && this.mdY >= t && this.mdY <= b;
 };
 
 
 HitDetector.prototype.add = function(t, r, b, l, actions) {
-  let hd = this;
   if (!(l <= r && t <= b)) {
     throw new Error(`HitDetector region (${t},${r},${b},${l}) invalid`);
   }
-  let inside = hd.mouseIn(t, r, b, l);
+  let inside = this.mouseIn(t, r, b, l);
   let priority = (b - t) * (r - l) * (actions.priorityFactor || 1);
   if (actions.onClick || actions.onDown || actions.onUp) {
-    hd.hits.push({t, r, b, l, actions, priority});
+    this.hits.push({t, r, b, l, actions, priority});
   }
   if (actions.onContextMenu) {
-    hd.contextMenus.push({t, r, b, l, actions, priority});
-    hd.wantsContextMenu = true;
+    this.contextMenus.push({t, r, b, l, actions, priority});
+    this.wantsContextMenu = true;
   }
   if (actions.onScroll) {
-    hd.scrolls.push({t, r, b, l, actions, priority});
+    this.scrolls.push({t, r, b, l, actions, priority});
   }
   if (actions.draw || actions.drawDown) {
-    hd.ctx.save();
-    let down = hd.buttonDown && inside;
-    if (!down) hd.ctx.globalAlpha = 0.75;
+    this.ctx.save();
+    let down = this.buttonDown && inside;
+    if (!down) this.ctx.globalAlpha = 0.75;
     if (actions.draw) actions.draw();
     if (down && actions.drawDown) actions.drawDown();
-    hd.ctx.restore();
+    this.ctx.restore();
   }
   else if (actions.drawCustom) {
-    actions.drawCustom(hd.buttonDown && inside);
+    actions.drawCustom(this.buttonDown && inside);
   }
   if (inside) {
-    if (actions.onHover && !hd.dragging) {
-      if (priority < hd.hoverPriority) {
-        hd.hoverPriority = priority;
-        hd.hoverAction = actions.onHover;
+    if (actions.onHover && !this.dragging) {
+      if (priority < this.hoverPriority) {
+        this.hoverPriority = priority;
+        this.hoverAction = actions.onHover;
       }
     }
     if (actions.onHoverDrag) {
-      if (priority < hd.hoverPriority) {
-        hd.hoverPriority = priority;
-        hd.hoverAction = actions.onHoverDrag;
+      if (priority < this.hoverPriority) {
+        this.hoverPriority = priority;
+        this.hoverAction = actions.onHoverDrag;
       }
     }
   }
@@ -100,16 +94,14 @@ HitDetector.prototype.add = function(t, r, b, l, actions) {
 
 
 HitDetector.prototype.addDefault = function(actions) {
-  let hd = this;
-  hd.defaultActions = actions;
+  this.defaultActions = actions;
 };
 
 /*
   Find the smallest area enclosing x,y.
 */
 HitDetector.prototype.find = function(x, y) {
-  let hd = this;
-  let hits = hd.hits;
+  let hits = this.hits;
   let hitsLen = hits.length;
   let bestPriority = 1e9;
   let bestActions = null;
@@ -126,8 +118,7 @@ HitDetector.prototype.find = function(x, y) {
 };
 
 HitDetector.prototype.findContextMenus = function(x, y) {
-  let hd = this;
-  let hits = hd.contextMenus;
+  let hits = this.contextMenus;
   let hitsLen = hits.length;
   let all = [];
   for (let i=0; i<hitsLen; i++) {
@@ -140,8 +131,7 @@ HitDetector.prototype.findContextMenus = function(x, y) {
 };
 
 HitDetector.prototype.findScroll = function(x, y) {
-  let hd = this;
-  let scrolls = hd.scrolls;
+  let scrolls = this.scrolls;
   let scrollsLen = scrolls.length;
   let bestPriority = 1e9;
   let bestActions = null;

@@ -77,9 +77,9 @@ function isValidPassword(loginPass) {
   return (loginPass.length > 3 && loginPass.length < 100 && (/^[-_a-zA-Z0-9\~\`\@\#\$\%\^\&\*\(\)\+\=\{\[\}\]\:\;\"\'<,>\.\?\/]+$/.test(loginPass)));
 }
 
-function isValidMessage(m) {
-  if (!(typeof(m) === 'string')) return false;
-  if (m.length > 1000) return false;
+function isValidMessage(msg) {
+  if (!(typeof(msg) === 'string')) return false;
+  if (msg.length > 1000) return false;
   // WRITEME: look for wacky characters
   return true;
 }

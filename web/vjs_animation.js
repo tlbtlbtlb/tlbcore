@@ -11,39 +11,12 @@ const box_layout = require('./box_layout');
   Animation
 */
 
-// Polyfill for browsers with no requestAnimationFrame
-(function() {
-  let lastTime = 0;
-  let vendors = ['ms', 'moz', 'webkit', 'o'];
-  for (let x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-    window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
-    window.cancelAnimationFrame =
-      window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
-  }
-
-  if (!window.requestAnimationFrame) {
-    window.requestAnimationFrame = function(callback, element) {
-      let currTime = new Date().getTime();
-      let timeToCall = Math.max(0, 16 - (currTime - lastTime));
-      let id = window.setTimeout(function() { callback(currTime + timeToCall); },
-                                 timeToCall);
-      lastTime = currTime + timeToCall;
-      return id;
-    };
-  }
-  if (!window.cancelAnimationFrame) {
-    window.cancelAnimationFrame = function(id) {
-      clearTimeout(id);
-    };
-  }
-}());
-
 /*
   Call m.addListener(eventName, handler), but also remove it when the DOM node gets destroyed
 */
 $.fn.onEventsFrom = function(m, eventName, handler) {
   m.addListener(eventName, handler);
-  this.one('destroyed', function() {
+  this.one('destroyed', () => {
     if (0) console.log(this, 'destroyed, removing event', eventName);
     m.removeListener(eventName, handler);
     m = null;
@@ -54,7 +27,7 @@ $.fn.onEventsFrom = function(m, eventName, handler) {
 $.fn.nowAndOnEventsFrom = function(m, eventName, handler) {
   m.addListener(eventName, handler);
   handler.call(m);
-  this.one('destroyed', function() {
+  this.one('destroyed', () => {
     if (0) console.log(this, 'destroyed, removing event', eventName);
     m.removeListener(eventName, handler);
     m = null;
@@ -70,15 +43,10 @@ $.fn.nowAndOnEventsFrom = function(m, eventName, handler) {
   but can be more if we should jump multiple steps due to slow redraw
 */
 $.fn.animation = function(f, deltat) {
-  let self = this;
-  window.requestAnimationFrame(wrap);
-  let lasttick = 0;
-  if (!deltat) deltat = 1;
-  let maxTicks = Math.max(5, (100 / deltat));
 
-  function wrap(curtime) {
+  const wrap = (curtime) => {
     // Make sure dom object still exists, otherwise give up
-    if (self.closest('body').length) {
+    if (this.closest('body').length) {
       let curtick = Math.floor(curtime / deltat);
 
       let nticks = 0;
@@ -93,13 +61,19 @@ $.fn.animation = function(f, deltat) {
       lasttick = curtick;
 
       if (nticks > 0) {
-        f.call(self, nticks);
+        f.call(this, nticks);
       }
       window.requestAnimationFrame(wrap);
     } else {
-      if (console) console.log(self, 'disconnected');
+      if (console) console.log(this, 'disconnected');
     }
-  }
+  };
+
+  window.requestAnimationFrame(wrap);
+  let lasttick = 0;
+  if (!deltat) deltat = 1;
+  let maxTicks = Math.max(5, (100 / deltat));
+
 };
 
 /*
@@ -122,26 +96,14 @@ $.fn.animation = function(f, deltat) {
 
 */
 $.fn.animation2 = function(m) {
-  let top = this;
-
   m.animation2LastTime = 0;
   let mChangeCounter = 0;
   let vChangeCounter = 0;
   let afActive = false;
   let changesPending = 0;
-  top.onEventsFrom(m, 'changed', function() {
-    if (mChangeCounter === vChangeCounter) mChangeCounter++;
-    if (changesPending < 2) changesPending++;
-    if (!afActive) {
-      afActive = true;
-      m.animation2LastTime = 0;
-      window.requestAnimationFrame(wrap);
-    }
-  });
-  return;
 
-  function wrap(curTime) {
-    if (top.closest('body').length === 0) {
+  const wrap = (curTime) => {
+    if (this.closest('body').length === 0) {
       if (console) console.log(top, 'disconnected');
       return; // leaving afActive true, so we shouldn't get called any more
     }
@@ -167,7 +129,17 @@ $.fn.animation2 = function(m) {
     else {
       afActive = false;
     }
-  }
+  };
+
+  this.onEventsFrom(m, 'changed', () => {
+    if (mChangeCounter === vChangeCounter) mChangeCounter++;
+    if (changesPending < 2) changesPending++;
+    if (!afActive) {
+      afActive = true;
+      m.animation2LastTime = 0;
+      window.requestAnimationFrame(wrap);
+    }
+  });
 };
 
 /*
@@ -215,13 +187,12 @@ $.fn.animation2 = function(m) {
 
 */
 $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
-  let top = this;
-  if (top.length === 0) return;
-  let autoSize = top.hasClass('fillContainer');
+  if (this.length === 0) return;
+  let autoSize = this.hasClass('fillContainer');
   if (!autoSize) {
-    top.maximizeCanvasResolution();
+    this.maximizeCanvasResolution();
   }
-  let canvas = top[0];
+  let canvas = this[0];
 
   let avgTime = null;
   let drawCount = 0;
@@ -236,23 +207,23 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
 
   // Isn't this what jQuery is supposed to do for me?
   // http://stackoverflow.com/questions/12704686/html5-with-jquery-e-offsetx-is-undefined-in-firefox
-  function eventOffsets(ev) {
+  const eventOffsets = (ev) => {
     if (ev.offsetX !== undefined) {
       return {x: ev.offsetX, y: ev.offsetY};
     }
     // Firefox doesn't have offsetX, you have to work from page coordinates
     if (ev.pageX !== undefined) {
-      return {x: ev.pageX - top.offset().left,
-              y: ev.pageY - top.offset().top};
+      return {x: ev.pageX - this.offset().left,
+              y: ev.pageY - this.offset().top};
     }
     // jQuery doesn't copy pageX when the event is 'wheel'
     if (ev.originalEvent.pageX !== undefined) {
-      return {x: ev.originalEvent.pageX - top.offset().left,
-              y: ev.originalEvent.pageY - top.offset().top};
+      return {x: ev.originalEvent.pageX - this.offset().left,
+              y: ev.originalEvent.pageY - this.offset().top};
     }
     return null;
-  }
-  function eventDeltas(ev) {
+  };
+  const eventDeltas = (ev) => {
     if (ev.deltaX !== undefined) {
       return {x: ev.deltaX, y: ev.deltaY};
     }
@@ -260,9 +231,9 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       return {x: ev.originalEvent.deltaX, y: ev.originalEvent.deltaY};
     }
     return {x: 0, y: 0};
-  }
+  };
 
-  top.on('wheel', function(ev) {
+  this.on('wheel', (ev) => {
     let md = eventOffsets(ev);
     if (!md) return;
     let action = hd.findScroll(md.x, md.y);
@@ -277,7 +248,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     }
   });
 
-  top.on('mousedown', function(ev) {
+  this.on('mousedown', (ev) => {
     if (ev.ctrlKey) return;
     let md = eventOffsets(ev);
     let action = hd.find(md.x, md.y) || hd.defaultActions;
@@ -298,7 +269,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     return false;
   });
 
-  top.on('mousemove', function(ev) {
+  this.on('mousemove', (ev) => {
     let md = eventOffsets(ev);
     let action = hd.find(md.x, md.y);
     if (hd.buttonDown || hd.hoverAction || hd.dragging || (action && (action.onHover || action.onHoverDrag))) {
@@ -314,16 +285,16 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     }
   });
 
-  top.on('mouseout', function(ev) {
+  this.on('mouseout', (ev) => {
     hd.mdX = hd.mdY = null;
     requestAnimationFrame(redrawCanvas);
   });
 
-  top.on('mouseover', function(ev) {
+  this.on('mouseover', (ev) => {
     requestAnimationFrame(redrawCanvas);
   });
 
-  top.on('mouseup', function(ev) {
+  this.on('mouseup', (ev) => {
     hd.mdX = hd.mdY = null;
     hd.shiftKey = ev.shiftKey;
     hd.altKey = ev.altKey;
@@ -345,7 +316,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     return false;
   });
 
-  $(window).on('mouseup.mkAnimatedCanvas', function(ev) {
+  $(window).on('mouseup.mkAnimatedCanvas', (ev) => {
     if (hd.dragCursor) {
       hd.dragCursor = null;
     }
@@ -355,18 +326,15 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       return true;
     }
   });
-  top.one('destroyed', function() {
+  this.one('destroyed', () => {
     if (0) console.log('mkAnimatedCanvas: top destroyed');
     $(window).off('mouseup.mkAnimatedCanvas');
     m = null;
     drawFunc = null;
   });
 
-  top.onEventsFrom(m, o.animateEventName || 'animate', redrawCanvas);
-  top.onEventsFrom(m, 'makeMovie', makeMovie);
-  redrawCanvas();
 
-  function redrawCanvas() {
+  const redrawCanvas = () => {
     if (!m || !drawFunc) {
       console.log('mkAnimatedCanvas.redrawCanvas: dead');
       return;
@@ -399,7 +367,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     ctx.save();
     ctx.scale(pixelRatio, pixelRatio);
 
-    ctx.curLayer = function(f) { return f(); };
+    ctx.curLayer = (f) => f();
     ctx.textLayer = vjs_browser.mkDeferQ();
     ctx.buttonLayer = vjs_browser.mkDeferQ();
     ctx.cursorLayer = vjs_browser.mkDeferQ();
@@ -448,20 +416,20 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     if (hd.dragCursor && hd.dragging) {
       // see https://developer.mozilla.org/en-US/docs/Web/CSS/cursor?redirectlocale=en-US&redirectslug=CSS%2Fcursor
       // Grab not supported on IE or Chrome/Windows
-      top.css('cursor', hd.dragCursor);
+      this.css('cursor', hd.dragCursor);
     }
     else if (hd.hoverCursor) {
-      top.css('cursor', hd.hoverCursor);
+      this.css('cursor', hd.hoverCursor);
     }
     else {
-      top.css('cursor', 'default');
+      this.css('cursor', 'default');
     }
     if (hd.wantsContextMenu && !didContextMenu) {
       didContextMenu = true;
-      top.parent().contextMenu({
+      this.parent().contextMenu({
         selector: 'canvas',
         autoHide: true,
-        build: function($trigger, ev) {
+        build: ($trigger, ev) => {
           let md = eventOffsets(ev);
           let allActions = hd.findContextMenus(md.x, md.y);
           let ret = {
@@ -491,9 +459,9 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     }
 
     ctx.restore();
-  }
+  };
 
-  function makeMovie(movieOptions) {
+  const makeMovie = (movieOptions) => {
     console.log('makeMovie called', movieOptions);
 
     movieOptions.onBegin({el: top});
@@ -510,7 +478,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       }
       let createMovieXhr = new XMLHttpRequest();
       createMovieXhr.open('POST', 'create_movie', true);
-      createMovieXhr.onload = function(e) {
+      createMovieXhr.onload = (e) => {
         if (0) console.log('create_movie returns', createMovieXhr.response);
         createMovieRsp = JSON.parse(createMovieXhr.response);
         hd.movieId = createMovieRsp.movie_id;
@@ -530,14 +498,14 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
         movieOptions.onDone('loadPending', {});
       }
       else {
-        canvas.toBlob(function(blob) {
+        canvas.toBlob((blob) => {
           let addFrameReq = new FormData();
           addFrameReq.append('frame_data', blob);
           addFrameReq.append('framei', movieOptions.framei);
           addFrameReq.append('movie_id', hd.movieId);
           let addFrameXhr = new XMLHttpRequest();
           addFrameXhr.open('POST', 'add_frame', true);
-          addFrameXhr.onload = function(e) {
+          addFrameXhr.onload = (e) => {
             movieOptions.onDone(null, {});
           };
           addFrameXhr.send(addFrameReq);
@@ -550,12 +518,16 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       endMovieReq.append('movie_id', hd.movieId);
       let endMovieXhr = new XMLHttpRequest();
       endMovieXhr.open('POST', 'end_movie', true);
-      endMovieXhr.onload = function(e) {
+      endMovieXhr.onload = (e) => {
         movieOptions.onDone(null, {movieUrl: 'download_movie?movie_id=' + hd.movieId});
       };
       endMovieXhr.send(endMovieReq);
     }
-  }
+  };
+
+  this.onEventsFrom(m, o.animateEventName || 'animate', redrawCanvas);
+  this.onEventsFrom(m, 'makeMovie', makeMovie);
+  redrawCanvas();
 };
 
 $.fn.fmtAnimatedCanvas = function(m, drawFunc, o) {
@@ -568,7 +540,7 @@ $.fn.fmtAnimatedCanvas = function(m, drawFunc, o) {
   This converts it to device pixel resolution.
 */
 $.fn.maximizeCanvasResolution = function() {
-  this.each(function(index, canvas) {
+  this.each((index, canvas) => {
     let ctx = canvas.getContext('2d');
     let devicePixelRatio = window.devicePixelRatio || 1;
     let backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||

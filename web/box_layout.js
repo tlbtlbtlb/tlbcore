@@ -5,74 +5,75 @@ exports.BoxLayout = BoxLayout;
 /*
   Super-simple layout helper for drawing in canvases.
   If you want to create a sub-box, do something like:
-    lo.child({boxL: (lo.boxL+lo.boxR)/2})
+    this.child({boxL: (this.boxL+this.boxR)/2})
 
   Use .snap or .snap5 to snap a coordinate to the corner or center of a device pixel
 */
 function BoxLayout(t, r, b, l, pixelRatio, o) {
-  let lo = this;
   if (!o) o = {};
-  lo.boxT = lo.canvasT = t;
-  lo.boxR = lo.canvasR = r;
-  lo.boxB = lo.canvasB = b;
-  lo.boxL = lo.canvasL = l;
-  lo.canvasW = lo.canvasR - lo.canvasL;
-  lo.canvasH = lo.canvasB - lo.canvasT;
-  lo.boxW = lo.boxR - lo.boxL;
-  lo.boxH = lo.boxB - lo.boxT;
-  lo.pixelRatio = pixelRatio;
-  lo.thinWidth = 1 / pixelRatio;
+  this.boxT = this.canvasT = t;
+  this.boxR = this.canvasR = r;
+  this.boxB = this.canvasB = b;
+  this.boxL = this.canvasL = l;
+  this.canvasW = this.canvasR - this.canvasL;
+  this.canvasH = this.canvasB - this.canvasT;
+  this.boxW = this.boxR - this.boxL;
+  this.boxH = this.boxB - this.boxT;
+  this.pixelRatio = pixelRatio;
+  this.thinWidth = 1 / pixelRatio;
   if (pixelRatio >= 2) {
-    lo.lrgFont = '20px Arial';
-    lo.lrgSize = 20;
-    lo.tooltipFont = '12px Arial';
-    lo.tooltipSize = 12;
-    lo.medFont = '10px Arial';
-    lo.medSize = 10;
-    lo.smlFont = '9px Arial';
-    lo.smlSize = 9;
-    lo.tinyFont = '7px Arial';
-    lo.tinySize = 7;
-  } else {
-    lo.lrgFont = '25px Arial';
-    lo.lrgSize = 25;
-    lo.tooltipFont = '12px Arial';
-    lo.tooltipSize = 12;
-    lo.medFont = '12px Arial';
-    lo.medSize = 12;
-    lo.smlFont = '10px Arial';
-    lo.smlSize = 10;
-    lo.tinyFont = '8px Arial';
-    lo.tinySize = 8;
+    this.lrgFont = '20px Arial';
+    this.lrgSize = 20;
+    this.tooltipFont = '12px Arial';
+    this.tooltipSize = 12;
+    this.medFont = '10px Arial';
+    this.medSize = 10;
+    this.smlFont = '9px Arial';
+    this.smlSize = 9;
+    this.tinyFont = '7px Arial';
+    this.tinySize = 7;
   }
-  lo.sizeFont = function(s) {
+  else {
+    this.lrgFont = '25px Arial';
+    this.lrgSize = 25;
+    this.tooltipFont = '12px Arial';
+    this.tooltipSize = 12;
+    this.medFont = '12px Arial';
+    this.medSize = 12;
+    this.smlFont = '10px Arial';
+    this.smlSize = 10;
+    this.tinyFont = '8px Arial';
+    this.tinySize = 8;
+  }
+  this.sizeFont = (s) => {
     return s.toFixed(0) + 'px Arial';
   };
-  lo.tooltipPadding = o.comfy ? 3 : 0;
-  lo.tooltipFillStyle = 'rgba(255,255,202,0.9)';
-  lo.tooltipTextStyle = '#000023';
+  this.tooltipPadding = o.comfy ? 3 : 0;
+  this.tooltipFillStyle = 'rgba(255,255,202,0.9)';
+  this.tooltipTextStyle = '#000023';
 }
 
 BoxLayout.prototype.snap = function(x) {
-  let lo = this;
-  return Math.round(x * lo.pixelRatio) / lo.pixelRatio;
+  return Math.round(x * this.pixelRatio) / this.pixelRatio;
 };
+
 BoxLayout.prototype.snap5 = function(x) {
-  let lo = this;
-return (Math.round(x * lo.pixelRatio - 0.5) + 0.5) / lo.pixelRatio;
+  return (Math.round(x * this.pixelRatio - 0.5) + 0.5) / this.pixelRatio;
 };
+
 BoxLayout.prototype.child = function(changes) {
-  let lo = this;
   if (changes) {
-    return _.extend(Object.create(lo), changes);
-  } else {
-    return Object.create(lo);
+    return _.extend(Object.create(this), changes);
+  }
+  else {
+    return Object.create(this);
   }
 };
+
 BoxLayout.prototype.toString = function() {
-  let lo = this;
-  return 'box(' + lo.boxL.toFixed(1) + ',' + lo.boxT.toFixed(1) + ',' + lo.boxR.toFixed(1) + ',' + lo.boxB.toFixed(1) + ')';
+  return `box(${this.boxL.toFixed(1)},${this.boxT.toFixed(1)},${this.boxR.toFixed(1)},${this.boxB.toFixed(1)})`;
 };
+
 BoxLayout.prototype.childBox = function(t, r, b, l, o) {
   let lo2 = Object.create(this);
   lo2.boxT = t;

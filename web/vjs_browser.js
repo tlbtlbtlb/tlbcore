@@ -220,18 +220,17 @@ $.event.special.destroyed = {
   Great if you want to do something special with window resize while an item is on screen
 */
 $.fn.bogartWindowEvents = function(evMap) {
-  let top = this;
-  _.each(evMap, function(fn, name) {
+  _.each(evMap, (fn, name) => {
 
-    let handler = function(ev) {
+    let handler = (ev) => {
       // But don't work when there's a popupEditUrl dialog going. See vjs_edit_url.js
       if ($('#popupEditUrl').length) return;
       return fn.call(this, ev);
     };
 
     $(window).on(name, handler);
-    top.one('destroyed', function() {
-      if (0) console.log(top, 'destroyed, removing window events');
+    this.one('destroyed', function() {
+      if (0) console.log(this, 'destroyed, removing window events');
       $(window).off(name, handler);
       handler = null;
     });
@@ -240,19 +239,17 @@ $.fn.bogartWindowEvents = function(evMap) {
 };
 
 $.fn.bogartBodyEvents = function(evMap) {
-  let top = this;
+  _.each(evMap, (fn, name) => {
 
-  _.each(evMap, function(fn, name) {
-
-    let handler = function(ev) {
+    let handler = (ev) => {
       // But don't work when there's a popupEditUrl dialog going. See vjs_edit_url.js
       if ($('#popupEditUrl').length) return;
       fn.call(this, ev);
     };
 
     $(document.body).on(name, handler);
-    top.one('destroyed', function() {
-      if (0) console.log(top, 'destroyed, removing window events');
+    this.one('destroyed', () => {
+      if (0) console.log(this, 'destroyed, removing window events');
       $(document.body).off(name, handler);
       handler = null;
     });
@@ -492,28 +489,27 @@ $.fn.toplevel = function() {
 
 
 $.fn.syncChildren = function(newItems, options) {
-  let top = this;
-  if (top.length === 0) return;
-  if (top.length > 1) return top.first().syncChildren(newItems, options);
+  if (this.length === 0) return;
+  if (this.length > 1) return this.first().syncChildren(newItems, options);
 
   let domKey = options.domKey || 'syncDomChildren';
   let domClass = options.domClass || 'syncDomChildren';
 
-  let removeEl = options.removeEl || function(name) {
+  let removeEl = options.removeEl || (function (name) {
     $(this).remove();
-  };
-  let createEl = options.createEl || function(name) {
+  });
+  let createEl = options.createEl || (function (name) {
     return $('<div class="' + domClass + '">');
-  };
-  let setupEl = options.setupEl || function() {
-  };
-  let updateEl = options.updateEl || function() {
-  };
+  });
+  let setupEl = options.setupEl || (function () {
+  });
+  let updateEl = options.updateEl || (function () {
+  });
 
   // Find all contained dom elements with domClass, index them by domKey
   let oldEls = {};
 
-  _.each(top.children(), function(oldEl) {
+  _.each(this.children(), (oldEl) => {
     let name = $(oldEl).data(domKey);
     if (name !== undefined) {
       oldEls[name] = oldEl;
@@ -522,12 +518,12 @@ $.fn.syncChildren = function(newItems, options) {
 
   // Index newItems by name
   let itemToIndex = {};
-  _.each(newItems, function(name, itemi) {
+  _.each(newItems, (name, itemi) => {
     itemToIndex[name] = itemi;
   });
 
   // Remove orphaned elems (in oldEls but not in itemToIndex)
-  _.each(oldEls, function(obj, name) {
+  _.each(oldEls, (obj, name) => {
     if (!itemToIndex.hasOwnProperty(name)) {
       removeEl.call($(oldEls[name]), name);
     }
@@ -535,7 +531,7 @@ $.fn.syncChildren = function(newItems, options) {
 
   // Insert new elems into dom
   let afterEl = null;
-  _.each(newItems, function(name, itemi) {
+  _.each(newItems, (name, itemi) => {
     if (oldEls.hasOwnProperty(name)) {
       afterEl = oldEls[name];
     } else {
@@ -548,7 +544,7 @@ $.fn.syncChildren = function(newItems, options) {
         $(afterEl).after(newEl);
         afterEl = newEl;
       } else {
-        top.prepend(newEl);
+        this.prepend(newEl);
         afterEl = newEl;
       }
       setupEl.call($(newEl), name);
@@ -569,8 +565,6 @@ $.fn.syncChildren = function(newItems, options) {
     }
   });
 
-  // Return map of old & new elements
-  //return oldEls;
   return this;
 };
 
@@ -611,7 +605,6 @@ $.endContextMenu = function() {
 
 
 $.fn.fmtContextMenu = function(items) {
-
   this.html(`
     <ul>
     ${
@@ -691,11 +684,22 @@ function mkImage(src, width, height) {
   On any failure, it writes a message to the jQuery item
 */
 $.fn.withJsonItems = function(items, f) {
-  let top = this;
   let datas = {};
   let pending = 0;
   let errs = [];
-  _.each(_.keys(items), function(name) {
+
+  const decPending = () => {
+    pending--;
+    if (pending === 0) {
+      if (errs.length) {
+        top.text(errs.join(', '));
+      } else {
+        f.call(top, datas);
+      }
+    }
+  };
+
+  _.each(_.keys(items), (name) => {
     pending += 1;
     let item = items[name];
     let url;
@@ -707,11 +711,11 @@ $.fn.withJsonItems = function(items, f) {
       url = item;
     }
     $.ajax(url, {
-      success: function(data) {
+      success: (data) => {
         datas[name] = data;
         decPending();
       },
-      error: function(xhr, err) {
+      error: (xhr, err) => {
         console.log(items[name], 'fail', err);
         errs.push(err);
         decPending();
@@ -721,16 +725,6 @@ $.fn.withJsonItems = function(items, f) {
       data: data
     });
   });
-  function decPending() {
-    pending--;
-    if (pending === 0) {
-      if (errs.length) {
-        top.text(errs.join(', '));
-      } else {
-        f.call(top, datas);
-      }
-    }
-  }
 };
 
 /* ----------------------------------------------------------------------

@@ -114,7 +114,7 @@ function main() {
 
   webServer0.setupContent(sites);
 
-  _.each(servers, function(serverInfo) {
+  _.each(servers, (serverInfo) => {
     webServer0.startHttpServer(serverInfo);
   });
 

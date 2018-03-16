@@ -34,13 +34,15 @@ function getSvgImage(name) {
 }
 
 function drawTooltip(ctx, lo, x, y, str) {
-  ctx.tooltipLayer(function() {
+  ctx.tooltipLayer(() => {
     let lines = str.split('\n');
     ctx.font = lo.tooltipFont;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
     let lineH = lo.tooltipSize * 1.6;
-    let textW = _.reduce(lines, function(prevMax, line) { return Math.max(prevMax, ctx.measureText(line).width); }, 20);
+    let textW = _.reduce(lines, (prevMax, line) => {
+      return Math.max(prevMax, ctx.measureText(line).width);
+    }, 20);
     let textH = lineH * lines.length;
 
     if (y < lo.boxT + textH + 10) { // close to top, show below
@@ -67,7 +69,7 @@ function drawTooltip(ctx, lo, x, y, str) {
     ctx.fillStyle = lo.tooltipFillStyle;
     ctx.fill();
     ctx.fillStyle = lo.tooltipTextStyle;
-    _.each(lines, function(line, lineIndex) {
+    _.each(lines, (line, lineIndex) => {
       ctx.fillText(line, x, ttT + lineH * (lineIndex+0.5));
     });
   });
@@ -217,7 +219,7 @@ const Geom3D = {
       zc + t[10]);
   },
   depthSort: function(faces) {
-    return _.sortBy(faces, function(face) {
+    return _.sortBy(faces, (face) => {
       // Sort by the average z coordinate of all the coords of the face
       let coords = face.coords;
       let cl = coords.length;
@@ -396,7 +398,7 @@ const _goodGraphColors = [
   '#999900'
 ];
 
-const _darkGraphColors = _.map(_goodGraphColors, function(c) { blendColors(c, '#000000', 0.33); });
+const _darkGraphColors = _.map(_goodGraphColors, (c) => { blendColors(c, '#000000', 0.33); });
 
 function goodGraphColor(i) {
   return _goodGraphColors[i % _goodGraphColors.length];

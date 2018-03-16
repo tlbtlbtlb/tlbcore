@@ -64,8 +64,8 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
         if (handlers.reopen) {
           handlers.reopen();
         } else {
-          setTimeout(function() {
-            if (verbose >= 1) console.log('Reopening socket to ' + wscUrl);
+          setTimeout(() => {
+            if (verbose >= 1) console.log(`Reopening socket to ${wscUrl}`);
             setupWsc();
           }, reopenBackoff);
           reopenBackoff = Math.min(5000, reopenBackoff*2);

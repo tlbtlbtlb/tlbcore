@@ -27,38 +27,38 @@ describe('ChildPipe', function() {
 
     let cp1 = new child_pipe.ChildJsonPipe('python3', [path.join(tlbcoreDir, 'common/child_pipe_test_slave.py')], {}, {nChildren: 3, verbose: 0});
     let cp2 = new child_pipe.ChildJsonPipe('node', [path.join(tlbcoreDir, 'common/child_pipe_test_slave.js')], {}, {nChildren: 2, verbose: 0});
-    async.each([cp1, cp2], function(cp, done1) {
-      cp.handshake(function(err) {
+    async.each([cp1, cp2], (cp, done1) => {
+      cp.handshake((err) => {
         if (err) return done(err);
         async.parallel([
-          function(pdone) {
-            async.each(_.range(10, 20), function(baseNum, cb) {
-              cp.rpc('test1', [baseNum], function(err, v) {
+          (pdone) => {
+            async.each(_.range(10, 20), (baseNum, cb) => {
+              cp.rpc('test1', [baseNum], (err, v) => {
                 if (0) console.log(baseNum, v);
                 assert.equal(err, null);
                 assert.equal(v, baseNum + 1);
                 cb();
               });
-            }, function(err) {
+            }, (err) => {
               assert.equal(err, null);
               pdone();
             });
           },
-          function(pdone) {
-            cp.rpc('testerr', [], function(err, v) {
+          (pdone) => {
+            cp.rpc('testerr', [], (err, v) => {
               assert.ok(err);
               assert.equal(err.message, 'testerr always raises this error');
               pdone();
             });
           },
-          function(pdone) {
-            cp.rpc('test2', ['abc', 'def', {'ghi': 'jkl', 'mno': {}}], function(err, v) {
+          (pdone) => {
+            cp.rpc('test2', ['abc', 'def', {'ghi': 'jkl', 'mno': {}}], (err, v) => {
               assert.equal(err, null);
               assert.deepEqual(v, [['abc', 'def', {'ghi': 'jkl', 'mno': {}}], 'foo']);
               pdone();
             });
           }
-        ], function(err) {
+        ], (err) => {
           cp.close();
           done1();
         });
@@ -78,7 +78,7 @@ if (0) describe('ChildPipe', function() {
       sshHost: 'alpha5',
     });
 
-    cp.handshake(function(err) {
+    cp.handshake((err) => {
       if (err) return done(err);
       done(null);
     });

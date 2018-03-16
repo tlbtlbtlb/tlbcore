@@ -7,16 +7,16 @@ const logio = require('../common/logio');
 
 function main() {
   let pp = new parent_pipe.ParentJsonPipe({}, {
-    rpc_test1: function(v, cb) {
+    rpc_test1: (v, cb) => {
       cb(null, v+1);
     },
-    rpc_test2: function(a, b, c, cb) {
+    rpc_test2: (a, b, c, cb) => {
       assert.equal(a, 'abc');
       assert.equal(b, 'def');
       assert.equal(c.ghi, 'jkl');
       cb(null, [[a, b, c], 'foo']);
     },
-    rpc_testerr: function(cb) {
+    rpc_testerr: (cb) => {
       cb('testerr always raises this error');
     },
   });

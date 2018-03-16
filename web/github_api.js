@@ -25,31 +25,27 @@ exports.GithubApi = GithubApi;
 let userInfoCache = new bogocache.BogoCache(300000);
 
 function GithubApi(accessToken) {
-  let api = this;
-  api.accessToken = accessToken;
+  this.accessToken = accessToken;
 }
 
 GithubApi.prototype.getUserInfo = function(cb) {
-  let api = this;
   // This is the most common call, and pinging Github takes 400 mS or so
-  let cached = userInfoCache.get(api.accessToken);
+  let cached = userInfoCache.get(this.accessToken);
   if (cached) {
-    setImmediate(function() {
+    setImmediate(() => {
       cb(null, cached);
     });
     return;
   }
-  api.getApiCall('/user', {}, function(err, userInfo) {
+  this.getApiCall('/user', {}, (err, userInfo) => {
     if (err) return cb(err);
-    userInfoCache.set(api.accessToken, userInfo);
+    userInfoCache.set(this.accessToken, userInfo);
     cb(null, userInfo);
   });
 };
 
 
 GithubApi.prototype.getApiCall = function(path, args, cb) {
-  let api = this;
-
   let httpsReqInfo = {
     method: 'GET',
     hostname: 'api.github.com',
@@ -57,23 +53,23 @@ GithubApi.prototype.getApiCall = function(path, args, cb) {
     path: path + '?' + querystring.stringify(args),
     headers: {
       'User-Agent': 'Yoga Studio',
-      'Authorization': 'token '+ api.accessToken,
+      'Authorization': 'token '+ this.accessToken,
       'Accept': 'application/vnd.github.v3+json'   // Ask for v3 of api, see https://developer.github.com/v3/
     },
   };
-  https.get(httpsReqInfo, function(res) {
+  https.get(httpsReqInfo, (res) => {
     let datas = [];
-    res.on('data', function(d) {
+    res.on('data', (d) => {
       datas.push(d);
     });
-    res.on('end', function() {
+    res.on('end', () => {
       let data = datas.join('');
       if (1) logio.I('https://api.github.com'+ path + '?' + querystring.stringify(args), data);
       if (res.statusCode !== 200) return cb(new Error('api.github.com returned status code ' + res.statusCode + ': ' + data));
       let info = JSON.parse(data);
       cb(null, info);
     });
-  }).on('error', function(err) {
+  }).on('error', (err) => {
     cb(err);
   });
 };

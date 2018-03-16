@@ -29,19 +29,17 @@ exports.setVerbose = function(v) { verbose = v; };
 let verbose = 1;
 
 function WebServer() {
-  let webServer = this;
-  webServer.urlProviders = {};
-  webServer.dirProviders = {};
-  webServer.hostPrefixes = {};
-  webServer.wsHandlers = {};
-  webServer.serverAccessCounts = {};
-  webServer.wwwRoot = null;
-  webServer.allConsoleHandlers = [];
-  webServer.servers = [];
+  this.urlProviders = {};
+  this.dirProviders = {};
+  this.hostPrefixes = {};
+  this.wsHandlers = {};
+  this.serverAccessCounts = {};
+  this.wwwRoot = null;
+  this.allConsoleHandlers = [];
+  this.servers = [];
 }
 
 WebServer.prototype.setUrl = function(url, p) {
-  let webServer = this;
   if (_.isString(p)) {
     let st = fs.statSync(p);
     if (st.isDirectory()) {
@@ -53,100 +51,76 @@ WebServer.prototype.setUrl = function(url, p) {
   }
 
   if (p.isDir()) {
-    webServer.dirProviders['GET ' + url] = p;
+    this.dirProviders['GET ' + url] = p;
   } else {
-    webServer.urlProviders['GET ' + url] = p;
+    this.urlProviders['GET ' + url] = p;
 
     p.reloadKey = url;
-    p.on('changed', function() {
+    p.on('changed', () => {
       if (p.reloadKey) {
-        webServer.reloadAllBrowsers(p.reloadKey);
+        this.reloadAllBrowsers(p.reloadKey);
       }
     });
   }
 };
 
 WebServer.prototype.getUrl = function(url) {
-  let webServer = this;
-  return webServer.urlProviders['GET ' + url];
+  return this.urlProviders['GET ' + url];
 };
 
 
 WebServer.prototype.setPrefixHosts = function(prefix, hosts) {
-  let webServer = this;
   prefix = path.join('/', prefix, '/');
 
-  _.each(hosts, function(host) {
-    webServer.hostPrefixes[host] = prefix;
+  _.each(hosts, (host) => {
+    this.hostPrefixes[host] = prefix;
     console.log('Set hostPrefix['+host+']='+prefix);
 
     let alphaHost = host.replace(/^(\w+)\./, '$1-alpha.');
     if (alphaHost !== host) {
-      webServer.hostPrefixes[alphaHost] = prefix;
+      this.hostPrefixes[alphaHost] = prefix;
     }
   });
 };
 
 WebServer.prototype.setSocketProtocol = function(url, f) {
-  let webServer = this;
-
-  webServer.wsHandlers[url] = f;
+  this.wsHandlers[url] = f;
 };
 
 
 WebServer.prototype.setupBaseProvider = function() {
-  let webServer = this;
-
-  if (webServer.baseProvider) return;
+  if (this.baseProvider) return;
   let p = new vjs_provider.ProviderSet();
   if (1) p.addCss(require.resolve('./common.css'));
   if (1) p.addCss(require.resolve('./spinner-lib/spinner.css'));
   // Add more CSS files here
-  webServer.baseProvider = p;
+  this.baseProvider = p;
 };
 
 WebServer.prototype.setupStdContent = function(prefix) {
-  let webServer = this;
-
-  // WRITEME: ditch this, figure out how to upload over a websocket
-  /*
-    webServer.urlProviders['POST /uploadImage'] = {
-      start: function() {},
-      mirrorTo: function(dst) {},
-      handleRequest: function(req, res, suffix) {
-        RpcEngines.UploadHandler(req, res, function(docFn, doneCb) {
-          let userName = RpcEngines.cookieUserName(req);
-          Image.mkImageVersions(docFn, {fullName: userName}, function(ii) {
-            doneCb(ii);
-          });
-        });
-      }
-    };
-  */
-
-  webServer.setSocketProtocol(prefix+'console', webServer.mkConsoleHandler.bind(webServer));
+  this.setSocketProtocol(prefix+'console', this.mkConsoleHandler.bind(this));
 
   // Files available from root of file server
-  webServer.setUrl(prefix+'favicon.ico', require.resolve('./images/umbrella.ico'));
-  webServer.setUrl(prefix+'spinner-lib/spinner24.gif', require.resolve('./spinner-lib/spinner24.gif'));
-  webServer.setUrl(prefix+'spinner-lib/spinner32t.gif', require.resolve('./spinner-lib/spinner32t.gif'));
-  webServer.setUrl(prefix+'spinner-lib/spinner128t.gif', require.resolve('./spinner-lib/spinner128t.gif'));
-  webServer.setUrl(prefix+'spinner-lib/spinner128a.gif', require.resolve('./spinner-lib/spinner128a.gif'));
-  webServer.setUrl(prefix+'spinner-lib/spinner64a.svg', require.resolve('./spinner-lib/spinner64a.svg'));
-  webServer.setUrl(prefix+'images/icons.png', require.resolve('./images/ui-icons_888888_256x240.png'));
+  this.setUrl(prefix+'favicon.ico', require.resolve('./images/umbrella.ico'));
+  this.setUrl(prefix+'spinner-lib/spinner24.gif', require.resolve('./spinner-lib/spinner24.gif'));
+  this.setUrl(prefix+'spinner-lib/spinner32t.gif', require.resolve('./spinner-lib/spinner32t.gif'));
+  this.setUrl(prefix+'spinner-lib/spinner128t.gif', require.resolve('./spinner-lib/spinner128t.gif'));
+  this.setUrl(prefix+'spinner-lib/spinner128a.gif', require.resolve('./spinner-lib/spinner128a.gif'));
+  this.setUrl(prefix+'spinner-lib/spinner64a.svg', require.resolve('./spinner-lib/spinner64a.svg'));
+  this.setUrl(prefix+'images/icons.png', require.resolve('./images/ui-icons_888888_256x240.png'));
 
-  webServer.setUrl(prefix+'healthcheck', {
-    on: function() {},
-    isDir: function() { return false; },
-    getStats: function() { return {}; },
-    handleRequest: function(req, res, suffix) {
-      webServer.getContentStats(function(err, cs) {
+  this.setUrl(prefix+'healthcheck', {
+    on: () => {},
+    isDir: () => { return false; },
+    getStats: () => { return {}; },
+    handleRequest: (req, res, suffix) => {
+      this.getContentStats(function(err, cs) {
         if (err) {
           res.writeHead(500, {'Content-Type': 'text/json'});
           res.write(JSON.stringify({
             status: 'fail',
             timestamp: Date.now()*0.001,
-            hostname: os.hostname(),
+            hostname: vjs_topology.getHostname(),
             results: [],
           }));
           res.end();
@@ -157,7 +131,7 @@ WebServer.prototype.setupStdContent = function(prefix) {
         res.write(JSON.stringify({
           status: 'success',
           timestamp: Date.now()*0.001,
-          hostname: os.hostname(),
+          hostname: vjs_topology.getHostname(),
           results: [],
           // Don't leak this
           // stats: cs,
@@ -169,40 +143,35 @@ WebServer.prototype.setupStdContent = function(prefix) {
 };
 
 WebServer.prototype.setupContent = function(dirs) {
-  let webServer = this;
+  this.setupBaseProvider();
+  this.setupStdContent('/');
 
-  webServer.setupBaseProvider();
-  webServer.setupStdContent('/');
-
-  _.each(dirs, function(dir) {
+  _.each(dirs, (dir) => {
     // Start with process.cwd, since these directory names are specified on the command line
     /* eslint-disable global-require */
     let fn = fs.realpathSync(path.join(dir, 'load.js'));
     console.log('Load ' + fn);
-    require(fn).load(webServer);
+    require(fn).load(this);
   });
 
-  webServer.startAllContent();
-  webServer.mirrorAll();
+  this.startAllContent();
+  this.mirrorAll();
 };
 
 
 
 WebServer.prototype.startAllContent = function() {
-  let webServer = this;
-  _.each(webServer.urlProviders, function(p, name) {
+  _.each(this.urlProviders, (p, name) => {
     if (p.start) p.start();
   });
 };
 
 WebServer.prototype.mirrorAll = function() {
-  let webServer = this;
-
-  if (webServer.wwwRoot) {
-    _.each(webServer.urlProviders, function(p, name) {
+  if (this.wwwRoot) {
+    _.each(this.urlProviders, (p, name) => {
       let m = /^GET (.*)$/.exec(name);
       if (m) {
-        let dst = path.join(webServer.wwwRoot, m[1]);
+        let dst = path.join(this.wwwRoot, m[1]);
         p.mirrorTo(dst);
       }
     });
@@ -216,36 +185,8 @@ function delPort(hn) {
 }
 
 WebServer.prototype.startHttpServer = function(serverInfo) {
-  let webServer = this;
 
-  let httpServer = null;
-  if (serverInfo.proto === 'https') {
-    httpServer = https.createServer({
-      key: serverInfo.key,
-      cert: serverInfo.cert,
-      honorCipherOrder: true,
-    }, httpHandler);
-  }
-  else if (serverInfo.proto === 'http') {
-    httpServer = http.createServer(httpHandler);
-  }
-  else {
-    throw new Error('Unknown proto ' + serverInfo.proto);
-  }
-  httpServer.keepAliveTimeout = 120000; // workaround for https://github.com/nodejs/node/issues/15082
-  console.log('Listening on ' + serverInfo.proto + '://'+ serverInfo.host + ':' + serverInfo.port);
-  httpServer.listen(serverInfo.port, serverInfo.host);
-
-  webServer.servers.push(httpServer);
-
-  let ws = new websocket.server({
-    httpServer: httpServer,
-    maxReceivedFrameSize: 1024*1024,
-  });
-  ws.on('request', wsRequestHandler);
-  webServer.servers.push(ws);
-
-  function httpHandler(req, res) {
+  const httpHandler = (req, res) => {
 
     req.remoteLabel = req.connection.remoteAddress + '!http';
 
@@ -258,9 +199,9 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
     if (verbose >= 3) logio.I(req.remoteLabel, req.url, req.urlParsed, req.headers);
 
     // Host includes port number, hostname doesn't
-    let hostPrefix = webServer.hostPrefixes[req.urlParsed.host];
+    let hostPrefix = this.hostPrefixes[req.urlParsed.host];
     if (!hostPrefix) {
-      hostPrefix = webServer.hostPrefixes[req.urlParsed.hostname];
+      hostPrefix = this.hostPrefixes[req.urlParsed.hostname];
     }
     if (!hostPrefix) {
       hostPrefix = '/';
@@ -269,8 +210,8 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
     let fullPath = hostPrefix + decodeURIComponent(req.urlParsed.pathname.substr(1));
     let callid = req.method + ' ' + fullPath;
     let desc = callid;
-    webServer.serverAccessCounts[callid] = (webServer.serverAccessCounts[callid] || 0) + 1;
-    let p = webServer.urlProviders[callid];
+    this.serverAccessCounts[callid] = (this.serverAccessCounts[callid] || 0) + 1;
+    let p = this.urlProviders[callid];
     if (p) {
       if (!p.silent) logio.I(req.remoteLabel, desc, p.toString());
       p.handleRequest(req, res, '');
@@ -280,7 +221,7 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
     let pathc = fullPath.substr(1).split('/');
     for (let pathcPrefix = pathc.length-1; pathcPrefix >= 1; pathcPrefix--) {
       let prefix = req.method + ' /' + pathc.slice(0, pathcPrefix).join('/') + '/';
-      p = webServer.dirProviders[prefix];
+      p = this.dirProviders[prefix];
       if (p) {
         let suffix = pathc.slice(pathcPrefix, pathc.length).join('/');
         if (!p.silent) logio.I(req.remoteLabel, desc, p.toString());
@@ -292,9 +233,9 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
     logio.E(req.remoteLabel, desc, '404', 'referer:', req.headers.referer);
     vjs_provider.emit404(res, callid);
     return;
-  }
+  };
 
-  function wsRequestHandler(wsr) {
+  const wsRequestHandler = (wsr) => {
     let callid = wsr.resource;
 
     wsr.remoteLabel = wsr.httpRequest.connection.remoteAddress + '!ws' + wsr.resource;
@@ -306,9 +247,9 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
       return;
     }
 
-    let handlersFunc = webServer.wsHandlers[callid];
+    let handlersFunc = this.wsHandlers[callid];
     if (!handlersFunc) {
-      logio.E(wsr.remoteLabel, 'Unknown api', callid, webServer.wsHandlers);
+      logio.E(wsr.remoteLabel, 'Unknown api', callid, this.wsHandlers);
       wsr.reject();
       return;
     }
@@ -334,9 +275,9 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
     }
 
     web_socket_server.mkWebSocketRpc(wsr, wsc, handlers);
-  }
+  };
 
-  function annotateReq(req) {
+  const annotateReq = (req) => {
     let up;
     try {
       up = url.parse(decodeURIComponent(req.url), true);
@@ -357,27 +298,51 @@ WebServer.prototype.startHttpServer = function(serverInfo) {
 
     req.urlParsed = up;
     req.urlFull = url.format(up);
-  }
+  };
 
+
+  let httpServer = null;
+  if (serverInfo.proto === 'https') {
+    httpServer = https.createServer({
+      key: serverInfo.key,
+      cert: serverInfo.cert,
+      honorCipherOrder: true,
+    }, httpHandler);
+  }
+  else if (serverInfo.proto === 'http') {
+    httpServer = http.createServer(httpHandler);
+  }
+  else {
+    throw new Error('Unknown proto ' + serverInfo.proto);
+  }
+  httpServer.keepAliveTimeout = 120000; // workaround for https://github.com/nodejs/node/issues/15082
+  console.log('Listening on ' + serverInfo.proto + '://'+ serverInfo.host + ':' + serverInfo.port);
+  httpServer.listen(serverInfo.port, serverInfo.host);
+
+  this.servers.push(httpServer);
+
+  let ws = new websocket.server({
+    httpServer: httpServer,
+    maxReceivedFrameSize: 1024*1024,
+  });
+  ws.on('request', wsRequestHandler);
+  this.servers.push(ws);
 };
 
 WebServer.prototype.getSiteHits = function(cb) {
-  let webServer = this;
-  cb(null, _.map(_.sortBy(_.keys(webServer.serverAccessCounts), _.identity), function(k) {
-    return {desc: 'http.' + k, hits: webServer.serverAccessCounts[k]};
+  cb(null, _.map(_.sortBy(_.keys(this.serverAccessCounts), _.identity), (k) => {
+    return {desc: 'http.' + k, hits: this.serverAccessCounts[k]};
   }));
 };
 
 WebServer.prototype.getContentStats = function(cb) {
-  let webServer = this;
-  cb(null, _.map(_.sortBy(_.keys(webServer.urlProviders), _.identity), function(k) {
-    return _.extend({}, webServer.urlProviders[k].getStats(), {desc: k});
+  cb(null, _.map(_.sortBy(_.keys(this.urlProviders), _.identity), (k) => {
+    return _.extend({}, this.urlProviders[k].getStats(), {desc: k});
   }));
 };
 
 WebServer.prototype.reloadAllBrowsers = function(reloadKey) {
-  let webServer = this;
-  _.each(webServer.allConsoleHandlers, function(ch) {
+  _.each(this.allConsoleHandlers, function(ch) {
     if (ch.reloadKey === reloadKey) {
       if (ch.reloadCb) {
         ch.reloadCb('reload');
@@ -387,9 +352,8 @@ WebServer.prototype.reloadAllBrowsers = function(reloadKey) {
 };
 
 WebServer.prototype.getAllContentMacs = function() {
-  let webServer = this;
   let ret = {};
-  _.each(webServer.urlProviders, function(provider, url) {
+  _.each(this.urlProviders, (provider, url) => {
     if (provider && provider.contentMac) {
       ret[provider.contentMac] = true;
     }
@@ -402,17 +366,14 @@ WebServer.prototype.mkConsoleHandler = function() {
   let webServer = this;
   return {
     start: function() {
-      let self = this;
-      logio.I(self.label, 'Console started');
-      webServer.allConsoleHandlers.push(self);
+      logio.I(this.label, 'Console started');
+      webServer.allConsoleHandlers.push(this);
     },
     close: function() {
-      let self = this;
-      webServer.allConsoleHandlers = _.filter(webServer.allConsoleHandlers, function(other) { return other !== self; });
+      webServer.allConsoleHandlers = _.filter(webServer.allConsoleHandlers, (other) => other !== this);
     },
     rpc_errlog: function(msg, cb) {
-      let self = this;
-      logio.E(self.label, 'Errors in ' + msg.ua);
+      logio.E(this.label, 'Errors in ' + msg.ua);
       let err = msg.err;
       if (err) {
         if (_.isObject(err)) {
@@ -423,16 +384,15 @@ WebServer.prototype.mkConsoleHandler = function() {
       cb(null);
     },
     rpc_reloadOn: function(msg, cb) {
-      let self = this;
-      self.reloadKey = msg.reloadKey;
-      self.resourceMacs = msg.resourceMacs;
-      if (self.resourceMacs) {
+      this.reloadKey = msg.reloadKey;
+      this.resourceMacs = msg.resourceMacs;
+      if (this.resourceMacs) {
         let goodMacs = webServer.getAllContentMacs();
-        if (_.every(self.resourceMacs, (mac) => goodMacs[mac])) {
-          logio.I(self.label, 'Valid contentMac', self.resourceMacs);
-          self.reloadCb = cb;
+        if (_.every(this.resourceMacs, (mac) => goodMacs[mac])) {
+          logio.I(this.label, 'Valid contentMac', this.resourceMacs);
+          this.reloadCb = cb;
         } else {
-          logio.I(self.label, 'Obsolete contentMac (suggesting reload)', self.resourceMacs);
+          logio.I(this.label, 'Obsolete contentMac (suggesting reload)', this.resourceMacs);
           cb('reload');
         }
       }

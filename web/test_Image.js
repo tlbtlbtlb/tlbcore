@@ -11,7 +11,7 @@ function t_mkImageVersions(errs, cb) {
     if (err) return cb(err);
     if (stdout.length) logio.I('cp', stdout);
     if (stderr.length) logio.I('cp', stderr);
-    vjs_image.mkImageVersions('/tmp/rw.jpg', {}, function(versions) {
+    vjs_image.mkImageVersions('/tmp/rw.jpg', {}, (versions) => {
       console.log(util.inspect(versions));
       cb();
     });

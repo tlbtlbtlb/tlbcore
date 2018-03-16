@@ -3,6 +3,7 @@
   which can't be easily forwarded with ssh.
 */
 'use strict';
+console._stdout = process.stderr;
 const _ = require('lodash');
 const async = require('async');
 const child_process = require('child_process');
@@ -11,19 +12,16 @@ const logio = require('../common/logio');
 exports.ParentJsonPipe = ParentJsonPipe;
 
 function ParentJsonPipe(o, handlers) {
-  let m = this;
-
-  m.handlers = _.extend({
-    rpc_handshake: function(cb) {
+  this.handlers = _.extend({
+    rpc_handshake: (cb) => {
       cb(null, 'handshake');
     },
   }, handlers);
-  m.stdin = process.stdin;
-  m.stdout = process.stdout;
-  console._stdout = process.stderr;
+  this.stdin = process.stdin;
+  this.stdout = process.stdout;
 
   let datas = [];
-  m.stdin.on('data', function(buf) {
+  this.stdin.on('data', (buf) => {
     while (buf.length) {
       let eol = buf.indexOf(10); // newline
       if (eol < 0) {
@@ -33,7 +31,7 @@ function ParentJsonPipe(o, handlers) {
         datas.push(buf.slice(0, eol));
         let rx = JSON.parse(datas.join(''));
         datas = [];
-        m.handleRx(rx);
+        this.handleRx(rx);
         buf = buf.slice(eol+1);
       }
     }
@@ -41,31 +39,27 @@ function ParentJsonPipe(o, handlers) {
 }
 
 ParentJsonPipe.prototype.tx = function(tx) {
-  let m = this;
-  m.stdout.write(JSON.stringify(tx));
-  m.stdout.write('\n');
+  this.stdout.write(JSON.stringify(tx));
+  this.stdout.write('\n');
 };
 
 ParentJsonPipe.prototype.emitInParent = function() {
-  let m = this;
-  m.tx({
+  this.tx({
     cmd: 'emit',
     params: arguments,
   });
 };
 
 ParentJsonPipe.prototype.handleRx = function(rx) {
-  let m = this;
-
   if (rx.method) {
-    let cb = function(err, result) {
-      m.tx({ id: rx.id, error: err, result: result });
+    let cb = (err, result) => {
+      this.tx({ id: rx.id, error: err, result: result });
     };
-    let methodFunc = m.handlers['rpc_' + rx.method];
+    let methodFunc = this.handlers['rpc_' + rx.method];
     if (!methodFunc) {
       logio.E('parent', 'No such method', rx.method);
       return cb('No such method', null);
     }
-    methodFunc.apply(m.handlers, rx.params.concat([cb]));
+    methodFunc.call(this.handlers, ...rx.params, cb);
   }
 };

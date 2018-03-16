@@ -66,8 +66,6 @@ OAuthProvider.prototype.isDir = function() { return true; };
 */
 
 OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
-  let self = this;
-
   let remote = res.connection.remoteAddress + '!http';
 
   let up = req.urlParsed;
@@ -79,13 +77,13 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
     let callbackUrl = up.protocol + '//' + up.host + path.dirname(up.pathname) + '/callback';
 
     let stateCookie = vjs_auth.generateCookie();
-    self.codesCache[stateCookie] = {
+    this.codesCache[stateCookie] = {
       redirectUrl: appRedirectUrl
     };
-    let location = self.oauthUrl + 'authorize?' + querystring.stringify({
-      'client_id': self.clientId,
+    let location = this.oauthUrl + 'authorize?' + querystring.stringify({
+      'client_id': this.clientId,
       'redirect_url': callbackUrl,
-      'scope': self.scopes.join(','),
+      'scope': this.scopes.join(','),
       'state': stateCookie
     });
     logio.O(remote, 'Redirect to', location);
@@ -98,10 +96,10 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
   else if (suffix === 'callback') {
     let authCode = up.query['code'];
     let stateCookie = up.query['state'];
-    let codeInfo = self.codesCache[stateCookie];
+    let codeInfo = this.codesCache[stateCookie];
 
     if (codeInfo && codeInfo.redirectUrl) {
-      self.getAccessToken(authCode, up, function(err, accessTokenInfo) {
+      this.getAccessToken(authCode, up, (err, accessTokenInfo) => {
         logio.O(remote, 'Cookie access_token', 'github ' + accessTokenInfo['access_token']);
         res.writeHead(302, {
           'Set-Cookie': cookie.serialize('access_token', 'github ' + accessTokenInfo['access_token'], {
@@ -140,23 +138,21 @@ OAuthProvider.prototype.handleRequest = function(req, res, suffix) {
 };
 
 OAuthProvider.prototype.getAccessToken = function(authCode, up, cb) {
-  let self = this;
-
   let accessTokenArgs = {
-    hostname: self.oauthUrlParsed.hostname,
+    hostname: this.oauthUrlParsed.hostname,
     port: 443,
     method: 'POST',
-    path: self.oauthUrlParsed.path + 'access_token',
+    path: this.oauthUrlParsed.path + 'access_token',
   };
   let remote = 'https://' + accessTokenArgs.hostname + accessTokenArgs.path;
   logio.O(remote, 'POST');
 
-  let postReq = https.request(accessTokenArgs, function(res) {
+  let postReq = https.request(accessTokenArgs, (res) => {
     let datas = [];
-    res.on('data', function(d) {
+    res.on('data', (d) => {
       datas.push(d);
     });
-    res.on('end', function() {
+    res.on('end', () => {
       let data = datas.join('');
       let accessTokenInfo = querystring.parse(data);
       logio.I(remote, accessTokenInfo);
@@ -165,14 +161,14 @@ OAuthProvider.prototype.getAccessToken = function(authCode, up, cb) {
         cb = null;
       }
     });
-    res.on('err', function(err) {
+    res.on('err', (err) => {
       cb(err, null);
       cb = null;
     });
   });
   postReq.write(querystring.stringify({
-    'client_id': self.clientId,
-    'client_secret': self.clientSecret,
+    'client_id': this.clientId,
+    'client_secret': this.clientSecret,
     'code': authCode,
     'redirect_url': up.protocol + '//' + up.host + up.pathname
   }));
