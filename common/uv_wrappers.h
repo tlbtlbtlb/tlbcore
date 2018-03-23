@@ -17,8 +17,12 @@ static inline runtime_error uv_error(string const &context, int rc)
 
 template<typename RESULT>
 struct UvWorkActive {
-  UvWorkActive(uv_loop_t *_loop, std::function< RESULT() > const &_body, std::function<void(string const &error, RESULT const &result)> const &_done)
-    :loop(_loop), body(_body), done(_done)
+  UvWorkActive(uv_loop_t *_loop, std::function< void(string &error, RESULT &result) > const &_body, std::function<void(string const &error, RESULT const &result)> const &_done)
+    :loop(_loop),
+    body(_body),
+    done(_done),
+    error {},
+    result {}
   {
     work.data = this;
     queue_work();
@@ -28,44 +32,41 @@ struct UvWorkActive {
   UvWorkActive & operator = (UvWorkActive const &) = delete;
   UvWorkActive & operator = (UvWorkActive &&) = delete;
 
-  void queue_work();
+  void queue_work() {
+    uv_queue_work(loop, &work, [](uv_work_t *req) {
+      auto self = reinterpret_cast<UvWorkActive *>(req->data);
+      try {
+        self->body(self->error, self->result);
+      } catch(exception const &ex) {
+        self->error = ex.what();
+      };
+    }, [](uv_work_t *req, int status) {
+      auto self = reinterpret_cast<UvWorkActive *>(req->data);
+      if (status != 0) {
+        self->done(string("uv_queue_work: ") + uv_strerror(status), self->result);
+      }
+      else {
+        self->done(self->error, self->result);
+      }
+      delete self;
+    });
+  }
 
   uv_loop_t *loop {nullptr};
-  std::function< RESULT() > body;
-  std::function<void(string const &error, RESULT const &result)> done;
+  std::function< void(string &error, RESULT &result) > body;
+  std::function< void(string const &error, RESULT const &result) > done;
   string error;
   RESULT result;
   uv_work_t work;
 };
 
-template<typename RESULT>
-void UvWorkActive< RESULT >::queue_work()
-{
-  uv_queue_work(loop, &work, [](uv_work_t *req) {
-    auto self = reinterpret_cast<UvWorkActive *>(req->data);
-    try {
-      self->result = self->body();
-    } catch(exception const &ex) {
-      self->error = ex.what();
-    };
-  }, [](uv_work_t *req, int status) {
-    auto self = reinterpret_cast<UvWorkActive *>(req->data);
-    if (status != 0) {
-      self->done(string("uv_queue_work: ") + uv_strerror(status), self->result);
-    }
-    else {
-      self->done(self->error, self->result);
-    }
-    delete self;
-  });
-}
 
 template<typename RESULT>
-static void UvWork(uv_loop_t *loop, std::function< RESULT() > const &body, std::function<void(string const &error, RESULT const &result)> const &done)
+static void UvWork(uv_loop_t *loop, std::function< void(string &error, RESULT &result) > const &body, std::function<void(string const &error, RESULT const &result)> const &done)
 {
+  // Deleted in callback
   new UvWorkActive< RESULT >(loop, body, done);
 }
-
 
 struct UvAsyncQueue {
   UvAsyncQueue(uv_loop_t *_loop)
