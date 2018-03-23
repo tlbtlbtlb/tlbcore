@@ -790,15 +790,15 @@ function disableConsole() {
 /*
   Log an error or warning to the browser developer console and the web server, through the websocket connection to /console
 */
-function errlog() {
+function errlog(...args) {
   // console.log isn't a function in IE8
-  if (console && _.isFunction(console.log)) console.log.apply(console, arguments);
+  if (console && _.isFunction(console.log)) console.log(...args);
   if (window.rconsole) {
     let stack = '';
     let err = '';
     let sep = '';
-    for (let i=0; i<arguments.length; i++) {
-      let arg = arguments[i];
+    for (let i=0; i<args.length; i++) {
+      let arg = args[i];
       if (arg) {
         if (_.isObject(arg)) {
           err += sep + JSON.stringify(arg);
@@ -819,7 +819,7 @@ function errlog() {
     }
     if (stack) err += '\n' + stack.toString();
 
-    window.rconsole.tx({cmdReq: 'errlog', cmdArgs: [{err: err, ua: navigator.userAgent}]});
+    window.rconsole.tx({method: 'errlog', params: [{err: err, ua: navigator.userAgent}]});
   }
 }
 
@@ -888,15 +888,15 @@ function mkWebSocket(path, handlers) {
    Called from web page setup code (search for pageSetupFromHash in vjs_provider.js)
 */
 
-function pageSetupFromHash(reloadKey) {
-  setupConsole(reloadKey);
+function pageSetupFromHash() {
+  setupConsole();
   setupClicks();
   gotoCurrentHash();
   startHistoryPoll();
 }
 
-function pageSetupFull(reloadKey, pageid, options) {
-  setupConsole(reloadKey);
+function pageSetupFull(pageid, options) {
+  setupConsole();
   setupClicks();
   replaceLocationHash(pageid, options);
   gotoCurrentState();

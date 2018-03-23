@@ -76,20 +76,19 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
 
   function handleMsg(msg) {
     if (msg.method) {
-      let f = handlers['rpc_' + msg.method];
+      let f = handlers[`rpc_${msg.method}`];
       if (!f) {
         if (verbose >= 1) console.log(wscUrl, 'Unknown method', msg.method);
         return;
       }
       let done = false;
       try {
-        f.apply(handlers, msg.params.concat([function(error /* ... */) {
-          let result = Array.prototype.slice.call(arguments, 1);
+        f.call(handlers, ...msg.params, (error, ...result) => {
           if (!web_socket_helper.isRpcProgressError(error)) {
             done = true;
           }
           handlers.tx({ id: msg.id, error: error, result: result });
-        }]));
+        });
       } catch(ex) {
         if (!done) {
           done = true;
@@ -110,12 +109,12 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
         return;
       }
       if (verbose >= 2) console.log('id=', msg.id, 'result=', result);
-      cb.apply(handlers, [msg.error].concat(msg.result));
+      cb.call(handlers, msg.error, ...msg.result);
 
       if (interactivePending && pending.pendingCount < 3) {
         let tip = interactivePending;
         interactivePending = null;
-        handlers.rpc.apply(handlers, [tip.method].concat(tip.params, [tip.cb]));
+        handlers.rpc(tip.method, ...tip.params, tip.cb);
       }
     }
 
@@ -125,21 +124,19 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
   }
 
   function setupHandlers() {
-    handlers.rpc = function(method /* ... */) {
+    handlers.rpc = function(method, ...params) {
       let id = pending.getNewId();
-      let params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
-      let cb = arguments[arguments.length - 1];
+      let cb = params.pop();
       if (verbose >= 2) console.log('method=', method, 'params=', params);
 
       pending.add(id, cb);
       handlers.tx({method: method, id: id, params: params});
     };
-    handlers.interactiveRpc = function(method /* ... */) {
+    handlers.interactiveRpc = function(method, ...params) {
+      let cb = params.pop();
       if (pending.pendingCount < 3) {
-        return handlers.rpc.apply(handlers, arguments);
+        return handlers.rpc(method, ...params, cb);
       }
-      let cb = arguments[arguments.length - 1];
-      let params = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
       // overwrite any previous one
       interactivePending = {method: method, params: params, cb: cb};
     };

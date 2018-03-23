@@ -1,8 +1,7 @@
 'use strict';
 const path = require('path');
-exports.load = load;
 
-function load(webServer) {
+exports.setupContent = (webServer) => {
   let p = webServer.baseProvider.copy();
 
   p.addMarkdown(require.resolve('../README.md'), 'README');
@@ -11,4 +10,4 @@ function load(webServer) {
   p.setTitle('Tlbcore documentation');
   webServer.setUrl('/doc/', p);
   webServer.setupStdContent('/doc/');
-}
+};

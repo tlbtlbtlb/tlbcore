@@ -498,7 +498,7 @@ function BrowserifyProvider(fn, opts) {
     packageCache: {},
     detectGlobals: true,
     debug: true,
-    paths: process.env.NODE_PATH.split(':').concat([process.cwd()]),
+    paths: [...process.env.NODE_PATH.split(':'), process.cwd()]
   }, opts));
   if (1) { // FIXME: only on dev servers
     this.browserify.plugin(watchify, {
@@ -1118,7 +1118,7 @@ ProviderSet.prototype.copy = function() {
 };
 
 ProviderSet.prototype.getStats = function() {
-  let ret = AnyProvider.prototype.getStats.apply(this);
+  let ret = AnyProvider.prototype.getStats.call(this);
   if (this.asHtmlBuf && this.asHtmlBuf.length) {
     ret.htmlSize = this.asHtmlBuf.length;
   }

@@ -139,7 +139,7 @@ ChildJsonPipe.prototype.handleRx = function(childi, rx) {
     }
   }
   else if (rx.cmd === 'emit') {
-    this.emit.apply(this, rx.params);
+    this.emit(...rx.params);
   }
   else {
     logio.E(this.baseName + childi.toString(), 'Unknown message', rx);

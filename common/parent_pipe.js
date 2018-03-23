@@ -43,19 +43,19 @@ ParentJsonPipe.prototype.tx = function(tx) {
   this.stdout.write('\n');
 };
 
-ParentJsonPipe.prototype.emitInParent = function() {
+ParentJsonPipe.prototype.emitInParent = function(...params) {
   this.tx({
     cmd: 'emit',
-    params: arguments,
+    params,
   });
 };
 
 ParentJsonPipe.prototype.handleRx = function(rx) {
   if (rx.method) {
-    let cb = (err, result) => {
+    const cb = (err, result) => {
       this.tx({ id: rx.id, error: err, result: result });
     };
-    let methodFunc = this.handlers['rpc_' + rx.method];
+    let methodFunc = this.handlers[`rpc_${rx.method}`];
     if (!methodFunc) {
       logio.E('parent', 'No such method', rx.method);
       return cb('No such method', null);

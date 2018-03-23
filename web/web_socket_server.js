@@ -75,7 +75,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
 
   function handleMsg(msg) {
     if (msg.method) {
-      let f = handlers['rpc_' + msg.method];
+      let f = handlers[`rpc_${msg.method}`];
       if (!f) {
         if (verbose >= 1) logio.E(handlers.label, 'Unknown method in ', msg);
         handlers.tx({id: msg.id, error: 'unknownMethod'});
@@ -84,12 +84,12 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
       let done = false;
       if (verbose >= 2) logio.I(handlers.label, 'rpc', msg.method, msg.params);
       try {
-        f.apply(handlers, msg.params.concat([function(error, ...result) {
+        f.call(handlers, ...msg.params, (error, ...result) => {
           if (!web_socket_helper.isRpcProgressError(error)) {
             done = true;
           }
           handlers.tx({ id: msg.id, error: error, result: result });
-        }]));
+        });
       } catch(ex) {
         logio.E(handlers.label, 'Error handling', msg, ex);
         if (!done) {
@@ -111,7 +111,7 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
         return;
       }
       if (verbose >= 2) logio.I(handlers.label, 'return', msg.error, msg.result);
-      cb.apply(handlers, [msg.error].concat(msg.result));
+      cb.call(handlers, msg.error, ...msg.result);
     }
     else {
       if (verbose >= 1) logio.E(handlers.label, 'Unknown message', msg);

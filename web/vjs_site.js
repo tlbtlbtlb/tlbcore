@@ -151,7 +151,7 @@ WebServer.prototype.setupContent = function(dirs) {
     /* eslint-disable global-require */
     let fn = fs.realpathSync(path.join(dir, 'load.js'));
     console.log('Load ' + fn);
-    require(fn).load(this);
+    require(fn).setupContent(this);
   });
 
   this.startAllContent();
