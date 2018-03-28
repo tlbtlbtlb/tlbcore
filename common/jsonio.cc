@@ -1,7 +1,6 @@
 #include "std_headers.h"
 #include "jsonio.h"
 #include <zlib.h>
-#include "build.src/ndarray_decl.h"
 
 jsonstr::jsonstr()
   :it("null")

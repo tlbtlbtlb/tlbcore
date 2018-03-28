@@ -1,7 +1,6 @@
 #include "std_headers.h"
 #include "jsonio.h"
-#include "build.src/ndarray_decl.h"
-
+#include "build.src/decl_arma_decl.h"
 /*
   As used by Python's numpy, which we interoperate with.
 */

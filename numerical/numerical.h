@@ -246,3 +246,41 @@ bool hasNaN(shared_ptr< T > const &a)
   if (!a) return false;
   return hasNaN(*a);
 }
+
+
+template<typename T>
+struct CubicBezier {
+  CubicBezier(T const &_p0, T const &_p1, T const &_p2, T const *_p3)
+    :p0(_p1), p1(_p1), p2(_p2), p3(_p3)
+  {
+  }
+  T p0, p1, p2, p3;
+};
+
+template<typename T>
+CubicBezier< T > operator *(double const &a, CubicBezier< T > const &b)
+{
+  return CubicBezier< T >(a*b.p0, a*b.p1, a*b.p2, a*b.p3);
+}
+
+template<typename T>
+double linearMetric(CubicBezier< T > const &a, CubicBezier< T > const &b)
+{
+  return linearMetrix(a.p0, b.p0) + linearMetrix(a.p1, b.p1) + linearMetrix(a.p2, b.p2) + linearMetrix(a.p3, b.p3);
+}
+
+template<typename T>
+CubicBezier< T > linearComb(double aCoeff, CubicBezier< T > const &a, double bCoeff, CubicBezier< T > const &b)
+{
+  return aCoeff*a + bCoeff*b;
+}
+
+
+template<typename T>
+T bezier(CubicBezier< T > const &a, double t)
+{
+  return (1.0-t)*(1.0-t)*(1.0-t) * a.p0 +
+    3 * (1.0-t)*(1.0-t)*t * a.p1 +
+    3 * (1.0-t)*t*t * a.p2 +
+    t*t*t * a.p3;
+}

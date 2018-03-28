@@ -5,9 +5,7 @@
  */
 
 #include <armadillo>
-#include "build.src/Polyfit1_decl.h"
-#include "build.src/Polyfit3_decl.h"
-#include "build.src/Polyfit5_decl.h"
+#include "build.src/decl_numerical_decl.h"
 
 double getValue(Polyfit1 const &u, double t);
 double getDerivative(Polyfit1 const &u, double t);
