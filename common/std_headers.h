@@ -1,5 +1,6 @@
 //-*-C++-*-
-#pragma once
+#ifndef _TLBCORE_COMMON_STD_HEADERS_H
+#define _TLBCORE_COMMON_STD_HEADERS_H
 
 #if defined(__AVR32__)
 
@@ -92,6 +93,8 @@
 #  include <typeinfo>
 #  include <limits>
 #  include <stdexcept>
+#  include <array>
+#  include <mutex>
 using namespace std;
 #endif
 
@@ -160,8 +163,12 @@ typedef complex< float > complexf;
 #  if defined(__cplusplus)
 #    include "./packetbuf.h"
 #    include "../numerical/numerical.h"
+#    include "./uv_wrappers.h"
+#    include "./jsonio.h"
 #  endif
 
 #  include "./host_debug.h"
 #  include "./host_profts.h"
+#endif
+
 #endif

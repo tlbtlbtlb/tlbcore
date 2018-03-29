@@ -1,5 +1,7 @@
 #pragma once
 
+#include <armadillo>
+
 static inline double normangle(double x) {
   if (x > M_PI) {
     return fmod((x + M_PI), M_2PI) - M_PI;

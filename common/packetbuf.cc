@@ -1,7 +1,9 @@
-#include "std_headers.h"
+#include "common/std_headers.h"
 #include <sys/stat.h>
 #include <mutex>
 #include "jsonio.h"
+#include "./packetbuf.h"
+#include "./packetbuf_types.h"
 
 packet_stats packet::stats;
 

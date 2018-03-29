@@ -1,4 +1,4 @@
-#include "std_headers.h"
+#include "common/std_headers.h"
 #include "jsonio.h"
 #include <cxxabi.h>
 #include <typeindex>
@@ -40,7 +40,7 @@ static char const *niceTypeName(std::type_info const &t)
   if (ti == std::type_index(typeid(string))) return "string";
   int status = 0;
   return abi::__cxa_demangle(t.name(), 0, 0, &status);
- }
+}
 
 string RdJsonContext::fmtFail()
 {

@@ -1,6 +1,5 @@
 #pragma once
-#include <armadillo>
-
+#include "./numerical.h"
 /*
   Generate Halton sequences
   See http://en.wikipedia.org/wiki/Halton_sequence

@@ -26,8 +26,6 @@ using namespace std;
 #define ATT_FORMAT(prinfunc, stringindex, firstcheck)
 #endif
 
-#define PS(X) (char *)&(X),sizeof(X)
-
 #ifdef __cplusplus
 
 class tmpfn : public string {

@@ -4,7 +4,7 @@
   Needs to be parseable by code_gen, to generate wrapper stubs
  */
 
-#include <armadillo>
+//#include <armadillo>
 #include "build.src/decl_numerical_decl.h"
 
 double getValue(Polyfit1 const &u, double t);
