@@ -6,6 +6,30 @@ runtime_error uv_error(string const &context, int rc)
   return runtime_error(context + string(": rc=") + to_string(rc) + string(" ") + uv_strerror(rc));
 }
 
+struct UvWorkActive {
+  UvWorkActive(uv_loop_t *_loop,
+    std::function< void(string &error, shared_ptr< void > &result) > const &_body,
+    std::function< void(string const &error, shared_ptr< void > const &result) > const &_done);
+  ~UvWorkActive();
+
+  UvWorkActive(UvWorkActive const &) = delete;
+  UvWorkActive(UvWorkActive &&) = delete;
+  UvWorkActive & operator = (UvWorkActive const &) = delete;
+  UvWorkActive & operator = (UvWorkActive &&) = delete;
+
+  void queue_work();
+  int cancel();
+
+  uv_loop_t *loop {nullptr};
+  std::function< void(string &error, shared_ptr< void > &result) > body;
+  std::function< void(string const &error, shared_ptr< void > const &result) > done;
+  string error;
+  shared_ptr< void > result;
+  shared_ptr< UvWorkActive > keepalive;
+  uv_work_t work;
+};
+
+
 
 UvWorkActive::UvWorkActive(uv_loop_t *_loop,
     std::function< void(string &error, shared_ptr<void> &result) > const &_body,
@@ -16,14 +40,18 @@ UvWorkActive::UvWorkActive(uv_loop_t *_loop,
   error {},
   result(nullptr)
 {
+  if (0) eprintf("UvWorkActive construct %p\n", this);
   work.data = this;
-  queue_work();
 }
 
+UvWorkActive::~UvWorkActive()
+{
+  if (0) eprintf("UvWorkActive delete %p\n", this);
+}
 
 void UvWorkActive::queue_work()
 {
-  uv_queue_work(loop, &work, [](uv_work_t *req) {
+  int rc = uv_queue_work(loop, &work, [](uv_work_t *req) {
     auto self = reinterpret_cast<UvWorkActive *>(req->data);
     try {
       self->body(self->error, self->result);
@@ -38,17 +66,28 @@ void UvWorkActive::queue_work()
     else {
       self->done(self->error, self->result);
     }
-    delete self;
+    self->keepalive = nullptr; // will trigger UvWorkActive destructor unless someone's keep another reference
   });
+  if (rc < 0) {
+    keepalive = nullptr;
+    throw uv_error("uv_queue_work", rc);
+  }
+}
+
+int UvWorkActive::cancel()
+{
+  return uv_cancel(reinterpret_cast<uv_req_t *>(&work));
 }
 
 
-void UvWork(uv_loop_t *loop,
+void uvWork(uv_loop_t *loop,
     std::function< void(string &error, shared_ptr< void > &result) > const &body,
     std::function< void(string const &error, shared_ptr< void > const &result) > const &done)
 {
   // Deleted in callback
-  new UvWorkActive(loop, body, done);
+  shared_ptr< UvWorkActive > p = make_shared<UvWorkActive>(loop, body, done);
+  p->keepalive = p;
+  p->queue_work();
 }
 
 
@@ -72,7 +111,7 @@ void UvAsyncQueue::async_init()
 {
   async = new uv_async_t {};
   async->data = this;
-  uv_async_init(loop, async, [](uv_async_t *req) {
+  int rc = uv_async_init(loop, async, [](uv_async_t *req) {
     auto self = reinterpret_cast<UvAsyncQueue *>(req->data);
     while (true) {
       std::unique_lock< std::mutex > lock(self->workQueueMutex);
@@ -83,25 +122,39 @@ void UvAsyncQueue::async_init()
       f();
     }
   });
+  if (rc < 0) throw uv_error("uv_async_init", rc);
 }
 
 void UvAsyncQueue::push(std::function< void() > const &f)
 {
   std::unique_lock< std::mutex > lock(workQueueMutex);
   workQueue.push_back(f);
-  uv_async_send(async);
+  int rc = uv_async_send(async);
+  if (rc < 0) throw uv_error("uv_async_send", rc);
 }
 
 
 
+
+struct UvWriteActive {
+  UvWriteActive(std::function< void(int) > const &_cb);
+  ~UvWriteActive();
+  void push(string const &it);
+  void push(char const *data, size_t len);
+
+  std::function< void(int) > cb;
+  vector< uv_buf_t > bufs;
+};
 
 UvWriteActive::UvWriteActive(std::function< void(int) > const &_cb)
 :cb(_cb)
 {
+  if (0) eprintf("UvWriteActive construct %p\n", this);
 }
 
 UvWriteActive::~UvWriteActive()
 {
+  if (0) eprintf("UvWriteActive delete %p\n", this);
   for (auto &bufit: bufs) {
     free(bufit.base);
   }

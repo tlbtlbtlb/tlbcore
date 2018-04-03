@@ -359,7 +359,6 @@ bool rdJsonVec(RdJsonContext &ctx, vector< T > &arr) {
 }
 
 
-
 /*
   JsonVec - vector< shared_ptr< T > >
 */

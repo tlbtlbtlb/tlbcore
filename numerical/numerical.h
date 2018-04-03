@@ -67,7 +67,24 @@ static inline string linearComb(double aCoeff, string const &a, double bCoeff, s
 }
 
 template<typename T>
-map<string, T> linearComb(double aCoeff, map<string, T> const &a, double bCoeff, map<string, T> const &b)
+arma::Col< T > linearComb(double aCoeff, arma::Col< T > const &a, double bCoeff, arma::Col< T > const &b)
+{
+  return aCoeff*a + bCoeff*b;
+}
+template<typename T>
+arma::Mat< T > linearComb(double aCoeff, arma::Mat< T > const &a, double bCoeff, arma::Mat< T > const &b)
+{
+  return aCoeff*a + bCoeff*b;
+}
+template<typename T>
+arma::Row< T > linearComb(double aCoeff, arma::Row< T > const &a, double bCoeff, arma::Row< T > const &b)
+{
+  return aCoeff*a + bCoeff*b;
+}
+
+
+template<typename T>
+map<string, T> linearComb(double aCoeff, map< string, T > const &a, double bCoeff, map< string, T > const &b)
 {
   return aCoeff > bCoeff ? a : b;
 }
@@ -83,22 +100,6 @@ vector< T > linearComb(double aCoeff, vector< T > const &a, double bCoeff, vecto
   return ret;
 }
 
-
-template<typename T>
-arma::Col< T > linearComb(double aCoeff, arma::Col< T > const &a, double bCoeff, arma::Col< T > const &b)
-{
-  return aCoeff*a + bCoeff*b;
-}
-template<typename T>
-arma::Mat< T > linearComb(double aCoeff, arma::Mat< T > const &a, double bCoeff, arma::Mat< T > const &b)
-{
-  return aCoeff*a + bCoeff*b;
-}
-template<typename T>
-arma::Row< T > linearComb(double aCoeff, arma::Row< T > const &a, double bCoeff, arma::Row< T > const &b)
-{
-  return aCoeff*a + bCoeff*b;
-}
 
 
 
@@ -133,24 +134,6 @@ static inline double linearMetric(string const &a, string const &b)
 }
 
 template<typename T>
-double linearMetric(map<string, T> const &a, map<string, T> const &b)
-{
-  return 0.0;
-}
-
-template<typename T>
-double linearMetric(vector< T > const &a, vector< T > const &b)
-{
-  assert(a.size() == b.size());
-  double ret = 0.0;
-  for (size_t i = 0; i < a.size(); i++) {
-    ret += linearMetric(a[i], b[i]);
-  }
-  return ret;
-}
-
-
-template<typename T>
 double linearMetric(arma::Col< T > const &a, arma::Col< T > const &b)
 {
   return dot(a, b);
@@ -167,12 +150,42 @@ double linearMetric(arma::Row< T > const &a, arma::Row< T > const &b)
 }
 
 
+
+template<typename T>
+double linearMetric(map< string, T > const &a, map< string, T > const &b)
+{
+  set< string > keys;
+  for (auto const &it : a) {
+    keys.insert(it.first);
+  }
+  for (auto const &it : b) {
+    keys.insert(it.first);
+  }
+  double ret = 0.0;
+  for (auto const &it : keys) {
+    auto ait = a.find(it);
+    auto bit = b.find(it);
+    ret += linearMetric((ait == a.end() ? T() : ait->second), (bit == b.end() ? T() : bit->second));
+  }
+  return 0.0;
+}
+
+template<typename T>
+double linearMetric(vector< T > const &a, vector< T > const &b)
+{
+  auto size = max(a.size(), b.size());
+  double ret = 0.0;
+  for (size_t i = 0; i < size; i++) {
+    ret += linearMetric(i < a.size() ? a[i]: T(), i < b.size() ? b[i] : T());
+  }
+  return ret;
+}
+
+
 /*
   hasNaN returns true if there's a NaN somewhere.
   Null pointers or empty data structures return false.
 */
-
-
 
 
 static inline bool hasNaN(double const &a)
@@ -206,27 +219,6 @@ static inline bool hasNaN(string const &a)
 }
 
 template<typename T>
-bool hasNaN(map<string, T> const &a)
-{
-  bool out = false;
-  for (auto &it: a) {
-    out = out || hasNaN(it.second);
-  }
-  return out;
-}
-
-template<typename T>
-bool hasNaN(vector< T > const &a)
-{
-  bool out = false;
-  for (size_t i = 0; i < a.size(); i++) {
-    out = out || hasNaN(a[i]);
-  }
-  return out;
-}
-
-
-template<typename T>
 bool hasNaN(arma::Col< T > const &a)
 {
   return a.has_nan();
@@ -251,38 +243,21 @@ bool hasNaN(shared_ptr< T > const &a)
 
 
 template<typename T>
-struct CubicBezier {
-  CubicBezier(T const &_p0, T const &_p1, T const &_p2, T const *_p3)
-    :p0(_p1), p1(_p1), p2(_p2), p3(_p3)
-  {
+bool hasNaN(map< string, T > const &a)
+{
+  bool out = false;
+  for (auto &it: a) {
+    out = out || hasNaN(it.second);
   }
-  T p0, p1, p2, p3;
-};
-
-template<typename T>
-CubicBezier< T > operator *(double const &a, CubicBezier< T > const &b)
-{
-  return CubicBezier< T >(a*b.p0, a*b.p1, a*b.p2, a*b.p3);
+  return out;
 }
 
 template<typename T>
-double linearMetric(CubicBezier< T > const &a, CubicBezier< T > const &b)
+bool hasNaN(vector< T > const &a)
 {
-  return linearMetrix(a.p0, b.p0) + linearMetrix(a.p1, b.p1) + linearMetrix(a.p2, b.p2) + linearMetrix(a.p3, b.p3);
-}
-
-template<typename T>
-CubicBezier< T > linearComb(double aCoeff, CubicBezier< T > const &a, double bCoeff, CubicBezier< T > const &b)
-{
-  return aCoeff*a + bCoeff*b;
-}
-
-
-template<typename T>
-T bezier(CubicBezier< T > const &a, double t)
-{
-  return (1.0-t)*(1.0-t)*(1.0-t) * a.p0 +
-    3 * (1.0-t)*(1.0-t)*t * a.p1 +
-    3 * (1.0-t)*t*t * a.p2 +
-    t*t*t * a.p3;
+  bool out = false;
+  for (size_t i = 0; i < a.size(); i++) {
+    out = out || hasNaN(a[i]);
+  }
+  return out;
 }
