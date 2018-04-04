@@ -56,6 +56,7 @@ void UvWorkActive::queue_work()
     try {
       self->body(self->error, self->result);
     } catch(exception const &ex) {
+      eprintf("UvWork: caught exception %s\n", ex.what());
       self->error = ex.what();
     };
   }, [](uv_work_t *req, int status) {
