@@ -91,9 +91,6 @@ WebServer.prototype.setSocketProtocol = function(url, f) {
 WebServer.prototype.setupBaseProvider = function() {
   if (this.baseProvider) return;
   let p = new vjs_provider.ProviderSet();
-  if (1) p.addCss(require.resolve('./common.css'));
-  if (1) p.addCss(require.resolve('./spinner-lib/spinner.css'));
-  // Add more CSS files here
   this.baseProvider = p;
 };
 

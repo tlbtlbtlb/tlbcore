@@ -1,0 +1,30 @@
+{
+  "name": "tlbcore",
+  "version": "1.0.0",
+  "description": "Utilities",
+  "directories": {
+      "common": "common",
+      "web": "web",
+      "style": "style",
+      "tests": "tests"
+  },
+  "dependencies": {
+    "mathjs": "^3.17.0"
+  },
+  "devDependencies": {
+  },
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tlbtlbtlb/tlbcore.git"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "author": "Trevor Blackwell <tlb@tlb.org>",
+  "bugs": {
+    "url": "https://github.com/tlbtlbtlb/tlbcore/issues"
+  },
+  "homepage": "https://github.com/tlbtlbtlb/tlbcore#readme"
+}

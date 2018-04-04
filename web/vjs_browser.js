@@ -5,9 +5,14 @@
 'use strict';
 const _ = require('lodash');
 const $ = require('jquery');
+const fs = require('fs');
 const web_socket_browser = require('./web_socket_browser');
 const vjs_hit_detector = require('./vjs_hit_detector');
 const box_layout = require('./box_layout');
+const insertStyle = require('insert-css');
+
+insertStyle(fs.readFileSync(`${__dirname}/common.css`, 'utf8'));
+insertStyle(fs.readFileSync(`${__dirname}/spinner-lib/spinner.css`, 'utf8'));
 
 exports.pushLocationHash = pushLocationHash;
 exports.replaceLocationHash = replaceLocationHash;
@@ -75,7 +80,10 @@ $.defHumanUrl = function(pageid, parse, fmt) {
 
 $.fn.page_notFound = function(o) {
   document.title = 'Not Found';
-  this.html('<h3>Not Found</h3>');
+  this.html(`
+    <h3>Not Found</h3>
+    <a href="#">Home</a>
+  `);
 };
 
 $.setPageTitle = function(title) {
@@ -877,11 +885,16 @@ function mkWebSocket(path, handlers) {
   el.prop('href', path);
   let url = el.prop('href');
   let wsUrl = url.replace(/^http/, 'ws'); // and https: turns in to wss:
+  if (wsUrl.startsWith('ws:')) {
 
-  // WRITEME: detect vendor-prefixed WebSocket.
-  // WRITEME: Give some appropriately dire error message if websocket not found or fails to connect
-  if (0) console.log('Opening websocket to', wsUrl);
-  return web_socket_browser.mkWebSocketClientRpc(wsUrl, handlers);
+    // WRITEME: detect vendor-prefixed WebSocket.
+    // WRITEME: Give some appropriately dire error message if websocket not found or fails to connect
+    if (0) console.log('Opening websocket to', wsUrl);
+    return web_socket_browser.mkWebSocketClientRpc(wsUrl, handlers);
+  }
+  else {
+    return web_socket_browser.mkWebSocketClientRpc('ws://localhost:8000/yoga', handlers);
+  }
 }
 
 /* ----------------------------------------------------------------------
