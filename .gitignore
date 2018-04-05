@@ -5,6 +5,7 @@
 /nodeif/bin
 /arma/build
 /arma/bin
+/node_modules
 .lock-wscript
 *.log
 *.o
