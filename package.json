@@ -9,7 +9,12 @@
       "tests": "tests"
   },
   "dependencies": {
-    "mathjs": "^3.17.0"
+    "mathjs": "^3.17.0",
+    "lodash": "^4.17.5",
+    "jquery": "^3.3.1",
+    "jquery-ui": "^1.12.1",
+    "insert-css": "^2.0.0",
+    "jquery-contextmenu": "^2.6.4"
   },
   "devDependencies": {
   },

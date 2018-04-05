@@ -9,11 +9,15 @@ const fs = require('fs');
 const web_socket_browser = require('./web_socket_browser');
 const vjs_hit_detector = require('./vjs_hit_detector');
 const box_layout = require('./box_layout');
-const insertStyle = require('insert-css');
+const vjs_style = require('./vjs_style');
 
-insertStyle(fs.readFileSync(`${__dirname}/common.css`, 'utf8'));
-insertStyle(fs.readFileSync(`${__dirname}/spinner-lib/spinner.css`, 'utf8'));
-
+/*
+  Use:
+    const vjs_browser = require('tlbcore/web/vjs_browser');
+    const $ = vjs_browser.$;
+  in order to make sure there's only one jQuery loaded. Otherwise the additions to $.fn aren't visible.
+*/
+exports.$ = $;
 exports.pushLocationHash = pushLocationHash;
 exports.replaceLocationHash = replaceLocationHash;
 exports.gotoLocationHash = gotoLocationHash;
@@ -203,6 +207,7 @@ function replaceLocationHash(pageid, o) {
 }
 
 function gotoLocationHash(pageid, o) {
+  if (!o) o = {};
   pushLocationHash(pageid, o);
   gotoCurrentHash();
 }
@@ -359,6 +364,11 @@ $.fn.inputSetRed = function() {
   this.addClass('inputError');
   return this;
 };
+
+/*
+  Spinners
+*/
+
 
 /*
   Remove any spinners from inside this element
