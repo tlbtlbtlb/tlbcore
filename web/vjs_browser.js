@@ -30,6 +30,7 @@ exports.pageSetupFull = pageSetupFull;
 exports.interactiveLimitOutstanding = interactiveLimitOutstanding;
 exports.fmtHashOptions = fmtHashOptions;
 exports.escapeHtml = escapeHtml;
+exports.spinnerUrlBase = vjs_style.spinnerUrlBase;
 
 $.action = {};
 $.humanUrl = {};

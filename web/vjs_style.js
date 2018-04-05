@@ -10,11 +10,11 @@ const insertStyle = require('insert-css');
 
 insertStyle(fs.readFileSync(`${__dirname}/common.css`, 'utf8'));
 
-let spinnerBase = '/spinner-lib';
+let spinnerUrlBase = '/spinner-lib';
 if (document.location.protocol === 'file:') {
-  spinnerBase = `file:/${__dirname}/spinner-lib`;
+  spinnerUrlBase = `file://${__dirname}/spinner-lib`;
 }
-exports.spinnerBase = spinnerBase;
+exports.spinnerUrlBase = spinnerUrlBase;
 
 
 
@@ -37,28 +37,28 @@ insertStyle(`
 }
 
 .spinner-img12 {
-  background: url(${spinnerBase}/spinner32t.gif') no-repeat;
+  background: url(${spinnerUrlBase}/spinner32t.gif') no-repeat;
   width: 12px;
   height: 12px;
   background-size: contain;
   margin: 0 auto;
 }
 .spinner-img16 {
-  background: url(${spinnerBase}/spinner32t.gif') no-repeat;
+  background: url(${spinnerUrlBase}/spinner32t.gif') no-repeat;
   width: 16px;
   height: 16px;
   background-size: contain;
   margin: 0 auto;
 }
 .spinner-img32 {
-  background: url(${spinnerBase}/spinner32t.gif') no-repeat;
+  background: url(${spinnerUrlBase}/spinner32t.gif') no-repeat;
   width: 32px;
   height: 32px;
   background-size: contain;
   margin: 0 auto;
 }
 .spinner-img64a {
-  background: url(${spinnerBase}/spinner64a.gif') no-repeat;
+  background: url(${spinnerUrlBase}/spinner64a.gif') no-repeat;
   width: 64px;
   height: 64px;
   background-size: contain;
