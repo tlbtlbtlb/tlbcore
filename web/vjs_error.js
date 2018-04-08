@@ -1,7 +1,7 @@
 'use strict';
 /* global $ */
 const _ = require('lodash');
-const vjs_browser = require('./vjs_browser');
+const {$} = require('./vjs_browser');
 
 /* ----------------------------------------------------------------------
    Format error messages

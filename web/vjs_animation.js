@@ -1,7 +1,6 @@
 'use strict';
 const _ = require('lodash');
-const $ = require('jquery');
-const vjs_browser = require('./vjs_browser');
+const {$, mkDeferQ} = require('./vjs_browser');
 const web_socket_browser = require('./web_socket_browser');
 const vjs_hit_detector = require('./vjs_hit_detector');
 const box_layout = require('./box_layout');
@@ -368,10 +367,10 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     ctx.scale(pixelRatio, pixelRatio);
 
     ctx.curLayer = (f) => f();
-    ctx.textLayer = vjs_browser.mkDeferQ();
-    ctx.buttonLayer = vjs_browser.mkDeferQ();
-    ctx.cursorLayer = vjs_browser.mkDeferQ();
-    ctx.tooltipLayer = vjs_browser.mkDeferQ();
+    ctx.textLayer = mkDeferQ();
+    ctx.buttonLayer = mkDeferQ();
+    ctx.cursorLayer = mkDeferQ();
+    ctx.tooltipLayer = mkDeferQ();
     hd.beginDrawing(ctx);
     let cw = canvas.width / pixelRatio;
     let ch = canvas.height / pixelRatio;

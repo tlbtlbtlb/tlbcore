@@ -13,8 +13,7 @@ const vjs_style = require('./vjs_style');
 
 /*
   Use:
-    const vjs_browser = require('tlbcore/web/vjs_browser');
-    const $ = vjs_browser.$;
+    const {$} = require('tlbcore/web/vjs_browser');
   in order to make sure there's only one jQuery loaded. Otherwise the additions to $.fn aren't visible.
 */
 exports.$ = $;

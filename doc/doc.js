@@ -1,7 +1,6 @@
 'use strict';
 
-const $ = require('jquery');
-const vjs_browser = require('tlbcore/web/vjs_browser');
+const {$} = require('tlbcore/web/vjs_browser');
 
 $.defPage('doc', function(o) {
 
