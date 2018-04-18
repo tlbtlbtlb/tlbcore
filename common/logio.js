@@ -2,10 +2,6 @@
 const _ = require('lodash');
 const child_process = require('child_process');
 
-exports.logDataSep = logDataSep;
-exports.I = I;
-exports.O = O;
-exports.E = E;
 exports.setMaxLength = function(v) { maxLength = v; };
 
 let maxLength = parseInt(process.env.LOGIO_MAX_LENGTH || '500');
@@ -14,7 +10,7 @@ let baseTimestamp = +Date.now();
 
 // ----------------------------------------------------------------------
 
-function logDataSep(remote, sep, args) {
+const logDataSep = exports.logDataSep = (remote, sep, args) => {
   if (typeof(remote) === 'undefined') remote = '?';
   let infos = [];
   let stacks = [];
@@ -59,16 +55,23 @@ function logDataSep(remote, sep, args) {
   for (let sti = 0; sti < stacks.length; sti++) {
     console.log(emptyPrefix + '                                         | ' + stacks[sti].replace(/\n/g, '\n                                         | '));
   }
-}
+};
 
-function I(remote, ...args) {
-  logDataSep(remote, ' > ', args);
-}
 
-function O(remote, ...args) {
-  logDataSep(remote, ' < ', args);
+if (global.window) {
+  exports.I = exports.O = exports.E = console.log;
 }
+else {
 
-function E(remote, ...args) {
-  logDataSep(remote, ' ! ', args);
+  exports.I = (remote, ...args) => {
+    logDataSep(remote, ' > ', args);
+  };
+
+  exports.O = (remote, ...args) => {
+    logDataSep(remote, ' < ', args);
+  };
+
+  exports.E = (remote, ...args) => {
+    logDataSep(remote, ' ! ', args);
+  };
 }
