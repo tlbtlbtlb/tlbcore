@@ -578,3 +578,63 @@ bool rdJson(RdJsonContext &ctx, pair<FIRST, SECOND > &it) {
   ctx.s++;
   return true;
 }
+
+
+
+char const * getTypeVersionString(double const &);
+char const * getTypeName(double const &);
+char const * getJsTypeName(double const &);
+char const * getSchema(double const &);
+void addSchemas(double const &, map< string, jsonstr > &);
+
+
+char const * getTypeVersionString(arma::Col< double > const &);
+char const * getTypeName(arma::Col< double > const &);
+char const * getJsTypeName(arma::Col< double > const &);
+char const * getSchema(arma::Col< double > const &);
+void addSchemas(arma::Col< double > const &, map< string, jsonstr > &);
+
+
+char const * getTypeVersionString(string const &);
+char const * getTypeName(string const &);
+char const * getJsTypeName(string const &);
+char const * getSchema(string const &);
+void addSchemas(string const &, map< string, jsonstr > &);
+
+char const * getTypeVersionString(vector< string > const &);
+char const * getTypeName(vector< string > const &);
+char const * getJsTypeName(vector< string > const &);
+char const * getSchema(vector< string > const &);
+void addSchemas(vector< string > const &, map< string, jsonstr > &);
+
+char const * getTypeVersionString(map< string, string > const &);
+char const * getTypeName(map< string, string > const &);
+char const * getJsTypeName(map< string, string > const &);
+char const * getSchema(map< string, string > const &);
+void addSchemas(map< string, string > const &, map< string, jsonstr > &);
+
+char const * getTypeVersionString(bool const &);
+char const * getTypeName(bool const &);
+char const * getJsTypeName(bool const &);
+char const * getSchema(bool const &);
+void addSchemas(bool const &, map< string, jsonstr > &);
+
+char const * getTypeVersionString(S32 const &);
+char const * getTypeName(S32 const &);
+char const * getJsTypeName(S32 const &);
+char const * getSchema(S32 const &);
+void addSchemas(S32 const &, map< string, jsonstr > &);
+
+char const * getTypeVersionString(U64 const &);
+char const * getTypeName(U64 const &);
+char const * getJsTypeName(U64 const &);
+char const * getSchema(U64 const &);
+void addSchemas(U64 const &, map< string, jsonstr > &);
+
+
+
+char const * getTypeVersionString(jsonstr const &);
+char const * getTypeName(jsonstr const &);
+char const * getJsTypeName(jsonstr const &);
+char const * getSchema(jsonstr const &);
+void addSchemas(jsonstr const &, map< string, jsonstr > &);
