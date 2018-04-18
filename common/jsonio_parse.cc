@@ -52,11 +52,9 @@ string RdJsonContext::fmtFail()
 
   string ss(fullStr);
   size_t off = (failPos - fullStr);
-  if (ss.size() < 1000 && off < ss.size()+2) {
+  ret += stringprintf(" at pos %zu/%zu", off, ss.size());
+  if (ss.size() < 500 && off < ss.size()+2) {
     ret += " in\n" + ss + "\n" + string(off, ' ') + "^";
-  }
-  else {
-    ret += stringprintf("at pos %zu/%zu", off, ss.size());
   }
   if (0) eprintf("%s\n", ret.c_str());
   return ret;
