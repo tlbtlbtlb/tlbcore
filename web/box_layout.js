@@ -63,7 +63,7 @@ BoxLayout.prototype.snap5 = function(x) {
 
 BoxLayout.prototype.child = function(changes) {
   if (changes) {
-    return _.extend(Object.create(this), changes);
+    return _.assign(Object.create(this), changes);
   }
   else {
     return Object.create(this);
@@ -83,7 +83,7 @@ BoxLayout.prototype.childBox = function(t, r, b, l, o) {
   lo2.boxW = lo2.boxR - lo2.boxL;
   lo2.boxH = lo2.boxB - lo2.boxT;
   if (o) {
-    _.extend(lo2, o);
+    _.assign(lo2, o);
   }
   return lo2;
 };

@@ -25,7 +25,7 @@ function ChildJsonPipe(execName, execArgs, execOptions, o) {
   let nChildren = o.nChildren || 1;
 
   this.children = _.map(_.range(nChildren), (childi) => {
-    return child_process.spawn(execName, execArgs, _.extend({stdio: [
+    return child_process.spawn(execName, execArgs, _.assign({stdio: [
       'pipe',
       'pipe',
       o.captureStderr ? 'pipe' : 'inherit'

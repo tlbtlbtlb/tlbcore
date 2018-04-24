@@ -20,7 +20,7 @@ function addToContext(name, value) {
 function setupReplCommon(r) {
   gContexts.push(r.context);
   _.each(gContexts, function(ctx) {
-    _.extend(ctx, pendingContext);
+    _.assign(ctx, pendingContext);
   });
 
   /* eslint-disable global-require */

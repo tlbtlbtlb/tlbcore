@@ -43,7 +43,7 @@ function getNamedDb(name) {
 }
 
 function defDb(name, type, host, port, options) {
-  options = _.extend({retry_max_delay: 5000}, options || {});
+  options = _.assign({retry_max_delay: 5000}, options || {});
   if (dbDefs[name]) {
     let defn = dbDefs[name];
     if (defn.name !== name || defn.type !== type || defn.host !== host || defn.port !== port || defn.options !== options) {

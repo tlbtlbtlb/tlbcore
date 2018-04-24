@@ -340,7 +340,11 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     }
     let t0 = Date.now();
     drawCount++;
-    let ctx = canvas.getContext(o.contextStyle || '2d');
+    let ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      throw new Error(`Failed to create context ${o.contextStyle || '2d'}`);
+    }
 
     if (autoSize) {
       let devicePixelRatio = window.devicePixelRatio || 1;

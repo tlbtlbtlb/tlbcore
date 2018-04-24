@@ -12,7 +12,7 @@ const logio = require('../common/logio');
 exports.ParentJsonPipe = ParentJsonPipe;
 
 function ParentJsonPipe(o, handlers) {
-  this.handlers = _.extend({
+  this.handlers = _.assign({
     rpc_handshake: (cb) => {
       cb(null, 'handshake');
     },

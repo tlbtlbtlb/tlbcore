@@ -334,7 +334,7 @@ WebServer.prototype.getSiteHits = function(cb) {
 
 WebServer.prototype.getContentStats = function(cb) {
   cb(null, _.map(_.sortBy(_.keys(this.urlProviders), _.identity), (k) => {
-    return _.extend({}, this.urlProviders[k].getStats(), {desc: k});
+    return _.assign({}, this.urlProviders[k].getStats(), {desc: k});
   }));
 };
 

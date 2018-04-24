@@ -493,7 +493,7 @@ function BrowserifyProvider(fn, opts) {
   this.fn = fn;
   this.basename = getBasename(fn);
 
-  this.browserify = browserify([], _.extend({
+  this.browserify = browserify([], _.assign({
     cache: {},
     packageCache: {},
     detectGlobals: true,
