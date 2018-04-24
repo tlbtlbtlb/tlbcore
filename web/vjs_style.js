@@ -37,28 +37,28 @@ insertStyle(`
 }
 
 .spinner-img12 {
-  background: url(${spinnerUrlBase}/spinner32t.gif') no-repeat;
+  background: url("${spinnerUrlBase}/spinner32t.gif") no-repeat;
   width: 12px;
   height: 12px;
   background-size: contain;
   margin: 0 auto;
 }
 .spinner-img16 {
-  background: url(${spinnerUrlBase}/spinner32t.gif') no-repeat;
+  background: url("${spinnerUrlBase}/spinner32t.gif") no-repeat;
   width: 16px;
   height: 16px;
   background-size: contain;
   margin: 0 auto;
 }
 .spinner-img32 {
-  background: url(${spinnerUrlBase}/spinner32t.gif') no-repeat;
+  background: url("${spinnerUrlBase}/spinner32t.gif") no-repeat;
   width: 32px;
   height: 32px;
   background-size: contain;
   margin: 0 auto;
 }
 .spinner-img64a {
-  background: url(${spinnerUrlBase}/spinner64a.gif') no-repeat;
+  background: url("${spinnerUrlBase}/spinner64a.gif") no-repeat;
   width: 64px;
   height: 64px;
   background-size: contain;
