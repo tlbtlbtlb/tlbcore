@@ -28,11 +28,6 @@ JS_SRCDIRS := \
 	nodeif \
 	web
 
-DECL_TYPES := \
-	arma/decl_arma.js \
-	geom/decl_geom.js \
-	numerical/decl_numerical.js \
-
 # Manual machine setup
 # See https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager
 # See https://github.com/nodesource/distributions
@@ -62,31 +57,7 @@ clean ::
 setup ::
 	mkdir -p build.src
 
-BUILD_SRC_DEPS := \
-	common/MoreUnderscore.js \
-	code_gen/mk_marshall.js \
-	code_gen/cgen.js \
-	code_gen/gen_marshall.js \
-	code_gen/gen_utils.js \
-	code_gen/type_registry.js \
-	code_gen/ctype.js \
-	code_gen/struct_ctype.js \
-	code_gen/template_ctype.js \
-	code_gen/dsp_ctype.js \
-	code_gen/object_ctype.js \
-	code_gen/primitive_ctype.js \
-	code_gen/ptr_ctype.js \
-	code_gen/struct_ctype.js \
-	code_gen/symbolic_math.js \
-	code_gen/mk_dspmath.js \
-	$(DECL_TYPES)
-
 PUSHDIST_EXCLUDE_REGEXPS +=
-
-stage1 :: build.src/timestamp
-build.src/timestamp :: $(BUILD_SRC_DEPS)
-	node code_gen/mk_marshall.js $(DECL_TYPES)
-	touch $@
 
 GYP_CONFIG_DEPS := \
 	Makefile \

@@ -1,6 +1,6 @@
 #include "common/std_headers.h"
 #include "jsonio.h"
-#include "build.src/decl_arma_decl.h"
+#include "build.src/arma_types_decl.h"
 /*
   As used by Python's numpy, which we interoperate with.
 */

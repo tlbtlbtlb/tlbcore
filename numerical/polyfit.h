@@ -5,7 +5,7 @@
  */
 
 //#include <armadillo>
-#include "build.src/decl_numerical_decl.h"
+#include "build.src/lib_types_decl.h"
 
 double getValue(Polyfit1 const &u, double t);
 double getDerivative(Polyfit1 const &u, double t);
