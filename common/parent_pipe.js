@@ -3,7 +3,6 @@
   which can't be easily forwarded with ssh.
 */
 'use strict';
-console._stdout = process.stderr;
 const _ = require('lodash');
 const async = require('async');
 const child_process = require('child_process');
@@ -53,6 +52,7 @@ ParentJsonPipe.prototype.emitInParent = function(...params) {
 ParentJsonPipe.prototype.handleRx = function(rx) {
   if (rx.method) {
     const cb = (err, result) => {
+      if (err && err instanceof Error) err = err.message;
       this.tx({ id: rx.id, error: err, result: result });
     };
     let methodFunc = this.handlers[`rpc_${rx.method}`];

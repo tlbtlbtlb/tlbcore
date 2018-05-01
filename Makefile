@@ -16,8 +16,6 @@ ifeq ($(UNAME_SYSTEM),Darwin)
 export NODE_PATH = /usr/local/lib/node_modules
 endif
 
-GYP_MODE ?= Release
-
 # MAINTAINME
 JS_SRCDIRS := \
 	common \
@@ -59,41 +57,9 @@ setup ::
 
 PUSHDIST_EXCLUDE_REGEXPS +=
 
-GYP_CONFIG_DEPS := \
-	Makefile \
-	build.src/timestamp \
-	$(wildcard $(foreach dir,$(GYP_SRCDIRS),$(dir)/*.gyp)) \
-	$(wildcard $(foreach dir,$(GYP_SRCDIRS),$(dir)/*.gypi))
-
-stage1 :: nodeif/build/Makefile
-ifeq ($(GYP_MODE),Debug)
-nodeif/build/Makefile : $(GYP_CONFIG_DEPS)
-	cd nodeif && node-gyp configure --debug
-else
-nodeif/build/Makefile : $(GYP_CONFIG_DEPS)
-	cd nodeif && node-gyp configure
-endif
-
-
-clean ::
-	cd nodeif && node-gyp clean
-	rm -rf nodeif/bin
-
-build :: build.nodeif
-build.nodeif :: stage1
-	cd nodeif && node-gyp build --jobs 8
-	mkdir -p node_modules
-	cp nodeif/build/$(GYP_MODE)/ur.node node_modules/ur.node
-
 test :: build
 	env NODE_PATH=$(NODE_PATH):$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js)) build.src/test_*.js
 
-
-size ::
-	size nodeif/build/Release/*.o
-
-logsize ::
-	node hackstats/updateSizeGraph.js nodeif/build/Release/*.o
 
 run:
 	node web/server.js doc
@@ -109,10 +75,6 @@ push.%: .gitfiles
 
 pushdist.% : force
 	rsync -a --inplace --relative $(DOCKER_EXCLUDES) $(patsubst %,--exclude %,$(PUSHDIST_EXCLUDE_REGEXPS)) --delete . $*:tlbcore/.
-
-
-cross.%: push.%
-	ssh $* 'cd tlbcore && env NODE_PATH=/usr/lib/node_modules make'
 
 lint :: ## Lint js code
 	jshint --reporter unix $(foreach dir,$(JS_SRCDIRS),$(dir)/*.js)

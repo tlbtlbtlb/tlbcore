@@ -129,7 +129,7 @@ ChildJsonPipe.prototype.handleRx = function(childi, rx) {
       }
       else if (rx.error) {
         if (this.verbose>=1) logio.E(this.baseName + childi.toString(), 'rx', repInfo.method, rx.error, Date.now()-repInfo.t0);
-        repInfo.cb(new Error(rx.error), rx.result);
+        repInfo.cb(rx.error instanceof Error ? rx.error : new Error(rx.error), rx.result);
       } else {
         if (this.verbose>=2) logio.I(this.baseName + childi.toString(), repInfo.method, Date.now()-repInfo.t0);
         repInfo.cb(null, rx.result);

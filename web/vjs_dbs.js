@@ -114,7 +114,7 @@ function enhanceRedis(redis0) {
       if (obj === undefined) {
         if (creator === undefined) {
           logio.E('redis.updateObj ' + key, 'Nonexistent');
-          if (cb) cb('creation failed');
+          if (cb) cb(new Error('creation failed'));
           cb = null;
           return;
         }
@@ -124,14 +124,14 @@ function enhanceRedis(redis0) {
           obj = creator;
         }
         if (obj === undefined) {
-          if (cb) cb('creation failed');
+          if (cb) cb(new Error('creation failed'));
           cb = null;
           return;
         }
       }
       if (typeof(obj) !== 'object') {
         logio.E('redis.updateObj', key + ' not an object (type=' + typeof(obj) + ')');
-        if (cb) cb('creation failed');
+        if (cb) cb(new Error('creation failed'));
         cb = null;
         return;
       }

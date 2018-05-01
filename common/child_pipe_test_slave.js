@@ -17,7 +17,7 @@ function main() {
       cb(null, [[a, b, c], 'foo']);
     },
     rpc_testerr: (cb) => {
-      cb('testerr always raises this error');
+      cb(new Error('testerr always raises this error'));
     },
   });
 }

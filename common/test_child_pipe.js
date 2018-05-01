@@ -47,6 +47,7 @@ describe('ChildPipe', function() {
           (pdone) => {
             cp.rpc('testerr', [], (err, v) => {
               assert.ok(err);
+              debugger;
               assert.equal(err.message, 'testerr always raises this error');
               pdone();
             });
