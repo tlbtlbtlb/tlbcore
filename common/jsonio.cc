@@ -80,6 +80,23 @@ bool jsonstr::isString(char const *s) const
   return it == asJson(string(s)).it;
 }
 
+bool jsonstr::isString() const
+{
+  return it.size() >=  1 && it[0] == '"';
+}
+bool jsonstr::isObject() const
+{
+  return it.size() >=  1 && it[0] == '{';
+}
+bool jsonstr::isArray() const
+{
+  return it.size() >=  1 && it[0] == '[';
+}
+bool jsonstr::isNumber() const
+{
+  return it.size() >=  1 && isdigit(it[0]);
+}
+
 /*
   writeToFile uses gzip by default.
 */

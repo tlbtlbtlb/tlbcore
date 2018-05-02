@@ -43,6 +43,10 @@ struct jsonstr {
   void setNull();
 
   bool isNull() const;
+  bool isString() const;
+  bool isObject() const;
+  bool isArray() const;
+  bool isNumber() const;
   bool isString(char const *s) const;
 
   // Read and write to files.
