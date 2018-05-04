@@ -4,9 +4,12 @@
   "description": "Utilities",
   "directories": {
       "common": "common",
-      "web": "web",
+      "doc": "doc",
+      "numerial": "numerical",
+      "perf": "perf",
       "style": "style",
-      "tests": "tests"
+      "tests": "tests",
+      "web": "web"
   },
   "dependencies": {
     "mathjs": "^3.17.0",
@@ -25,11 +28,26 @@
     "type": "git",
     "url": "git+https://github.com/tlbtlbtlb/tlbcore.git"
   },
-  "license": "UNLICENSED",
-  "private": true,
+  "license": "MIT",
   "author": "Trevor Blackwell <tlb@tlb.org>",
   "bugs": {
     "url": "https://github.com/tlbtlbtlb/tlbcore/issues"
   },
-  "homepage": "https://github.com/tlbtlbtlb/tlbcore#readme"
+  "homepage": "https://github.com/tlbtlbtlb/tlbcore#readme",
+  "ybCppSrc": [
+      "common/chunk_file.cc",
+      "common/hacks.cc",
+  	  "common/host_debug.cc",
+  	  "common/host_profts.cc",
+  	  "common/host_timing.cc",
+  	  "common/jsonio_parse.cc",
+  	  "common/jsonio_types.cc",
+  	  "common/jsonio.cc",
+  	  "common/parengine.cc",
+  	  "common/packetbuf.cc",
+  	  "common/uv_wrappers.cc",
+  	  "numerical/haltonseq.cc",
+      "numerical/polyfit.cc",
+      "numerical/windowfunc.cc"
+  ]
 }

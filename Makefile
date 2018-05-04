@@ -10,21 +10,10 @@ size ::
 node_modules ::
 
 include mk/makesystem.inc
-include mk/makedocker.inc
 
 ifeq ($(UNAME_SYSTEM),Darwin)
 export NODE_PATH = /usr/local/lib/node_modules
 endif
-
-# MAINTAINME
-JS_SRCDIRS := \
-	common \
-	code_gen \
-	arma \
-	numerical \
-	geom \
-	nodeif \
-	web
 
 # Manual machine setup
 # See https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager
@@ -55,12 +44,6 @@ clean ::
 setup ::
 	mkdir -p build.src
 
-PUSHDIST_EXCLUDE_REGEXPS +=
-
-test :: build
-	env NODE_PATH=$(NODE_PATH):$(CURDIR)/nodeif/bin mocha --reporter list $(foreach dir,$(JS_SRCDIRS),$(wildcard $(dir)/test_*.js)) build.src/test_*.js
-
-
 run:
 	node web/server.js doc
 
@@ -74,7 +57,4 @@ push.%: .gitfiles
 	rsync -a --inplace --from0 --relative --files-from .gitfiles . $*:tlbcore/.
 
 pushdist.% : force
-	rsync -a --inplace --relative $(DOCKER_EXCLUDES) $(patsubst %,--exclude %,$(PUSHDIST_EXCLUDE_REGEXPS)) --delete . $*:tlbcore/.
-
-lint :: ## Lint js code
-	jshint --reporter unix $(foreach dir,$(JS_SRCDIRS),$(dir)/*.js)
+	rsync -a --inplace --relative $(PUSHDIST_EXCLUDES) --delete . $*:tlbcore/.
