@@ -3,24 +3,22 @@
   "version": "1.0.0",
   "description": "Utilities",
   "directories": {
-      "common": "common",
-      "doc": "doc",
-      "numerial": "numerical",
-      "perf": "perf",
-      "style": "style",
-      "tests": "tests",
-      "web": "web"
+    "common": "common",
+    "doc": "doc",
+    "numerial": "numerical",
+    "perf": "perf",
+    "style": "style",
+    "tests": "tests",
+    "web": "web"
   },
   "dependencies": {
-    "mathjs": "^3.17.0",
     "lodash": "^4.17.5",
     "jquery": "^3.3.1",
     "jquery-ui": "^1.12.1",
     "insert-css": "^2.0.0",
     "jquery-contextmenu": "^2.6.4"
   },
-  "devDependencies": {
-  },
+  "devDependencies": {},
   "scripts": {
     "test": "make test"
   },
@@ -35,19 +33,19 @@
   },
   "homepage": "https://github.com/tlbtlbtlb/tlbcore#readme",
   "ybCppSrc": [
-      "common/chunk_file.cc",
-      "common/hacks.cc",
-  	  "common/host_debug.cc",
-  	  "common/host_profts.cc",
-  	  "common/host_timing.cc",
-  	  "common/jsonio_parse.cc",
-  	  "common/jsonio_types.cc",
-  	  "common/jsonio.cc",
-  	  "common/parengine.cc",
-  	  "common/packetbuf.cc",
-  	  "common/uv_wrappers.cc",
-  	  "numerical/haltonseq.cc",
-      "numerical/polyfit.cc",
-      "numerical/windowfunc.cc"
+    "common/chunk_file.cc",
+    "common/hacks.cc",
+    "common/host_debug.cc",
+    "common/host_profts.cc",
+    "common/host_timing.cc",
+    "common/jsonio_parse.cc",
+    "common/jsonio_types.cc",
+    "common/jsonio.cc",
+    "common/parengine.cc",
+    "common/packetbuf.cc",
+    "common/uv_wrappers.cc",
+    "numerical/haltonseq.cc",
+    "numerical/polyfit.cc",
+    "numerical/windowfunc.cc"
   ]
 }

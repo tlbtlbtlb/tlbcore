@@ -11,7 +11,7 @@ exports.getRoleServers = getRoleServers;
 exports.getLocalServer = getLocalServer;
 exports.getBestAddr = getBestAddr;
 exports.richError = richError;
-
+exports.setupDefaultServers = setupDefaultServers;
 
 let verbose = 0;
 
@@ -28,15 +28,13 @@ let verbose = 0;
 */
 
 
-let hostname = null;
+let hostname = os.hostname().replace(/\..*$/, '');
 let servers = {};
-let serversModulePath = null;
+let serversModulePath = path.join(process.cwd(), 'deploy/servers.js');
 
 function setup() {
-  hostname = os.hostname().replace(/\..*$/, '');
   if (0) console.log('hostname=' + hostname);
 
-  serversModulePath = path.join(process.cwd(), 'deploy/servers.js');
   try {
     // eslint-disable-next-line global-require
     servers = require(serversModulePath);
@@ -74,6 +72,28 @@ function setup() {
 
 function richError(msg) {
   return new Error(`${msg}. Servers should be defined in ${serversModulePath}`);
+}
+
+function setupDefaultServers() {
+  if (fs.existsSync(serversModulePath)) {
+    throw new Error(`initDefaultServers: file ${serversModulePath} exists`);
+  }
+  let newServers = {
+    [hostname]: {
+      roles: {web: true, test: true, compute: true, db: true},
+    }
+  };
+
+  let contents = `
+/*
+  This file defines your servers. For a single-machine environment you just need one with the .web, .test, .compute and .db roles.
+  When you have a shared database, give only that machine the .db role.
+  When you have a network of robots, it starts to get interesting.
+*/
+module.exports = ${JSON.stringify(newServers, null, 2)};
+`;
+
+  fs.writeFileSync(serversModulePath, contents);
 }
 
 
