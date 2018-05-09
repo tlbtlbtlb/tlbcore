@@ -25,6 +25,9 @@ $.fn.fmtErrorMessage = function(err) {
   if (_.isString(err)) {
     em.text(err);
   }
+  else if (_.isError(err)) {
+    em.text(err.message);
+  }
   else if (!err) {
     em.html('');
   }

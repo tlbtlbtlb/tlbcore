@@ -14,21 +14,43 @@ const box_layout = require('./box_layout');
   Call m.addListener(eventName, handler), but also remove it when the DOM node gets destroyed
 */
 $.fn.onEventsFrom = function(m, eventName, handler) {
-  m.addListener(eventName, handler);
+  if (_.isArray(eventName)) {
+    _.each(eventName, (n) => m.addListener(n, handler));
+  }
+  else {
+    m.on(eventName, handler);
+  }
   this.one('destroyed', () => {
     if (0) console.log(this, 'destroyed, removing event', eventName);
-    m.removeListener(eventName, handler);
+
+    if (_.isArray(eventName)) {
+      _.each(eventName, (n) => m.removeListener(n, handler));
+    }
+    else {
+      m.removeListener(eventName, handler);
+    }
+
     m = null;
     handler = null;
   });
 };
 
 $.fn.nowAndOnEventsFrom = function(m, eventName, handler) {
-  m.addListener(eventName, handler);
+  if (_.isArray(eventName)) {
+    _.each(eventName, (n) => m.addListener(n, handler));
+  }
+  else {
+    m.on(eventName, handler);
+  }
   handler.call(m);
   this.one('destroyed', () => {
     if (0) console.log(this, 'destroyed, removing event', eventName);
-    m.removeListener(eventName, handler);
+    if (_.isArray(eventName)) {
+      _.each(eventName, (n) => m.removeListener(n, handler));
+    }
+    else {
+      m.removeListener(eventName, handler);
+    }
     m = null;
     handler = null;
   });
@@ -113,6 +135,7 @@ $.fn.animation2 = function(m) {
       let dt = (m.animation2LastTime ? Math.min(curTime - m.animation2LastTime, 200) : 20) * 0.001;
       m.animation2LastTime = curTime;
       if (m.animate) m.animate(dt);
+      m.emit('preAnimate', dt);
       m.emit('animate', dt);
       if (m.postAnimate) m.postAnimate(dt);
       window.requestAnimationFrame(wrap);
@@ -121,6 +144,7 @@ $.fn.animation2 = function(m) {
       changesPending--;
       if (changesPending === 0) {
         m.fastDraw = false;
+        m.emit('preAnimate', 0.0);
         m.emit('animate', 0.0);
       }
       window.requestAnimationFrame(wrap);
@@ -187,10 +211,7 @@ $.fn.animation2 = function(m) {
 */
 $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   if (this.length === 0) return;
-  let autoSize = this.hasClass('fillContainer');
-  if (!autoSize) {
-    this.maximizeCanvasResolution();
-  }
+  this.addClass('fillContainer');
   let canvas = this[0];
 
   let avgTime = null;
@@ -346,7 +367,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       throw new Error(`Failed to create context ${o.contextStyle || '2d'}`);
     }
 
-    if (autoSize) {
+    if (1) {
       let devicePixelRatio = window.devicePixelRatio || 1;
       let backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
                                ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1);
@@ -538,55 +559,28 @@ $.fn.fmtAnimatedCanvas = function(m, drawFunc, o) {
 };
 
 
-/* ----------------------------------------------------------------------
-  On some browsers on retina devices, the canvas is at css pixel resolution.
-  This converts it to device pixel resolution.
-*/
-$.fn.maximizeCanvasResolution = function() {
-  this.each((index, canvas) => {
-    let ctx = canvas.getContext('2d');
-    let devicePixelRatio = window.devicePixelRatio || 1;
-    let backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
-                             ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1);
-    if (devicePixelRatio !== backingStoreRatio) {
-      let ratio = devicePixelRatio / backingStoreRatio;
-      let oldWidth = canvas.width;
-      let oldHeight = canvas.height;
+$.fn.drawCanvas2d = function() {
+  let ctx = this[0].getContext('2d');
 
-      // Store pixelRatio here for use by client code
-      canvas.pixelRatio = ratio;
+  let canCssW = this.width();
+  let canCssH = this.height();
 
-      canvas.width = oldWidth * ratio;
-      canvas.height = oldHeight * ratio;
-
-      canvas.style.width = oldWidth + 'px';
-      canvas.style.height = oldHeight + 'px';
-    } else {
-      canvas.pixelRatio = 1;
-    }
-  });
-  return this;
-};
-
-$.fn.setCanvasSize = function(cssWidth, cssHeight, ctx) {
-  if (!this.length) return;
-  let canvas = this[0];
-  if (!ctx) ctx = canvas.getContext('2d');
   let devicePixelRatio = window.devicePixelRatio || 1;
-  let backingStoreRatio = (ctx.webkitBackingStorePixelRatio || ctx.mozBackingStorePixelRatio || ctx.msBackingStorePixelRatio ||
-                           ctx.oBackingStorePixelRatio || ctx.backingStorePixelRatio || 1);
+  let backingStoreRatio = (
+    ctx.webkitBackingStorePixelRatio ||
+    ctx.mozBackingStorePixelRatio ||
+    ctx.msBackingStorePixelRatio ||
+    ctx.backingStorePixelRatio || 1);
 
   let ratio = devicePixelRatio / backingStoreRatio;
-  if (0) console.log('SCS', cssWidth, cssHeight, ratio);
 
   // Store pixelRatio here for use by client code
-  canvas.pixelRatio = ratio;
+  ctx.pixelRatio = ratio;
 
-  canvas.width = cssWidth * ratio;
-  canvas.height = cssHeight * ratio;
+  let canW = this[0].width = Math.floor(canCssW * ratio);
+  let canH = this[0].height = Math.floor(canCssH * ratio);
 
-  canvas.style.width = cssWidth + 'px';
-  canvas.style.height = cssHeight + 'px';
+  let lo = new box_layout.BoxLayout(0, canW, canH, 0, ratio);
 
-  return this;
+  return {ctx, lo};
 };
