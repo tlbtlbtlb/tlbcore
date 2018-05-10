@@ -13,7 +13,6 @@ PUSHDIST_EXCLUDES += \
     --exclude '*.so' \
 	--exclude 'node_modules' \
 	--exclude '*.jsonlog' \
-	--exclude 'build.src' \
 	--exclude 'nodeif/build' \
 	--exclude '._*' \
     --exclude '.build' \
@@ -21,7 +20,18 @@ PUSHDIST_EXCLUDES += \
 	--exclude '.deps' \
 	--exclude 'obj.target' \
 	--exclude '.*.pods' \
-    --exclude '__pycache__'
+    --exclude '__pycache__' \
+	--exclude 'build.*' \
+	--exclude traces \
+	--exclude nodeif/build \
+	--exclude /doc \
+	--exclude /data \
+	--exclude node_modules \
+	--exclude rethinkdb_data \
+	--exclude /bin \
+	--exclude /models \
+	--exclude /MakeLocal.inc \
+	--exclude .tags
 
 
 printvar.% : ## Print named variable, eg "make printvar.UNAME_SYSTEM"

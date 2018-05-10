@@ -54,7 +54,4 @@ force :
 	git ls-files -z >$@
 
 push.%: .gitfiles
-	rsync -a --inplace --from0 --relative --files-from .gitfiles . $*:tlbcore/.
-
-pushdist.% : force
 	rsync -a --inplace --relative $(PUSHDIST_EXCLUDES) --delete . $*:tlbcore/.
