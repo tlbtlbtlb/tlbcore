@@ -51,8 +51,6 @@ function load(webServer) {
 
 Fetching http://tlb.org/ will return a single minified HTML file including all the javascript files added with `p.addScript`, and all the CSS files added with `p.addCss`. It also includes a bunch of libraries already included in `webServer.baseProvider`.
 
-The third-party libraries include [jQuery](http://www.jquery.com/), [underscore](http://underscorejs.org), [eventemitter](https://www.npmjs.org/package/eventemitter), and [mixpanel](http://www.mixpanel.com). (They should be installed using npm). Tlbcore/web adds a bunch more goodies:
-
  * A browser history and URL fragment manager, to make single page apps easy
  * A websocket API for browser and server
  * By default, web pages make a websocket connection to ws://host/console. You can send error message over this channel by calling `errlog(...)`
