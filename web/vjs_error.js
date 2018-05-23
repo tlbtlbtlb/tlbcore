@@ -1,5 +1,4 @@
 'use strict';
-/* global $ */
 const _ = require('lodash');
 const {$} = require('./vjs_browser');
 

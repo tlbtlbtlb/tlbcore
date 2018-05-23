@@ -2,7 +2,6 @@
 const _ = require('lodash');
 const async = require('async');
 const path = require('path');
-const fs = require('fs');
 const url = require('url');
 const querystring = require('querystring');
 const https = require('https');
@@ -157,13 +156,11 @@ OAuthProvider.prototype.getAccessToken = function(authCode, up, cb) {
       let accessTokenInfo = querystring.parse(data);
       logio.I(remote, accessTokenInfo);
       if (cb) {
-        cb(null, accessTokenInfo);
-        cb = null;
+        return cb(null, accessTokenInfo);
       }
     });
     res.on('err', (err) => {
-      cb(err, null);
-      cb = null;
+      return cb(err, null);
     });
   });
   postReq.write(querystring.stringify({

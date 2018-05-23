@@ -3,13 +3,10 @@ const _ = require('lodash');
 const async = require('async');
 const util = require('util');
 const path = require('path');
-const url = require('url');
 const querystring = require('querystring');
 const https = require('https');
-const http = require('http');
 const assert = require('assert');
 const logio = require('../common/logio');
-const vjs_safety = require('./vjs_safety');
 const bogocache = require('./bogocache');
 
 exports.GithubApi = GithubApi;

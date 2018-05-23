@@ -20,6 +20,7 @@ function main() {
       cb(new Error('testerr always raises this error'));
     },
   });
+  assert.ok(pp);
 }
 
 main();

@@ -5,10 +5,7 @@
 'use strict';
 const _ = require('lodash');
 const $ = require('jquery');
-const fs = require('fs');
 const web_socket_browser = require('./web_socket_browser');
-const vjs_hit_detector = require('./vjs_hit_detector');
-const box_layout = require('./box_layout');
 const vjs_style = require('./vjs_style');
 
 /*
@@ -35,19 +32,6 @@ $.action = {};
 $.humanUrl = {};
 $.enhance = {};
 $.allContent = {};
-
-// Might want to write something that works without window.crypto
-function mkRandomToken(len) {
-  if (!len) len = 12;
-  let alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'; // Bitcoin's base52
-  let a = new Uint32Array(len);
-  window.crypto.getRandomValues(a);
-  let ret = [];
-  for (let i=0; i < len; i++) {
-    ret.push(alphabet.substr(a[i] % alphabet.length, 1));
-  }
-  return ret.join('');
-}
 
 /* ----------------------------------------------------------------------
    A simple one-page application framework
@@ -82,7 +66,7 @@ $.defHumanUrl = function(pageid, parse, fmt) {
   $.humanUrl[pageid] = {fmt: fmt, parse: parse};
 };
 
-$.fn.page_notFound = function(o) {
+$.fn.page_notFound = function(_o) {
   document.title = 'Not Found';
   this.html(`
     <h3>Not Found</h3>
@@ -109,7 +93,7 @@ function interactiveLimitOutstanding(maxOutstanding, f) {
       return;
     }
     outstanding++;
-    f(function(err) {
+    f(function(_err) {
       outstanding--;
       if (queued) {
         queued = 0;
@@ -513,15 +497,15 @@ $.fn.syncChildren = function(newItems, options) {
   let domKey = options.domKey || 'syncDomChildren';
   let domClass = options.domClass || 'syncDomChildren';
 
-  let removeEl = options.removeEl || (function (el, name) {
+  let removeEl = options.removeEl || (function (el, _name) {
     el.remove();
   });
-  let createEl = options.createEl || (function (name) {
+  let createEl = options.createEl || (function (_name) {
     return $(`<div class="${domClass}">`);
   });
-  let setupEl = options.setupEl || (function (el) {
+  let setupEl = options.setupEl || (function (_el) {
   });
-  let updateEl = options.updateEl || (function (el) {
+  let updateEl = options.updateEl || (function (_el) {
   });
 
   // Find all contained dom elements with domClass, index them by domKey
@@ -549,7 +533,7 @@ $.fn.syncChildren = function(newItems, options) {
 
   // Insert new elems into dom
   let afterEl = null;
-  _.each(newItems, (name, itemi) => {
+  _.each(newItems, (name, _itemi) => {
     if (oldEls.hasOwnProperty(name)) {
       afterEl = oldEls[name];
     } else {
@@ -768,7 +752,7 @@ function setupConsole() {
         this.rpc('reloadOn', {
           reloadKey: window.reloadKey,
           resourceMacs: window.resourceMacs,
-        }, (msg) => {
+        }, (_msg) => {
           console.log('Reload');
           window.location.reload(true);
         });
@@ -783,25 +767,6 @@ function setupConsole() {
     });
   } else {
     console.log('setupConsole noreload');
-  }
-}
-
-function disableConsole() {
-  try {
-    let _console = window.console;
-    Object.defineProperty(window, 'console', {
-      get: function() {
-        if (_console._commandLineAPI) {
-          throw new Error(`Sorry, for security reasons, the script console is deactivated`);
-        } else {
-          return _console;
-        }
-      },
-      set: function(_val) {
-        _console = _val;
-      }
-    });
-  } catch (ex) {
   }
 }
 
@@ -860,28 +825,6 @@ function setupClicks() {
     }
   });
 }
-
-/* ----------------------------------------------------------------------
-  Interface to Mixpanel.
-*/
-
-function setupMixpanel() {
-  try {
-    let mpkey = null, mpid = null;
-    // WRITEME: add mixpanel key here
-    if (0 && window.anyCloudHost === 'localhost') {
-      mpkey = 'dd77bca94d9b6ade709f734c3026b305';   // Devel
-      mpid = '3923';
-    }
-    if (mpkey) {
-      window.mpmetrics = new window.MixpanelLib(mpkey);
-      window.mpmetrics.statsUrl = 'http://mixpanel.com/report/' + mpid + '/';
-    }
-  } catch(ex) {
-    errlog('setupMixpanel', ex);
-  }
-}
-
 
 
 /* ----------------------------------------------------------------------

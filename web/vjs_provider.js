@@ -8,7 +8,6 @@
 const _ = require('lodash');
 const assert = require('assert');
 const events = require('events');
-const net = require('net');
 const fs = require('fs');
 const path = require('path');
 const xml = require('xmldom');
@@ -248,10 +247,9 @@ function persistentReadFile(fn, encoding, cb) {
     fs.readFile(fn, encoding, (err, data) => {
       if (err) {
         logio.E(fn, err);
-        cb(null);
-      } else {
-        cb(data);
+        return cb(null);
       }
+      cb(data);
     });
   };
   fs.stat(fn, (err, stats) => {
@@ -261,7 +259,7 @@ function persistentReadFile(fn, encoding, cb) {
     }
 
     let prevStats = stats;
-    fs.watch(fn, {persistent: false}, (event, fn1) => {
+    fs.watch(fn, {persistent: false}, (_event, _fn1) => {
       fs.stat(fn, (err, newStats) => {
         if (err) {
           logio.E(fn, err);
@@ -321,7 +319,7 @@ AnyProvider.prototype.start = function() {
   this.started = true;
 };
 
-AnyProvider.prototype.mirrorTo = function(dst) {
+AnyProvider.prototype.mirrorTo = function(_dst) {
 };
 
 AnyProvider.prototype.getDesc = function() {
@@ -456,7 +454,7 @@ XmlContentDirProvider.prototype.start = function() {
         cp.on('changed', () => {
 
           let asScriptBody = '';
-          _.each(this.subs, (it, itName) => {
+          _.each(this.subs, (it, _itName) => {
             if (it.asScriptBody) {
               asScriptBody = asScriptBody + '\n' + it.asScriptBody;
             }
@@ -567,7 +565,7 @@ BrowserifyProvider.prototype.toString = function() {
   return "BrowserifyProvider(" + JSON.stringify(this.fn) + ")";
 };
 
-BrowserifyProvider.prototype.loadData = function(data) {
+BrowserifyProvider.prototype.loadData = function(_data) {
 };
 
 BrowserifyProvider.prototype.getType = function() {
@@ -775,7 +773,7 @@ CssProvider.prototype.getType = function() {
    to be available in the browser with $(...).fmtContent[contentName]
 */
 
-function SvgProvider(fn, contentName) {
+function SvgProvider(fn, _contentName) {
   AnyProvider.call(this);
   this.fn = fn;
   this.basename = getBasename(fn);
@@ -803,7 +801,6 @@ SvgProvider.prototype.start = function() {
       return;
     }
 
-    let out = '';
     let name = this.basename;
     this.asSvg = doc.docNode.getUnderlyingXMLText();
 
@@ -1138,7 +1135,7 @@ ProviderSet.prototype.toString = function() {
 
 // ----------------------------------------------------------------------
 
-function RawFileProvider(fn, o) {
+function RawFileProvider(fn, _o) {
   AnyProvider.call(this);
   assert.ok(_.isString(fn));
   this.fn = fn;
@@ -1151,7 +1148,7 @@ function RawFileProvider(fn, o) {
 }
 RawFileProvider.prototype = Object.create(AnyProvider.prototype);
 
-RawFileProvider.prototype.handleRequest = function(req, res, suffix) {
+RawFileProvider.prototype.handleRequest = function(req, res, _suffix) {
 
   fs.readFile(this.fn, this.encoding, (err, content) => {
     if (err) {

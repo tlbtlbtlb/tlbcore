@@ -398,7 +398,7 @@ const _goodGraphColors = [
   '#999900'
 ];
 
-const _darkGraphColors = _.map(_goodGraphColors, (c) => { blendColors(c, '#000000', 0.33); });
+const _darkGraphColors = _.map(_goodGraphColors, (c) => blendColors(c, '#000000', 0.33));
 
 function goodGraphColor(i) {
   return _goodGraphColors[i % _goodGraphColors.length];

@@ -31,7 +31,7 @@ describe('GithubApi', function() {
   if (0) it('should report errors', function(cb) {
     this.timeout(5000);
     let api = new github_api.GithubApi('foobar');
-    api.getUserInfo(function(err, userInfo) {
+    api.getUserInfo(function(err, _userInfo) {
       if (!err) {
         return cb(new Error('Expected error using fake Github credentials'));
       }

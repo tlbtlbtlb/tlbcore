@@ -24,14 +24,14 @@ function ChildJsonPipe(execName, execArgs, execOptions, o) {
   this.verbose = o.verbose || 0;
   let nChildren = o.nChildren || 1;
 
-  this.children = _.map(_.range(nChildren), (childi) => {
+  this.children = _.map(_.range(nChildren), () => {
     return child_process.spawn(execName, execArgs, _.assign({stdio: [
       'pipe',
       'pipe',
       o.captureStderr ? 'pipe' : 'inherit'
     ]}, execOptions));
   });
-  this.queues = _.map(_.range(this.children.length), (childi) => {
+  this.queues = _.map(_.range(this.children.length), () => {
     return [];
   });
   this.logs = [];

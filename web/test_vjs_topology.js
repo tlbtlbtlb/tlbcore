@@ -1,8 +1,6 @@
 'use strict';
 
 const _ = require('lodash');
-const os = require('os');
-const fs = require('fs');
 const path = require('path');
 const vjs_topology = require('tlbcore/web/vjs_topology');
 

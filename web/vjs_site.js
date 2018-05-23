@@ -7,18 +7,12 @@ const util = require('util');
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
-const os = require('os');
 const url = require('url');
 const path = require('path');
 const websocket = require('websocket');
-
 const logio = require('../common/logio');
-const vjs_dbs = require('./vjs_dbs');
-const vjs_auth = require('./vjs_auth');
 const vjs_provider = require('./vjs_provider');
 const vjs_topology = require('./vjs_topology');
-const vjs_safety = require('./vjs_safety');
-const vjs_image = require('./vjs_image');
 const web_socket_server = require('./web_socket_server');
 
 exports.WebServer = WebServer;
@@ -110,8 +104,8 @@ WebServer.prototype.setupStdContent = function(prefix) {
     on: () => {},
     isDir: () => { return false; },
     getStats: () => { return {}; },
-    handleRequest: (req, res, suffix) => {
-      this.getContentStats(function(err, cs) {
+    handleRequest: (req, res, _suffix) => {
+      this.getContentStats(function(err, _cs) {
         if (err) {
           res.writeHead(500, {'Content-Type': 'text/json'});
           res.write(JSON.stringify({
@@ -158,7 +152,7 @@ WebServer.prototype.setupContent = function(dirs) {
 
 
 WebServer.prototype.startAllContent = function() {
-  _.each(this.urlProviders, (p, name) => {
+  _.each(this.urlProviders, (p, _name) => {
     if (p.start) p.start();
   });
 };
@@ -350,7 +344,7 @@ WebServer.prototype.reloadAllBrowsers = function(reloadKey) {
 
 WebServer.prototype.getAllContentMacs = function() {
   let ret = {};
-  _.each(this.urlProviders, (provider, url) => {
+  _.each(this.urlProviders, (provider, _url) => {
     if (provider && provider.contentMac) {
       ret[provider.contentMac] = true;
     }
@@ -388,9 +382,10 @@ WebServer.prototype.mkConsoleHandler = function() {
         if (_.every(this.resourceMacs, (mac) => goodMacs[mac])) {
           logio.I(this.label, 'Valid contentMac', this.resourceMacs);
           this.reloadCb = cb;
-        } else {
+        }
+        else {
           logio.I(this.label, 'Obsolete contentMac (suggesting reload)', this.resourceMacs);
-          cb('reload');
+          return cb('reload');
         }
       }
     }

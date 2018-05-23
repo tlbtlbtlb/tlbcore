@@ -9,8 +9,6 @@ const vjs_safety = require('./vjs_safety');
 
 exports.mkImageVersions = mkImageVersions;
 
-let verbose = 2;
-
 let filesToSync = [];
 
 /*
@@ -121,7 +119,7 @@ let syncActiveCount = 0;
 function syncPendingFiles() {
   if (filesToSync.length === 0 || syncActiveCount > 0) return;
 
-  let todo = _.uniq(_.sortBy(filesToSync, _.identity), true);
+  let todo = _.uniq(_.sortBy(filesToSync, _.identity));
   filesToSync = [];
 
   let dests = vjs_topology.getRoleServers((i) => i.roles.web && i.roles.ssh && i.reachable && !i.local);
@@ -139,7 +137,7 @@ function syncPendingFiles() {
       parCb(null);
     });
 
-  }, function(err) {
+  }, function(_err) {
     syncActiveCount --;
   }, 4);
 }
@@ -209,9 +207,9 @@ function mkImageVersions(origFn, options, cb) {
         }
         cb1(null);
       });
-    }, function(err) {
+    }, function(_err) {
+      setTimeout(syncPendingFiles, 0);
       cb(ii);
-      syncPendingFiles();
     });
   });
 

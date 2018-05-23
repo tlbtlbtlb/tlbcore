@@ -1,7 +1,6 @@
 'use strict';
 
 const _ = require('lodash');
-const url = require('url');
 const vjs_safety = require('./vjs_safety');
 
 describe('vjs_safety.isValidEmail', function() {

@@ -40,7 +40,7 @@ HitDetector.prototype.beginDrawing = function(ctx) {
   this.hoverAction = null;
 };
 
-HitDetector.prototype.endDrawing = function(ctx) {
+HitDetector.prototype.endDrawing = function(_ctx) {
   this.ctx = null;
 };
 

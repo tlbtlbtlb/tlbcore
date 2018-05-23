@@ -38,7 +38,6 @@ exports.mkWebSocketRpc = mkWebSocketRpc;
 
 function mkWebSocketRpc(wsr, wsc, handlers) {
   let pending = new web_socket_helper.RpcPendingQueue();
-  let callbacks = {};
   let rxBinaries = [];
 
   setupHandlers();
@@ -110,8 +109,8 @@ function mkWebSocketRpc(wsr, wsc, handlers) {
         if (verbose >= 1) logio.E(handlers.label, 'Unknown response', msg.id);
         return;
       }
-      if (verbose >= 2) logio.I(handlers.label, 'return', msg.error, msg.result);
-      cb.call(handlers, msg.error, ...msg.result);
+      if (verbose >= 2) logio.I(handlers.label, 'return', msg.error, result);
+      cb.call(handlers, msg.error, ...result);
     }
     else {
       if (verbose >= 1) logio.E(handlers.label, 'Unknown message', msg);

@@ -2,10 +2,6 @@
 const _ = require('lodash');
 const $ = require('jquery');
 const fs = require('fs');
-const web_socket_browser = require('./web_socket_browser');
-const vjs_hit_detector = require('./vjs_hit_detector');
-const box_layout = require('./box_layout');
-
 const insertStyle = require('insert-css');
 
 insertStyle(fs.readFileSync(`${__dirname}/common.css`, 'utf8'));

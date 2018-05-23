@@ -41,6 +41,7 @@ describe('JSON', function() {
     for (let i=0; i<500; i++) {
       let arrS = JSON.stringify(arr);
       let arr2 = JSON.parse(arrS);
+      assert.ok(arr2);
     }
   });
 });

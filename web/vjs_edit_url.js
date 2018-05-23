@@ -14,8 +14,8 @@ $.startEditUrl = function() {
       eu = $('<div id="popupEditBlock"></div><div id="popupEditUrl"></div>').appendTo(document.body);
 
       let state = history.state;
-      pageid = history.state.pageid;
-      let options = history.state.o;
+      pageid = state.pageid;
+      let options = state.o;
       let optionsStr = JSON.stringify(options, false, 2);
 
       cm = CodeMirror(eu[1], {

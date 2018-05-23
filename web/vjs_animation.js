@@ -1,7 +1,6 @@
 'use strict';
 const _ = require('lodash');
 const {$, mkDeferQ} = require('./vjs_browser');
-const web_socket_browser = require('./web_socket_browser');
 const vjs_hit_detector = require('./vjs_hit_detector');
 const box_layout = require('./box_layout');
 
@@ -217,7 +216,6 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
   let avgTime = null;
   let drawCount = 0;
   let hd = new vjs_hit_detector.HitDetector(); // Persistent
-  let didCaptureKeys = false;
   let didContextMenu = false;
 
   if (0) { // for debugging
@@ -305,12 +303,12 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     }
   });
 
-  this.on('mouseout', (ev) => {
+  this.on('mouseout', (_ev) => {
     hd.mdX = hd.mdY = null;
     requestAnimationFrame(redrawCanvas);
   });
 
-  this.on('mouseover', (ev) => {
+  this.on('mouseover', (_ev) => {
     requestAnimationFrame(redrawCanvas);
   });
 
@@ -336,7 +334,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
     return false;
   });
 
-  $(window).on('mouseup.mkAnimatedCanvas', (ev) => {
+  $(window).on('mouseup.mkAnimatedCanvas', (_ev) => {
     if (hd.dragCursor) {
       hd.dragCursor = null;
     }
@@ -502,7 +500,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       }
       let createMovieXhr = new XMLHttpRequest();
       createMovieXhr.open('POST', 'create_movie', true);
-      createMovieXhr.onload = (e) => {
+      createMovieXhr.onload = (_ev) => {
         if (0) console.log('create_movie returns', createMovieXhr.response);
         createMovieRsp = JSON.parse(createMovieXhr.response);
         hd.movieId = createMovieRsp.movie_id;
@@ -529,7 +527,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
           addFrameReq.append('movie_id', hd.movieId);
           let addFrameXhr = new XMLHttpRequest();
           addFrameXhr.open('POST', 'add_frame', true);
-          addFrameXhr.onload = (e) => {
+          addFrameXhr.onload = (_ev) => {
             movieOptions.onDone(null, {});
           };
           addFrameXhr.send(addFrameReq);
@@ -542,7 +540,7 @@ $.fn.mkAnimatedCanvas = function(m, drawFunc, o) {
       endMovieReq.append('movie_id', hd.movieId);
       let endMovieXhr = new XMLHttpRequest();
       endMovieXhr.open('POST', 'end_movie', true);
-      endMovieXhr.onload = (e) => {
+      endMovieXhr.onload = (_ev) => {
         movieOptions.onDone(null, {movieUrl: 'download_movie?movie_id=' + hd.movieId});
       };
       endMovieXhr.send(endMovieReq);

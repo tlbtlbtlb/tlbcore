@@ -15,7 +15,6 @@ exports.mkWebSocketClientRpc = mkWebSocketClientRpc;
 function mkWebSocketClientRpc(wscUrl, handlers) {
   let txQueue = [];
   let pending = new web_socket_helper.RpcPendingQueue();
-  let callbacks = {};
   let rxBinaries = [];
   let shutdownRequested = false;
   let interactivePending = null;
@@ -42,7 +41,7 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
         handleMsg(msg);
       }
     };
-    wsc.onopen = function(event) {
+    wsc.onopen = function(_event) {
       if (verbose >= 2) console.log(wscUrl + ' Opened');
       if (txQueue) {
         _.each(txQueue, function(m) {
@@ -53,7 +52,7 @@ function mkWebSocketClientRpc(wscUrl, handlers) {
       if (handlers.start) handlers.start();
       reopenBackoff = 1000;
     };
-    wsc.onclose = function(event) {
+    wsc.onclose = function(_event) {
       if (handlers.close) {
         handlers.close();
       }

@@ -2,10 +2,6 @@
 const _ = require('lodash');
 const redis = require('redis');
 const logio = require('../common/logio');
-const vjs_auth = require('./vjs_auth');
-const vjs_storage = require('./vjs_storage');
-const vjs_topology = require('./vjs_topology');
-const vjs_safety = require('./vjs_safety');
 
 /*
   High-level interface to the database.
@@ -58,18 +54,13 @@ function defDb(name, type, host, port, options) {
 function enhanceRedis(redis0) {
 
   redis0.getObj = function(key, cb) {
-    let db = this;
-    db.get(key, function(err, objStr) {
+    this.get(key, (err, objStr) => {
       let obj;
       if (err) {
-        if (cb) cb(err, undefined);
-        cb = null;
-        return;
+        return cb(err);
       }
       if (!objStr) {
-        if (cb) cb(null, undefined);
-        cb = null;
-        return;
+        return cb(null, undefined);
       }
 
       try {
@@ -78,77 +69,75 @@ function enhanceRedis(redis0) {
       catch (ex) {
         logio.E('db ' + key, 'Bad objStr', objStr, ex);
       }
-      if (cb) cb(null, obj);
-      cb = null;
+      return cb(null, obj);
     });
   };
 
   redis0.setObj = function(key, obj, cb) {
-    let db = this;
+    if (!cb) cb = () => {};
     let objStr = JSON.stringify(obj);
-    db.set(key, objStr, function(err) {
-      if (err) logio.E('redis.setObj ' + key, 'Error ' + err);
-      if (cb) cb(err);
-      cb = null;
+    this.set(key, objStr, (err) => {
+      if (err) {
+        logio.E('redis.setObj ' + key, 'Error ' + err);
+        return cb(err);
+      }
+      return cb(null);
     });
   };
 
   redis0.createObj = function(key, obj, cb) {
-    let db = this;
+    if (!cb) cb = () => {};
     let objStr = JSON.stringify(obj);
-    db.setnx(key, objStr, function(err, created) {
-      if (err) logio.E('redis.createObj ' + key, 'Error ' + err);
-      if (cb) cb(err);
-      cb = null;
+    this.setnx(key, objStr, (err, _created) => {
+      if (err) {
+        logio.E('redis.createObj ' + key, 'Error ' + err);
+        return cb(err);
+      }
+      return cb(null);
     });
   };
 
   redis0.updateObj = function(key, values, creator, cb) {
-    let db = this;
-    db.getObj(key, function(err, obj) {
+    if (!cb) cb = () => {};
+    this.getObj(key, (err, obj) => {
       if (err) {
-        if (cb) cb(err);
-        cb = null;
-        return;
+        return cb(err);
       }
       if (obj === undefined) {
         if (creator === undefined) {
           logio.E('redis.updateObj ' + key, 'Nonexistent');
-          if (cb) cb(new Error('creation failed'));
-          cb = null;
-          return;
+          return cb(new Error('creation failed'));
         }
         if (_.isFunction(creator)) {
           obj = creator();
-        } else {
+        }
+        else {
           obj = creator;
         }
         if (obj === undefined) {
-          if (cb) cb(new Error('creation failed'));
-          cb = null;
-          return;
+          return cb(new Error('creation failed'));
         }
       }
-      if (typeof(obj) !== 'object') {
+      if (!_.isObject(obj)) {
         logio.E('redis.updateObj', key + ' not an object (type=' + typeof(obj) + ')');
-        if (cb) cb(new Error('creation failed'));
-        cb = null;
-        return;
+        return cb(new Error('creation failed'));
       }
       if (_.isFunction(values)) {
         values(obj);
-      } else {
+      }
+      else {
         _.update(obj, values);
       }
-      db.setObj(key, obj, cb);
+      this.setObj(key, obj, cb);
     });
   };
 
   redis0.deleteObj = function(key, cb) {
-    let db = this;
-    db.del(key, function(err) {
-      if (cb) cb(err);
-      cb = null;
+    this.del(key, (err) => {
+      if (err) {
+        return cb(err);
+      }
+      cb(null);
     });
   };
 }

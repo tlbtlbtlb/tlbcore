@@ -1,6 +1,5 @@
 'use strict';
 const _ = require('lodash');
-const child_process = require('child_process');
 
 exports.setMaxLength = function(v) { maxLength = v; };
 
@@ -11,6 +10,7 @@ let baseTimestamp = +Date.now();
 // ----------------------------------------------------------------------
 
 const logDataSep = exports.logDataSep = (remote, sep, args) => {
+  // eslint-disable-next-line lodash/prefer-lodash-typecheck
   if (typeof(remote) === 'undefined') remote = '?';
   let infos = [];
   let stacks = [];
@@ -28,6 +28,7 @@ const logDataSep = exports.logDataSep = (remote, sep, args) => {
     else if (arg === undefined) {
       infos.push('undefined');
     }
+    // eslint-disable-next-line lodash/prefer-lodash-typecheck
     else if (typeof(arg) === 'object') {
       if (arg.stack && arg.message) {
         stacks.push(arg.stack.toString());
@@ -39,6 +40,7 @@ const logDataSep = exports.logDataSep = (remote, sep, args) => {
         infos.push(JSON.stringify(arg));
       }
     }
+    // eslint-disable-next-line lodash/prefer-lodash-typecheck
     else if (typeof(arg) === 'string') {
       infos.push(arg.trim());
     }

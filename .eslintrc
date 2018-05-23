@@ -3,7 +3,11 @@ env:
   commonjs: true
   es6: true
   node: true
-extends: eslint:recommended
+plugins:
+ - lodash
+extends:
+ - eslint:recommended
+ - plugin:lodash/recommended
 rules:
   accessor-pairs: error
   array-bracket-newline: off
@@ -23,7 +27,7 @@ rules:
   - error
   - always
   brace-style: off
-  callback-return: off
+  callback-return: warn
   camelcase: off
   capitalized-comments: off
   class-methods-use-this: error
@@ -73,6 +77,23 @@ rules:
   lines-around-comment: off
   lines-around-directive: off
   lines-between-class-members: error
+  lodash/import-scope: off
+  lodash/preferred-alias: off
+  lodash/prefer-lodash-method: off
+  lodash/prefer-noop: off
+  lodash/prefer-is-nil: off
+  lodash/prefer-invoke-map: off
+  lodash/prefer-constant: off
+  lodash/prefer-times: off
+  lodash/prop-shorthand: off
+  lodash/matches-prop-shorthand: off
+  lodash/matches-shorthand: off
+  lodash/prefer-flat-map: off
+  lodash/prefer-matches: off
+  lodash/prefer-immutable-method: off
+  lodash/prefer-get: off
+  lodash/prefer-map: off
+  lodash/prefer-filter: off
   max-depth: off
   max-len: off
   max-lines: off
@@ -174,7 +195,10 @@ rules:
   no-unmodified-loop-condition: error
   no-unneeded-ternary: error
   no-unused-expressions: error
-  no-unused-vars: off
+  no-unused-vars:
+      - warn
+      - varsIgnorePattern: "^(_|assert|util|logio|[$]|async|path)$"
+        argsIgnorePattern: "^(_.*)$"
   no-use-before-define: off
   no-useless-call: error
   no-useless-computed-key: error

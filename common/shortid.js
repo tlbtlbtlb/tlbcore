@@ -1,10 +1,10 @@
 'use strict';
-const crypto = require('crypto');
 const _ = require('lodash');
-
+const crypto = require('crypto');
 exports.mkRandToken = mkRandToken;
 
 function mkRandToken(len) {
+  if (!len) len = 12;
   let randChars = 'abcdefghjkmnpqrstuvwxyz';
   let randData = crypto.randomBytes(len);
   let randSuffix = _.map(randData, (byte) => {
