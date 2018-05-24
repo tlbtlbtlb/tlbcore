@@ -6,8 +6,6 @@
 const _ = require('lodash');
 const $ = require('jquery');
 const web_socket_browser = require('./web_socket_browser');
-const vjs_style = require('./vjs_style');
-
 /*
   Use:
     const {$} = require('tlbcore/web/vjs_browser');
@@ -26,12 +24,16 @@ exports.pageSetupFull = pageSetupFull;
 exports.interactiveLimitOutstanding = interactiveLimitOutstanding;
 exports.fmtHashOptions = fmtHashOptions;
 exports.escapeHtml = escapeHtml;
-exports.spinnerUrlBase = vjs_style.spinnerUrlBase;
 
 $.action = {};
 $.humanUrl = {};
 $.enhance = {};
 $.allContent = {};
+
+require('./vjs_animation');
+require('./vjs_error');
+const vjs_style = require('./vjs_style');
+exports.spinnerUrlBase = vjs_style.spinnerUrlBase;
 
 /* ----------------------------------------------------------------------
    A simple one-page application framework

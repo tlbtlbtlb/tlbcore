@@ -1,6 +1,5 @@
 //-*-C++-*-
-#ifndef _TLBCORE_COMMON_STD_HEADERS_H
-#define _TLBCORE_COMMON_STD_HEADERS_H
+#pragma once
 
 #if defined(__AVR32__)
 
@@ -169,6 +168,4 @@ typedef complex< float > complexf;
 
 #  include "./host_debug.h"
 #  include "./host_profts.h"
-#endif
-
 #endif

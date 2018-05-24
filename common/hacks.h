@@ -158,7 +158,7 @@ string as_string(T const &it) {
 string file_string(string const &fn);
 #endif
 
-#include "sys/stat.h"
+#include <sys/stat.h>
 
 struct exec_change_watcher {
   exec_change_watcher();
